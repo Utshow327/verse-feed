@@ -1955,7 +1955,7 @@ function populateVoiceWheel() {
     requestAnimationFrame(() => syncVoiceWheelToCurrent());
 }
 
-let voiceScrollTimeout;
+
 function setupVoiceWheelListeners() {
     const wheel = document.getElementById('voice-scroll-wheel');
     if (!wheel) return;
