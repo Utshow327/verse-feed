@@ -1,0 +1,17 @@
+{
+  "name": "Spiritual Feed",
+  "short_name": "Spirit",
+  "description": "A clean, ad-free feed of spiritual texts across religions.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iIzBkMTExNyIvPjxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1NiIgcj0iMTkyIiBmaWxsPSJub25lIiBzdHJva2U9IiNhYmIyYmYiIHN0cm9rZS13aWR0aD0iMzIiLz48Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjEyOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTRlZWY1IiBzdHJva2Utd2lkdGg9IjMyIi8+PC9zdmc+",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
