@@ -1939,10 +1939,11 @@ function populateVoiceWheel() {
     if (!wheel) return;
     wheel.innerHTML = '';
 
-    Object.keys(voices).forEach((voiceKey, index) => {
+    voicesList.forEach((voiceObj, index) => {
+        const voiceKey = voiceObj.value;
         const div = document.createElement('div');
         div.className = 'voice-wheel-item';
-        div.innerText = voices[voiceKey].name.split(' ')[0]; // short name
+        div.innerText = voiceObj.label.split(' ')[0]; // short name
         div.dataset.val = voiceKey;
         div.onclick = () => {
             const target = div.offsetLeft + div.offsetWidth / 2 - wheel.clientWidth / 2;
