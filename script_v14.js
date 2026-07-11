@@ -173,12 +173,7 @@ let isProgrammaticScroll = false;
 // (System TTS fallback setup removed, purely using offline Piper TTS)
 async function initApp() {
     populateVoiceWheel();
-    try {
-        let lfSaved = await localforage.getItem('savedVerses');
-        if (Array.isArray(lfSaved)) savedVerses = lfSaved;
-    } catch (e) {
-        console.error('LocalForage load error:', e);
-    }
+
     showSavedVerses();
     
     try {
@@ -1625,7 +1620,7 @@ function toggleBookmark(v, btnElement) {
         savedVerses.push(v);
         if (btnElement) btnElement.classList.add('bookmarked');
     }
-    localforage.setItem('savedVerses', savedVerses);
+    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
 }
 function showSavedVerses() {
     const list = document.getElementById('saved-list');
@@ -1948,8 +1943,8 @@ function populateVoiceWheel() {
         div.innerText = voiceObj.label.split(' ')[0]; // short name
         div.dataset.val = voiceKey;
         div.onclick = () => {
-            const target = div.offsetLeft + div.offsetWidth / 2 - wheel.clientWidth / 2;
-            wheel.scrollTo({ left: target, behavior: 'smooth' });
+            const target = div.offsetTop + div.offsetHeight / 2 - wheel.clientHeight / 2;
+            wheel.scrollTo({ top: target, behavior: 'smooth' });
         };
         wheel.appendChild(div);
     });
@@ -1957,7 +1952,6 @@ function populateVoiceWheel() {
     setupVoiceWheelListeners();
     requestAnimationFrame(() => syncVoiceWheelToCurrent());
 }
-
 
 function setupVoiceWheelListeners() {
     const wheel = document.getElementById('voice-scroll-wheel');
@@ -1978,7 +1972,7 @@ function setupVoiceWheelListeners() {
 
     let wheelCooldown = false;
     wheel.addEventListener('wheel', e => {
-        if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+        if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
         e.preventDefault();
         if (wheelCooldown) return;
         wheelCooldown = true;
@@ -1986,9 +1980,9 @@ function setupVoiceWheelListeners() {
 
         const items = getVoiceWheelItems();
         const firstItem = items[0];
-        const itemWidth = firstItem ? firstItem.offsetWidth : 50;
+        const itemHeight = firstItem ? firstItem.offsetHeight : 30;
         const direction = Math.sign(e.deltaY);
-        wheel.scrollBy({ left: direction * itemWidth, behavior: 'smooth' });
+        wheel.scrollBy({ top: direction * itemHeight, behavior: 'smooth' });
     }, { passive: false });
 }
 
@@ -2010,11 +2004,11 @@ function updateVoiceWheelActiveStyle() {
 function getActiveVoiceWheelItem() {
     const wheel = document.getElementById('voice-scroll-wheel');
     if (!wheel) return null;
-    const center = wheel.scrollLeft + wheel.clientWidth / 2;
+    const center = wheel.scrollTop + wheel.clientHeight / 2;
     let closest = null;
     let minDiff = Infinity;
     getVoiceWheelItems().forEach(item => {
-        const itemCenter = item.offsetLeft + item.offsetWidth / 2;
+        const itemCenter = item.offsetTop + item.offsetHeight / 2;
         const diff = Math.abs(itemCenter - center);
         if (diff < minDiff) {
             minDiff = diff;
@@ -2031,12 +2025,11 @@ function syncVoiceWheelToCurrent() {
     const idx = items.findIndex(i => i.dataset.val === selectedVoice);
     if (idx !== -1) {
         const item = items[idx];
-        const targetScroll = item.offsetLeft + item.offsetWidth / 2 - wheel.clientWidth / 2;
-        wheel.scrollTo({ left: targetScroll, behavior: 'smooth' });
+        const targetScroll = item.offsetTop + item.offsetHeight / 2 - wheel.clientHeight / 2;
+        wheel.scrollTo({ top: targetScroll, behavior: 'smooth' });
         setTimeout(() => updateVoiceWheelActiveStyle(), 350);
     }
 }
-
 function populateChapterWheel() {
     const wheel = document.getElementById('chapter-scroll-wheel');
     if (!wheel) return;
@@ -2644,7 +2637,7 @@ function executeRadialAction() {
         const index = savedVerses.findIndex(s => s.book === currentTargetVerse.book && s.chapter === currentTargetVerse.chapter && s.verse === currentTargetVerse.verse);
         if (index > -1) {
             savedVerses.splice(index, 1);
-            localforage.setItem('savedVerses', savedVerses);
+            localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
             showSavedVerses();
             showToast('Removed Bookmark');
         } else {
@@ -2662,7 +2655,7 @@ function executeRadialAction() {
         const index = savedVerses.findIndex(s => s.book === currentTargetVerse.book && s.chapter === currentTargetVerse.chapter && s.verse === currentTargetVerse.verse);
         if (index > -1) {
             savedVerses.splice(index, 1);
-            localforage.setItem('savedVerses', savedVerses);
+            localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
             if (document.getElementById('saved-verses').classList.contains('active-section')) {
                 showSavedVerses();
             }
@@ -2828,7 +2821,7 @@ function saveToAlbum(albumName) {
     
     const v = { ...pendingBookmarkVerse, album: albumName };
     savedVerses.push(v);
-    localforage.setItem('savedVerses', savedVerses);
+    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
     
     closeAlbumModal();
     showSavedVerses();
@@ -3024,7 +3017,7 @@ function submitCreateVerse() {
     };
     
     savedVerses.push(verse);
-    localforage.setItem('savedVerses', savedVerses);
+    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
     showToast("Note saved!");
     closeCreateBookmarkModal();
     document.getElementById('custom-verse-text').value = '';

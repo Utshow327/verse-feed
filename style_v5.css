@@ -1016,12 +1016,14 @@ h2 {
     font-weight: 500;
     color: var(--text-color);
     cursor: pointer;
-    transform-style: preserve-3d;
-    backface-visibility: hidden;
-    will-change: transform, opacity;
-    opacity: 0;
-    transform: scale(0.1) translateZ(0);
-    pointer-events: none;
+    opacity: 0.5;
+    transition: all 0.3s ease;
+}
+
+.voice-wheel-item.active {
+    opacity: 1;
+    font-size: 1.1rem;
+    color: #e5c07b;
 }
 
 .music-toggle-btn.active {
