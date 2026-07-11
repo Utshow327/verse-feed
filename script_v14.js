@@ -170,6 +170,24 @@ let lastActiveChapterIdx = -1;
 let isProgrammaticScroll = false;
 // (System TTS fallback setup removed, purely using offline Piper TTS)
 async function initApp() {
+    populateVoiceWheel();
+    try {
+        let lfSaved = await localforage.getItem('savedVerses');
+        if (Array.isArray(lfSaved)) savedVerses = lfSaved;
+    } catch (e) {
+        console.error('LocalForage load error:', e);
+    }
+    showSavedVerses();
+    
+    try {
+        const res = await fetch('./data/active_rankings.json');
+        if (res.ok) {
+            activeRankings = await res.json();
+            Object.keys(activeRankings).forEach(r => rankingIndices[r] = 0);
+        }
+    } catch(e) {
+        console.error("Could not load active_rankings.json", e);
+    }
     applyAutoSpeed(selectedVoice);
     try {
         addSelectionListeners();
@@ -1605,7 +1623,7 @@ function toggleBookmark(v, btnElement) {
         savedVerses.push(v);
         if (btnElement) btnElement.classList.add('bookmarked');
     }
-    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+    localforage.setItem('savedVerses', savedVerses);
 }
 function showSavedVerses() {
     const list = document.getElementById('saved-list');
@@ -1915,6 +1933,107 @@ function renderChapter(chapter) {
     currentRenderedChapter = chapter;
     document.getElementById('read-books').scrollTop = 0;
 }
+
+function populateVoiceWheel() {
+    const wheel = document.getElementById('voice-scroll-wheel');
+    if (!wheel) return;
+    wheel.innerHTML = '';
+
+    Object.keys(voices).forEach((voiceKey, index) => {
+        const div = document.createElement('div');
+        div.className = 'voice-wheel-item';
+        div.innerText = voices[voiceKey].name.split(' ')[0]; // short name
+        div.dataset.val = voiceKey;
+        div.onclick = () => {
+            const target = div.offsetLeft + div.offsetWidth / 2 - wheel.clientWidth / 2;
+            wheel.scrollTo({ left: target, behavior: 'smooth' });
+        };
+        wheel.appendChild(div);
+    });
+
+    setupVoiceWheelListeners();
+    requestAnimationFrame(() => syncVoiceWheelToCurrent());
+}
+
+let voiceScrollTimeout;
+function setupVoiceWheelListeners() {
+    const wheel = document.getElementById('voice-scroll-wheel');
+    if (!wheel) return;
+
+    wheel.addEventListener('scroll', () => {
+        updateVoiceWheelActiveStyle();
+        clearTimeout(voiceScrollTimeout);
+        voiceScrollTimeout = setTimeout(() => {
+            const active = getActiveVoiceWheelItem();
+            if (active && active.dataset.val !== selectedVoice) {
+                selectedVoice = active.dataset.val;
+                localStorage.setItem('selectedVoice', selectedVoice);
+                applyAutoSpeed(selectedVoice);
+            }
+        }, 200);
+    }, { passive: true });
+
+    let wheelCooldown = false;
+    wheel.addEventListener('wheel', e => {
+        if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+        e.preventDefault();
+        if (wheelCooldown) return;
+        wheelCooldown = true;
+        setTimeout(() => { wheelCooldown = false; }, 200);
+
+        const items = getVoiceWheelItems();
+        const firstItem = items[0];
+        const itemWidth = firstItem ? firstItem.offsetWidth : 50;
+        const direction = Math.sign(e.deltaY);
+        wheel.scrollBy({ left: direction * itemWidth, behavior: 'smooth' });
+    }, { passive: false });
+}
+
+function getVoiceWheelItems() {
+    return Array.from(document.querySelectorAll('.voice-wheel-item'));
+}
+
+function updateVoiceWheelActiveStyle() {
+    const active = getActiveVoiceWheelItem();
+    getVoiceWheelItems().forEach(item => {
+        if (item === active) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+    });
+}
+
+function getActiveVoiceWheelItem() {
+    const wheel = document.getElementById('voice-scroll-wheel');
+    if (!wheel) return null;
+    const center = wheel.scrollLeft + wheel.clientWidth / 2;
+    let closest = null;
+    let minDiff = Infinity;
+    getVoiceWheelItems().forEach(item => {
+        const itemCenter = item.offsetLeft + item.offsetWidth / 2;
+        const diff = Math.abs(itemCenter - center);
+        if (diff < minDiff) {
+            minDiff = diff;
+            closest = item;
+        }
+    });
+    return closest;
+}
+
+function syncVoiceWheelToCurrent() {
+    const wheel = document.getElementById('voice-scroll-wheel');
+    if (!wheel) return;
+    const items = getVoiceWheelItems();
+    const idx = items.findIndex(i => i.dataset.val === selectedVoice);
+    if (idx !== -1) {
+        const item = items[idx];
+        const targetScroll = item.offsetLeft + item.offsetWidth / 2 - wheel.clientWidth / 2;
+        wheel.scrollTo({ left: targetScroll, behavior: 'smooth' });
+        setTimeout(() => updateVoiceWheelActiveStyle(), 350);
+    }
+}
+
 function populateChapterWheel() {
     const wheel = document.getElementById('chapter-scroll-wheel');
     if (!wheel) return;
@@ -2522,7 +2641,7 @@ function executeRadialAction() {
         const index = savedVerses.findIndex(s => s.book === currentTargetVerse.book && s.chapter === currentTargetVerse.chapter && s.verse === currentTargetVerse.verse);
         if (index > -1) {
             savedVerses.splice(index, 1);
-            localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+            localforage.setItem('savedVerses', savedVerses);
             showSavedVerses();
             showToast('Removed Bookmark');
         } else {
@@ -2540,7 +2659,7 @@ function executeRadialAction() {
         const index = savedVerses.findIndex(s => s.book === currentTargetVerse.book && s.chapter === currentTargetVerse.chapter && s.verse === currentTargetVerse.verse);
         if (index > -1) {
             savedVerses.splice(index, 1);
-            localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+            localforage.setItem('savedVerses', savedVerses);
             if (document.getElementById('saved-verses').classList.contains('active-section')) {
                 showSavedVerses();
             }
@@ -2706,7 +2825,7 @@ function saveToAlbum(albumName) {
     
     const v = { ...pendingBookmarkVerse, album: albumName };
     savedVerses.push(v);
-    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+    localforage.setItem('savedVerses', savedVerses);
     
     closeAlbumModal();
     showSavedVerses();
@@ -2902,7 +3021,7 @@ function submitCreateVerse() {
     };
     
     savedVerses.push(verse);
-    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+    localforage.setItem('savedVerses', savedVerses);
     showToast("Note saved!");
     closeCreateBookmarkModal();
     document.getElementById('custom-verse-text').value = '';

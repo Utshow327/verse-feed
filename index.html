@@ -313,8 +313,8 @@
         <!-- Unified User / Subscription Section -->
         <div id="settings-user-row" style="display: flex; gap: 15px; width: 90%; max-width: 800px; margin: 25px auto; align-items: center;">
             <!-- Premium button: thin rounded corner rectangular bar -->
-            <button id="user-premium-btn" onclick="openPremiumModal()" style="flex: 1; height: 50px; border-radius: 12px; background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.2s ease, background 0.2s ease; font-family: inherit;">
-                Unlock Premium
+            <button id="user-premium-btn" onclick="openPremiumModal()" class="premium-gradient-btn">
+                Premium
             </button>
             
             <!-- Google disc button -->
@@ -464,6 +464,7 @@
 
 
 
+    <script src="libs/localforage.min.js"></script>
     <script src="script_v14.js?v=36"></script>
 </body>
 

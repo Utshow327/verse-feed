@@ -2062,3 +2062,33 @@ h2 {
 .sync-action-btn:active {
     transform: scale(0.97);
 }
+
+/* Premium Gradient Animated Button */
+.premium-gradient-btn {
+    flex: 1;
+    height: 50px;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(270deg, #d4af37, #b8860b, #ffd700, #daa520);
+    background-size: 800% 800%;
+    animation: premiumShine 8s ease infinite;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.premium-gradient-btn:active {
+    transform: scale(0.96);
+    box-shadow: 0 2px 8px rgba(212, 175, 55, 0.2);
+}
+
+@keyframes premiumShine {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
