@@ -1,4 +1,6 @@
 let religionVerses = {};
+let activeRankings = {};
+let rankingIndices = {};
 let religionBooks = {};
 let globalSelectedRels = null;
 try {
