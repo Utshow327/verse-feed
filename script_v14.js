@@ -315,7 +315,7 @@ function setupGestures() {
         } else if (clickX > width * 0.6) {
             nextCard();
         } else {
-            const currentVerse = getVerseAtIndex(verseFeedCurrentIndex);
+            const currentVerse = getVerseAtIndex(currentVerseIndex.general);
             if (currentVerse) {
                 selectVerse(currentVerse, 'feed', null);
             }
@@ -2249,9 +2249,8 @@ function updateChapterWheelActiveStyle() {
             const opacity = 1 - absNormDist * 0.4;
             const scale = 1.15 - absNormDist * 0.3;
             const angle = normDist * 40; // 3D rotation angle
-            const tx = normDist * 25; // Space out items horizontally
             item.style.opacity = opacity;
-            item.style.transform = `translateX(${tx}px) rotateY(${-angle}deg) scale(${scale}) translateZ(0)`;
+            item.style.transform = `rotateY(${-angle}deg) scale(${scale}) translateZ(0)`;
             item.style.fontWeight = absNormDist < 0.5 ? '700' : '500';
             item.style.pointerEvents = 'auto';
         } else {
@@ -2262,7 +2261,9 @@ function updateChapterWheelActiveStyle() {
     });
 
     if (lastActiveChapterIdx !== -1 && lastActiveChapterIdx !== closestIdx) {
-        playScrollSound();
+        if (wheel.offsetParent !== null) {
+            playScrollSound();
+        }
     }
     lastActiveChapterIdx = closestIdx;
 }
@@ -2493,7 +2494,7 @@ function updateVoiceWheelActiveStyle() {
     });
 
     if (lastActiveVoiceIdx !== -1 && lastActiveVoiceIdx !== closestIdx) {
-        if (!isProgrammaticScroll) {
+        if (!isProgrammaticScroll && wheel.offsetParent !== null) {
             playScrollSound();
         }
     }
@@ -3135,7 +3136,7 @@ function updateAlbumWheelActiveStyle() {
     });
     
     if (lastActiveAlbumIdx !== -1 && lastActiveAlbumIdx !== closestIdx) {
-        if (!isProgrammaticAlbumScroll) {
+        if (!isProgrammaticAlbumScroll && wheel.offsetParent !== null) {
             playScrollSound();
         }
     }

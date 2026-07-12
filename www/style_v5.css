@@ -771,6 +771,7 @@ h2 {
     flex-shrink: 0;
     scroll-snap-align: center;
     min-width: 33.333%;
+    margin: 0 10px;
     height: 50px;
     display: flex;
     align-items: center;
@@ -2074,23 +2075,23 @@ h2 {
     flex: 1;
     height: 50px;
     border-radius: 12px;
-    color: #fff;
+    color: var(--bg-grad-1);
     font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
     font-family: inherit;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: linear-gradient(270deg, #d4af37, #b8860b, #ffd700, #daa520);
+    border: 1px solid var(--accent);
+    background: linear-gradient(270deg, var(--accent), var(--highlight), var(--accent), var(--highlight));
     background-size: 800% 800%;
     animation: premiumShine 8s ease infinite;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+    text-shadow: none;
+    box-shadow: 0 4px 15px rgba(var(--loader-rgb), 0.3);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .premium-gradient-btn:active {
     transform: scale(0.96);
-    box-shadow: 0 2px 8px rgba(212, 175, 55, 0.2);
+    box-shadow: 0 2px 8px rgba(var(--loader-rgb), 0.2);
 }
 
 @keyframes premiumShine {
