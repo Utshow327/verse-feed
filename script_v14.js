@@ -1507,6 +1507,13 @@ function renderFeedCard(index, direction = 'none') {
     } else {
         card.classList.add('card-center');
     }
+    
+    card.onclick = () => {
+        if (!isDragging) {
+            selectVerse(verse, 'feed', null);
+        }
+    };
+    
     const textEl = document.createElement('div');
     textEl.classList.add('verse-text');
     const footer = document.createElement('div');
@@ -2223,7 +2230,7 @@ function updateChapterWheelActiveStyle() {
     if (!wheel) return;
     const items = getChapterWheelItems();
     const containerCenter = wheel.scrollLeft + wheel.clientWidth / 2;
-    const itemWidth = 50; // approximate width of item
+    const itemWidth = items[0] ? items[0].offsetWidth : (wheel.clientWidth / 3); 
 
     let closestIdx = 0, closestDist = Infinity;
 
@@ -3369,12 +3376,12 @@ function selectVerse(verseObj, type, elementId, forceSelect = false) {
     if (isSpeaking && !isPaused && isDifferentVerse && !forceSelect) {
         stopAudio(true);
         if (type === 'book') {
-            if (selectedVerse.gIndex !== undefined) {
-                bookVoiceCurrentVerse = selectedVerse.gIndex;
+            if (selectedVerse.globalIndex !== undefined) {
+                bookVoiceCurrentVerse = selectedVerse.globalIndex;
                 syncWheelsToCurrent();
-                scrollToBookVerse(selectedVerse.gIndex);
+                scrollToBookVerse(selectedVerse.globalIndex);
                 markVerse();
-                playBookVerse(selectedVerse.gIndex);
+                playBookVerse(selectedVerse.globalIndex);
                 autoNextBook = true;
             }
         } else if (type === 'saved') {
@@ -3387,19 +3394,19 @@ function selectVerse(verseObj, type, elementId, forceSelect = false) {
         // If voice session is paused, select/highlight it and update indices, but do NOT autoplay!
         stopAudio(true);
         if (type === 'book') {
-            if (selectedVerse.gIndex !== undefined) {
-                bookVoiceCurrentVerse = selectedVerse.gIndex;
+            if (selectedVerse.globalIndex !== undefined) {
+                bookVoiceCurrentVerse = selectedVerse.globalIndex;
                 syncWheelsToCurrent();
-                scrollToBookVerse(selectedVerse.gIndex);
+                scrollToBookVerse(selectedVerse.globalIndex);
                 markVerse();
             }
         }
     } else {
         if (type === 'book') {
-            if (selectedVerse.gIndex !== undefined) {
-                bookVoiceCurrentVerse = selectedVerse.gIndex;
+            if (selectedVerse.globalIndex !== undefined) {
+                bookVoiceCurrentVerse = selectedVerse.globalIndex;
                 syncWheelsToCurrent();
-                scrollToBookVerse(selectedVerse.gIndex);
+                scrollToBookVerse(selectedVerse.globalIndex);
                 markVerse();
             }
         }

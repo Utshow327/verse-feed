@@ -760,8 +760,6 @@ h2 {
     user-select: none;
     -webkit-user-select: none;
     -webkit-overflow-scrolling: touch;
-    -webkit-mask-image: linear-gradient(to right, transparent, transparent calc(50% - 100px), black calc(50% - 75px), black calc(50% + 75px), transparent calc(50% + 100px));
-    mask-image: linear-gradient(to right, transparent, transparent calc(50% - 100px), black calc(50% - 75px), black calc(50% + 75px), transparent calc(50% + 100px));
     transform-style: preserve-3d;
 }
 
