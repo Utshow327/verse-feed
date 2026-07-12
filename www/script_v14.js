@@ -882,6 +882,7 @@ async function loadReligionData(rel) {
         if (rel === 'Judaism') processSefariaData(responses[0]);
         if (rel === 'Sikhism') processSikhismData(responses[0]);
         if (rel === 'Buddhism') processBuddhismData(responses[0]);
+        if (rel === 'Philosophy') processPhilosophyData(responses[0]);
 
         loadedReligions.add(rel);
         buildSettings();
@@ -2155,7 +2156,8 @@ function populateChapterWheel() {
 
 function setupChapterWheelListeners() {
     const wheel = document.getElementById('chapter-scroll-wheel');
-    if (!wheel) return;
+    if (!wheel || wheel.dataset.listened) return;
+    wheel.dataset.listened = 'true';
 
     // On scroll: update active styling and debounce chapter selection
     wheel.addEventListener('scroll', () => {
@@ -3133,6 +3135,101 @@ function updateAlbumWheelActiveStyle() {
 
 function updateSpeakIcons() {
     updateSpeakButton('speak-general');
+}
+
+/* --- Create Bookmark / Album Modal --- */
+function openCreateBookmarkModal() {
+    const modal = document.getElementById('create-bookmark-modal');
+    if (!modal) return;
+    
+    const select = document.getElementById('create-verse-album');
+    if (select) {
+        select.innerHTML = '';
+        const albums = getAlbumsGrouped();
+        const albumNames = Object.keys(albums);
+        if (albumNames.length === 0) albumNames.push('Default');
+        albumNames.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.innerText = name;
+            select.appendChild(opt);
+        });
+    }
+    
+    setCreateModalTab('album');
+    modal.classList.remove('hidden');
+}
+
+function closeCreateBookmarkModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    const modal = document.getElementById('create-bookmark-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function setCreateModalTab(tab) {
+    const albumTab = document.getElementById('tab-create-album');
+    const verseTab = document.getElementById('tab-create-verse');
+    const albumForm = document.getElementById('form-create-album');
+    const verseForm = document.getElementById('form-create-verse');
+    
+    if (tab === 'album') {
+        if (albumTab) { albumTab.style.background = 'var(--accent)'; albumTab.style.color = 'var(--bg-grad-1)'; }
+        if (verseTab) { verseTab.style.background = ''; verseTab.style.color = ''; }
+        if (albumForm) albumForm.classList.remove('hidden');
+        if (verseForm) verseForm.classList.add('hidden');
+    } else {
+        if (verseTab) { verseTab.style.background = 'var(--accent)'; verseTab.style.color = 'var(--bg-grad-1)'; }
+        if (albumTab) { albumTab.style.background = ''; albumTab.style.color = ''; }
+        if (verseForm) verseForm.classList.remove('hidden');
+        if (albumForm) albumForm.classList.add('hidden');
+    }
+}
+
+function submitCreateAlbum() {
+    const input = document.getElementById('create-album-name');
+    if (!input) return;
+    const name = input.value.trim();
+    if (!name) return;
+    
+    if (!createdAlbums.includes(name)) {
+        createdAlbums.push(name);
+        localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
+    }
+    
+    input.value = '';
+    closeCreateBookmarkModal();
+    showSavedVerses();
+    showToast('Album "' + name + '" created');
+}
+
+function submitCreateVerse() {
+    const textEl = document.getElementById('create-verse-text');
+    const bookEl = document.getElementById('create-verse-book');
+    const chapEl = document.getElementById('create-verse-chapter');
+    const verseEl = document.getElementById('create-verse-number');
+    const albumEl = document.getElementById('create-verse-album');
+    
+    const text = textEl ? textEl.value.trim() : '';
+    const book = bookEl ? bookEl.value.trim() : '';
+    const chapter = chapEl ? chapEl.value.trim() : '';
+    const verse = verseEl ? verseEl.value.trim() : '';
+    const album = albumEl ? albumEl.value : 'Default';
+    
+    if (!text) { showToast('Please enter verse text'); return; }
+    if (!book) { showToast('Please enter a source book'); return; }
+    
+    const v = { text, book, chapter: chapter || '1', verse: verse || '1', album, religion: 'Custom' };
+    savedVerses.push(v);
+    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+    
+    if (textEl) textEl.value = '';
+    if (bookEl) bookEl.value = '';
+    if (chapEl) chapEl.value = '';
+    if (verseEl) verseEl.value = '';
+    
+    closeCreateBookmarkModal();
+    showSavedVerses();
+    showToast('Verse saved to ' + album);
 }
 
 function deselectVerse() {

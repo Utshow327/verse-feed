@@ -788,13 +788,8 @@ h2 {
     transform-style: preserve-3d;
     backface-visibility: hidden;
     will-change: transform, opacity;
-    transition: transform 0.2s ease, opacity 0.2s ease;
 }
-.chap-wheel-item.active {
-    font-size: 1.8rem;
-    font-weight: 700;
-    opacity: 1;
-}
+
 
 
 
