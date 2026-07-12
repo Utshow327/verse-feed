@@ -310,15 +310,12 @@
                     </svg>
                 </button>
         </div>
-
         <!-- Unified User / Subscription Section -->
         <div id="settings-user-row" style="display: flex; gap: 15px; width: 90%; max-width: 800px; margin: 25px auto; align-items: center;">
-            <!-- Premium button (Currently Hidden for Free Version)
-            <button id="user-premium-btn" onclick="openPremiumModal()" style="flex: 1; height: 50px; border-radius: 12px; background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.2s ease, background 0.2s ease; font-family: inherit;">
-                Unlock Premium
+            <!-- Premium button: thin rounded corner rectangular bar -->
+            <button id="user-premium-btn" onclick="openPremiumModal()" class="premium-gradient-btn">
+                Premium
             </button>
-            -->
-            <div style="flex: 1;"></div> <!-- Spacer so Google icon stays on the right -->
             
             <!-- Google disc button -->
             <button id="user-google-btn" onclick="toggleGoogleAuth()" style="width: 50px; height: 50px; border-radius: 50%; background: var(--card-bg); border: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s ease; flex-shrink: 0; padding: 0; color: var(--text-color); font-family: inherit;">
@@ -355,21 +352,47 @@
         </div>
     </div>
 
-    <!-- Premium Modal (Currently Hidden for Free Version)
+    <!-- Premium Modal -->
     <div id="premium-modal" class="modal-overlay hidden" onclick="closePremiumModal(event)">
-        ...
-    </div>
-    -->
-
-    <!-- Update Modal -->
-    <div id="update-modal" class="modal-overlay hidden" style="z-index: 99999;">
-        <div class="modal-content update-content" style="text-align: center; max-width: 400px; padding: 30px;">
-            <div style="font-size: 3rem; margin-bottom: 15px;">🚀</div>
-            <h2 style="margin: 0; font-size: 1.5rem; color: var(--accent);">Update Available</h2>
-            <p style="margin: 15px 0 25px 0; opacity: 0.8; line-height: 1.5;">A new version of Lumina is available. Please update to continue your spiritual journey.</p>
-            <button onclick="openPlayStore()" style="width: 100%; height: 50px; border-radius: 25px; background: var(--accent); color: var(--bg-grad-1); border: none; font-size: 1.1rem; font-weight: bold; cursor: pointer; font-family: inherit;">
-                Update Now
-            </button>
+        <div class="modal-content premium-content" onclick="event.stopPropagation()">
+            <div class="modal-header" style="flex-direction: column; align-items: center; gap: 5px;">
+                <h2 style="margin: 0; font-size: 1.4rem;">Unlock Premium Wisdom</h2>
+                <p class="modal-subtitle" style="margin: 0 0 15px 0;">Customize and deepen your spiritual journey.</p>
+            </div>
+            <div class="modal-body premium-body">
+                <div class="premium-feature">
+                    <span class="feature-icon">🎙️</span>
+                    <div class="feature-text">
+                        <strong>Custom Voices Selection</strong>
+                        <p>Unlock all high-quality TTS voices and select your preferred narrator.</p>
+                    </div>
+                </div>
+                <div class="premium-feature">
+                    <span class="feature-icon">🕌</span>
+                    <div class="feature-text">
+                        <strong>Specific Religion Filter</strong>
+                        <p>Isolate individual religions (e.g. Islam only, Christianity only) to focus your feed.</p>
+                    </div>
+                </div>
+                <div class="premium-feature">
+                    <span class="feature-icon">✨</span>
+                    <div class="feature-text">
+                        <strong>Zero Interruptions</strong>
+                        <p>Maintain the absolute minimalist, distraction-free environment of your app.</p>
+                    </div>
+                </div>
+                <!-- If guest: Google Sign-In only -->
+                <div id="premium-guest-actions" class="hidden" style="display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; margin-top: 15px;">
+                    <div id="google-signin-btn-container-modal" style="display: flex; justify-content: center; width: 100%; height: 50px;"></div>
+                    <button class="premium-close-btn" onclick="closePremiumModal()" style="width: 100%;">Maybe Later</button>
+                </div>
+                
+                <!-- If logged in: Purchase button -->
+                <div id="premium-user-actions" class="hidden" style="display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 15px;">
+                    <button class="premium-pay-btn" onclick="simulatePurchase()" style="width: 100%;">Subscribe Now — $1.99/mo</button>
+                    <button class="premium-close-btn" onclick="closePremiumModal()" style="width: 100%;">Maybe Later</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -441,6 +464,7 @@
 
 
 
+    <script src="libs/localforage.min.js"></script>
     <script src="script_v14.js?v=36"></script>
 </body>
 

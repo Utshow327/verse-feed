@@ -738,6 +738,7 @@ h2 {
     pointer-events: auto;
     width: 100%;
     margin: 0;
+    perspective: 1000px;
 }
 
 #chapter-scroll-wheel {
@@ -761,6 +762,7 @@ h2 {
     -webkit-overflow-scrolling: touch;
     -webkit-mask-image: linear-gradient(to right, transparent, transparent calc(50% - 100px), black calc(50% - 75px), black calc(50% + 75px), transparent calc(50% + 100px));
     mask-image: linear-gradient(to right, transparent, transparent calc(50% - 100px), black calc(50% - 75px), black calc(50% + 75px), transparent calc(50% + 100px));
+    transform-style: preserve-3d;
 }
 
 #chapter-scroll-wheel::-webkit-scrollbar {
@@ -781,8 +783,12 @@ h2 {
     cursor: pointer;
     white-space: nowrap;
     padding: 0;
-    opacity: 0.3;
-    transition: none;
+    opacity: 0;
+    transform: scale(0.1) translateZ(0);
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    will-change: transform, opacity;
+    transition: transform 0.2s ease, opacity 0.2s ease;
 }
 .chap-wheel-item.active {
     font-size: 1.8rem;
@@ -1016,8 +1022,12 @@ h2 {
     font-weight: 500;
     color: var(--text-color);
     cursor: pointer;
-    opacity: 0.5;
-    transition: all 0.3s ease;
+    opacity: 0;
+    transform: scale(0.1) translateZ(0);
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    will-change: transform, opacity;
+    transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
 .voice-wheel-item.active {
@@ -1794,6 +1804,7 @@ h2 {
     will-change: transform, opacity;
     opacity: 0;
     transform: scale(0.1) translateZ(0);
+    transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
 /* Donation Card Styling */

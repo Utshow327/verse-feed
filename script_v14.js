@@ -1,6 +1,4 @@
 let religionVerses = {};
-let activeRankings = {};
-let rankingIndices = {};
 let religionBooks = {};
 let globalSelectedRels = null;
 try {
@@ -62,19 +60,19 @@ let globalVerseMap = [];
 let selectedVoice = localStorage.getItem('selectedVoice') || 'en_GB-alan-medium';
 let loadedVoices = new Set();
 const MIN_CHAR_LIMIT = 70;
-const maxCharLimit = 180;
-let darkModeEnabled = localStorage.getItem('darkModeEnabled') !== 'false';
-const religions = ['Christianity', 'Islam', 'Hinduism', 'Sikhism', 'Judaism', 'Buddhism', 'Philosophy', 'Psychology'];
+const maxCharLimit = 210;
+let darkModeStr = localStorage.getItem('darkModeEnabled');
+let darkModeEnabled = darkModeStr === null ? true : darkModeStr === 'true';
+const religions = ['Christianity', 'Islam', 'Hinduism', 'Sikhism', 'Judaism', 'Buddhism', 'Philosophy'];
 
 const dataUrls = {
-    Christianity: ['./data/bible.json'],
-    Islam: ['./data/quran_v2.json', './data/hadiths_v2.json'],
-    Hinduism: ['./data/gita.json', './data/hindu_books.json'],
-    Judaism: ['./data/sefaria.json'],
-    Sikhism: ['./data/gurbani.json'],
-    Buddhism: ['./data/buddhism.json'],
-    Philosophy: ['./data/philosophy.json'],
-    Psychology: ['./data/psychology.json']
+    Christianity: ['./data/bible.json?v=20'],
+    Islam: ['./data/quran_v2.json?v=20', './data/hadiths_v2.json?v=20'],
+    Hinduism: ['./data/gita.json?v=20', './data/hindu_books.json?v=20'],
+    Judaism: ['./data/sefaria.json?v=20'],
+    Sikhism: ['./data/gurbani.json?v=20'],
+    Buddhism: ['./data/buddhism.json?v=20'],
+    Philosophy: ['./data/philosophy.json?v=20']
 };
 let loadedReligions = new Set();
 // Settings
@@ -97,6 +95,9 @@ let touchEndX = 0;
 let touchEndY = 0;
 // Onboarding Temp Selection
 let onboardingSelection = new Set();
+// Bookmark / Album state
+let selectedSavedAlbum = null;
+let createdAlbums = JSON.parse(localStorage.getItem('createdAlbums') || '[]');
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 let unlockTriggered = false;
@@ -172,19 +173,6 @@ let lastActiveChapterIdx = -1;
 let isProgrammaticScroll = false;
 // (System TTS fallback setup removed, purely using offline Piper TTS)
 async function initApp() {
-    populateVoiceWheel();
-
-    showSavedVerses();
-    
-    try {
-        const res = await fetch('./data/active_rankings.json');
-        if (res.ok) {
-            activeRankings = await res.json();
-            Object.keys(activeRankings).forEach(r => rankingIndices[r] = 0);
-        }
-    } catch(e) {
-        console.error("Could not load active_rankings.json", e);
-    }
     applyAutoSpeed(selectedVoice);
     try {
         addSelectionListeners();
@@ -215,20 +203,84 @@ async function initApp() {
             localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
         }
         
+        // Setup smooth fill tracking for loading screen
+        const diskWaveform = document.querySelector('.disk-waveform');
+        let totalPreloadItems = 2; // 1 for data, 1 for selected voice
+        let completedPreloads = 0;
+        let targetFill = 0;
+        let currentFill = 0;
+
+        const fillInterval = setInterval(() => {
+            currentFill += (targetFill - currentFill) * 0.25;
+            const rounded = Math.round(currentFill);
+            if (diskWaveform) {
+                diskWaveform.style.setProperty('--app-fill-level', rounded + '%');
+                diskWaveform.style.setProperty('--app-progress', (rounded / 100).toFixed(3));
+            }
+        }, 30);
+
+        function updateProgress() {
+            completedPreloads++;
+            targetFill = (completedPreloads / totalPreloadItems) * 100;
+        }
+
+        // Step 1: Load religion data
         await loadSelectedData();
-        document.getElementById('loading').style.opacity = '0';
-        setTimeout(() => {
-            document.getElementById('loading').style.display = 'none';
-        }, 500);
+        updateProgress();
+
+        // Step 2: Preload Piper TTS voice
+        try {
+            await initPiper(selectedVoice);
+        } catch(e) {}
+        updateProgress();
+
+        // Step 3: Do heavy JS initialization before the animation starts
         initializeVerseFeed();
+        setupGestures();
+        setupWheelListeners();
+        
+        // Wait until smooth fill catches up
+        let waitLoops = 0;
+        while (currentFill < 98 && waitLoops < 20) {
+            await new Promise(r => setTimeout(r, 50));
+            waitLoops++;
+        }
+
+        // Complete fill to 100%
+        clearInterval(fillInterval);
+        if (diskWaveform) {
+            diskWaveform.style.setProperty('--app-fill-level', '100%');
+            diskWaveform.style.setProperty('--app-progress', '1');
+        }
+
+        await new Promise(r => setTimeout(r, 200));
+
+        // Switch target section in background
         goTo('verse-feed');
+
+        // Add loaded class to trigger full-screen expansion animation
+        const loaderEl = document.getElementById('loading');
+        if (loaderEl) {
+            loaderEl.classList.add('loaded');
+        }
+
+        // Wait for screen expansion animation to finish (e.g. 1400ms)
+        await new Promise(r => setTimeout(r, 1400));
+
+        // Fade out loading screen
+        if (loaderEl) {
+            loaderEl.style.opacity = '0';
+            setTimeout(() => {
+                loaderEl.style.display = 'none';
+                loaderEl.classList.remove('loaded');
+            }, 600);
+        }
+        
         loadUnselectedDataInBackground();
     } catch (error) {
         console.error('Initialization error:', error);
         document.getElementById('loading').innerHTML = '<div style="color:var(--text-color)">Error loading data.</div>';
     }
-    setupGestures();
-    setupWheelListeners();
     // Pre-load Piper TTS in background so first play is instant
     initPiper();
 }
@@ -423,6 +475,11 @@ function stopAudio(preserveAutoMode = false) {
     if (btn) btn.classList.remove('loading');
     stopWaveformVisualizer();
 }
+
+
+let selectedVerse = null;
+let lastSelectedBookVerse = null;
+let activeSavedVerse = null;
 
 let programmaticScrollTimeout = null;
 
@@ -739,25 +796,18 @@ function speakCurrent(type) {
                 try {
                     currentAudioNode.onended = null;
                     currentAudioNode.stop();
-                } catch (e) {}
-                currentAudioPausedAt = ctx.currentTime - currentAudioStartTime;
-                if (currentAudioPausedAt < 0) currentAudioPausedAt = 0;
-            } else if (currentUtterance) {
-                window.speechSynthesis.pause();
+                } catch (e) { }
+                stopWaveformVisualizer();
             }
-            stopWaveformVisualizer();
             updateSpeakIcons();
             return;
         } else {
             isPaused = false;
-            if (currentAudioBuffer) {
-                startAudioPlayback(currentAudioPausedAt, currentGenerationId);
-            } else if (currentUtterance) {
-                window.speechSynthesis.resume();
-            }
+            startAudioPlayback(0, currentGenerationId);
             updateSpeakIcons();
             return;
         }
+    } else {
         if (isBookSection) {
             const info = globalVerseMap[bookVoiceCurrentVerse];
             if (info && chapterStartIndices[info.chapter] === bookVoiceCurrentVerse) {
@@ -784,21 +834,9 @@ function speakCurrent(type) {
 }
 // --- Book Audio ---
 function handleVerseClick(index) {
-    const wasPlaying = isSpeaking && !isPaused;
-    stopAudio();
-
     const info = globalVerseMap[index];
-    if (info && info.chapter !== lastAnnouncedChapter) {
-        lastAnnouncedChapter = info.chapter;
-    }
-    bookVoiceCurrentVerse = index;
-    markVerse();
-    syncWheelsToCurrent();
-    if (wasPlaying) {
-        const isFirstVerse = chapterStartIndices[info.chapter] === index;
-        if (isFirstVerse) lastAnnouncedChapter = null;
-        playBookVerse(index);
-        autoNextBook = true;
+    if (info) {
+        selectVerse(info, 'book', 'book-verse-' + index);
     }
 }
 function playPauseBook() {
@@ -844,8 +882,6 @@ async function loadReligionData(rel) {
         if (rel === 'Judaism') processSefariaData(responses[0]);
         if (rel === 'Sikhism') processSikhismData(responses[0]);
         if (rel === 'Buddhism') processBuddhismData(responses[0]);
-        if (rel === 'Philosophy') processGenericData(responses[0], 'Philosophy');
-        if (rel === 'Psychology') processGenericData(responses[0], 'Psychology');
 
         loadedReligions.add(rel);
         buildSettings();
@@ -1169,33 +1205,6 @@ function processSikhismData(data) {
     religionVerses.Sikhism = verses;
     religionBooks.Sikhism = { books: books };
 }
-function processGenericData(data, relName) {
-    let verses = [];
-    let books = [];
-    if (data && data.books) {
-        Object.keys(data.books).forEach(bookName => {
-            let bookData = data.books[bookName];
-            let bookChapters = {};
-            Object.keys(bookData).forEach(chapNum => {
-                let chapData = bookData[chapNum];
-                bookChapters[chapNum] = chapData;
-                Object.keys(chapData).forEach(verseNum => {
-                    verses.push({
-                        book: bookName,
-                        chapter: chapNum,
-                        verse: verseNum,
-                        text: cleanText(chapData[verseNum]),
-                        religion: relName
-                    });
-                });
-            });
-            books.push({ name: bookName, content: bookChapters });
-        });
-    }
-    religionVerses[relName] = verses;
-    religionBooks[relName] = { books: books };
-}
-
 function processBuddhismData(data) {
     let verses = [];
     let books = [];
@@ -1233,6 +1242,38 @@ function processBuddhismData(data) {
     
     religionVerses.Buddhism = verses;
     religionBooks.Buddhism = { books: books };
+}
+
+function processPhilosophyData(data) {
+    let verses = [];
+    let books = [];
+    
+    if (data && data.books) {
+        for (const [bookName, chaptersMap] of Object.entries(data.books)) {
+            let bookChapters = [];
+            let chapterContent = {};
+            
+            for (const [chapterName, versesMap] of Object.entries(chaptersMap)) {
+                bookChapters.push(chapterName);
+                chapterContent[chapterName] = {};
+                
+                for (const [verseNum, verseText] of Object.entries(versesMap)) {
+                    const text = cleanText(verseText);
+                    chapterContent[chapterName][verseNum] = text;
+                    verses.push({ text: text, religion: 'Philosophy', book: bookName, chapter: chapterName, verse: verseNum });
+                }
+            }
+            
+            books.push({
+                name: bookName,
+                chapterOrder: bookChapters,
+                content: chapterContent
+            });
+        }
+    }
+    
+    religionVerses['Philosophy'] = verses;
+    religionBooks['Philosophy'] = books;
 }
 function escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -1554,6 +1595,13 @@ function prevCard() {
     }
 }
 function goTo(section) {
+    if (selectedVerse && selectedVerse.type === 'book') {
+        lastSelectedBookVerse = selectedVerse;
+        selectedVerse = null;
+        deactivatePillUI();
+    } else {
+        deselectVerse();
+    }
     stopAudio();
     document.querySelectorAll('.app-section').forEach(s => {
         s.classList.remove('active-section');
@@ -1622,52 +1670,204 @@ function toggleBookmark(v, btnElement) {
     }
     localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
 }
-function showSavedVerses() {
-    const list = document.getElementById('saved-list');
-    list.innerHTML = '';
+
+function getAlbumsGrouped() {
     const albums = {};
+    createdAlbums.forEach(name => {
+        if (!albums[name]) albums[name] = [];
+    });
     savedVerses.forEach((v, i) => {
+        if (!v) return;
+        if (v.album && v.album !== 'Default') {
+            if (!albums[v.album]) albums[v.album] = [];
+            albums[v.album].push({v, i});
+        }
+    });
+    return albums;
+}
+
+function showSavedVerses(rebuildFolders = true) {
+    const list = document.getElementById('saved-list');
+    
+    // Create containers if they don't exist
+    let foldersContainer = document.getElementById('saved-folders-container');
+    let versesContainer = document.getElementById('saved-verses-container');
+    
+    if (!foldersContainer) {
+        foldersContainer = document.createElement('div');
+        foldersContainer.id = 'saved-folders-container';
+        list.appendChild(foldersContainer);
+    }
+    
+    if (!versesContainer) {
+        versesContainer = document.createElement('div');
+        versesContainer.id = 'saved-verses-container';
+        list.appendChild(versesContainer);
+    }
+
+    const albums = getAlbumsGrouped();
+    let validVerses = [];
+    savedVerses.forEach((v, i) => {
+        if (!v) return;
+        validVerses.push({v, i});
+    });
+
+    if (rebuildFolders) {
+        foldersContainer.innerHTML = '';
+        const grid = document.createElement('div');
+        grid.style.display = 'flex';
+        grid.style.flexWrap = 'wrap';
+        grid.style.justifyContent = 'center';
+        grid.style.gap = '12px';
+        grid.style.width = '90%';
+        grid.style.maxWidth = '600px';
+        grid.style.margin = '20px auto';
+        grid.style.padding = '10px 0 30px 0';
+        grid.style.borderBottom = '1px solid var(--glass-border)';
+        
+        const addFolder = document.createElement('button');
+        addFolder.className = 'global-rel-btn';
+        addFolder.style.width = 'calc(33.333% - 8px)';
+        addFolder.style.aspectRatio = '1';
+        addFolder.style.height = 'auto';
+        addFolder.innerHTML = `<div style="font-size: 3rem; opacity: 0.5; margin: auto;">+</div>`;
+        addFolder.onclick = () => openCreateBookmarkModal();
+        grid.appendChild(addFolder);
+        
+        for (const [albumName, verses] of Object.entries(albums)) {
+            const folder = document.createElement('button');
+            folder.className = 'global-rel-btn album-folder-btn';
+            folder.style.width = 'calc(33.333% - 8px)';
+            folder.style.aspectRatio = '1';
+            folder.style.height = 'auto';
+            folder.style.fontSize = '1.2rem';
+            folder.innerText = albumName;
+            
+            if (selectedSavedAlbum === albumName) {
+                folder.classList.add('active');
+            }
+            
+            folder.onclick = () => {
+                if (selectedSavedAlbum === albumName) {
+                    selectedSavedAlbum = null;
+                    folder.classList.remove('active');
+                } else {
+                    document.querySelectorAll('.album-folder-btn').forEach(btn => btn.classList.remove('active'));
+                    selectedSavedAlbum = albumName;
+                    folder.classList.add('active');
+                }
+                showSavedVerses(false); // Do not rebuild folders, just verses
+            };
+            
+            bindRadialMenu(folder, () => {
+                return { isAlbum: true, name: albumName };
+            }, ['rename', 'delete']);
+            
+            grid.appendChild(folder);
+        }
+        foldersContainer.appendChild(grid);
+    }
+    
+    // Rebuild verses list
+    versesContainer.innerHTML = '';
+    const header = document.createElement('div');
+    header.style.fontSize = '1.5rem';
+    header.style.marginBottom = '20px';
+    header.style.fontWeight = '500';
+    header.style.textAlign = 'center';
+    
+    let versesToRender = validVerses;
+    if (selectedSavedAlbum) {
+        header.innerText = selectedSavedAlbum;
+        versesToRender = albums[selectedSavedAlbum] || [];
+    } else {
+        header.innerText = 'All';
+    }
+    
+    if (versesToRender.length > 0) {
+        versesContainer.appendChild(header);
+        renderVersesList(versesToRender, versesContainer);
+    } else {
+        if (selectedSavedAlbum) {
+            header.innerText = selectedSavedAlbum;
+            versesContainer.appendChild(header);
+            const placeholder = document.createElement('div');
+            placeholder.style.textAlign = 'center';
+            placeholder.style.opacity = '0.6';
+            placeholder.innerText = 'No verses in this folder yet.';
+            versesContainer.appendChild(placeholder);
+        }
+    }
+}
+
+function renderVersesList(versesArray, listElement) {
+    versesArray.forEach(({v, i}) => {
         const container = document.createElement('div');
         container.classList.add('saved-verse-container');
         const div = document.createElement('div');
         div.classList.add('saved-verse');
-        const albumName = v.album || 'Default';
-        if (!albums[albumName]) albums[albumName] = [];
-        albums[albumName].push({ v, i });
-    });
-    
-    for (const [albumName, verses] of Object.entries(albums)) {
-        const albumHeader = document.createElement('h3');
-        albumHeader.style.color = 'var(--text-color)';
-        albumHeader.style.marginTop = '20px';
-        albumHeader.style.marginBottom = '10px';
-        albumHeader.innerText = albumName;
-        list.appendChild(albumHeader);
+        div.style.borderRadius = '16px';
+        div.style.transition = 'all 0.2s ease';
         
-        verses.forEach(({v, i}) => {
-            const container = document.createElement('div');
-            container.classList.add('saved-verse-container');
-            const div = document.createElement('div');
-            div.classList.add('saved-verse');
-            const text = document.createElement('div');
-            text.classList.add('verse-text');
-            let displayVerse = v.text;
-            displayVerse = displayVerse.replace(/<span class='author-attr'>.*?<\/span>/gm, '');
-            displayVerse = displayVerse.replace(/<[^>]*>?/gm, '');
-            text.innerText = displayVerse;
-            const ref = document.createElement('div');
-            ref.classList.add('verse-ref');
-            ref.innerText = `${v.book} ${v.chapter}:${v.verse}`;
-            div.appendChild(text);
-            div.appendChild(ref);
-            container.appendChild(div);
-            
-            // Bind radial menu to this saved verse card
-            bindRadialMenu(container, () => v, ['share', 'delete']);
-            
-            list.appendChild(container);
-        });
-    }
+        const text = document.createElement('div');
+        text.classList.add('verse-text');
+        let displayVerse = v.text;
+        displayVerse = displayVerse.replace(/<span class='author-attr'>.*?<\/span>/gm, '');
+        displayVerse = displayVerse.replace(/<[^>]*>?/gm, '');
+        text.innerText = displayVerse;
+        
+        const ref = document.createElement('div');
+        ref.classList.add('verse-ref');
+        ref.innerText = `${v.book} ${v.chapter}:${v.verse}`;
+        
+        div.appendChild(text);
+        div.appendChild(ref);
+        container.appendChild(div);
+
+        // Function to apply active styles
+        const applyVerseStyle = () => {
+            if (activeSavedVerse && activeSavedVerse.book === v.book && activeSavedVerse.chapter === v.chapter && activeSavedVerse.verse === v.verse) {
+                div.style.background = 'var(--text-color)';
+                div.style.color = 'var(--bg-grad-1)';
+                div.style.opacity = '1';
+                div.style.borderColor = 'var(--text-color)';
+                text.style.color = 'var(--bg-grad-1)'; // Ensure text follows inverse color
+            } else {
+                div.style.background = '';
+                div.style.color = '';
+                div.style.opacity = '';
+                div.style.borderColor = '';
+                text.style.color = ''; // Reset text color
+            }
+        };
+        applyVerseStyle();
+
+        div.onclick = () => {
+            const verseIndex = savedVerses.findIndex(sv => sv.book === v.book && sv.chapter === v.chapter && sv.verse === v.verse);
+            if (verseIndex !== -1) {
+                activeSavedVerse = savedVerses[verseIndex];
+                // Update all verses styling without fully re-rendering them to preserve animation
+                document.querySelectorAll('.saved-verse').forEach(el => {
+                    el.style.background = '';
+                    el.style.color = '';
+                    el.style.opacity = '';
+                    el.style.borderColor = '';
+                    const childText = el.querySelector('.verse-text');
+                    if (childText) childText.style.color = '';
+                });
+                
+                // Set the clicked one active
+                div.style.background = 'var(--text-color)';
+                div.style.color = 'var(--bg-grad-1)';
+                div.style.opacity = '1';
+                div.style.borderColor = 'var(--text-color)';
+                text.style.color = 'var(--bg-grad-1)';
+            }
+        };
+        
+        bindRadialMenu(container, () => v, ['share', 'delete']);
+        listElement.appendChild(container);
+    });
 }
 
 function performLibSearch() {
@@ -1794,6 +1994,7 @@ let currentSubBook = null;
 
 function showBookContent(rel, book) {
     stopAudio();
+    deactivatePillUI();
     currentBookName = book.name;
     currentReligion = rel;
     currentBookObj = book;
@@ -1830,6 +2031,7 @@ function showBookContent(rel, book) {
 
 function showSubBookContent(subBookName) {
     stopAudio();
+    deactivatePillUI();
     currentSubBook = subBookName;
     document.getElementById('sub-book-list-view').classList.add('hidden');
     document.getElementById('book-content-view').classList.remove('hidden');
@@ -1930,106 +2132,6 @@ function renderChapter(chapter) {
     currentRenderedChapter = chapter;
     document.getElementById('read-books').scrollTop = 0;
 }
-
-function populateVoiceWheel() {
-    const wheel = document.getElementById('voice-scroll-wheel');
-    if (!wheel) return;
-    wheel.innerHTML = '';
-
-    voicesList.forEach((voiceObj, index) => {
-        const voiceKey = voiceObj.value;
-        const div = document.createElement('div');
-        div.className = 'voice-wheel-item';
-        div.innerText = voiceObj.label.split(' ')[0]; // short name
-        div.dataset.val = voiceKey;
-        div.onclick = () => {
-            const target = div.offsetTop + div.offsetHeight / 2 - wheel.clientHeight / 2;
-            wheel.scrollTo({ top: target, behavior: 'smooth' });
-        };
-        wheel.appendChild(div);
-    });
-
-    setupVoiceWheelListeners();
-    requestAnimationFrame(() => syncVoiceWheelToCurrent());
-}
-
-function setupVoiceWheelListeners() {
-    const wheel = document.getElementById('voice-scroll-wheel');
-    if (!wheel) return;
-
-    wheel.addEventListener('scroll', () => {
-        updateVoiceWheelActiveStyle();
-        clearTimeout(voiceScrollTimeout);
-        voiceScrollTimeout = setTimeout(() => {
-            const active = getActiveVoiceWheelItem();
-            if (active && active.dataset.val !== selectedVoice) {
-                selectedVoice = active.dataset.val;
-                localStorage.setItem('selectedVoice', selectedVoice);
-                applyAutoSpeed(selectedVoice);
-            }
-        }, 200);
-    }, { passive: true });
-
-    let wheelCooldown = false;
-    wheel.addEventListener('wheel', e => {
-        if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
-        e.preventDefault();
-        if (wheelCooldown) return;
-        wheelCooldown = true;
-        setTimeout(() => { wheelCooldown = false; }, 200);
-
-        const items = getVoiceWheelItems();
-        const firstItem = items[0];
-        const itemHeight = firstItem ? firstItem.offsetHeight : 30;
-        const direction = Math.sign(e.deltaY);
-        wheel.scrollBy({ top: direction * itemHeight, behavior: 'smooth' });
-    }, { passive: false });
-}
-
-function getVoiceWheelItems() {
-    return Array.from(document.querySelectorAll('.voice-wheel-item'));
-}
-
-function updateVoiceWheelActiveStyle() {
-    const active = getActiveVoiceWheelItem();
-    getVoiceWheelItems().forEach(item => {
-        if (item === active) {
-            item.classList.add('active');
-        } else {
-            item.classList.remove('active');
-        }
-    });
-}
-
-function getActiveVoiceWheelItem() {
-    const wheel = document.getElementById('voice-scroll-wheel');
-    if (!wheel) return null;
-    const center = wheel.scrollTop + wheel.clientHeight / 2;
-    let closest = null;
-    let minDiff = Infinity;
-    getVoiceWheelItems().forEach(item => {
-        const itemCenter = item.offsetTop + item.offsetHeight / 2;
-        const diff = Math.abs(itemCenter - center);
-        if (diff < minDiff) {
-            minDiff = diff;
-            closest = item;
-        }
-    });
-    return closest;
-}
-
-function syncVoiceWheelToCurrent() {
-    const wheel = document.getElementById('voice-scroll-wheel');
-    if (!wheel) return;
-    const items = getVoiceWheelItems();
-    const idx = items.findIndex(i => i.dataset.val === selectedVoice);
-    if (idx !== -1) {
-        const item = items[idx];
-        const targetScroll = item.offsetTop + item.offsetHeight / 2 - wheel.clientHeight / 2;
-        wheel.scrollTo({ top: targetScroll, behavior: 'smooth' });
-        setTimeout(() => updateVoiceWheelActiveStyle(), 350);
-    }
-}
 function populateChapterWheel() {
     const wheel = document.getElementById('chapter-scroll-wheel');
     if (!wheel) return;
@@ -2117,24 +2219,41 @@ function updateChapterWheelActiveStyle() {
     if (!wheel) return;
     const items = getChapterWheelItems();
     const containerCenter = wheel.scrollLeft + wheel.clientWidth / 2;
+    const itemWidth = 50; // approximate width of item
+
     let closestIdx = 0, closestDist = Infinity;
+
     items.forEach((item, i) => {
         const itemCenter = item.offsetLeft + item.offsetWidth / 2;
-        const dist = Math.abs(containerCenter - itemCenter);
-        if (dist < closestDist) { closestDist = dist; closestIdx = i; }
-    });
-    items.forEach((item, i) => {
-        item.classList.remove('chap-active', 'chap-neighbor');
-        if (i === closestIdx) {
-            item.classList.add('chap-active');
-            if (lastActiveChapterIdx !== -1 && lastActiveChapterIdx !== closestIdx) {
-                playScrollSound();
-            }
-            lastActiveChapterIdx = closestIdx;
-        } else if (i === closestIdx - 1 || i === closestIdx + 1) {
-            item.classList.add('chap-neighbor');
+        const dist = itemCenter - containerCenter;
+        const normDist = dist / itemWidth;
+        const absNormDist = Math.abs(normDist);
+
+        if (Math.abs(dist) < closestDist) {
+            closestDist = Math.abs(dist);
+            closestIdx = i;
+        }
+
+        // Real-time scale, opacity, and Y-axis rotation
+        if (absNormDist < 1.1) {
+            const opacity = 1 - absNormDist * 0.4;
+            const scale = 1.15 - absNormDist * 0.3;
+            const angle = normDist * 40; // 3D rotation angle
+            item.style.opacity = opacity;
+            item.style.transform = `rotateY(${-angle}deg) scale(${scale}) translateZ(0)`;
+            item.style.fontWeight = absNormDist < 0.5 ? '700' : '500';
+            item.style.pointerEvents = 'auto';
+        } else {
+            item.style.opacity = 0;
+            item.style.transform = 'scale(0.1) translateZ(0)';
+            item.style.pointerEvents = 'none';
         }
     });
+
+    if (lastActiveChapterIdx !== -1 && lastActiveChapterIdx !== closestIdx) {
+        playScrollSound();
+    }
+    lastActiveChapterIdx = closestIdx;
 }
 
 function syncChapterWheelToCurrent() {
@@ -2326,38 +2445,65 @@ function voiceWheelSelect(val) {
 
 function updateVoiceWheelActiveStyle() {
     const wheel = document.getElementById('voice-scroll-wheel');
-    if (!wheel || wheel.clientHeight === 0) return;
+    if (!wheel) return;
+    const clientHeight = wheel.clientHeight || 120;
     const items = getVoiceWheelItems();
-    const containerCenter = wheel.scrollTop + wheel.clientHeight / 2;
+    const containerCenter = wheel.scrollTop + clientHeight / 2;
+    const itemHeight = 30;
+
     let closestIdx = 0, closestDist = Infinity;
-    items.forEach((item, i) => {
-        const itemCenter = item.offsetTop + item.offsetHeight / 2;
-        const dist = Math.abs(containerCenter - itemCenter);
-        if (dist < closestDist) { closestDist = dist; closestIdx = i; }
-    });
-    items.forEach((item, i) => {
-        item.classList.remove('voice-active');
-        if (i === closestIdx) {
-            item.classList.add('voice-active');
-            if (lastActiveVoiceIdx !== -1 && lastActiveVoiceIdx !== closestIdx) {
-                playScrollSound();
-            }
-            lastActiveVoiceIdx = closestIdx;
-            const newVal = item.dataset.val;
-            if (selectedVoice !== newVal) {
-                selectedVoice = newVal;
-                localStorage.setItem('selectedVoice', newVal);
 
-                if (!isProgrammaticScroll && ttsRandomVoice) {
-                    ttsRandomVoice = false;
-                    localStorage.setItem('ttsRandomVoice', ttsRandomVoice);
-                    updateTogglesUI();
-                }
+    items.forEach((item, i) => {
+        const offsetHeight = item.offsetHeight || itemHeight;
+        const itemCenter = item.offsetTop + offsetHeight / 2;
+        const dist = itemCenter - containerCenter;
+        const normDist = dist / itemHeight;
+        const absNormDist = Math.abs(normDist);
 
-                applyAutoSpeed();
-            }
+        if (Math.abs(dist) < closestDist) {
+            closestDist = Math.abs(dist);
+            closestIdx = i;
+        }
+
+        // Real-time scale, opacity, and X-axis rotation
+        if (absNormDist < 1.1) {
+            const opacity = 1 - absNormDist * 0.55;
+            const scale = 1.15 - absNormDist * 0.3;
+            const angle = normDist * 40;
+            item.style.opacity = opacity;
+            item.style.transform = `rotateX(${angle}deg) scale(${scale}) translateZ(0)`;
+            item.style.fontWeight = absNormDist < 0.5 ? '600' : '400';
+            item.style.pointerEvents = 'auto';
+        } else {
+            item.style.opacity = 0;
+            item.style.transform = 'scale(0.1) translateZ(0)';
+            item.style.pointerEvents = 'none';
         }
     });
+
+    if (lastActiveVoiceIdx !== -1 && lastActiveVoiceIdx !== closestIdx) {
+        if (!isProgrammaticScroll) {
+            playScrollSound();
+        }
+    }
+    lastActiveVoiceIdx = closestIdx;
+
+    const activeItem = items[closestIdx];
+    if (activeItem) {
+        const newVal = activeItem.dataset.val;
+        if (selectedVoice !== newVal) {
+            selectedVoice = newVal;
+            localStorage.setItem('selectedVoice', newVal);
+
+            if (!isProgrammaticScroll && ttsRandomVoice) {
+                ttsRandomVoice = false;
+                localStorage.setItem('ttsRandomVoice', ttsRandomVoice);
+                updateTogglesUI();
+            }
+
+            applyAutoSpeed();
+        }
+    }
 }
 
 function syncVoiceWheelToCurrent() {
@@ -2624,7 +2770,7 @@ function updateRadialMenu(mouseX, mouseY) {
     });
     
     if (minDistance < 50) {
-        document.querySelector('.radial-item[data-id=""]').classList.add('highlighted');
+        document.querySelector(`.radial-item[data-id="${activeRadialId}"]`).classList.add('highlighted');
     } else {
         activeRadialId = null;
     }
@@ -2644,7 +2790,7 @@ function executeRadialAction() {
             openAlbumModal(currentTargetVerse);
         }
     } else if (activeRadialId === 'share') {
-        const text = `"${currentTargetVerse.text}" - ${currentTargetVerse.author}, ${currentTargetVerse.book_name || currentTargetVerse.book}`;
+        const text = currentTargetVerse.text + " - " + currentTargetVerse.book + " " + currentTargetVerse.chapter + ":" + currentTargetVerse.verse;
         if (navigator.share) {
             navigator.share({ title: 'Daily Verse', text: text }).catch(console.error);
         } else {
@@ -2780,40 +2926,25 @@ function stopWaveformVisualizer() {
 
 /* --- Album Logic --- */
 let pendingBookmarkVerse = null;
+let albumScrollTimeout = null;
+let isDraggingAlbumWheel = false;
+let isProgrammaticAlbumScroll = false;
+let programmaticAlbumScrollTimeout = null;
+let lastActiveAlbumIdx = -1;
 
 function openAlbumModal(verseObj) {
     pendingBookmarkVerse = verseObj;
     const modal = document.getElementById('album-modal');
-    const list = document.getElementById('album-list');
-    
-    const albums = new Set(['Default']);
-    savedVerses.forEach(v => {
-        if (v.album) albums.add(v.album);
-    });
-    
-    list.innerHTML = '';
-    albums.forEach(album => {
-        const btn = document.createElement('button');
-        btn.className = 'global-rel-btn';
-        btn.innerText = album;
-        btn.onclick = () => saveToAlbum(album);
-        list.appendChild(btn);
-    });
-    
+    if (!modal) return;
+    populateAlbumWheel();
     modal.classList.remove('hidden');
 }
 
 function closeAlbumModal(e) {
     if (e && e.target !== e.currentTarget) return;
-    document.getElementById('album-modal').classList.add('hidden');
+    const modal = document.getElementById('album-modal');
+    if (modal) modal.classList.add('hidden');
     pendingBookmarkVerse = null;
-}
-
-function saveToNewAlbum() {
-    const input = document.getElementById('new-album-name');
-    const name = input.value.trim();
-    if (name) saveToAlbum(name);
-    input.value = '';
 }
 
 function saveToAlbum(albumName) {
@@ -2828,321 +2959,433 @@ function saveToAlbum(albumName) {
     showToast('Saved to ' + albumName);
 }
 
+function getAlbumWheelItems() {
+    const wheel = document.getElementById('album-scroll-wheel');
+    return wheel ? Array.from(wheel.querySelectorAll('.album-wheel-item[data-val]')) : [];
+}
 
+function getActiveAlbumWheelItem() {
+    const wheel = document.getElementById('album-scroll-wheel');
+    if (!wheel || wheel.clientHeight === 0) return null;
+    const items = getAlbumWheelItems();
+    const containerCenter = wheel.scrollTop + wheel.clientHeight / 2;
+    let closest = null, closestDist = Infinity;
+    items.forEach(item => {
+        const itemCenter = item.offsetTop + item.offsetHeight / 2;
+        const dist = Math.abs(containerCenter - itemCenter);
+        if (dist < closestDist) { closestDist = dist; closest = item; }
+    });
+    return closest;
+}
 
-// ==========================================
-// GOOGLE AUTHENTICATION (Restored)
-// ==========================================
-let isGoogleLoggedIn = false;
-let googleUserToken = null;
-let googleUserData = null;
-const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID";
+function setupAlbumWheelListeners() {
+    const wheel = document.getElementById('album-scroll-wheel');
+    if (!wheel || wheel.dataset.listened) return;
+    wheel.dataset.listened = "true";
 
-window.onload = function() {
-    if (typeof google !== "undefined" && GOOGLE_CLIENT_ID !== "YOUR_GOOGLE_CLIENT_ID") {
-        google.accounts.id.initialize({
-            client_id: GOOGLE_CLIENT_ID,
-            callback: handleGoogleCredentialResponse
-        });
-        
-        // Auto-login check
-        const storedToken = localStorage.getItem('googleUserToken');
-        if (storedToken) {
-            handleGoogleCredentialResponse({ credential: storedToken });
-        }
-    }
-};
+    wheel.addEventListener('wheel', e => {
+        e.preventDefault();
+        const scrollAmount = e.deltaY;
+        wheel.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+    });
 
-function handleGoogleCredentialResponse(response) {
-    try {
-        const payload = parseJwt(response.credential);
-        googleUserToken = response.credential;
-        googleUserData = payload;
-        isGoogleLoggedIn = true;
-        
-        localStorage.setItem('googleUserToken', googleUserToken);
-        
-        // Update UI
-        const authBtn = document.getElementById('user-google-btn');
-        if (authBtn) {
-            const svg = document.getElementById('google-icon-svg');
-            const avatar = document.getElementById('google-avatar-text');
-            if (svg) svg.classList.add('hidden');
-            if (avatar) {
-                avatar.classList.remove('hidden');
-                avatar.innerText = payload.name ? payload.name.charAt(0).toUpperCase() : 'U';
+    wheel.addEventListener('scroll', () => {
+        updateAlbumWheelActiveStyle();
+
+        clearTimeout(albumScrollTimeout);
+        albumScrollTimeout = setTimeout(() => {
+            if (!isDraggingAlbumWheel) {
+                const active = getActiveAlbumWheelItem();
+                if (active) {
+                    const val = active.dataset.val;
+                    isProgrammaticAlbumScroll = true;
+                    const targetScroll = active.offsetTop + active.offsetHeight / 2 - wheel.clientHeight / 2;
+                    wheel.scrollTo({ top: targetScroll, behavior: 'smooth' });
+                    clearTimeout(programmaticAlbumScrollTimeout);
+                    programmaticAlbumScrollTimeout = setTimeout(() => {
+                        isProgrammaticAlbumScroll = false;
+                    }, 500);
+                }
             }
-        }
-        
-        // Sync local data with cloud here
-        showToast("Logged in successfully as " + payload.name);
-        
-    } catch (e) {
-        console.error("Google login failed", e);
-    }
+        }, 150);
+    });
 }
 
-function parseJwt(token) {
-    try {
-        var base64Url = token.split('.')[1];
-        var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        return JSON.parse(jsonPayload);
-    } catch(e) {
-        return {};
-    }
-}
-
-function toggleGoogleAuth() {
-    if (isGoogleLoggedIn) {
-        // Logout
-        isGoogleLoggedIn = false;
-        googleUserToken = null;
-        googleUserData = null;
-        localStorage.removeItem('googleUserToken');
-        
-        const authBtn = document.getElementById('user-google-btn');
-        if (authBtn) {
-            const svg = document.getElementById('google-icon-svg');
-            const avatar = document.getElementById('google-avatar-text');
-            if (svg) svg.classList.remove('hidden');
-            if (avatar) avatar.classList.add('hidden');
-        }
-        showToast("Logged out successfully");
-    } else {
-        // Login
-        if (typeof google !== "undefined" && GOOGLE_CLIENT_ID !== "YOUR_GOOGLE_CLIENT_ID") {
-            google.accounts.id.prompt();
-        } else {
-            showToast("Google Login is not configured yet. Add your Client ID.");
-        }
-    }
-}
-
-function continueAsGuest() {
-    // Hide auth modal if we had one
-    const premiumModal = document.getElementById('premium-modal');
-    if (premiumModal) {
-        premiumModal.classList.add('hidden');
-    }
-}
-
-// ==========================================
-// SUBSCRIPTION / PREMIUM LOGIC (Restored)
-// ==========================================
-// The variable isSubscribed is currently defined near the top. We will just use localStorage for it.
-let isSubscribed = localStorage.getItem('isSubscribed') === 'true';
-
-function openPremiumModal() {
-    const modal = document.getElementById('premium-modal');
-    if (modal) {
-        modal.classList.remove('hidden');
-        // Configure actions based on login state
-        const guestActions = document.getElementById('premium-guest-actions');
-        const userActions = document.getElementById('premium-user-actions');
-        
-        if (isGoogleLoggedIn) {
-            if (guestActions) guestActions.classList.add('hidden');
-            if (userActions) userActions.classList.remove('hidden');
-        } else {
-            if (guestActions) guestActions.classList.remove('hidden');
-            if (userActions) userActions.classList.add('hidden');
-            
-            // Render google button here if needed
-            if (typeof google !== "undefined" && GOOGLE_CLIENT_ID !== "YOUR_GOOGLE_CLIENT_ID") {
-                google.accounts.id.renderButton(
-                    document.getElementById("google-signin-btn-container-modal"),
-                    { theme: "outline", size: "large", width: 250 }
-                );
-            }
-        }
-    }
-}
-
-function closePremiumModal(e) {
-    if (e && e.target && !e.target.classList.contains('modal-overlay') && !e.target.classList.contains('premium-close-btn')) {
-        return; 
-    }
-    const modal = document.getElementById('premium-modal');
-    if (modal) modal.classList.add('hidden');
-}
-
-function simulatePurchase() {
-    isSubscribed = true;
-    localStorage.setItem('isSubscribed', 'true');
-    showToast("Premium Unlocked! Thank you for subscribing.");
-    closePremiumModal({ target: { classList: { contains: () => true } } });
-}
-
-// ==========================================
-// CUSTOM ALBUMS & BOOKMARKS (Restored)
-// ==========================================
-function closeCreateBookmarkModal(e) {
-    if (e) e.stopPropagation();
-    const m = document.getElementById('create-bookmark-modal');
-    if (m) m.classList.add('hidden');
-}
-
-function setCreateModalTab(tabId) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+function syncAlbumWheelToCurrent(smooth = true) {
+    const wheel = document.getElementById('album-scroll-wheel');
+    if (!wheel) return;
+    const clientHeight = wheel.clientHeight || 120;
+    const items = getAlbumWheelItems();
+    if (items.length === 0) return;
     
-    const btn = document.querySelector(`.tab-btn[onclick="setCreateModalTab('${tabId}')"]`);
-    if (btn) btn.classList.add('active');
+    const targetAlbum = selectedSavedAlbum || items[0].dataset.val;
+    const idx = items.findIndex(i => i.dataset.val === targetAlbum);
+    const targetIdx = idx !== -1 ? idx : 0;
     
-    const content = document.getElementById(`tab-${tabId}`);
-    if (content) content.classList.add('active');
+    const item = items[targetIdx];
+    if (item) {
+        const offsetHeight = item.offsetHeight || 30;
+        const targetScroll = item.offsetTop + offsetHeight / 2 - clientHeight / 2;
+        isProgrammaticAlbumScroll = true;
+        wheel.scrollTo({ top: targetScroll, behavior: smooth ? 'smooth' : 'auto' });
+        clearTimeout(programmaticAlbumScrollTimeout);
+        programmaticAlbumScrollTimeout = setTimeout(() => {
+            isProgrammaticAlbumScroll = false;
+            updateAlbumWheelActiveStyle();
+        }, smooth ? 500 : 50);
+        updateAlbumWheelActiveStyle();
+    }
 }
 
-function submitCreateVerse() {
-    const text = document.getElementById('custom-verse-text').value;
-    const author = document.getElementById('custom-verse-author').value;
-    const ref = document.getElementById('custom-verse-ref').value;
+function populateAlbumWheel() {
+    const wheel = document.getElementById('album-scroll-wheel');
+    if (!wheel) return;
     
-    if (!text) {
-        showToast("Please enter text");
-        return;
-    }
-    
-    const verse = {
-        book_id: "Custom",
-        book_name: "Personal Notes",
-        author: author || "Me",
-        chapter: "1",
-        verse: ref || "1",
-        text: text,
-        religion: "Custom"
-    };
-    
-    savedVerses.push(verse);
-    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
-    showToast("Note saved!");
-    closeCreateBookmarkModal();
-    document.getElementById('custom-verse-text').value = '';
-    document.getElementById('custom-verse-author').value = '';
-    document.getElementById('custom-verse-ref').value = '';
-}
-
-function submitCreateAlbum() {
-    const name = document.getElementById('new-album-name').value;
-    if (!name) {
-        showToast("Please enter an album name");
-        return;
-    }
-    
-    createdAlbums.push({
-        id: Date.now().toString(),
-        name: name,
-        verses: []
+    const albums = new Set();
+    createdAlbums.forEach(name => {
+        if (name && name !== 'Default') albums.add(name);
+    });
+    savedVerses.forEach(v => {
+        if (v.album && v.album !== 'Default') albums.add(v.album);
     });
     
-    localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
-    showToast(`Album "${name}" created`);
-    closeCreateBookmarkModal();
-    document.getElementById('new-album-name').value = '';
-}
-
-function closeRenameModal(e) {
-    if (e) e.stopPropagation();
-    const m = document.getElementById('rename-modal');
-    if (m) m.classList.add('hidden');
-}
-
-function submitRenameAlbum() {
-    const m = document.getElementById('rename-modal');
-    if (!m) return;
-    const albumId = m.getAttribute('data-album-id');
-    const newName = document.getElementById('rename-input').value;
+    const albumList = Array.from(albums);
+    if (albumList.length === 0) {
+        albumList.push('Default');
+    }
     
-    if (albumId && newName) {
-        const album = createdAlbums.find(a => a.id === albumId);
-        if (album) {
-            album.name = newName;
-            localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
-            showToast("Album renamed");
-            showSavedVerses(); // Refresh UI
+    wheel.innerHTML = '';
+    
+    const beforeSpacer = document.createElement('div');
+    beforeSpacer.style.flexShrink = '0';
+    beforeSpacer.style.height = 'calc(50% - 15px)';
+    wheel.appendChild(beforeSpacer);
+    
+    albumList.forEach(album => {
+        const item = document.createElement('div');
+        item.className = 'album-wheel-item';
+        item.dataset.val = album;
+        item.innerText = album;
+        item.onclick = (e) => {
+            e.stopPropagation();
+            saveToAlbum(album);
+        };
+        wheel.appendChild(item);
+    });
+    
+    const afterSpacer = document.createElement('div');
+    afterSpacer.style.flexShrink = '0';
+    afterSpacer.style.height = 'calc(50% - 15px)';
+    wheel.appendChild(afterSpacer);
+    
+    setupAlbumWheelListeners();
+    syncAlbumWheelToCurrent(false);
+    
+    setTimeout(() => {
+        syncAlbumWheelToCurrent(false);
+    }, 50);
+}
+
+function updateAlbumWheelActiveStyle() {
+    const wheel = document.getElementById('album-scroll-wheel');
+    if (!wheel) return;
+    const clientHeight = wheel.clientHeight || 120;
+    const items = wheel.querySelectorAll('.album-wheel-item');
+    const containerCenter = wheel.scrollTop + clientHeight / 2;
+    const itemHeight = 30;
+    
+    let closestIdx = 0, closestDist = Infinity;
+    
+    items.forEach((item, i) => {
+        const offsetHeight = item.offsetHeight || itemHeight;
+        const itemCenter = item.offsetTop + offsetHeight / 2;
+        const dist = itemCenter - containerCenter;
+        const normDist = dist / itemHeight;
+        const absNormDist = Math.abs(normDist);
+        
+        if (Math.abs(dist) < closestDist) {
+            closestDist = Math.abs(dist);
+            closestIdx = i;
         }
-    }
-    closeRenameModal();
-}
-
-// ==========================================
-// PILL SWIPE GESTURES (Restored)
-// ==========================================
-function handlePillLeftAction(el) {
-    const idx = parseInt(el.getAttribute('data-idx'));
-    const source = el.getAttribute('data-source');
-    let verse = null;
-    
-    if (source === 'history' && typeof listeningHistory !== 'undefined') verse = listeningHistory[idx];
-    else if (source === 'saved' && typeof savedVerses !== 'undefined') verse = savedVerses[idx];
-    else if (source === 'album' && typeof currentAlbumVerses !== 'undefined') verse = currentAlbumVerses[idx];
-    
-    if (verse) toggleBookmark(verse, el);
-}
-
-function handlePillPlay(el) {
-    const idx = parseInt(el.getAttribute('data-idx'));
-    const source = el.getAttribute('data-source');
-    let verse = null;
-    
-    if (source === 'history' && typeof listeningHistory !== 'undefined') verse = listeningHistory[idx];
-    else if (source === 'saved' && typeof savedVerses !== 'undefined') verse = savedVerses[idx];
-    else if (source === 'album' && typeof currentAlbumVerses !== 'undefined') verse = currentAlbumVerses[idx];
-    
-    if (verse) {
-        selectAndPlayVerse(verse);
-        goTo('verse-feed');
-    }
-}
-
-function handlePillShare(el) {
-    const idx = parseInt(el.getAttribute('data-idx'));
-    const source = el.getAttribute('data-source');
-    let verse = null;
-    
-    if (source === 'history' && typeof listeningHistory !== 'undefined') verse = listeningHistory[idx];
-    else if (source === 'saved' && typeof savedVerses !== 'undefined') verse = savedVerses[idx];
-    else if (source === 'album' && typeof currentAlbumVerses !== 'undefined') verse = currentAlbumVerses[idx];
-    
-    if (verse) {
-        if (navigator.share) {
-            navigator.share({
-                title: `${verse.book_name} - ${verse.author}`,
-                text: `"${verse.text}"
-— ${verse.author}, ${verse.book_name}`
-            });
+        
+        if (absNormDist < 1.1) {
+            const opacity = 1 - absNormDist * 0.55;
+            const scale = 1.15 - absNormDist * 0.3;
+            const angle = normDist * 40;
+            item.style.opacity = opacity;
+            item.style.transform = `rotateX(${angle}deg) scale(${scale}) translateZ(0)`;
+            item.style.fontWeight = absNormDist < 0.5 ? '600' : '400';
+            item.style.pointerEvents = 'auto';
         } else {
-            navigator.clipboard.writeText(`"${verse.text}"
-— ${verse.author}, ${verse.book_name}`);
-            showToast("Copied to clipboard!");
+            item.style.opacity = 0;
+            item.style.transform = 'scale(0.1) translateZ(0)';
+            item.style.pointerEvents = 'none';
+        }
+    });
+    
+    if (lastActiveAlbumIdx !== -1 && lastActiveAlbumIdx !== closestIdx) {
+        if (!isProgrammaticAlbumScroll) {
+            playScrollSound();
+        }
+    }
+    lastActiveAlbumIdx = closestIdx;
+}
+
+function updateSpeakIcons() {
+    updateSpeakButton('speak-general');
+}
+
+function deselectVerse() {
+    if (!selectedVerse) return;
+    highlightSelectedVerseElement(false);
+    selectedVerse = null;
+    deactivatePillUI();
+}
+
+function deactivatePillUI() {
+    const playBtn = document.getElementById('speak-general');
+    if (playBtn) {
+        playBtn.classList.remove('pill-active');
+    }
+    const navMenu = document.getElementById('top-nav-menu');
+    if (navMenu) {
+        navMenu.classList.remove('pill-active-menu');
+    }
+}
+
+function highlightSelectedVerseElement(active) {
+    if (!selectedVerse) return;
+    const el = document.getElementById(selectedVerse.elementId);
+    if (selectedVerse.type === 'saved') {
+        if (el) {
+            if (active) {
+                el.style.background = 'var(--text-color)';
+                el.style.color = 'var(--bg-grad-1)';
+                el.style.opacity = '1';
+                el.style.borderColor = 'var(--text-color)';
+                const t = el.querySelector('.verse-text');
+                if (t) t.style.color = 'var(--bg-grad-1)';
+                const r = el.querySelector('.verse-ref');
+                if (r) r.style.color = 'var(--bg-grad-1)';
+            } else {
+                el.style.background = '';
+                el.style.color = '';
+                el.style.opacity = '';
+                el.style.borderColor = '';
+                const t = el.querySelector('.verse-text');
+                if (t) t.style.color = '';
+                const r = el.querySelector('.verse-ref');
+                if (r) r.style.color = '';
+            }
+        }
+    } else if (selectedVerse.type === 'book') {
+        if (el) {
+            if (active) {
+                el.style.background = 'var(--text-color)';
+                el.style.color = 'var(--bg-grad-1)';
+                el.style.padding = '8px 12px';
+                el.style.borderRadius = '8px';
+            } else {
+                el.style.background = '';
+                el.style.color = '';
+                el.style.padding = '';
+                el.style.borderRadius = '';
+            }
+        }
+    } else if (selectedVerse.type === 'feed') {
+        const card = document.querySelector('.verse-card.card-center');
+        if (card) {
+            if (active) {
+                card.style.background = 'var(--text-color)';
+                card.style.color = 'var(--bg-grad-1)';
+                card.style.borderColor = 'var(--text-color)';
+                card.style.boxShadow = '0 0 15px rgba(var(--loader-rgb), 0.3)';
+                const t = card.querySelector('.verse-text');
+                if (t) t.style.color = 'var(--bg-grad-1)';
+                const r = card.querySelector('.verse-ref');
+                if (r) r.style.color = 'var(--bg-grad-1)';
+                const f = card.querySelector('.card-footer');
+                if (f) f.style.color = 'var(--bg-grad-1)';
+            } else {
+                card.style.background = '';
+                card.style.color = '';
+                card.style.borderColor = '';
+                card.style.boxShadow = '';
+                const t = card.querySelector('.verse-text');
+                if (t) t.style.color = '';
+                const r = card.querySelector('.verse-ref');
+                if (r) r.style.color = '';
+                const f = card.querySelector('.card-footer');
+                if (f) f.style.color = '';
+            }
         }
     }
 }
 
-// ==========================================
-// DIAGNOSTICS (Restored)
-// ==========================================
-function copyErrorLogsToClipboard() {
-    const diag = document.getElementById('error-list-content');
-    if (diag) {
-        navigator.clipboard.writeText(diag.innerText);
-        showToast("Logs copied to clipboard");
+function updatePillUI() {
+    const playBtn = document.getElementById('speak-general');
+    if (!playBtn) return;
+    
+    const bookmarkIcon = playBtn.querySelector('.icon-pill-bookmark');
+    const deleteIcon = playBtn.querySelector('.icon-pill-delete');
+    
+    if (selectedVerse && selectedVerse.type === 'saved') {
+        if (bookmarkIcon) bookmarkIcon.classList.add('hidden');
+        if (deleteIcon) deleteIcon.classList.remove('hidden');
+    } else {
+        if (bookmarkIcon) bookmarkIcon.classList.remove('hidden');
+        if (deleteIcon) deleteIcon.classList.add('hidden');
+    }
+    
+    const playIcon = playBtn.querySelector('.pill-play-icon');
+    if (playIcon) {
+        if (isSpeaking && !isPaused) {
+            playIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+        } else {
+            playIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+        }
+    }
+    
+    playBtn.classList.add('pill-active');
+    const navMenu = document.getElementById('top-nav-menu');
+    if (navMenu) {
+        navMenu.classList.add('pill-active-menu');
     }
 }
 
-function selectDiagnosticsText() {
-    const diag = document.getElementById('error-list-content');
-    if (diag) {
-        const range = document.createRange();
-        range.selectNodeContents(diag);
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(range);
+function selectVerse(verseObj, type, elementId, forceSelect = false) {
+    if (window.getSelection && window.getSelection().toString().trim().length > 0) return;
+    const isDifferentVerse = !selectedVerse || selectedVerse.book !== verseObj.book || selectedVerse.chapter !== verseObj.chapter || selectedVerse.verse !== verseObj.verse || selectedVerse.type !== type;
+
+    if (!forceSelect && !isDifferentVerse) {
+        deselectVerse();
+        return;
+    }
+
+    highlightSelectedVerseElement(false);
+    selectedVerse = { ...verseObj, type, elementId };
+    highlightSelectedVerseElement(true);
+
+    // Immediate play on selection ONLY if actively playing (isSpeaking is true AND isPaused is false)
+    if (isSpeaking && !isPaused && isDifferentVerse && !forceSelect) {
+        stopAudio(true);
+        if (type === 'book') {
+            if (selectedVerse.gIndex !== undefined) {
+                bookVoiceCurrentVerse = selectedVerse.gIndex;
+                syncWheelsToCurrent();
+                scrollToBookVerse(selectedVerse.gIndex);
+                markVerse();
+                playBookVerse(selectedVerse.gIndex);
+                autoNextBook = true;
+            }
+        } else if (type === 'saved') {
+            playText(selectedVerse.text, 'saved');
+        } else if (type === 'feed') {
+            playText(selectedVerse.text, 'feed');
+            autoMode = true;
+        }
+    } else if (isSpeaking && isPaused && isDifferentVerse && !forceSelect) {
+        // If voice session is paused, select/highlight it and update indices, but do NOT autoplay!
+        stopAudio(true);
+        if (type === 'book') {
+            if (selectedVerse.gIndex !== undefined) {
+                bookVoiceCurrentVerse = selectedVerse.gIndex;
+                syncWheelsToCurrent();
+                scrollToBookVerse(selectedVerse.gIndex);
+                markVerse();
+            }
+        }
+    } else {
+        if (type === 'book') {
+            if (selectedVerse.gIndex !== undefined) {
+                bookVoiceCurrentVerse = selectedVerse.gIndex;
+                syncWheelsToCurrent();
+                scrollToBookVerse(selectedVerse.gIndex);
+                markVerse();
+            }
+        }
+    }
+    updatePillUI();
+}
+
+function handlePillLeftAction(e) {
+    if (e) e.stopPropagation();
+    if (!selectedVerse) return;
+    
+    if (selectedVerse.type === 'saved') {
+        // Delete action
+        const index = savedVerses.findIndex(s => s.book === selectedVerse.book && s.chapter === selectedVerse.chapter && s.verse === selectedVerse.verse);
+        if (index > -1) {
+            savedVerses.splice(index, 1);
+            localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+            deselectVerse();
+            stopAudio();
+            activeSavedVerse = null;
+            showSavedVerses();
+        }
+    } else {
+        // Bookmark/Save action
+        const index = savedVerses.findIndex(s => s.book === selectedVerse.book && s.chapter === selectedVerse.chapter && s.verse === selectedVerse.verse);
+        if (index > -1) {
+            savedVerses.splice(index, 1);
+            localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+            stopAudio();
+        } else {
+            openAlbumModal(selectedVerse);
+        }
     }
 }
 
-// --- Diagnostics & Fallbacks ---
-function updateSpeakIcons() { updateSpeakButton('speak-general'); }
+function handlePillPlay(e) {
+    if (e) e.stopPropagation();
+    
+    if (selectedVerse) {
+        if (isSpeaking) {
+            if (!isPaused) {
+                isPaused = true;
+                if (currentAudioNode) {
+                    try {
+                        currentAudioNode.onended = null;
+                        currentAudioNode.stop();
+                    } catch (err) { }
+                    stopWaveformVisualizer();
+                }
+                updateSpeakIcons();
+                updatePillUI();
+            } else {
+                isPaused = false;
+                startWaveformVisualizer();
+                startAudioPlayback(0, currentGenerationId);
+                updateSpeakIcons();
+                updatePillUI();
+            }
+        } else {
+            if (selectedVerse.type === 'book') {
+                bookVoiceCurrentVerse = selectedVerse.gIndex;
+                markVerse();
+                syncWheelsToCurrent();
+                playBookVerse(bookVoiceCurrentVerse);
+                autoNextBook = true;
+            } else if (selectedVerse.type === 'feed') {
+                playText(selectedVerse.text, 'feed');
+                autoMode = true;
+            } else if (selectedVerse.type === 'saved') {
+                playText(selectedVerse.text, 'saved');
+            }
+            updatePillUI();
+        }
+    }
+}
+
+function handlePillShare(e) {
+    if (e) e.stopPropagation();
+    if (!selectedVerse) return;
+    
+    const text = selectedVerse.text + " - " + selectedVerse.book + " " + selectedVerse.chapter + ":" + selectedVerse.verse;
+    if (navigator.share) {
+        navigator.share({ title: 'Daily Verse', text: text }).catch(console.error);
+    } else {
+        navigator.clipboard.writeText(text);
+        showToast('Copied to clipboard!');
+    }
+}
