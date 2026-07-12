@@ -309,11 +309,16 @@ function setupGestures() {
         const width = window.innerWidth;
         const clickX = e.clientX;
         
-        // Use 40% on left and right for navigation. The middle 20% is a safe deadzone.
+        // Use 40% on left and right for navigation. The middle 20% selects the verse.
         if (clickX < width * 0.4) {
             prevCard();
         } else if (clickX > width * 0.6) {
             nextCard();
+        } else {
+            const currentVerse = getVerseAtIndex(verseFeedCurrentIndex);
+            if (currentVerse) {
+                selectVerse(currentVerse, 'feed', null);
+            }
         }
     });
 }
@@ -1508,12 +1513,6 @@ function renderFeedCard(index, direction = 'none') {
         card.classList.add('card-center');
     }
     
-    card.onclick = () => {
-        if (!isDragging) {
-            selectVerse(verse, 'feed', null);
-        }
-    };
-    
     const textEl = document.createElement('div');
     textEl.classList.add('verse-text');
     const footer = document.createElement('div');
@@ -2250,8 +2249,9 @@ function updateChapterWheelActiveStyle() {
             const opacity = 1 - absNormDist * 0.4;
             const scale = 1.15 - absNormDist * 0.3;
             const angle = normDist * 40; // 3D rotation angle
+            const tx = normDist * 25; // Space out items horizontally
             item.style.opacity = opacity;
-            item.style.transform = `rotateY(${-angle}deg) scale(${scale}) translateZ(0)`;
+            item.style.transform = `translateX(${tx}px) rotateY(${-angle}deg) scale(${scale}) translateZ(0)`;
             item.style.fontWeight = absNormDist < 0.5 ? '700' : '500';
             item.style.pointerEvents = 'auto';
         } else {
