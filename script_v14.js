@@ -63,7 +63,7 @@ const MIN_CHAR_LIMIT = 70;
 const maxCharLimit = 210;
 let darkModeStr = localStorage.getItem('darkModeEnabled');
 let darkModeEnabled = darkModeStr === null ? true : darkModeStr === 'true';
-const religions = ['Christianity', 'Islam', 'Hinduism', 'Sikhism', 'Judaism', 'Buddhism', 'Philosophy'];
+const religions = ['Christianity', 'Islam', 'Hinduism', 'Sikhism', 'Judaism', 'Buddhism', 'Philosophy', 'Psychology'];
 
 const dataUrls = {
     Christianity: ['./data/bible.json?v=20'],
@@ -72,7 +72,8 @@ const dataUrls = {
     Judaism: ['./data/sefaria.json?v=20'],
     Sikhism: ['./data/gurbani.json?v=20'],
     Buddhism: ['./data/buddhism.json?v=20'],
-    Philosophy: ['./data/philosophy.json?v=20']
+    Philosophy: ['./data/philosophy.json?v=20'],
+    Psychology: ['./data/psychology.json?v=20']
 };
 let loadedReligions = new Set();
 // Settings
@@ -882,7 +883,8 @@ async function loadReligionData(rel) {
         if (rel === 'Judaism') processSefariaData(responses[0]);
         if (rel === 'Sikhism') processSikhismData(responses[0]);
         if (rel === 'Buddhism') processBuddhismData(responses[0]);
-        if (rel === 'Philosophy') processPhilosophyData(responses[0]);
+        if (rel === 'Philosophy') processGenericData(responses[0], 'Philosophy');
+        if (rel === 'Psychology') processGenericData(responses[0], 'Psychology');
 
         loadedReligions.add(rel);
         buildSettings();
@@ -1245,7 +1247,7 @@ function processBuddhismData(data) {
     religionBooks.Buddhism = { books: books };
 }
 
-function processPhilosophyData(data) {
+function processGenericData(data, relName) {
     let verses = [];
     let books = [];
     
@@ -1261,7 +1263,7 @@ function processPhilosophyData(data) {
                 for (const [verseNum, verseText] of Object.entries(versesMap)) {
                     const text = cleanText(verseText);
                     chapterContent[chapterName][verseNum] = text;
-                    verses.push({ text: text, religion: 'Philosophy', book: bookName, chapter: chapterName, verse: verseNum });
+                    verses.push({ text: text, religion: relName, book: bookName, chapter: chapterName, verse: verseNum });
                 }
             }
             
@@ -1273,8 +1275,8 @@ function processPhilosophyData(data) {
         }
     }
     
-    religionVerses['Philosophy'] = verses;
-    religionBooks['Philosophy'] = books;
+    religionVerses[relName] = verses;
+    religionBooks[relName] = { books: books };
 }
 function escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
