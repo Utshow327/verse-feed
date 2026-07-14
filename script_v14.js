@@ -2351,8 +2351,16 @@ function selectAndPlayVerse(verseIndex) {
         lastAnnouncedChapter = info.chapter;
     }
     bookVoiceCurrentVerse = verseIndex;
-    if (info) selectVerse(info, 'book', 'book-verse-' + verseIndex);
+    
+    // Scroll and render first
     scrollToBookVerse(bookVoiceCurrentVerse);
+    
+    // Select after a small delay so elements are in DOM
+    if (info) {
+        setTimeout(() => {
+            selectVerse(info, 'book', 'book-verse-' + verseIndex);
+        }, 150);
+    }
 
     if (wasPlaying) {
         const isFirstVerse = chapterStartIndices[info.chapter] === verseIndex;
@@ -2505,10 +2513,10 @@ function updateVoiceWheelActiveStyle() {
 
         // Real-time scale, opacity, and X-axis rotation
         if (absNormDist < 2.5) {
-            const opacity = 1 - absNormDist * 0.35;
-            const scale = 1.15 - absNormDist * 0.15;
-            const angle = normDist * 30;
-            item.style.opacity = Math.max(0, opacity);
+            const opacity = 1 - absNormDist * 0.4;
+            const scale = 1.1 - absNormDist * 0.15;
+            const angle = normDist * 40;
+            item.style.opacity = Math.max(0.1, opacity);
             item.style.transform = `rotateX(${angle}deg) scale(${scale}) translateZ(0)`;
             item.style.fontWeight = absNormDist < 0.5 ? '600' : '400';
             item.style.pointerEvents = 'auto';
@@ -2702,7 +2710,7 @@ const RADIAL_ACTIONS = {
 function getCurrentActiveVerse() {
     const isBookSection = document.getElementById('read-books').classList.contains('active-section') && !document.getElementById('book-content-view').classList.contains('hidden');
     const isFeedSection = document.getElementById('verse-feed').classList.contains('active-section');
-    if (isFeedSection && currentFeedBatch[currentCardIndex]) return currentFeedBatch[currentCardIndex];
+    if (isFeedSection) return getVerseAtIndex(currentVerseIndex.general);
     if (isBookSection && globalVerseMap[bookVoiceCurrentVerse]) return globalVerseMap[bookVoiceCurrentVerse];
     return null;
 }
