@@ -2724,7 +2724,7 @@ window.addEventListener('pointerup', (e) => {
         hideRadialMenu();
         radialActive = false;
         currentRadialElement = null;
-    } else if (currentRadialElement && e.target.closest('#' + currentRadialElement.id) || (currentRadialElement && currentRadialElement.contains(e.target))) {
+    } else if (currentRadialElement && ((currentRadialElement.id && e.target.closest('#' + currentRadialElement.id)) || currentRadialElement.contains(e.target))) {
         // It was a short click
         if (currentRadialElement.id === 'speak-general') {
             speakCurrent('general');
