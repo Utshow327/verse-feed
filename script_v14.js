@@ -66,14 +66,14 @@ let darkModeEnabled = darkModeStr === null ? true : darkModeStr === 'true';
 const religions = ['Christianity', 'Islam', 'Hinduism', 'Sikhism', 'Judaism', 'Buddhism', 'Philosophy', 'Psychology'];
 
 const dataUrls = {
-    Christianity: ['./data/bible.json?v=20'],
-    Islam: ['./data/quran_v2.json?v=20', './data/hadiths_v2.json?v=20'],
-    Hinduism: ['./data/gita.json?v=20', './data/hindu_books.json?v=20'],
-    Judaism: ['./data/sefaria.json?v=20'],
-    Sikhism: ['./data/gurbani.json?v=20'],
-    Buddhism: ['./data/buddhism.json?v=20'],
-    Philosophy: ['./data/philosophy.json?v=20'],
-    Psychology: ['./data/psychology.json?v=20']
+    Christianity: ['./data/bible.json?v=21'],
+    Islam: ['./data/quran_v2.json?v=21', './data/hadiths_v2.json?v=21'],
+    Hinduism: ['./data/gita.json?v=21', './data/hindu_books.json?v=21'],
+    Judaism: ['./data/sefaria.json?v=21'],
+    Sikhism: ['./data/gurbani.json?v=21'],
+    Buddhism: ['./data/buddhism.json?v=21'],
+    Philosophy: ['./data/philosophy.json?v=21'],
+    Psychology: ['./data/psychology.json?v=21']
 };
 let loadedReligions = new Set();
 // Settings
