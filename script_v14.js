@@ -1572,30 +1572,30 @@ function renderFeedCard(index, direction = 'none') {
 function nextCard(isAuto = false) {
     deselectVerse();
     const wasPlaying = isSpeaking && !isPaused;
-
     stopAudio();
-    currentVerseIndex.general++;
-    renderFeedCard(currentVerseIndex.general, 'next');
+    if (currentVerseIndex.general < (verseBatches.general.length * 10) - 1) {
+        currentVerseIndex.general++;
+        renderFeedCard(currentVerseIndex.general, 'next');
 
-    if (isAuto || wasPlaying) {
-        const verse = getVerseAtIndex(currentVerseIndex.general);
-        if (verse) {
-            let spokenText = verse.spoken_text || verse.text;
-            if (!spokenText.endsWith('.')) spokenText += '.';
-            
-            if (ttsAnnounceSource) {
-                spokenText += '. ' + verse.book + '.';
+        if (isAuto || wasPlaying) {
+            const verse = getVerseAtIndex(currentVerseIndex.general);
+            if (verse) {
+                let spokenText = verse.spoken_text || verse.text;
+                if (!spokenText.endsWith('.')) spokenText += '.';
+                
+                if (ttsAnnounceSource) {
+                    spokenText += '. ' + verse.book + '.';
+                }
+
+                playText(spokenText, 'feed');
+                autoMode = true;
             }
-
-            playText(spokenText, 'feed');
-            autoMode = true;
         }
     }
 }
 function prevCard() {
     deselectVerse();
     const wasPlaying = isSpeaking && !isPaused;
-
     stopAudio();
     if (currentVerseIndex.general > 0) {
         currentVerseIndex.general--;
@@ -2250,10 +2250,10 @@ function updateChapterWheelActiveStyle() {
     const items = getChapterWheelItems();
     const containerCenter = wheel.scrollLeft + wheel.clientWidth / 2;
     let itemWidth = 0;
-    if (items[0]) {
-        itemWidth = items[0].offsetWidth;
+    if (items.length > 1) {
+        itemWidth = items[1].offsetLeft - items[0].offsetLeft;
     }
-    if (!itemWidth || itemWidth === 0) {
+    if (!itemWidth || itemWidth <= 0) {
         itemWidth = wheel.clientWidth / 3 || 80;
     }
 
@@ -2272,10 +2272,10 @@ function updateChapterWheelActiveStyle() {
 
         // Real-time scale, opacity, and Y-axis rotation
         if (absNormDist < 2.5) {
-            const opacity = 1 - absNormDist * 0.35;
-            const scale = 1.15 - absNormDist * 0.15;
-            const angle = normDist * 30; // 3D rotation angle
-            item.style.opacity = Math.max(0, opacity);
+            const opacity = 1 - absNormDist * 0.4;
+            const scale = 1.1 - absNormDist * 0.15;
+            const angle = normDist * 40; // 3D rotation angle
+            item.style.opacity = Math.max(0.1, opacity); // Ensure they don't completely vanish if within 2.5
             item.style.transform = `rotateY(${-angle}deg) scale(${scale}) translateZ(0)`;
             item.style.fontWeight = absNormDist < 0.5 ? '700' : '500';
             item.style.pointerEvents = 'auto';
@@ -3387,7 +3387,6 @@ function updatePillUI() {
 }
 
 function selectVerse(verseObj, type, elementId, forceSelect = false) {
-    if (window.getSelection && window.getSelection().toString().trim().length > 0) return;
     const isDifferentVerse = !selectedVerse || selectedVerse.book !== verseObj.book || selectedVerse.chapter !== verseObj.chapter || selectedVerse.verse !== verseObj.verse || selectedVerse.type !== type;
 
     if (!forceSelect && !isDifferentVerse) {
