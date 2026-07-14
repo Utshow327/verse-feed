@@ -1558,6 +1558,7 @@ function renderFeedCard(index, direction = 'none') {
     });
 }
 function nextCard(isAuto = false) {
+    deselectVerse();
     const wasPlaying = isSpeaking && !isPaused;
 
     stopAudio();
@@ -1580,6 +1581,7 @@ function nextCard(isAuto = false) {
     }
 }
 function prevCard() {
+    deselectVerse();
     const wasPlaying = isSpeaking && !isPaused;
 
     stopAudio();
@@ -2104,8 +2106,12 @@ function initializeChapterView(content, chapterOrder) {
     if (targetInfo) {
         renderChapter(targetInfo.chapter);
         scrollToBookVerse(bookVoiceCurrentVerse);
+        setTimeout(() => selectVerse(targetInfo, 'book', 'book-verse-' + bookVoiceCurrentVerse), 100);
     } else if (chapterList.length > 0) {
         renderChapter(chapterList[0]);
+        const firstIndex = chapterStartIndices[chapterList[0]];
+        const firstInfo = globalVerseMap[firstIndex];
+        if (firstInfo) setTimeout(() => selectVerse(firstInfo, 'book', 'book-verse-' + firstIndex), 100);
     }
 }
 function renderChapter(chapter) {
@@ -2245,17 +2251,17 @@ function updateChapterWheelActiveStyle() {
         }
 
         // Real-time scale, opacity, and Y-axis rotation
-        if (absNormDist < 1.1) {
-            const opacity = 1 - absNormDist * 0.4;
-            const scale = 1.15 - absNormDist * 0.3;
-            const angle = normDist * 40; // 3D rotation angle
-            item.style.opacity = opacity;
+        if (absNormDist < 2.5) {
+            const opacity = 1 - absNormDist * 0.35;
+            const scale = 1.15 - absNormDist * 0.15;
+            const angle = normDist * 30; // 3D rotation angle
+            item.style.opacity = Math.max(0, opacity);
             item.style.transform = `rotateY(${-angle}deg) scale(${scale}) translateZ(0)`;
             item.style.fontWeight = absNormDist < 0.5 ? '700' : '500';
             item.style.pointerEvents = 'auto';
         } else {
             item.style.opacity = 0;
-            item.style.transform = 'scale(0.1) translateZ(0)';
+            item.style.transform = 'scale(0.5) translateZ(0)';
             item.style.pointerEvents = 'none';
         }
     });
@@ -2325,7 +2331,7 @@ function selectAndPlayVerse(verseIndex) {
         lastAnnouncedChapter = info.chapter;
     }
     bookVoiceCurrentVerse = verseIndex;
-    markVerse();
+    if (info) selectVerse(info, 'book', 'book-verse-' + verseIndex);
     scrollToBookVerse(bookVoiceCurrentVerse);
 
     if (wasPlaying) {
@@ -2478,17 +2484,17 @@ function updateVoiceWheelActiveStyle() {
         }
 
         // Real-time scale, opacity, and X-axis rotation
-        if (absNormDist < 1.1) {
-            const opacity = 1 - absNormDist * 0.55;
-            const scale = 1.15 - absNormDist * 0.3;
-            const angle = normDist * 40;
-            item.style.opacity = opacity;
+        if (absNormDist < 2.5) {
+            const opacity = 1 - absNormDist * 0.35;
+            const scale = 1.15 - absNormDist * 0.15;
+            const angle = normDist * 30;
+            item.style.opacity = Math.max(0, opacity);
             item.style.transform = `rotateX(${angle}deg) scale(${scale}) translateZ(0)`;
             item.style.fontWeight = absNormDist < 0.5 ? '600' : '400';
             item.style.pointerEvents = 'auto';
         } else {
             item.style.opacity = 0;
-            item.style.transform = 'scale(0.1) translateZ(0)';
+            item.style.transform = 'scale(0.5) translateZ(0)';
             item.style.pointerEvents = 'none';
         }
     });
@@ -3120,17 +3126,17 @@ function updateAlbumWheelActiveStyle() {
             closestIdx = i;
         }
         
-        if (absNormDist < 1.1) {
-            const opacity = 1 - absNormDist * 0.55;
-            const scale = 1.15 - absNormDist * 0.3;
-            const angle = normDist * 40;
-            item.style.opacity = opacity;
+        if (absNormDist < 2.5) {
+            const opacity = 1 - absNormDist * 0.35;
+            const scale = 1.15 - absNormDist * 0.15;
+            const angle = normDist * 30;
+            item.style.opacity = Math.max(0, opacity);
             item.style.transform = `rotateX(${angle}deg) scale(${scale}) translateZ(0)`;
             item.style.fontWeight = absNormDist < 0.5 ? '600' : '400';
             item.style.pointerEvents = 'auto';
         } else {
             item.style.opacity = 0;
-            item.style.transform = 'scale(0.1) translateZ(0)';
+            item.style.transform = 'scale(0.5) translateZ(0)';
             item.style.pointerEvents = 'none';
         }
     });
