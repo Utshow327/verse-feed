@@ -769,9 +769,21 @@ function startAudioPlayback(offset, generationId) {
 
 function updateSpeakButton(buttonId) {
     const btn = document.getElementById(buttonId);
-    if (btn) {
-        btn.innerHTML = isSpeaking && !isPaused ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="speak-svg"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="speak-svg"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+    if (!btn) return;
+    
+    if (buttonId === 'speak-general') {
+        const playIcon = btn.querySelector('.pill-play-icon');
+        if (playIcon) {
+            if (isSpeaking && !isPaused) {
+                playIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+            } else {
+                playIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+            }
+            return;
+        }
     }
+    
+    btn.innerHTML = isSpeaking && !isPaused ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="speak-svg"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="speak-svg"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
 }
 // --- Unified Audio Control ---
 function speakCurrent(type) {
@@ -2150,6 +2162,8 @@ function renderChapter(chapter) {
 function populateChapterWheel() {
     const wheel = document.getElementById('chapter-scroll-wheel');
     if (!wheel) return;
+    wheel.style.maskImage = 'none';
+    wheel.style.webkitMaskImage = 'none';
     wheel.innerHTML = '';
 
     chapterList.forEach((chap, index) => {
@@ -2235,7 +2249,13 @@ function updateChapterWheelActiveStyle() {
     if (!wheel) return;
     const items = getChapterWheelItems();
     const containerCenter = wheel.scrollLeft + wheel.clientWidth / 2;
-    const itemWidth = items[0] ? items[0].offsetWidth : (wheel.clientWidth / 3); 
+    let itemWidth = 0;
+    if (items[0]) {
+        itemWidth = items[0].offsetWidth;
+    }
+    if (!itemWidth || itemWidth === 0) {
+        itemWidth = wheel.clientWidth / 3 || 80;
+    }
 
     let closestIdx = 0, closestDist = Infinity;
 
