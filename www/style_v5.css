@@ -752,8 +752,6 @@ h2 {
     scrollbar-width: none;
     width: 100%;
     max-width: 400px;
-    mask-image: linear-gradient(to right, transparent 0%, black 35%, black 65%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 35%, black 65%, transparent 100%);
     margin: 0 auto;
     height: 50px;
     padding: 0 33.333%;
@@ -1585,7 +1583,6 @@ h2 {
     height: 50px;
     border-radius: 50% !important;
     transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1), border-radius 0.4s cubic-bezier(0.25, 1, 0.5, 1), transform 0.2s ease, box-shadow 0.2s ease !important;
-    overflow: hidden;
 }
 
 .main-play-btn.pill-active {
