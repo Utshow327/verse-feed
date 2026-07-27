@@ -1,25 +1,37 @@
+/* Global Focus & Tap Highlight Removal */
+* {
+    -webkit-tap-highlight-color: transparent !important;
+}
+*:focus, *:focus-visible {
+    outline: none !important;
+}
+button, input, select, textarea, div, svg, canvas, a {
+    outline: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
 :root {
     /* Palette */
     --p-gold: #BCAE9E;
     --p-sand: #E6E4DF;
     --p-brown: #665D55;
     --p-black: #1E1D1B;
-    /* Light Mode Defaults */
-    --bg-grad-1: #F9F6F0;
-    --bg-grad-2: #E8DCCB;
-    --text-color: #3D352F;
-    --card-bg: rgba(255, 255, 255, 0.65);
-    --glass-border: rgba(0, 0, 0, 0.35);
-    --nav-bg: rgba(255, 255, 255, 0.25);
-    --nav-color: #2c3e50;
-    --glass-shadow: 0 10px 30px 0 rgba(31, 29, 27, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+    /* Light Mode Defaults (True Light Brown / Latte) */
+    --bg-grad-1: #C8B8A6;
+    --bg-grad-2: #A99684;
+    --text-color: #1E1D1B;
+    --card-bg: rgba(224, 214, 202, 0.85);
+    --glass-border: rgba(60, 50, 40, 0.28);
+    --nav-bg: rgba(180, 166, 152, 0.5);
+    --nav-color: #1E1D1B;
+    --glass-shadow: 0 12px 35px 0 rgba(30, 25, 20, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.5);
     --accent: var(--p-brown);
     --highlight: var(--p-gold);
-    --nav-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.5), inset 0 -1px 1px rgba(0, 0, 0, 0.02);
+    --nav-shadow: 0 10px 30px rgba(30, 25, 20, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.4), inset 0 -1px 1px rgba(0, 0, 0, 0.05);
 
     /* Loader RGB for currentColor matching */
-    --loader-rgb: 102, 93, 85;
-    --bg-rgb: 249, 246, 240;
+    --loader-rgb: 30, 29, 27;
+    --visualizer-rgb: 66, 55, 45;
+    --bg-rgb: 200, 184, 166;
 
     /* Typography */
     --font-main: 'Times New Roman', serif;
@@ -39,6 +51,7 @@
     --nav-bg: rgba(20, 20, 20, 0.35);
     --nav-shadow: 0 15px 40px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1), inset 0 -1px 1px rgba(0, 0, 0, 0.2);
     --loader-rgb: 188, 174, 158;
+    --visualizer-rgb: 232, 206, 181;
     --bg-rgb: 31, 29, 27;
     --slider-track: rgba(188, 174, 158, 0.35);
     --marked-bg: rgba(188, 174, 158, 0.2);
@@ -73,86 +86,41 @@ html, body {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    background: var(--bg-color-main);
-    z-index: 9999;
+    width: 100vw;
+    height: 100vh;
+    background: var(--bg-grad-1);
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: opacity 0.8s ease;
-    overflow: hidden;
+    z-index: 9999;
 }
 
-.disk-waveform {
-    position: relative;
-    width: 80px;
-    height: 80px;
+.elegant-spinner {
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(var(--loader-rgb), 1.0) 0%, rgba(var(--loader-rgb), 0.0) 100%);
-    border: none;
-    transform: scale(var(--app-progress, 0.25)) translateZ(0);
-    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-    will-change: transform;
-}
-
-.disk-layer {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(var(--loader-rgb), 0.5) 0%, rgba(var(--loader-rgb), 0.0) 100%);
-    pointer-events: none;
-    transform: scale(1) translateZ(0);
-    opacity: 0;
+    background: radial-gradient(circle, rgba(var(--loader-rgb), 1) 0%, rgba(var(--loader-rgb), 0.6) 100%);
+    box-shadow: 0 0 15px rgba(var(--loader-rgb), 0.5);
+    animation: elegant-pulse 1.2s ease-in-out infinite alternate;
     will-change: transform, opacity;
 }
 
-/* Beautiful breathing ripples */
-.disk-waveform .disk-layer:nth-child(1) {
-    animation: disk-breath-layer 3.6s ease-in-out infinite;
-    animation-delay: 0s;
+@keyframes elegant-pulse {
+    0% { transform: scale(0.8); opacity: 0.5; }
+    100% { transform: scale(1.2); opacity: 1; }
 }
 
-.disk-waveform .disk-layer:nth-child(2) {
-    animation: disk-breath-layer 3.6s ease-in-out infinite;
-    animation-delay: 1.2s;
-}
-
-.disk-waveform .disk-layer:nth-child(3) {
-    animation: disk-breath-layer 3.6s ease-in-out infinite;
-    animation-delay: 2.4s;
-}
-
-@keyframes disk-breath-layer {
-    0% {
-        transform: scale(1.0);
-        opacity: 0.9;
-    }
-    50% {
-        transform: scale(1.6);
-        opacity: 0.3;
-    }
-    100% {
-        transform: scale(2.2);
-        opacity: 0;
-    }
-}
-
-/* When loaded, swell massively to cover screen */
+/* When loaded, gracefully fade out */
 #loading { transition: background-color 0.4s ease, opacity 0.4s ease; }
 #loading.loaded {
-    background-color: transparent;
-}
-#loading.loaded .disk-waveform {
-    transform: scale(50) !important;
     opacity: 0;
-    transition: transform 1.2s cubic-bezier(0.7, 0, 0.3, 1) !important, opacity 0.6s ease 0.6s !important;
+    pointer-events: none !important;
 }
-#loading.loaded .disk-layer {
-    display: none !important;
+#loading.loaded .elegant-spinner {
+    animation: none;
+    transition: transform 0.4s ease, opacity 0.4s ease;
+    transform: scale(0.5);
+    opacity: 0;
 }
 
 #waveform-canvas {
@@ -191,23 +159,14 @@ html, body {
     box-shadow: var(--nav-shadow) !important;
     transition: all 0.3s ease;
     height: 50px;
-    width: 85%;
+    width: 90%;
     max-width: 800px; /* matched to verse cards */
     justify-content: space-between;
 }
 
 #top-nav-menu.pill-active-menu {
-    gap: 8px !important;
-    padding: 6px 12px !important;
-}
-
-#top-nav-menu.pill-active-menu .nav-icon:not(.main-play-btn) {
-    padding: 4px !important;
-}
-
-#top-nav-menu.pill-active-menu .nav-icon:not(.main-play-btn) svg {
-    width: 20px !important;
-    height: 20px !important;
+    gap: 12px !important;
+    padding: 6px 18px !important;
 }
 
 @media (max-width: 480px) {
@@ -337,7 +296,7 @@ html, body {
     border: 1px solid var(--glass-border);
     border-radius: 24px;
     box-shadow: var(--glass-shadow);
-    width: 85%;
+    width: 90%;
     max-width: 800px;
     height: 65vh;
     padding: 25px;
@@ -347,6 +306,13 @@ html, body {
     position: absolute;
     transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease, background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     will-change: transform, opacity;
+    animation: cardFadeIn 0.3s ease-out forwards;
+    opacity: 0;
+}
+
+@keyframes cardFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .card-center {
@@ -645,6 +611,11 @@ h2 {
     margin-bottom: 30px;
 }
 
+#lib-search-results {
+    margin-top: 30px;
+    padding-bottom: 120px;
+}
+
 #lib-search-input {
     width: 100%;
     padding: 16px 20px;
@@ -781,16 +752,30 @@ h2 {
     white-space: nowrap;
     padding: 0;
     opacity: 0;
-    transform: scale(0.1) translateZ(0);
-    transform-style: preserve-3d;
-    backface-visibility: hidden;
-    will-change: transform, opacity;
+    transform: scale(0.1);
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-
-
+.voice-wheel-item {
+    flex-shrink: 0;
+    scroll-snap-align: center;
+    width: auto;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-color);
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.1);
+}
 
 .book-verse {
+    user-select: none;
+    -webkit-user-select: none;
     margin-bottom: 20px;
     padding: 10px;
     border-radius: 8px;
@@ -811,13 +796,17 @@ h2 {
     position: relative;
 }
 
+@keyframes slideFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 .saved-verse {
     background: var(--card-bg);
     border-radius: 16px;
     padding: 20px;
     border: 1px solid var(--glass-border);
     transition: background 0.3s, border-left 0.3s;
-    box-shadow: var(--glass-shadow);
 }
 
 .remove-btn {
@@ -839,6 +828,23 @@ h2 {
 }
 
 /* --- Settings --- */
+
+.album-square-btn {
+    width: 100px;
+    height: 100px;
+    border-radius: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
 
 .toggle-icon-btn {
     background: var(--card-bg);
@@ -959,7 +965,7 @@ h2 {
 /* Voice Settings Dropdown (iOS Wheel Style) */
 #voice-scroll-wheel-container {
     position: relative;
-    width: 80px;
+    width: 90px;
     height: 120px;
     display: flex;
     justify-content: center;
@@ -1014,18 +1020,18 @@ h2 {
     font-weight: 500;
     color: var(--text-color);
     cursor: pointer;
-    opacity: 0;
-    transform: scale(0.1) translateZ(0);
+    opacity: 0.5;
     transform-style: preserve-3d;
     backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
     will-change: transform, opacity;
-    transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
 .voice-wheel-item.active {
     opacity: 1;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     color: #e5c07b;
+    font-weight: 700;
 }
 
 .music-toggle-btn.active {
@@ -2067,32 +2073,155 @@ h2 {
     transform: scale(0.97);
 }
 
-/* Premium Gradient Animated Button */
+/* Premium Animated Gradient Pill Button - App Palette */
 .premium-gradient-btn {
     flex: 1;
     height: 50px;
-    border-radius: 12px;
-    color: var(--bg-grad-1);
+    border-radius: 25px;
+    color: var(--text-color);
     font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
     font-family: inherit;
-    border: 1px solid var(--accent);
-    background: linear-gradient(270deg, var(--accent), var(--highlight), var(--accent), var(--highlight));
-    background-size: 800% 800%;
-    animation: premiumShine 8s ease infinite;
-    text-shadow: none;
-    box-shadow: 0 4px 15px rgba(var(--loader-rgb), 0.3);
+    border: 1px solid var(--glass-border);
+    background: linear-gradient(135deg, var(--p-gold), var(--p-sand), var(--bg-grad-1), var(--p-gold));
+    background-size: 300% 300%;
+    animation: premiumGradientShine 8s ease infinite;
+    box-shadow: var(--glass-shadow);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    position: relative;
+}
+
+[data-theme="dark"] .premium-gradient-btn {
+    color: #e5c07b;
+    border-color: rgba(229, 192, 123, 0.4);
+    background: linear-gradient(135deg, #2c2925, #443c35, #38322c, #2c2925);
+    background-size: 300% 300%;
 }
 
 .premium-gradient-btn:active {
     transform: scale(0.96);
-    box-shadow: 0 2px 8px rgba(var(--loader-rgb), 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-@keyframes premiumShine {
+@keyframes premiumGradientShine {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
+}
+
+.book-verse.marked {
+    background: var(--text-color) !important;
+    color: var(--bg-grad-1) !important;
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+}
+
+/* --- App Loader --- */
+#app-loader {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--bg-color);
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+#app-loader.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+.loader-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top: 3px solid var(--primary-color, #007aff);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+[data-theme="light"] .loader-spinner {
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-top: 3px solid var(--primary-color, #007aff);
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* Dedicated Album Square Button for Bookmarks Section */
+.album-square-btn {
+    background: var(--card-bg);
+    color: var(--text-color);
+    border: 2px solid var(--glass-border);
+    border-radius: 16px;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 8px;
+    text-align: center;
+}
+.album-square-btn.active {
+    background: var(--text-color);
+    color: var(--bg-grad-1);
+    border-color: var(--text-color);
+}
+
+.radial-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9999;
+}
+.radial-item {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background: var(--bg-grad-1);
+    border: 2px solid var(--text-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-color);
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s;
+    pointer-events: auto;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+.radial-item.active {
+    transform: translate(-50%, -50%) scale(1);
+}
+.radial-item.highlighted {
+    transform: translate(-50%, -50%) scale(1.15);
+    background: var(--text-color);
+    color: var(--bg-grad-1);
+}
+
+.modal-tab-btn {
+    flex: 1;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: var(--card-bg);
+    color: var(--text-color);
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+.modal-tab-btn.active {
+    background: var(--accent);
+    color: var(--bg-grad-1);
+    border-color: var(--accent);
 }

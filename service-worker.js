@@ -1,4 +1,4 @@
-const CACHE_NAME = 'religion-app-v15';
+const CACHE_NAME = 'religion-app-v16';
 const STATIC_ASSETS = [
     './',
     './index.html',
@@ -95,20 +95,21 @@ self.addEventListener('fetch', (e) => {
         return;
     }
 
-    // Standard Cache-First for static assets
+    // Network-First for static assets (ensures latest code is served)
     e.respondWith(
-        caches.match(e.request).then((cachedResponse) => {
-            if (cachedResponse) {
-                return cachedResponse;
+        fetch(e.request).then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+                const cacheCopy = networkResponse.clone();
+                caches.open(CACHE_NAME).then((cache) => {
+                    cache.put(e.request, cacheCopy);
+                });
             }
-            return fetch(e.request).then((networkResponse) => {
-                if (networkResponse && networkResponse.status === 200) {
-                    const cacheCopy = networkResponse.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(e.request, cacheCopy);
-                    });
+            return networkResponse;
+        }).catch(() => {
+            return caches.match(e.request).then((cachedResponse) => {
+                if (cachedResponse) {
+                    return cachedResponse;
                 }
-                return networkResponse;
             });
         })
     );
