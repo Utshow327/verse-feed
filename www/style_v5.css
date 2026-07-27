@@ -973,6 +973,12 @@ h2 {
     overflow: hidden;
     perspective: 1000px;
     cursor: default;
+    animation: wheelAppear 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@keyframes wheelAppear {
+    from { opacity: 0; transform: scale(0.85); }
+    to { opacity: 1; transform: scale(1); }
 }
 
 #voice-scroll-wheel-container::before,
@@ -2097,9 +2103,9 @@ h2 {
 }
 
 [data-theme="dark"] .premium-gradient-btn {
-    color: #e5c07b;
-    border-color: rgba(229, 192, 123, 0.4);
-    background: linear-gradient(135deg, #2c2925, #443c35, #38322c, #2c2925);
+    color: #f7e7ce;
+    border-color: rgba(247, 231, 206, 0.35);
+    background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #3d352e);
     background-size: 300% 300%;
 }
 

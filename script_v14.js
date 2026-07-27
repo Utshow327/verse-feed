@@ -4247,8 +4247,15 @@ async function syncUserDataWithGoogleDrive(accessToken) {
         });
         const listData = await listRes.json();
         
+        // Backup Guest Mode data before syncing Google Account data
+        if (!googleUser || !localStorage.getItem('guest_savedVerses')) {
+            localStorage.setItem('guest_savedVerses', JSON.stringify(savedVerses));
+            localStorage.setItem('guest_createdAlbums', JSON.stringify(createdAlbums));
+        }
+
         const localData = {
             savedVerses: JSON.parse(localStorage.getItem('savedVerses') || '[]'),
+            createdAlbums: JSON.parse(localStorage.getItem('createdAlbums') || '[]'),
             bookMarkedVerse: JSON.parse(localStorage.getItem('bookMarkedVerse') || '{}'),
             globalSelectedRels: JSON.parse(localStorage.getItem('globalSelectedRels') || 'null'),
             selectedVoice: localStorage.getItem('selectedVoice'),
@@ -4348,9 +4355,17 @@ function closeUserProfileModal(e) {
 function confirmSignOut() {
     googleUser = null;
     localStorage.removeItem('googleUser');
+
+    // Isolate & restore Guest Mode folders and saved verses
+    savedVerses = JSON.parse(localStorage.getItem('guest_savedVerses') || '[]');
+    createdAlbums = JSON.parse(localStorage.getItem('guest_createdAlbums') || '[]');
+    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+    localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
+
     closeUserProfileModal();
     updateUserUI();
     updatePremiumModalActions();
+    if (typeof showSavedVerses === 'function') showSavedVerses();
     showToast('Signed out');
 }
 
