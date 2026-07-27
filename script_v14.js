@@ -229,7 +229,7 @@ async function initApp() {
             });
         }
 
-        if (globalSelectedRels === null) {
+        if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
             globalSelectedRels = [...religions];
             localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
         }
@@ -933,8 +933,10 @@ async function loadReligionData(rel) {
     }
 }
 async function loadSelectedData() {
-    const relsToLoad = globalSelectedRels ? globalSelectedRels : religions;
-    for (const rel of relsToLoad) {
+    if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
+        globalSelectedRels = [...religions];
+    }
+    for (const rel of globalSelectedRels) {
         await loadReligionData(rel);
     }
 }
@@ -1413,13 +1415,10 @@ function initializeVerseFeed() {
     const stage = document.getElementById('feed-stage');
     const emptyState = document.getElementById('feed-empty-state');
 
-    if (!globalSelectedRels || globalSelectedRels.length === 0) {
-        stage.innerHTML = '';
-        emptyState.classList.remove('hidden');
-        return;
-    } else {
-        emptyState.classList.add('hidden');
+    if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
+        globalSelectedRels = [...religions];
     }
+    emptyState.classList.add('hidden');
     if (verseBatches.general.length > 0) {
         renderFeedCard(currentVerseIndex.general);
         return;
