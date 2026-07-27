@@ -243,13 +243,8 @@ async function initApp() {
         // Generate batch and render card
         initializeVerseFeed();
 
-        const hasOnboarded = localStorage.getItem('hasOnboarded');
-        const currentUser = localStorage.getItem('user_data');
-        if (!hasOnboarded && !currentUser) {
-            goTo('onboarding');
-        } else {
-            goTo('verse-feed');
-        }
+        localStorage.setItem('hasOnboarded', 'true');
+        goTo('verse-feed');
 
         const loadingScreen = document.getElementById('loading');
         if (loadingScreen) {
