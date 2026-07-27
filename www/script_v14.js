@@ -2,11 +2,17 @@ let googleAccessToken = null;
 let cloudSyncTimeout = null;
 
 function triggerCloudSync() {
+    if (googleUser && googleUser.sub) {
+        saveStateToProfile('account_' + googleUser.sub);
+    } else {
+        saveStateToProfile('guest');
+    }
+
     if (!googleUser || !googleAccessToken) return;
     clearTimeout(cloudSyncTimeout);
     cloudSyncTimeout = setTimeout(() => {
         syncUserDataWithGoogleDrive(googleAccessToken);
-    }, 1000);
+    }, 1500);
 }
 let religionVerses = {};
 let religionBooks = {};
@@ -4225,20 +4231,17 @@ function initGoogleAuth() {
                         email: payload.email,
                         sub: payload.sub
                     };
+                    // Isolate Guest Data BEFORE signing in
+                    if (!localStorage.getItem('googleUser')) {
+                        saveStateToProfile('guest');
+                    }
+                    
                     localStorage.setItem('googleUser', JSON.stringify(googleUser));
                     
-                    // Isolate Guest Data BEFORE syncing
-                    if (!localStorage.getItem('guest_savedVerses')) {
-                        localStorage.setItem('guest_savedVerses', localStorage.getItem('savedVerses') || '[]');
-                        localStorage.setItem('guest_createdAlbums', localStorage.getItem('createdAlbums') || '[]');
-                    }
-                    // Wipe local data so guest data doesn't upload to empty account
-                    localStorage.setItem('savedVerses', '[]');
-                    localStorage.setItem('createdAlbums', '[]');
-                    savedVerses = [];
-                    createdAlbums = [];
+                    // Load Account state locally (creates empty state if new account)
+                    loadStateFromProfile('account_' + googleUser.sub);
                     
-                    // Sync user data with Google Drive AppData folder (Free Cloud Sync)
+                    // Sync user data with Google Drive AppData folder
                     syncUserDataWithGoogleDrive(tokenResponse.access_token);
 
                     if (document.getElementById('onboarding') && document.getElementById('onboarding').classList.contains('active-section')) {
@@ -4440,20 +4443,24 @@ function closeUserProfileModal(e) {
 }
 
 function confirmSignOut() {
+    if (googleUser && googleUser.sub) {
+        saveStateToProfile('account_' + googleUser.sub);
+    }
+    
     googleUser = null;
     localStorage.removeItem('googleUser');
+    googleAccessToken = null;
 
-    // Isolate & restore Guest Mode folders and saved verses
-    savedVerses = JSON.parse(localStorage.getItem('guest_savedVerses') || '[]');
-    createdAlbums = JSON.parse(localStorage.getItem('guest_createdAlbums') || '[]');
-    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
-    localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
+    // Restore Guest Mode state completely
+    loadStateFromProfile('guest');
 
     closeUserProfileModal();
     updateUserUI();
     updatePremiumModalActions();
-    if (typeof showSavedVerses === 'function') showSavedVerses();
-    showToast('Signed out');
+    if (typeof showSavedVerses === 'function' && document.getElementById('saved-list') && !document.getElementById('saved').classList.contains('hidden')) {
+        showSavedVerses();
+    }
+    showToast('Signed out, restored Guest state');
 }
 
 function updateUserUI() {
