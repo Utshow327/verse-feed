@@ -1,3 +1,13 @@
+let googleAccessToken = null;
+let cloudSyncTimeout = null;
+
+function triggerCloudSync() {
+    if (!googleUser || !googleAccessToken) return;
+    clearTimeout(cloudSyncTimeout);
+    cloudSyncTimeout = setTimeout(() => {
+        syncUserDataWithGoogleDrive(googleAccessToken);
+    }, 1000);
+}
 let religionVerses = {};
 let religionBooks = {};
 let globalSelectedRels = null;
@@ -232,6 +242,7 @@ async function initApp() {
         if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
             globalSelectedRels = [...religions];
             localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
+    triggerCloudSync();
         }
 
         setupGestures();
@@ -1333,6 +1344,7 @@ async function saveOnboarding() {
 
     globalSelectedRels = Array.from(onboardingSelection);
     localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
+    triggerCloudSync();
     updateBatchesAfterSettings();
 
     document.getElementById('onboarding').classList.remove('active-section');
@@ -1355,6 +1367,7 @@ async function skipOnboarding() {
 
     globalSelectedRels = [...religions];
     localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
+    triggerCloudSync();
     updateBatchesAfterSettings();
 
     document.getElementById('onboarding').classList.remove('active-section');
@@ -1390,6 +1403,7 @@ async function toggleGlobalReligion(rel) {
         }
     }
     localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
+    triggerCloudSync();
     buildSettings();
     updateBatchesAfterSettings();
     if (typeof showReligions === "function" && document.getElementById('library-home') && !document.getElementById('library-home').classList.contains('hidden')) {
@@ -2562,9 +2576,8 @@ let isDraggingVoiceWheel = false;
 function renderVoiceSettings() {
     const wheel = document.getElementById('voice-scroll-wheel');
     if (!wheel) return;
-    wheel.innerHTML = '';
-
-    voicesList.forEach(v => {
+    if (wheel.children.length === 0) {
+        voicesList.forEach(v => {
         const div = document.createElement('div');
         div.className = 'voice-wheel-item';
         div.innerText = v.label;
@@ -2575,9 +2588,9 @@ function renderVoiceSettings() {
         };
         wheel.appendChild(div);
     });
-
     setupVoiceWheelListeners();
-    syncVoiceWheelToCurrent();
+    }
+    setTimeout(syncVoiceWheelToCurrent, 40);
 }
 
 function getVoiceWheelItems() {
@@ -2696,19 +2709,26 @@ function updateVoiceWheelActiveStyle() {
 
 function syncVoiceWheelToCurrent() {
     const wheel = document.getElementById('voice-scroll-wheel');
-    if (!wheel || wheel.clientHeight === 0) return;
+    if (!wheel) return;
+    if (wheel.clientHeight === 0) {
+        setTimeout(syncVoiceWheelToCurrent, 50);
+        return;
+    }
     const items = getVoiceWheelItems();
     const idx = items.findIndex(i => i.dataset.val === selectedVoice);
     if (idx !== -1) {
         const item = items[idx];
         const targetScroll = item.offsetTop + item.offsetHeight / 2 - wheel.clientHeight / 2;
         isProgrammaticScroll = true;
-        wheel.scrollTo({ top: targetScroll, behavior: 'smooth' });
+        wheel.scrollTo({ top: targetScroll, behavior: 'auto' });
+        updateVoiceWheelActiveStyle();
         clearTimeout(programmaticScrollTimeout);
         programmaticScrollTimeout = setTimeout(() => {
             isProgrammaticScroll = false;
             updateVoiceWheelActiveStyle();
-        }, 500);
+        }, 300);
+    } else {
+        updateVoiceWheelActiveStyle();
     }
 }
 
@@ -4254,24 +4274,26 @@ function signInWithGoogle() {
 
 async function syncUserDataWithGoogleDrive(accessToken) {
     if (!accessToken) return;
+    googleAccessToken = accessToken;
     try {
         const listRes = await fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='versefeed_data.json'", {
             headers: { Authorization: `Bearer ${accessToken}` }
         });
         const listData = await listRes.json();
-        
 
-
-        const localData = {
+        const getLocalState = () => ({
             savedVerses: JSON.parse(localStorage.getItem('savedVerses') || '[]'),
             createdAlbums: JSON.parse(localStorage.getItem('createdAlbums') || '[]'),
             bookMarkedVerse: JSON.parse(localStorage.getItem('bookMarkedVerse') || '{}'),
             globalSelectedRels: JSON.parse(localStorage.getItem('globalSelectedRels') || 'null'),
-            selectedVoice: localStorage.getItem('selectedVoice'),
-            musicVolume: localStorage.getItem('musicVolume'),
-            musicEnabled: localStorage.getItem('musicEnabled'),
+            darkModeEnabled: localStorage.getItem('darkModeEnabled') === 'true',
+            selectedVoice: localStorage.getItem('selectedVoice') || 'en_US-libritts_r-medium',
+            ttsAnnounceSource: localStorage.getItem('ttsAnnounceSource') === 'true',
+            ttsRandomVoice: localStorage.getItem('ttsRandomVoice') === 'true',
+            musicVolume: localStorage.getItem('musicVolume') || '0.2',
+            musicEnabled: localStorage.getItem('musicEnabled') !== 'false',
             updatedAt: Date.now()
-        };
+        });
 
         if (listData.files && listData.files.length > 0) {
             const fileId = listData.files[0].id;
@@ -4280,44 +4302,100 @@ async function syncUserDataWithGoogleDrive(accessToken) {
             });
             const remoteData = await fileRes.json();
             
-            if (remoteData) {
-                if (remoteData.savedVerses && Array.isArray(remoteData.savedVerses)) {
-                    const combinedSaved = [...new Set([...localData.savedVerses, ...remoteData.savedVerses])];
-                    localStorage.setItem('savedVerses', JSON.stringify(combinedSaved));
-                    localData.savedVerses = combinedSaved;
+            if (remoteData && typeof remoteData === 'object') {
+                // Restore savedVerses
+                if (Array.isArray(remoteData.savedVerses)) {
+                    savedVerses = remoteData.savedVerses;
+                    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
                 }
-                if (remoteData.bookMarkedVerse) {
-                    const combinedMarks = { ...remoteData.bookMarkedVerse, ...localData.bookMarkedVerse };
-                    localStorage.setItem('bookMarkedVerse', JSON.stringify(combinedMarks));
-                    localData.bookMarkedVerse = combinedMarks;
+                // Restore createdAlbums
+                if (Array.isArray(remoteData.createdAlbums)) {
+                    createdAlbums = remoteData.createdAlbums;
+                    localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
                 }
-                if (remoteData.globalSelectedRels) {
-                    localStorage.setItem('globalSelectedRels', JSON.stringify(remoteData.globalSelectedRels));
+                // Restore bookMarkedVerse
+                if (remoteData.bookMarkedVerse && typeof remoteData.bookMarkedVerse === 'object') {
+                    bookMarkedVerse = remoteData.bookMarkedVerse;
+                    localStorage.setItem('bookMarkedVerse', JSON.stringify(bookMarkedVerse));
                 }
+                // Restore globalSelectedRels (Topic selection)
+                if (Array.isArray(remoteData.globalSelectedRels) && remoteData.globalSelectedRels.length > 0) {
+                    globalSelectedRels = remoteData.globalSelectedRels;
+                    localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
+                }
+                // Restore Dark Mode
+                if (typeof remoteData.darkModeEnabled !== 'undefined') {
+                    darkModeEnabled = remoteData.darkModeEnabled === true || remoteData.darkModeEnabled === 'true';
+                    localStorage.setItem('darkModeEnabled', darkModeEnabled);
+                    if (darkModeEnabled) {
+                        document.body.setAttribute('data-theme', 'dark');
+                    } else {
+                        document.body.removeAttribute('data-theme');
+                    }
+                    updateDarkModeIcon(darkModeEnabled);
+                }
+                // Restore Voice Selection
+                if (remoteData.selectedVoice) {
+                    selectedVoice = remoteData.selectedVoice;
+                    localStorage.setItem('selectedVoice', selectedVoice);
+                    syncVoiceWheelToCurrent();
+                }
+                // Restore TTS Announce Source
+                if (typeof remoteData.ttsAnnounceSource !== 'undefined') {
+                    ttsAnnounceSource = remoteData.ttsAnnounceSource === true || remoteData.ttsAnnounceSource === 'true';
+                    localStorage.setItem('ttsAnnounceSource', ttsAnnounceSource);
+                }
+                // Restore TTS Random Voice
+                if (typeof remoteData.ttsRandomVoice !== 'undefined') {
+                    ttsRandomVoice = remoteData.ttsRandomVoice === true || remoteData.ttsRandomVoice === 'true';
+                    localStorage.setItem('ttsRandomVoice', ttsRandomVoice);
+                }
+                // Restore Music Volume & Enabled
+                if (typeof remoteData.musicVolume !== 'undefined') {
+                    localStorage.setItem('musicVolume', remoteData.musicVolume);
+                    if (typeof audio !== 'undefined' && audio) audio.volume = parseFloat(remoteData.musicVolume);
+                    const slider = document.getElementById('music-volume-slider');
+                    if (slider) slider.value = remoteData.musicVolume;
+                }
+                if (typeof remoteData.musicEnabled !== 'undefined') {
+                    const musicEnabled = remoteData.musicEnabled === true || remoteData.musicEnabled === 'true';
+                    localStorage.setItem('musicEnabled', musicEnabled);
+                    const musicBtn = document.getElementById('music-toggle');
+                    if (musicBtn) {
+                        if (musicEnabled) musicBtn.classList.add('active');
+                        else musicBtn.classList.remove('active');
+                    }
+                }
+                
+                updateTogglesUI();
+                if (typeof showSavedVerses === 'function') showSavedVerses();
             }
 
+            // Unified sync back to Drive
+            const payloadToSave = getLocalState();
             await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
                 method: 'PATCH',
                 headers: {
                     Authorization: `Bearer ${accessToken}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(localData)
+                body: JSON.stringify(payloadToSave)
             });
         } else {
+            const payloadToSave = getLocalState();
             const meta = { name: 'versefeed_data.json', parents: ['appDataFolder'] };
             const form = new FormData();
             form.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
-            form.append('file', new Blob([JSON.stringify(localData)], { type: 'application/json' }));
+            form.append('file', new Blob([JSON.stringify(payloadToSave)], { type: 'application/json' }));
 
-            await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+            await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${accessToken}` },
                 body: form
             });
         }
-    } catch (e) {
-        console.error('Google Drive Sync error:', e);
+    } catch (err) {
+        console.error("Google Drive Sync Error:", err);
     }
 }
 
