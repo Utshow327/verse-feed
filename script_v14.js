@@ -1595,6 +1595,7 @@ function renderFeedCard(index, direction = 'none') {
         } else {
             const others = stage.querySelectorAll('.verse-card:not(:last-child)');
             others.forEach(c => c.remove());
+            card.classList.add('card-center');
         }
     });
 }

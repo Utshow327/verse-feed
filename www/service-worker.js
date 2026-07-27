@@ -1,4 +1,4 @@
-const CACHE_NAME = 'religion-app-v16';
+const CACHE_NAME = 'religion-app-v18';
 const STATIC_ASSETS = [
     './',
     './index.html',

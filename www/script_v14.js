@@ -174,31 +174,7 @@ let lastActiveChapterIdx = -1;
 // Scroll Sync Flag
 let isProgrammaticScroll = false;
 // (System TTS fallback setup removed, purely using offline Piper TTS)
-const INITIAL_INSTANT_VERSES = [
-    { text: "For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you, plans to give you hope and a future.", book: "Jeremiah", chapter: "29", verse: "11", religion: "Christianity" },
-    { text: "So remember Me; I will remember you. And be grateful to Me and do not deny Me.", book: "Quran", chapter: "2", verse: "152", religion: "Islam" },
-    { text: "You have the right to work, but never to the fruit of work. You should never engage in action for the sake of reward.", book: "Bhagavad Gita", chapter: "2", verse: "47", religion: "Hinduism" },
-    { text: "The mind is everything. What you think you become.", book: "Dhammapada", chapter: "1", verse: "1", religion: "Buddhism" },
-    { text: "Recognize the whole human race as one.", book: "Guru Granth Sahib", chapter: "1", verse: "1", religion: "Sikhism" },
-    { text: "Love is patient, love is kind. It does not envy, it does not boast, it is not proud.", book: "Corinthians", chapter: "13", verse: "4", religion: "Christianity" },
-    { text: "God does not burden any soul beyond what it can bear.", book: "Quran", chapter: "2", verse: "286", religion: "Islam" },
-    { text: "When meditation is mastered, the mind is unwavering like the flame of a lamp in a windless place.", book: "Bhagavad Gita", chapter: "6", verse: "19", religion: "Hinduism" },
-    { text: "Peace comes from within. Do not seek it without.", book: "Dhammapada", chapter: "2", verse: "5", religion: "Buddhism" },
-    { text: "Truth is the highest virtue, but higher still is truthful living.", book: "Sri Guru Granth Sahib", chapter: "1", verse: "62", religion: "Sikhism" },
-    { text: "Happiness depends upon ourselves.", book: "Nicomachean Ethics", chapter: "1", verse: "8", religion: "Philosophy" },
-    { text: "He who has a why to live can bear almost any how.", book: "Twilight of the Idols", chapter: "1", verse: "12", religion: "Philosophy" },
-    { text: "Out of your vulnerabilities will come your strength.", book: "Psychoanalysis", chapter: "1", verse: "4", religion: "Psychology" },
-    { text: "Everything can be taken from a man but one thing: the last of the human freedoms to choose one's attitude.", book: "Man's Search for Meaning", chapter: "1", verse: "10", religion: "Psychology" }
-];
 
-function getShuffledInstantVerses() {
-    let pool = [...INITIAL_INSTANT_VERSES];
-    for (let i = pool.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [pool[i], pool[j]] = [pool[j], pool[i]];
-    }
-    return pool;
-}
 
 async function initApp() {
     applyAutoSpeed(selectedVoice);
@@ -222,10 +198,38 @@ async function initApp() {
         }
 
         audio = document.getElementById('audio');
-        audio.volume = 0.5;
+        let savedVol = localStorage.getItem('musicVolume');
+        audio.volume = savedVol !== null ? parseFloat(savedVol) : 0.5;
+        
+        let volumeSlider = document.getElementById('music-volume-slider');
+        if (volumeSlider) {
+            volumeSlider.value = audio.volume;
+        }
+
         audio.src = musicTracks[currentTrack];
         audio.addEventListener('ended', nextTrack);
-        if (globalSelectedRels === null) {
+
+        let musicEnabled = localStorage.getItem('musicEnabled');
+        if (musicEnabled === null) musicEnabled = 'true'; // Default on
+        
+        const musicBtn = document.getElementById('music-toggle');
+        if (musicEnabled === 'true' && musicBtn) {
+            musicBtn.classList.add('active');
+            // Try autoplay, but catch and attach to first interaction if blocked
+            audio.play().catch(e => {
+                const playOnInteract = () => {
+                    if (document.getElementById('music-toggle').classList.contains('active')) {
+                        audio.play().catch(e => {});
+                    }
+                    document.removeEventListener('click', playOnInteract);
+                    document.removeEventListener('touchstart', playOnInteract);
+                };
+                document.addEventListener('click', playOnInteract);
+                document.addEventListener('touchstart', playOnInteract, {passive: true});
+            });
+        }
+
+        if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
             globalSelectedRels = [...religions];
             localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
         }
@@ -233,18 +237,32 @@ async function initApp() {
         setupGestures();
         setupWheelListeners();
         
-        // Render 0ms instant feed immediately
-        verseBatches.general = getShuffledInstantVerses();
-        goTo('verse-feed');
-        renderFeedCard(0);
+        // Load datasets FIRST before routing to verse-feed or hiding loading screen
+        await loadSelectedData();
+        
+        // Generate batch and render card
+        initializeVerseFeed();
 
-        // Load datasets & TTS engine in background after paint
-        setTimeout(async () => {
-            await loadSelectedData();
-            try {
-                initPiper(selectedVoice);
-            } catch(e) {}
-        }, 50);
+        const hasOnboarded = localStorage.getItem('hasOnboarded');
+        const currentUser = localStorage.getItem('user_data');
+        if (!hasOnboarded && !currentUser) {
+            goTo('onboarding');
+        } else {
+            goTo('verse-feed');
+        }
+
+        const loadingScreen = document.getElementById('loading');
+        if (loadingScreen) {
+            loadingScreen.classList.add('loaded');
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 600);
+        }
+
+        // Initialize Piper TTS in background without blocking UI rendering
+        try {
+            initPiper(selectedVoice).catch(e => console.log("Piper init error:", e));
+        } catch(e) {}
 
     } catch (error) {
         console.error('Initialization error:', error);
@@ -380,6 +398,7 @@ function updateMusicVolume() {
     const audioEl = document.getElementById('audio');
     if (slider && audioEl) {
         audioEl.volume = parseFloat(slider.value);
+        localStorage.setItem('musicVolume', slider.value);
     }
 }
 
@@ -444,8 +463,8 @@ function stopAudio(preserveAutoMode = false) {
     if (!preserveAutoMode) {
         autoMode = false;
         autoNextBook = false;
-        stopWaveformVisualizer();
     }
+    stopWaveformVisualizer(true);
     updateSpeakIcons();
     const btn = document.getElementById('speak-general');
     if (btn) btn.classList.remove('loading');
@@ -914,8 +933,10 @@ async function loadReligionData(rel) {
     }
 }
 async function loadSelectedData() {
-    const relsToLoad = globalSelectedRels ? globalSelectedRels : religions;
-    for (const rel of relsToLoad) {
+    if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
+        globalSelectedRels = [...religions];
+    }
+    for (const rel of globalSelectedRels) {
         await loadReligionData(rel);
     }
 }
@@ -924,13 +945,8 @@ async function loadUnselectedDataInBackground() {
 }
 function cleanText(text) {
     if (!text) return '';
-    if (text.includes('peace') || text.includes('pbuh') || text.includes('\ufdfa')) {
-        text = text.replace(/\(\(may peace be upon him\)\)/gi, '(pbuh)')
-                   .replace(/\(may peace be upon him\)/gi, '(pbuh)')
-                   .replace(/may peace be upon him/gi, '(pbuh)')
-                   .replace(/\(\(peace be upon him\)\)/gi, '(pbuh)')
-                   .replace(/\(peace be upon him\)/gi, '(pbuh)')
-                   .replace(/peace be upon him/gi, '(pbuh)')
+    if (text.toLowerCase().includes('peace') || text.includes('pbuh') || text.includes('\ufdfa')) {
+        text = text.replace(/\(*(?:may )?peace [a-z]e upon him\)*/gi, '(pbuh)')
                    .replace(/\(\(pbuh\)\)/gi, '(pbuh)')
                    .replace(/\ufdfa/g, '(pbuh)');
     }
@@ -1330,6 +1346,7 @@ async function saveOnboarding() {
         document.getElementById('loading').style.display = 'none';
     }, 500);
 
+    localStorage.setItem('hasOnboarded', 'true');
     initializeVerseFeed();
     goTo('verse-feed');
 }
@@ -1351,6 +1368,7 @@ async function skipOnboarding() {
         document.getElementById('loading').style.display = 'none';
     }, 500);
 
+    localStorage.setItem('hasOnboarded', 'true');
     initializeVerseFeed();
     goTo('verse-feed');
 }
@@ -1397,20 +1415,16 @@ function initializeVerseFeed() {
     const stage = document.getElementById('feed-stage');
     const emptyState = document.getElementById('feed-empty-state');
 
-    if (!globalSelectedRels || globalSelectedRels.length === 0) {
-        stage.innerHTML = '';
-        emptyState.classList.remove('hidden');
-        return;
-    } else {
-        emptyState.classList.add('hidden');
+    if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
+        globalSelectedRels = [...religions];
     }
+    emptyState.classList.add('hidden');
     if (verseBatches.general.length > 0) {
         renderFeedCard(currentVerseIndex.general);
         return;
     }
     const newBatch = generateBatch('general', []);
     if (newBatch.length === 0) {
-        stage.innerHTML = '<div class="verse-card card-center"><div class="verse-text">Loading verses... Please wait.</div><div class="card-footer"></div></div>';
         setTimeout(() => {
             initializeVerseFeed();
         }, 1000);
@@ -1419,7 +1433,7 @@ function initializeVerseFeed() {
     verseBatches.general.push(...newBatch);
     renderFeedCard(0);
 }
-const negativeWords = ['smite', 'kill', 'destroy', 'wrath', 'blood', 'sword', 'curse', 'hell', 'fire', 'punish', 'death', 'die', 'slay', 'enemy', 'evil', 'wicked', 'sin', 'weep', 'wail', 'gnash', 'vengeance', 'terror', 'fear', 'plague', 'famine', 'perish', 'slaughter', 'condemn', 'abomination', 'hate', 'despise', 'anger', 'fury'];
+const negativeWords = ['smite', 'kill', 'destroy', 'wrath', 'blood', 'sword', 'curse', 'hell', 'fire', 'punish', 'death', 'die', 'slay', 'enemy', 'evil', 'wicked', 'sin', 'weep', 'wail', 'gnash', 'vengeance', 'terror', 'fear', 'plague', 'famine', 'perish', 'slaughter', 'condemn', 'abomination', 'hate', 'despise', 'anger', 'fury', 'saliva', 'spit', 'vomit', 'urine', 'defecate', 'excrement', 'menstruation', 'menses', 'camel', 'slave', 'sexual', 'intercourse', 'naked', 'breast', 'suck', 'suckling', 'semen', 'sperm', 'genital'];
 const positiveWords = ['love', 'peace', 'joy', 'hope', 'faith', 'light', 'grace', 'mercy', 'compassion', 'kindness', 'bless', 'heal', 'forgive', 'comfort', 'strength', 'wisdom', 'truth', 'spirit', 'heart', 'soul', 'heaven', 'glory', 'righteous', 'holy', 'pure', 'good', 'rejoice', 'glad', 'praise', 'worship', 'save', 'deliver', 'guide', 'protect'];
 const filteredPoolCache = {};
 
@@ -1457,7 +1471,7 @@ function getFilteredPool(rel) {
 function generateBatch(type, lastRels = []) {
     const rels = (globalSelectedRels || []).filter(r => religionVerses[r] && religionVerses[r].length > 0);
     if (rels.length === 0) {
-        return INITIAL_INSTANT_VERSES.slice(0, 5);
+        return [];
     }
     const size = 10;
     const per = Math.floor(size / rels.length);
@@ -1519,7 +1533,6 @@ function getVerseAtIndex(index) {
             [];
         const newBatch = generateBatch('general', lastRels);
         if (newBatch.length === 0) {
-            verseBatches.general.push({ text: "Loading...", religion: 'System', book: 'System', chapter: '1', verse: '1' });
             break;
         }
         verseBatches.general.push(...newBatch);
@@ -1582,6 +1595,7 @@ function renderFeedCard(index, direction = 'none') {
         } else {
             const others = stage.querySelectorAll('.verse-card:not(:last-child)');
             others.forEach(c => c.remove());
+            card.classList.add('card-center');
         }
     });
 }
@@ -1791,11 +1805,11 @@ function showSavedVerses(rebuildFolders = true) {
         grid.style.borderBottom = '1px solid var(--glass-border)';
         
         const addFolder = document.createElement('button');
-        addFolder.className = 'album-square-btn';
+        addFolder.className = 'album-square-btn add-folder-btn';
         addFolder.style.width = 'calc(33.333% - 8px)';
         addFolder.style.aspectRatio = '1';
         addFolder.style.height = 'auto';
-        addFolder.innerHTML = `<div style="font-size: 3rem; opacity: 0.5; margin: auto;">+</div>`;
+        addFolder.innerHTML = `<svg viewBox="0 0 24 24" stroke="currentColor" style="width: 32px; height: 32px; opacity: 0.5; margin: auto;" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
         addFolder.onclick = () => openCreateBookmarkModal();
         grid.appendChild(addFolder);
         
@@ -1813,15 +1827,19 @@ function showSavedVerses(rebuildFolders = true) {
             if ((selectedVerse && selectedVerse.type === 'folder' && selectedVerse.name === albumName) || selectedSavedAlbum === albumName) {
                 folder.classList.add('active');
             }
-            
             folder.onclick = (e) => {
                 if (e) e.stopPropagation();
-                if (selectedVerse && selectedVerse.type === 'folder' && selectedVerse.name === albumName) {
+                if (selectedSavedAlbum === albumName) {
                     selectedSavedAlbum = null;
+                    selectedVerse = { type: 'folder', name: albumName, elementId: folder.id };
                     deselectVerse();
+                    folder.classList.remove('active');
+                    showSavedVerses(false);
                 } else {
                     selectedSavedAlbum = albumName;
                     selectVerse({ name: albumName }, 'folder', folder.id, true);
+                    document.querySelectorAll('.album-folder-btn').forEach(f => f.classList.remove('active'));
+                    folder.classList.add('active');
                     showSavedVerses(false);
                 }
             };
@@ -1934,12 +1952,121 @@ function showReligions() {
         list.appendChild(btn);
     });
 }
+function highlightSearchTerms(text, terms) {
+    if (!text) return '';
+    if (!terms || terms.length === 0) return text;
+    
+    let expandTerms = [];
+    terms.forEach(t => {
+        if (t === 'pbuh' || t === 'phub') {
+            expandTerms.push('pbuh', 'peace be upon him', 'ﷺ');
+        } else {
+            expandTerms.push(t);
+        }
+    });
+    
+    let safeTerms = expandTerms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).filter(t => t.length > 0);
+    if (safeTerms.length === 0) return text;
+    const regex = new RegExp(`(${safeTerms.join('|')})`, 'gi');
+    // Using span instead of mark to prevent any weird block styling issues
+    return text.replace(regex, '<span style="background: rgba(var(--loader-rgb), 0.25); color: inherit; font-weight: bold; border-radius: 3px; padding: 0 2px;">$1</span>');
+}
+
+function performLibSearch() {
+    const input = document.getElementById('lib-search-input');
+    const resultsContainer = document.getElementById('lib-search-results');
+    if (!input || !resultsContainer) return;
+    
+    const term = input.value.toLowerCase().trim();
+    if (term.length < 2) {
+        resultsContainer.innerHTML = '';
+        return;
+    }
+    
+    const terms = term.split(/\s+/).filter(t => t.length > 0);
+    const pool = (currentReligion && religionVerses[currentReligion]) ? religionVerses[currentReligion] : Object.values(religionVerses).flat();
+    
+    const matches = [];
+    for (let i = 0; i < pool.length; i++) {
+        const v = pool[i];
+        if (!v) continue;
+        const vText = (v.text || '').toLowerCase();
+        const vTrans = (v.translation || '').toLowerCase();
+        const matchesAll = terms.every(t => {
+            if (t === 'pbuh' || t === 'phub') {
+                return vText.includes('pbuh') || vTrans.includes('pbuh') || 
+                       vText.includes('peace be upon him') || vTrans.includes('peace be upon him') || 
+                       vText.includes('ﷺ') || vTrans.includes('ﷺ');
+            }
+            return vText.includes(t) || vTrans.includes(t);
+        });
+        if (matchesAll) {
+            matches.push(v);
+            if (matches.length >= 50) break;
+        }
+    }
+    
+    resultsContainer.innerHTML = '';
+    if (matches.length === 0) {
+        resultsContainer.innerHTML = '<div style="text-align: center; padding: 20px; opacity: 0.6;">No verses found</div>';
+        return;
+    }
+    
+    matches.forEach((match, idx) => {
+        const card = document.createElement('div');
+        card.className = 'saved-verse';
+        card.id = 'search-verse-' + idx;
+        card.style.marginBottom = '15px';
+        card.style.textAlign = 'left';
+        card.style.cursor = 'pointer';
+        
+        let chapStr = match.chapter ? (typeof match.chapter === 'number' ? 'Chapter ' + match.chapter : match.chapter) : '';
+        let verseStr = match.verse ? ':' + match.verse : '';
+        let refStr = `${match.book || ''} ${chapStr}${verseStr}`.trim();
+        
+        const highlightedText = highlightSearchTerms(match.text, terms);
+        let html = `<div style="font-size: 1.1em; line-height: 1.6; margin-bottom: 8px; display: block; word-break: break-word;">${highlightedText}</div>`;
+        if (match.translation && match.translation !== match.text) {
+            const highlightedTrans = highlightSearchTerms(match.translation, terms);
+            html += `<div style="font-size: 0.9em; opacity: 0.8; line-height: 1.5; font-style: italic; margin-bottom: 10px;">${highlightedTrans}</div>`;
+        }
+        
+        // Source reference always at the bottom left
+        html += `<div class="verse-ref" style="font-size: 0.8em; opacity: 0.6; margin-top: 8px; text-align: left;">${refStr}</div>`;
+        
+        card.innerHTML = html;
+        card.onclick = (e) => {
+            if (e) e.stopPropagation();
+            const wasSelected = selectedVerse && selectedVerse.elementId === card.id;
+            deselectVerse();
+            if (!wasSelected) {
+                selectedVerse = {
+                    type: 'saved',
+                    text: match.text,
+                    translation: match.translation || '',
+                    book: match.book,
+                    chapter: match.chapter,
+                    verse: match.verse,
+                    elementId: card.id
+                };
+                highlightSelectedVerseElement(true);
+            }
+        };
+        resultsContainer.appendChild(card);
+    });
+}
 function showBooks(rel) {
     currentReligion = rel;
     document.getElementById('library-home').classList.add('hidden');
     document.getElementById('book-list-view').classList.remove('hidden');
     document.getElementById('sub-book-list-view').classList.add('hidden');
     document.getElementById('book-content-view').classList.add('hidden');
+
+    const searchInput = document.getElementById('lib-search-input');
+    if (searchInput) searchInput.value = '';
+    const resultsContainer = document.getElementById('lib-search-results');
+    if (resultsContainer) resultsContainer.innerHTML = '';
+    const bookListContainer = document.getElementById('book-list');
 
     const list = document.getElementById('book-list');
     list.innerHTML = '<h2>' + rel + '</h2>';
@@ -2375,11 +2502,13 @@ function markVerse() {
 function toggleMusic() {
     const btn = document.getElementById('music-toggle');
     if (audio.paused) {
-        audio.play();
+        audio.play().catch(e => console.log(e));
         btn.classList.add('active');
+        localStorage.setItem('musicEnabled', 'true');
     } else {
         audio.pause();
         btn.classList.remove('active');
+        localStorage.setItem('musicEnabled', 'false');
     }
 }
 function nextTrack() {
@@ -2507,21 +2636,21 @@ function updateVoiceWheelActiveStyle() {
             closestIdx = i;
         }
 
-        if (absNormDist < 1.5) {
-            const opacity = 1 - absNormDist * 0.65;
-            const scale = 1.15 - absNormDist * 0.3;
+        if (absNormDist < 2.5) {
+            const opacity = 1 - absNormDist * 0.4;
+            const scale = 1.1 - absNormDist * 0.15;
             const angle = normDist * 40;
             return {
-                opacity: Math.max(0, opacity),
-                transform: `rotateX(${-angle}deg) scale(${scale}) translateZ(0)`,
-                fontWeight: absNormDist < 0.5 ? '700' : '500',
+                opacity: Math.max(0.1, opacity),
+                transform: `rotateX(${angle}deg) scale(${scale}) translateZ(0)`,
+                fontWeight: absNormDist < 0.5 ? '600' : '400',
                 pointerEvents: 'auto',
                 selected: absNormDist < 0.5
             };
         } else {
             return {
                 opacity: 0,
-                transform: 'scale(0.1) translateZ(0)',
+                transform: 'scale(0.5)',
                 pointerEvents: 'none',
                 selected: false
             };
@@ -4045,3 +4174,258 @@ function submitRenameAlbum() {
 }
 
 function confirmRenameAlbum() { submitRenameAlbum(); }
+
+
+// --- Google Auth Logic ---
+let googleUser = null;
+try {
+    const rawUser = localStorage.getItem('googleUser');
+    if (rawUser) {
+        googleUser = JSON.parse(rawUser);
+    }
+} catch (e) {
+    googleUser = null;
+}
+
+let tokenClient = null;
+
+function initGoogleAuth() {
+    if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) return;
+    
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: "582271758376-3e00o7pmfmvctlvrddaabtlqabgoeqo0.apps.googleusercontent.com",
+        scope: "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive.appdata",
+        callback: (tokenResponse) => {
+            if (tokenResponse && tokenResponse.access_token) {
+                fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+                })
+                .then(res => res.json())
+                .then(payload => {
+                    googleUser = {
+                        name: payload.name,
+                        picture: payload.picture,
+                        email: payload.email,
+                        sub: payload.sub
+                    };
+                    localStorage.setItem('googleUser', JSON.stringify(googleUser));
+                    
+                    // Sync user data with Google Drive AppData folder (Free Cloud Sync)
+                    syncUserDataWithGoogleDrive(tokenResponse.access_token);
+
+                    if (document.getElementById('onboarding') && document.getElementById('onboarding').classList.contains('active-section')) {
+                        goTo('verse-feed');
+                    }
+                    
+                    updatePremiumModalActions();
+                    updateUserUI();
+                    showToast('Signed in as ' + payload.name + ' (Google Drive Sync active)');
+                })
+                .catch(err => {
+                    console.error('Userinfo fetch error:', err);
+                    showToast('Failed to retrieve user profile');
+                });
+            }
+        }
+    });
+
+    updateUserUI();
+    updatePremiumModalActions();
+}
+
+function signInWithGoogle() {
+    if (!tokenClient) {
+        initGoogleAuth();
+    }
+    if (tokenClient) {
+        tokenClient.requestAccessToken();
+    } else {
+        showToast("Google Auth loading, please try again in a moment...");
+    }
+}
+
+async function syncUserDataWithGoogleDrive(accessToken) {
+    if (!accessToken) return;
+    try {
+        const listRes = await fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='versefeed_data.json'", {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const listData = await listRes.json();
+        
+        const localData = {
+            savedVerses: JSON.parse(localStorage.getItem('savedVerses') || '[]'),
+            bookMarkedVerse: JSON.parse(localStorage.getItem('bookMarkedVerse') || '{}'),
+            globalSelectedRels: JSON.parse(localStorage.getItem('globalSelectedRels') || 'null'),
+            selectedVoice: localStorage.getItem('selectedVoice'),
+            musicVolume: localStorage.getItem('musicVolume'),
+            musicEnabled: localStorage.getItem('musicEnabled'),
+            updatedAt: Date.now()
+        };
+
+        if (listData.files && listData.files.length > 0) {
+            const fileId = listData.files[0].id;
+            const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+                headers: { Authorization: `Bearer ${accessToken}` }
+            });
+            const remoteData = await fileRes.json();
+            
+            if (remoteData) {
+                if (remoteData.savedVerses && Array.isArray(remoteData.savedVerses)) {
+                    const combinedSaved = [...new Set([...localData.savedVerses, ...remoteData.savedVerses])];
+                    localStorage.setItem('savedVerses', JSON.stringify(combinedSaved));
+                    localData.savedVerses = combinedSaved;
+                }
+                if (remoteData.bookMarkedVerse) {
+                    const combinedMarks = { ...remoteData.bookMarkedVerse, ...localData.bookMarkedVerse };
+                    localStorage.setItem('bookMarkedVerse', JSON.stringify(combinedMarks));
+                    localData.bookMarkedVerse = combinedMarks;
+                }
+                if (remoteData.globalSelectedRels) {
+                    localStorage.setItem('globalSelectedRels', JSON.stringify(remoteData.globalSelectedRels));
+                }
+            }
+
+            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+                method: 'PATCH',
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(localData)
+            });
+        } else {
+            const meta = { name: 'versefeed_data.json', parents: ['appDataFolder'] };
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
+            form.append('file', new Blob([JSON.stringify(localData)], { type: 'application/json' }));
+
+            await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${accessToken}` },
+                body: form
+            });
+        }
+    } catch (e) {
+        console.error('Google Drive Sync error:', e);
+    }
+}
+
+function toggleGoogleAuth() {
+    if (googleUser) {
+        openUserProfileModal();
+    } else {
+        signInWithGoogle();
+    }
+}
+
+function openUserProfileModal() {
+    if (!googleUser) return;
+    const modal = document.getElementById('user-profile-modal');
+    const nameEl = document.getElementById('user-modal-name');
+    const emailEl = document.getElementById('user-modal-email');
+    const imgEl = document.getElementById('user-modal-avatar-img');
+    const txtEl = document.getElementById('user-modal-avatar-text');
+    
+    if (nameEl) nameEl.innerText = googleUser.name || 'User';
+    if (emailEl) emailEl.innerText = googleUser.email || '';
+    
+    if (imgEl && txtEl) {
+        if (googleUser.picture) {
+            imgEl.src = googleUser.picture;
+            imgEl.style.display = 'block';
+            txtEl.style.display = 'none';
+        } else {
+            imgEl.style.display = 'none';
+            txtEl.style.display = 'inline';
+            txtEl.innerText = googleUser.name ? googleUser.name.charAt(0).toUpperCase() : 'U';
+        }
+    }
+    
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeUserProfileModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    const modal = document.getElementById('user-profile-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function confirmSignOut() {
+    googleUser = null;
+    localStorage.removeItem('googleUser');
+    closeUserProfileModal();
+    updateUserUI();
+    updatePremiumModalActions();
+    showToast('Signed out');
+}
+
+function updateUserUI() {
+    const btn = document.getElementById('user-google-btn');
+    const svg = document.getElementById('google-icon-svg');
+    const txt = document.getElementById('google-avatar-text');
+    const img = document.getElementById('google-avatar-img');
+    if (!btn || !svg || !txt) return;
+    
+    if (googleUser) {
+        svg.classList.add('hidden');
+        
+        if (googleUser.picture && img) {
+            img.src = googleUser.picture;
+            img.classList.remove('hidden');
+            txt.classList.add('hidden');
+        } else {
+            if (img) img.classList.add('hidden');
+            txt.classList.remove('hidden');
+            txt.innerText = googleUser.name ? googleUser.name.charAt(0).toUpperCase() : 'U';
+        }
+    } else {
+        svg.classList.remove('hidden');
+        txt.classList.add('hidden');
+        if (img) img.classList.add('hidden');
+    }
+}
+
+function updatePremiumModalActions() {
+    const guestActions = document.getElementById('premium-guest-actions');
+    const userActions = document.getElementById('premium-user-actions');
+    if (!guestActions || !userActions) return;
+    
+    if (googleUser) {
+        guestActions.classList.add('hidden');
+        userActions.classList.remove('hidden');
+    } else {
+        guestActions.classList.remove('hidden');
+        userActions.classList.add('hidden');
+    }
+}
+
+// Ensure initGoogleAuth is called if script loads later
+window.addEventListener('load', () => {
+    setTimeout(initGoogleAuth, 1000);
+});
+
+// --- Premium Modal Logic ---
+function openPremiumModal() {
+    const modal = document.getElementById('premium-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        if (typeof updatePremiumModalActions === 'function') {
+            updatePremiumModalActions();
+        }
+    }
+}
+
+function closePremiumModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    const modal = document.getElementById('premium-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function simulatePurchase() {
+    showToast("Processing payment...");
+    setTimeout(() => {
+        showToast("Premium unlocked! Thank you for subscribing.");
+        closePremiumModal();
+        // Here you would normally set a local storage flag or update backend
+    }, 1500);
+}
