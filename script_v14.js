@@ -248,10 +248,12 @@ async function initApp() {
 
         const loadingScreen = document.getElementById('loading');
         if (loadingScreen) {
-            loadingScreen.classList.add('loaded');
             setTimeout(() => {
-                loadingScreen.style.display = 'none';
-            }, 600);
+                loadingScreen.classList.add('loaded');
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                }, 600);
+            }, 1000); // Wait 1 second to ensure instant responsiveness on hide
         }
 
         // Initialize Piper TTS in background without blocking UI rendering
@@ -4205,6 +4207,17 @@ function initGoogleAuth() {
                     };
                     localStorage.setItem('googleUser', JSON.stringify(googleUser));
                     
+                    // Isolate Guest Data BEFORE syncing
+                    if (!localStorage.getItem('guest_savedVerses')) {
+                        localStorage.setItem('guest_savedVerses', localStorage.getItem('savedVerses') || '[]');
+                        localStorage.setItem('guest_createdAlbums', localStorage.getItem('createdAlbums') || '[]');
+                    }
+                    // Wipe local data so guest data doesn't upload to empty account
+                    localStorage.setItem('savedVerses', '[]');
+                    localStorage.setItem('createdAlbums', '[]');
+                    savedVerses = [];
+                    createdAlbums = [];
+                    
                     // Sync user data with Google Drive AppData folder (Free Cloud Sync)
                     syncUserDataWithGoogleDrive(tokenResponse.access_token);
 
@@ -4247,11 +4260,7 @@ async function syncUserDataWithGoogleDrive(accessToken) {
         });
         const listData = await listRes.json();
         
-        // Backup Guest Mode data before syncing Google Account data
-        if (!googleUser || !localStorage.getItem('guest_savedVerses')) {
-            localStorage.setItem('guest_savedVerses', JSON.stringify(savedVerses));
-            localStorage.setItem('guest_createdAlbums', JSON.stringify(createdAlbums));
-        }
+
 
         const localData = {
             savedVerses: JSON.parse(localStorage.getItem('savedVerses') || '[]'),
