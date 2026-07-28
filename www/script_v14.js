@@ -4714,29 +4714,7 @@ function simulatePurchase() {
 }
 
 
-// --- Drive Storage Modal & Offline Auto Guest ---
-function openDriveStorageModal() {
-    closeUserProfileModal();
-    const modal = document.getElementById('drive-storage-modal');
-    if (!modal) return;
-
-    const countVerses = document.getElementById('drive-count-verses');
-    const countAlbums = document.getElementById('drive-count-albums');
-    const countTopics = document.getElementById('drive-count-topics');
-    
-    if (countVerses) countVerses.innerText = (savedVerses ? savedVerses.length : 0) + ' items';
-    if (countAlbums) countAlbums.innerText = (createdAlbums ? createdAlbums.length : 0) + ' albums';
-    if (countTopics) countTopics.innerText = (globalSelectedRels ? globalSelectedRels.length : 0) + ' selected';
-    
-    modal.classList.remove('hidden');
-}
-
-function closeDriveStorageModal(e) {
-    if (e && e.target !== e.currentTarget) return;
-    const modal = document.getElementById('drive-storage-modal');
-    if (modal) modal.classList.add('hidden');
-}
-
+// --- Direct Google Drive Redirect & Offline Auto Guest ---
 function openGoogleDriveAppData() {
     window.open('https://drive.google.com/drive/u/0/settings', '_blank');
 }
