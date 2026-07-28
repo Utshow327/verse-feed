@@ -331,6 +331,11 @@ let isProgrammaticScroll = false;
 
 
 async function initApp() {
+    if (!navigator.onLine && googleUser) {
+        googleUser = null;
+        loadStateFromProfile('guest');
+        updateUserUI();
+    }
     applyAutoSpeed(selectedVoice);
     try {
         addSelectionListeners();
@@ -2063,10 +2068,20 @@ function renderVersesList(versesArray, listElement) {
         div.appendChild(ref);
         container.appendChild(div);
 
-        if (selectedVerse && selectedVerse.type === 'saved' && 
-            selectedVerse.book === v.book && 
-            String(selectedVerse.chapter) === String(v.chapter) && 
-            String(selectedVerse.verse) === String(v.verse)) {
+        let isCurrentlySelected = false;
+        if (selectedVerse && selectedVerse.type === 'saved') {
+            if (selectedVerse.id && v.id) {
+                isCurrentlySelected = (selectedVerse.id === v.id);
+            } else if (selectedVerse.elementId) {
+                isCurrentlySelected = (selectedVerse.elementId === div.id);
+            } else {
+                isCurrentlySelected = (selectedVerse.book === v.book && 
+                                       String(selectedVerse.chapter) === String(v.chapter) && 
+                                       String(selectedVerse.verse) === String(v.verse) && 
+                                       selectedVerse.text === v.text);
+            }
+        }
+        if (isCurrentlySelected) {
             div.style.background = 'var(--text-color)';
             div.style.color = 'var(--bg-grad-1)';
             div.style.opacity = '1';
@@ -4055,6 +4070,17 @@ function updatePillUI() {
 }
 
 function selectVerse(verseObj, type, elementId, forceSelect = false) {
+    // Clear all existing saved verse element highlights to prevent multi-selection
+    document.querySelectorAll('.saved-verse').forEach(el => {
+        el.style.background = '';
+        el.style.color = '';
+        el.style.opacity = '';
+        el.style.borderColor = '';
+        const t = el.querySelector('.verse-text');
+        if (t) t.style.color = '';
+        const r = el.querySelector('.verse-ref');
+        if (r) r.style.color = '';
+    });
     let isDifferentVerse = false;
     if (!selectedVerse) {
         isDifferentVerse = true;
@@ -4686,3 +4712,42 @@ function simulatePurchase() {
         // Here you would normally set a local storage flag or update backend
     }, 1500);
 }
+
+
+// --- Drive Storage Modal & Offline Auto Guest ---
+function openDriveStorageModal() {
+    closeUserProfileModal();
+    const modal = document.getElementById('drive-storage-modal');
+    if (!modal) return;
+
+    const countVerses = document.getElementById('drive-count-verses');
+    const countAlbums = document.getElementById('drive-count-albums');
+    const countTopics = document.getElementById('drive-count-topics');
+    
+    if (countVerses) countVerses.innerText = (savedVerses ? savedVerses.length : 0) + ' items';
+    if (countAlbums) countAlbums.innerText = (createdAlbums ? createdAlbums.length : 0) + ' albums';
+    if (countTopics) countTopics.innerText = (globalSelectedRels ? globalSelectedRels.length : 0) + ' selected';
+    
+    modal.classList.remove('hidden');
+}
+
+function closeDriveStorageModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    const modal = document.getElementById('drive-storage-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function openGoogleDriveAppData() {
+    window.open('https://drive.google.com/drive/u/0/settings', '_blank');
+}
+
+// Auto Guest login when offline
+window.addEventListener('offline', () => {
+    if (googleUser) {
+        saveStateToProfile('account_' + googleUser.sub);
+        googleUser = null;
+        loadStateFromProfile('guest');
+        updateUserUI();
+        showToast('No internet connection: Switched to Guest mode');
+    }
+});
