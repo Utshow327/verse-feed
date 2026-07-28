@@ -258,9 +258,9 @@
             <div style="width: 90%; max-width: 800px; margin: 0 auto;">
                 
                 <!-- Unified User / Subscription Section -->
-                <div id="settings-user-row" style="display: flex; gap: 15px; width: 90%; max-width: 600px; margin: 20px auto 40px auto; align-items: center;">
+                <div id="settings-user-row" style="display: flex; gap: 15px; width: calc(100% - 2px); margin: 20px auto 40px 2px; align-items: center;">
                     <!-- Premium button -->
-                    <button id="user-premium-btn" onclick="openPremiumModal()" class="premium-gradient-btn" style="height: 50px; flex: 1;">
+                    <button id="user-premium-btn" onclick="openPremiumModal()" class="premium-gradient-btn" style="height: 50px;">
                         Premium
                     </button>
                     
@@ -472,7 +472,7 @@
                         <input type="text" id="create-verse-number" onkeydown="if(event.key === 'Enter'){ submitCreateVerse(); return false; }" placeholder="Verse" autocomplete="off" style="flex:1; min-width:0; padding:10px; border-radius:8px; border:1px solid var(--glass-border); background:var(--card-bg); color:var(--text-color); font-family:inherit;">
                     </div>
                     <div id="create-verse-album-wheel-container" style="position:relative; width:100%; height:50px; overflow:hidden; perspective:1000px; margin: 10px 0;">
-                        <div id="create-verse-album-wheel" style="display:flex; position:relative; overflow-x:auto; overscroll-behavior-x:none; scroll-snap-type:x mandatory; scrollbar-width:none; height:100%; align-items:center; padding:0 calc(33.333% - 20px); transform-style:preserve-3d;"></div>
+                        <div id="create-verse-album-wheel" style="display:flex; position:relative; overflow-x:auto; overscroll-behavior-x:none; scroll-snap-type:x mandatory; scrollbar-width:none; height:100%; align-items:center; max-width:400px; margin:0 auto; padding:0 33.333%; transform-style:preserve-3d;"></div>
                     </div>
                     <button id="create-verse-submit-btn" class="album-create-btn" style="width: 100%;" onclick="submitCreateVerse()">Add</button>
                 </div>
