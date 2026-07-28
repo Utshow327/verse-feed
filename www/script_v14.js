@@ -138,12 +138,7 @@ function triggerCloudSync() {
 // ==============================================
 
 
-    if (!googleUser || !googleAccessToken) return;
-    clearTimeout(cloudSyncTimeout);
-    cloudSyncTimeout = setTimeout(() => {
-        syncUserDataWithGoogleDrive(googleAccessToken);
-    }, 1500);
-}
+
 let religionVerses = {};
 let religionBooks = {};
 let globalSelectedRels = null;
