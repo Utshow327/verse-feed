@@ -1091,9 +1091,14 @@ async function loadSelectedData() {
     for (const rel of globalSelectedRels) {
         await loadReligionData(rel);
     }
+    loadUnselectedDataInBackground();
 }
 async function loadUnselectedDataInBackground() {
-    // Unselected religions are now loaded strictly on-demand when enabled in settings
+    for (const rel of religions) {
+        if (!loadedReligions.has(rel)) {
+            loadReligionData(rel);
+        }
+    }
 }
 function cleanText(text) {
     if (!text) return '';
@@ -2088,7 +2093,8 @@ function showReligions() {
     document.getElementById('book-content-view').classList.add('hidden');
 
     const populationOrder = ['Christianity', 'Islam', 'Hinduism', 'Sikhism', 'Buddhism', 'Judaism', 'Philosophy', 'Psychology'];
-    const sortedRels = (globalSelectedRels || []).slice().sort((a, b) => {
+    const activeRels = (globalSelectedRels && globalSelectedRels.length > 0) ? globalSelectedRels : religions;
+    const sortedRels = activeRels.slice().sort((a, b) => {
         let idxA = populationOrder.indexOf(a);
         let idxB = populationOrder.indexOf(b);
         if (idxA === -1) idxA = 999;
@@ -2099,13 +2105,26 @@ function showReligions() {
     sortedRels.forEach(rel => {
         const btn = document.createElement('button');
         btn.innerText = rel;
+        
         if (!religionBooks[rel]) {
             btn.innerText = rel + ' (Loading...)';
-            btn.disabled = true;
-            btn.style.opacity = '0.5';
-        } else {
-            btn.onclick = () => showBooks(rel);
+            btn.style.opacity = '0.7';
+            if (!loadedReligions.has(rel)) {
+                loadReligionData(rel);
+            }
         }
+
+        btn.onclick = async () => {
+            if (!religionBooks[rel]) {
+                btn.innerText = rel + ' (Loading...)';
+                btn.style.opacity = '0.7';
+                await loadReligionData(rel);
+            }
+            if (religionBooks[rel]) {
+                showBooks(rel);
+            }
+        };
+
         list.appendChild(btn);
     });
 }
