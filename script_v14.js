@@ -168,6 +168,19 @@ try {
 } catch (e) {
     savedVerses = [];
 }
+// Migration: Ensure all loaded verses have unique IDs
+if (Array.isArray(savedVerses)) {
+    let changed = false;
+    savedVerses.forEach(v => {
+        if (!v.id || typeof v.id !== 'string') {
+            v.id = 'sv_' + Date.now() + '_' + Math.floor(Math.random()*100000);
+            changed = true;
+        }
+    });
+    if (changed) {
+        localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+    }
+}
 let audio;
 let currentTrack = 0;
 const musicTracks = [
@@ -3376,6 +3389,7 @@ function saveToAlbum(albumName) {
         }
     } else {
         const v = { ...pendingBookmarkVerse, album: albumName };
+        if (!v.id) v.id = 'sv_' + Date.now() + '_' + Math.floor(Math.random()*100000);
         savedVerses.unshift(v);
     }
     
@@ -3806,7 +3820,7 @@ function submitCreateVerse() {
         return; 
     }
     
-    const v = { text, book, chapter, verse, album, religion: 'Custom', type: 'saved' };
+    const v = { text, book, chapter, verse, album, religion: 'Custom', type: 'saved', id: 'sv_' + Date.now() + '_' + Math.floor(Math.random()*100000) };
     savedVerses.push(v);
     localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
     
