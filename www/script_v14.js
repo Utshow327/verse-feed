@@ -4575,7 +4575,7 @@ function confirmSignOut() {
     closeUserProfileModal();
     updateUserUI();
     updatePremiumModalActions();
-    if (typeof showSavedVerses === 'function' && document.getElementById('saved-list') && !document.getElementById('saved').classList.contains('hidden')) {
+    if (typeof showSavedVerses === 'function' && document.getElementById('saved-list') && !document.getElementById('saved-verses').classList.contains('hidden')) {
         showSavedVerses();
     }
     showToast('Signed out, restored Guest state');
