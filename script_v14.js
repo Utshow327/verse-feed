@@ -1,5 +1,124 @@
+// ==============================================
+// GLOBAL USER STATE & CLOUD SYNC ENGINE
+// ==============================================
+let googleUser = null;
+try {
+    const rawUser = localStorage.getItem('googleUser');
+    if (rawUser) googleUser = JSON.parse(rawUser);
+} catch(e) { googleUser = null; }
+
 let googleAccessToken = null;
 let cloudSyncTimeout = null;
+let isRestoringState = false;
+
+const STATE_KEYS = [
+    'globalSelectedRels', 'savedVerses', 'createdAlbums', 
+    'bookMarkedVerse', 'darkModeEnabled', 'selectedVoice', 
+    'ttsAnnounceSource', 'ttsRandomVoice', 'musicVolume', 'musicEnabled'
+];
+
+const originalSetItem = localStorage.setItem;
+localStorage.setItem = function(key, value) {
+    originalSetItem.apply(this, arguments);
+    if (!isRestoringState && typeof triggerCloudSync === 'function' && STATE_KEYS.includes(key)) {
+        triggerCloudSync();
+    }
+};
+
+function saveStateToProfile(profileId) {
+    if (!profileId) return;
+    const state = {};
+    STATE_KEYS.forEach(key => {
+        state[key] = localStorage.getItem(key);
+    });
+    originalSetItem.call(localStorage, 'profile_' + profileId, JSON.stringify(state));
+}
+
+function loadStateFromProfile(profileId) {
+    if (!profileId) return;
+    isRestoringState = true;
+    const profileStr = localStorage.getItem('profile_' + profileId);
+    let state = null;
+    if (profileStr) {
+        try { state = JSON.parse(profileStr); } catch(e){}
+    }
+    
+    if (state) {
+        STATE_KEYS.forEach(key => {
+            if (state[key] !== undefined && state[key] !== null) {
+                originalSetItem.call(localStorage, key, state[key]);
+            } else {
+                localStorage.removeItem(key);
+            }
+        });
+    } else {
+        // Default clean state for fresh guest or account
+        STATE_KEYS.forEach(key => localStorage.removeItem(key));
+        originalSetItem.call(localStorage, 'savedVerses', '[]');
+        originalSetItem.call(localStorage, 'createdAlbums', '[]');
+        originalSetItem.call(localStorage, 'bookMarkedVerse', '{}');
+    }
+    
+    // Synchronize running JS variables
+    if (typeof globalSelectedRels !== 'undefined') {
+        try {
+            globalSelectedRels = JSON.parse(localStorage.getItem('globalSelectedRels') || 'null');
+        } catch(e) { globalSelectedRels = null; }
+    }
+    if (typeof savedVerses !== 'undefined') {
+        try {
+            savedVerses = JSON.parse(localStorage.getItem('savedVerses') || '[]');
+        } catch(e) { savedVerses = []; }
+    }
+    if (typeof createdAlbums !== 'undefined') {
+        try {
+            createdAlbums = JSON.parse(localStorage.getItem('createdAlbums') || '[]');
+        } catch(e) { createdAlbums = []; }
+    }
+    if (typeof bookMarkedVerse !== 'undefined') {
+        try {
+            bookMarkedVerse = JSON.parse(localStorage.getItem('bookMarkedVerse') || '{}');
+        } catch(e) { bookMarkedVerse = {}; }
+    }
+    if (typeof darkModeEnabled !== 'undefined') {
+        darkModeEnabled = localStorage.getItem('darkModeEnabled') === 'true';
+        if (darkModeEnabled) document.body.setAttribute('data-theme', 'dark');
+        else document.body.removeAttribute('data-theme');
+        if (typeof updateDarkModeIcon === 'function') updateDarkModeIcon(darkModeEnabled);
+    }
+    if (typeof selectedVoice !== 'undefined') {
+        selectedVoice = localStorage.getItem('selectedVoice') || 'en_US-libritts_r-medium';
+    }
+    if (typeof ttsAnnounceSource !== 'undefined') {
+        ttsAnnounceSource = localStorage.getItem('ttsAnnounceSource') === 'true';
+    }
+    if (typeof ttsRandomVoice !== 'undefined') {
+        ttsRandomVoice = localStorage.getItem('ttsRandomVoice') === 'true';
+    }
+    
+    if (typeof audio !== 'undefined' && audio) {
+        audio.volume = parseFloat(localStorage.getItem('musicVolume') || '0.2');
+    }
+    const slider = document.getElementById('music-volume-slider');
+    if (slider) slider.value = localStorage.getItem('musicVolume') || '0.2';
+    
+    const mEnabled = localStorage.getItem('musicEnabled') !== 'false';
+    const musicBtn = document.getElementById('music-toggle');
+    if (musicBtn) {
+        if (mEnabled) musicBtn.classList.add('active');
+        else musicBtn.classList.remove('active');
+    }
+    
+    if (typeof updateTogglesUI === 'function') updateTogglesUI();
+    if (typeof buildSettings === 'function') buildSettings();
+    if (typeof syncVoiceWheelToCurrent === 'function') syncVoiceWheelToCurrent();
+    
+    if (document.getElementById('verse-feed') && document.getElementById('verse-feed').classList.contains('active-section')) {
+        if (typeof updateBatchesAfterSettings === 'function') updateBatchesAfterSettings();
+    }
+    
+    isRestoringState = false;
+}
 
 function triggerCloudSync() {
     if (googleUser && googleUser.sub) {
@@ -7,6 +126,17 @@ function triggerCloudSync() {
     } else {
         saveStateToProfile('guest');
     }
+
+    if (!googleUser || !googleAccessToken) return;
+    clearTimeout(cloudSyncTimeout);
+    cloudSyncTimeout = setTimeout(() => {
+        if (typeof syncUserDataWithGoogleDrive === 'function') {
+            syncUserDataWithGoogleDrive(googleAccessToken);
+        }
+    }, 1500);
+}
+// ==============================================
+
 
     if (!googleUser || !googleAccessToken) return;
     clearTimeout(cloudSyncTimeout);
@@ -4200,15 +4330,6 @@ function confirmRenameAlbum() { submitRenameAlbum(); }
 
 
 // --- Google Auth Logic ---
-let googleUser = null;
-try {
-    const rawUser = localStorage.getItem('googleUser');
-    if (rawUser) {
-        googleUser = JSON.parse(rawUser);
-    }
-} catch (e) {
-    googleUser = null;
-}
 
 let tokenClient = null;
 
