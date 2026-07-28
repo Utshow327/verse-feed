@@ -3801,10 +3801,12 @@ function submitCreateVerse() {
     const verse = verseEl ? verseEl.value.trim() : '';
     const album = window.selectedCreateVerseAlbum || 'Default';
     
-    if (!text) { showToast('Please enter text or a word'); return; }
+    if (!text || !book || !chapter || !verse) { 
+        showToast('Please fill in all fields'); 
+        return; 
+    }
     
-    const finalBook = book || 'Custom';
-    const v = { text, book: finalBook, chapter: chapter || '1', verse: verse || '1', album, religion: 'Custom', type: 'saved' };
+    const v = { text, book, chapter, verse, album, religion: 'Custom', type: 'saved' };
     savedVerses.push(v);
     localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
     
