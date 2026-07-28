@@ -370,10 +370,10 @@ async function initApp() {
             });
         }
 
-        if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
+        if (!globalSelectedRels || !Array.isArray(globalSelectedRels)) {
             globalSelectedRels = [...religions];
             localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
-    triggerCloudSync();
+            triggerCloudSync();
         }
 
         setupGestures();
@@ -1072,8 +1072,8 @@ async function loadReligionData(rel) {
     }
 }
 async function loadSelectedData() {
-    if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
-        globalSelectedRels = [...religions];
+    if (!globalSelectedRels || !Array.isArray(globalSelectedRels)) {
+        globalSelectedRels = [];
     }
     for (const rel of globalSelectedRels) {
         await loadReligionData(rel);
@@ -1557,9 +1557,16 @@ function initializeVerseFeed() {
     const stage = document.getElementById('feed-stage');
     const emptyState = document.getElementById('feed-empty-state');
 
-    if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
+    if (!globalSelectedRels || !Array.isArray(globalSelectedRels)) {
         globalSelectedRels = [...religions];
     }
+    
+    if (globalSelectedRels.length === 0) {
+        stage.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+    }
+    
     emptyState.classList.add('hidden');
     if (verseBatches.general.length > 0) {
         renderFeedCard(currentVerseIndex.general);
