@@ -216,12 +216,7 @@
         <div class="section-spacer"></div>
         <div class="feed-stage" id="feed-stage">
         </div>
-        <div id="feed-empty-state" class="hidden" style="display: flex; align-items: center; justify-content: center; height: calc(100vh - 200px);">
-            <div onclick="goTo('settings')" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); padding: 15px 30px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.3s ease;">
-                <span class="material-icons" style="font-size: 24px; opacity: 0.8;">person</span>
-                <span style="font-size: 1.1em; opacity: 0.9; font-weight: 500;">Select topics in User</span>
-            </div>
-        </div>
+        <div id="feed-empty-state" class="hidden"></div>
     </div>
     <div id="read-books" class="app-section">
         <div id="library-home">
@@ -263,9 +258,9 @@
             <div style="width: 90%; max-width: 800px; margin: 0 auto;">
                 
                 <!-- Unified User / Subscription Section -->
-                <div id="settings-user-row" style="display: flex; gap: 15px; width: 100%; margin: 20px auto 40px auto; align-items: center;">
+                <div id="settings-user-row" style="display: flex; gap: 15px; width: calc(100% - 2px); margin: 20px auto 40px 2px; align-items: center;">
                     <!-- Premium button -->
-                    <button id="user-premium-btn" onclick="openPremiumModal()" class="premium-gradient-btn" style="height: 50px; flex: 1;">
+                    <button id="user-premium-btn" onclick="openPremiumModal()" class="premium-gradient-btn" style="height: 50px;">
                         Premium
                     </button>
                     
