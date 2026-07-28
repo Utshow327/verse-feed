@@ -4716,7 +4716,7 @@ function simulatePurchase() {
 
 // --- Direct Google Drive Redirect & Offline Auto Guest ---
 function openGoogleDriveAppData() {
-    window.open('https://drive.google.com/drive/u/0/settings', '_blank');
+    window.open('https://drive.google.com/drive/u/0/my-drive', '_blank');
 }
 
 // Auto Guest login when offline
