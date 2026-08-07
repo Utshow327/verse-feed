@@ -1,4 +1,4 @@
-const CACHE_NAME = 'religion-app-v20';
+const CACHE_NAME = 'religion-app-v34';
 const STATIC_ASSETS = [
     './',
     './index.html',
@@ -72,7 +72,7 @@ self.addEventListener('fetch', (e) => {
 
     if (isModelFile || isMusicFile) {
         e.respondWith(
-            caches.match(e.request).then((cachedResponse) => {
+            caches.match(e.request, { ignoreSearch: true }).then((cachedResponse) => {
                 if (cachedResponse) {
                     console.log('Serving cached large asset:', url.pathname);
                     return cachedResponse;
@@ -106,7 +106,7 @@ self.addEventListener('fetch', (e) => {
             }
             return networkResponse;
         }).catch(() => {
-            return caches.match(e.request).then((cachedResponse) => {
+            return caches.match(e.request, { ignoreSearch: true }).then((cachedResponse) => {
                 if (cachedResponse) {
                     return cachedResponse;
                 }

@@ -248,16 +248,19 @@ html, body {
     padding-bottom: 90px;
     overflow-y: auto;
     scroll-behavior: smooth;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.25s ease;
+    display: none !important;
     z-index: 1;
 }
 
 .app-section.active-section {
-    opacity: 1;
-    pointer-events: auto;
+    display: block !important;
+    animation: sectionFadeIn 0.20s ease-out forwards;
     z-index: 2;
+}
+
+@keyframes sectionFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 #read-books {
@@ -612,8 +615,10 @@ h2 {
 }
 
 #lib-search-results {
+    max-height: none;
+    overflow: visible;
     margin-top: 30px;
-    padding-bottom: 120px;
+    padding-bottom: 140px;
 }
 
 #lib-search-input {
@@ -660,9 +665,10 @@ h2 {
 }
 
 #lib-search-results {
-    max-height: 350px;
-    overflow-y: auto;
-    scrollbar-width: none;
+    max-height: none;
+    overflow: visible;
+    margin-top: 30px;
+    padding-bottom: 140px;
 }
 #lib-search-results::-webkit-scrollbar {
     display: none;
@@ -1163,7 +1169,7 @@ h2 {
     align-items: center;
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.20s ease, visibility 0.20s ease;
 }
 
 .modal-overlay.hidden {
@@ -1183,7 +1189,7 @@ h2 {
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
     transform: translateY(0) scale(1);
     opacity: 1;
-    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s ease;
+    transition: transform 0.20s ease, opacity 0.20s ease;
 }
 
 .modal-overlay.hidden .modal-content {
@@ -1365,7 +1371,7 @@ h2 {
     align-items: center;
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.20s ease, visibility 0.20s ease;
 }
 
 .modal-overlay.hidden {
@@ -1385,7 +1391,7 @@ h2 {
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
     transform: translateY(0) scale(1);
     opacity: 1;
-    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s ease;
+    transition: transform 0.20s ease, opacity 0.20s ease;
 }
 
 .modal-overlay.hidden .modal-content {
@@ -1582,6 +1588,9 @@ h2 {
     color: var(--bg-grad-1);
     opacity: 1;
     border-color: var(--text-color);
+}
+#dark-mode-toggle {
+    aspect-ratio: auto;
 }
 
 
@@ -2242,35 +2251,72 @@ h2 {
 }
 
 
-/* --- App-Wide Smooth Interchange Animations --- */
-.app-section {
-    transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
 
-.app-section:not(.active-section) {
-    transform: translateY(12px) scale(0.985);
-}
-
-.app-section.active-section {
-    transform: translateY(0) scale(1);
-}
 
 #library-home:not(.hidden), 
 #book-list-view:not(.hidden), 
 #sub-book-list-view:not(.hidden), 
-#book-content-view:not(.hidden),
-#saved-verses:not(.hidden),
-#settings:not(.hidden) {
-    animation: smoothViewFade 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+#book-content-view:not(.hidden) {
+    animation: smoothViewFade 0.20s ease-out forwards;
 }
 
 @keyframes smoothViewFade {
     0% {
         opacity: 0;
-        transform: translateY(10px);
     }
     100% {
         opacity: 1;
-        transform: translateY(0);
     }
+}
+
+
+/* --- Action Pill Loading Animation (Opacity Pulse) --- */
+.main-play-btn.loading {
+    animation: pillLoadingPulse 1.8s infinite ease-in-out !important;
+    will-change: opacity;
+}
+
+@keyframes pillLoadingPulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.35;
+    }
+}
+
+/* --- Premium Paywall --- */
+.premium-paywall {
+    background: linear-gradient(180deg, rgba(30,30,30,0.95) 0%, rgba(15,15,15,1) 100%);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.1);
+}
+.premium-package-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    border-radius: 12px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+.premium-package-btn:hover {
+    background: rgba(255, 215, 0, 0.1);
+    border-color: rgba(255, 215, 0, 0.5);
+    transform: translateY(-2px);
+}
+.premium-package-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 5px;
+}
+.premium-package-price {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #FFD700;
 }

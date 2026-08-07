@@ -1,9 +1,13 @@
 // ==============================================
-// GLOBAL USER STATE & CLOUD SYNC ENGINE
+// GLOBAL USER STATE & ISOLATED PROFILE / CLOUD SYNC ENGINE
 // ==============================================
+const originalGetItem = localStorage.getItem;
+const originalSetItem = localStorage.setItem;
+const originalRemoveItem = localStorage.removeItem;
+
 let googleUser = null;
 try {
-    const rawUser = localStorage.getItem('googleUser');
+    const rawUser = originalGetItem.call(localStorage, 'googleUser');
     if (rawUser) googleUser = JSON.parse(rawUser);
 } catch(e) { googleUser = null; }
 
@@ -17,116 +21,160 @@ const STATE_KEYS = [
     'ttsAnnounceSource', 'ttsRandomVoice', 'musicVolume', 'musicEnabled'
 ];
 
-const originalSetItem = localStorage.setItem;
-localStorage.setItem = function(key, value) {
-    originalSetItem.apply(this, arguments);
-    if (!isRestoringState && typeof triggerCloudSync === 'function' && STATE_KEYS.includes(key)) {
-        triggerCloudSync();
+function getActiveProfileId() {
+    if (googleUser && googleUser.sub) {
+        return 'account_' + googleUser.sub;
     }
-};
-
-function saveStateToProfile(profileId) {
-    if (!profileId) return;
-    const state = {};
-    STATE_KEYS.forEach(key => {
-        state[key] = localStorage.getItem(key);
-    });
-    originalSetItem.call(localStorage, 'profile_' + profileId, JSON.stringify(state));
+    return 'guest';
 }
 
-function loadStateFromProfile(profileId) {
-    if (!profileId) return;
-    isRestoringState = true;
-    const profileStr = localStorage.getItem('profile_' + profileId);
-    let state = null;
-    if (profileStr) {
-        try { state = JSON.parse(profileStr); } catch(e){}
-    }
-    
-    if (state) {
+// Automatic One-Time Migration of un-namespaced keys into pf_guest_*
+(function migrateOldStorageToGuest() {
+    const migrated = originalGetItem.call(localStorage, 'pf_guest_migrated_v2');
+    if (!migrated) {
         STATE_KEYS.forEach(key => {
-            if (state[key] !== undefined && state[key] !== null) {
-                originalSetItem.call(localStorage, key, state[key]);
-            } else {
-                localStorage.removeItem(key);
+            const oldVal = originalGetItem.call(localStorage, key);
+            if (oldVal !== null && oldVal !== undefined) {
+                originalSetItem.call(localStorage, 'pf_guest_' + key, oldVal);
+                originalRemoveItem.call(localStorage, key);
             }
         });
-    } else {
-        // Default clean state for fresh guest or account
-        STATE_KEYS.forEach(key => localStorage.removeItem(key));
-        originalSetItem.call(localStorage, 'savedVerses', '[]');
-        originalSetItem.call(localStorage, 'createdAlbums', '[]');
-        originalSetItem.call(localStorage, 'bookMarkedVerse', '{}');
+        originalSetItem.call(localStorage, 'pf_guest_migrated_v2', 'true');
     }
+})();
+
+// Intercept localStorage methods for STATE_KEYS so every component operates on active profile sandbox
+localStorage.getItem = function(key) {
+    if (STATE_KEYS.includes(key)) {
+        const profileId = getActiveProfileId();
+        return originalGetItem.call(this, 'pf_' + profileId + '_' + key);
+    }
+    return originalGetItem.call(this, key);
+};
+
+localStorage.setItem = function(key, value) {
+    if (STATE_KEYS.includes(key)) {
+        const profileId = getActiveProfileId();
+        originalSetItem.call(this, 'pf_' + profileId + '_' + key, value);
+        if (!isRestoringState && typeof triggerCloudSync === 'function') {
+            triggerCloudSync();
+        }
+        return;
+    }
+    originalSetItem.call(this, key, value);
+};
+
+localStorage.removeItem = function(key) {
+    if (STATE_KEYS.includes(key)) {
+        const profileId = getActiveProfileId();
+        originalRemoveItem.call(this, 'pf_' + profileId + '_' + key);
+        return;
+    }
+    originalRemoveItem.call(this, key);
+};
+
+function switchProfile(targetProfileId) {
+    isRestoringState = true;
     
-    // Synchronize running JS variables
-    if (typeof globalSelectedRels !== 'undefined') {
-        try {
-            globalSelectedRels = JSON.parse(localStorage.getItem('globalSelectedRels') || 'null');
-        } catch(e) { globalSelectedRels = null; }
+    try {
+        savedVerses = JSON.parse(localStorage.getItem('savedVerses') || '[]');
+    } catch(e) { savedVerses = []; }
+
+    try {
+        createdAlbums = JSON.parse(localStorage.getItem('createdAlbums') || '[]');
+    } catch(e) { createdAlbums = []; }
+
+    try {
+        bookMarkedVerse = JSON.parse(localStorage.getItem('bookMarkedVerse') || '{}');
+    } catch(e) { bookMarkedVerse = {}; }
+
+    try {
+        const rawRels = localStorage.getItem('globalSelectedRels');
+        if (rawRels) {
+            const parsed = JSON.parse(rawRels);
+            if (Array.isArray(parsed)) {
+                globalSelectedRels = parsed.filter(r => ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Sikhism', 'Judaism', 'Philosophy'].includes(r));
+            } else if (typeof parsed === 'string' && ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Sikhism', 'Judaism', 'Philosophy'].includes(parsed)) {
+                globalSelectedRels = [parsed];
+            } else {
+                globalSelectedRels = null;
+            }
+        } else {
+            globalSelectedRels = null;
+        }
+    } catch(e) { globalSelectedRels = null; }
+
+    if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
+        globalSelectedRels = [...religions];
+        localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
     }
-    if (typeof savedVerses !== 'undefined') {
-        try {
-            savedVerses = JSON.parse(localStorage.getItem('savedVerses') || '[]');
-        } catch(e) { savedVerses = []; }
-    }
-    if (typeof createdAlbums !== 'undefined') {
-        try {
-            createdAlbums = JSON.parse(localStorage.getItem('createdAlbums') || '[]');
-        } catch(e) { createdAlbums = []; }
-    }
-    if (typeof bookMarkedVerse !== 'undefined') {
-        try {
-            bookMarkedVerse = JSON.parse(localStorage.getItem('bookMarkedVerse') || '{}');
-        } catch(e) { bookMarkedVerse = {}; }
-    }
-    if (typeof darkModeEnabled !== 'undefined') {
-        darkModeEnabled = localStorage.getItem('darkModeEnabled') === 'true';
-        if (darkModeEnabled) document.body.setAttribute('data-theme', 'dark');
-        else document.body.removeAttribute('data-theme');
-        if (typeof updateDarkModeIcon === 'function') updateDarkModeIcon(darkModeEnabled);
-    }
-    if (typeof selectedVoice !== 'undefined') {
-        selectedVoice = localStorage.getItem('selectedVoice') || 'en_US-libritts_r-medium';
-    }
-    if (typeof ttsAnnounceSource !== 'undefined') {
-        ttsAnnounceSource = localStorage.getItem('ttsAnnounceSource') === 'true';
-    }
-    if (typeof ttsRandomVoice !== 'undefined') {
-        ttsRandomVoice = localStorage.getItem('ttsRandomVoice') === 'true';
-    }
-    
+
+    const dmStr = localStorage.getItem('darkModeEnabled');
+    darkModeEnabled = dmStr === null ? true : dmStr === 'true';
+    if (darkModeEnabled) document.body.setAttribute('data-theme', 'dark');
+    else document.body.removeAttribute('data-theme');
+    if (typeof updateDarkModeIcon === 'function') updateDarkModeIcon(darkModeEnabled);
+
+    selectedVoice = localStorage.getItem('selectedVoice') || 'en_US-libritts_r-medium';
+    ttsAnnounceSource = localStorage.getItem('ttsAnnounceSource') === 'true';
+    ttsRandomVoice = localStorage.getItem('ttsRandomVoice') === 'true';
+
     if (typeof audio !== 'undefined' && audio) {
-        audio.volume = parseFloat(localStorage.getItem('musicVolume') || '0.2');
+        audio.volume = parseFloat(localStorage.getItem('musicVolume') || '0.5');
     }
     const slider = document.getElementById('music-volume-slider');
-    if (slider) slider.value = localStorage.getItem('musicVolume') || '0.2';
-    
+    if (slider) slider.value = localStorage.getItem('musicVolume') || '0.5';
+
     const mEnabled = localStorage.getItem('musicEnabled') !== 'false';
     const musicBtn = document.getElementById('music-toggle');
     if (musicBtn) {
-        if (mEnabled) musicBtn.classList.add('active');
-        else musicBtn.classList.remove('active');
+        if (mEnabled) {
+            if (typeof audio !== 'undefined' && audio) {
+                audio.play().then(() => {
+                    musicBtn.classList.add('active');
+                }).catch(e => {
+                    const playOnInteract = () => {
+                        if (localStorage.getItem('musicEnabled') !== 'false') {
+                            audio.play().then(() => {
+                                const btn = document.getElementById('music-toggle');
+                                if (btn) btn.classList.add('active');
+                                document.removeEventListener('click', playOnInteract);
+                                document.removeEventListener('pointerdown', playOnInteract);
+                                document.removeEventListener('touchstart', playOnInteract);
+                            }).catch(err => {});
+                        }
+                    };
+                    document.addEventListener('click', playOnInteract);
+                    document.addEventListener('pointerdown', playOnInteract);
+                    document.addEventListener('touchstart', playOnInteract, {passive: true});
+                });
+            }
+        } else {
+            musicBtn.classList.remove('active');
+            if (typeof audio !== 'undefined' && audio) audio.pause();
+        }
     }
-    
+
     if (typeof updateTogglesUI === 'function') updateTogglesUI();
     if (typeof buildSettings === 'function') buildSettings();
     if (typeof syncVoiceWheelToCurrent === 'function') syncVoiceWheelToCurrent();
-    
-    if (document.getElementById('verse-feed') && document.getElementById('verse-feed').classList.contains('active-section')) {
-        if (typeof updateBatchesAfterSettings === 'function') updateBatchesAfterSettings();
+
+    if (typeof showSavedVerses === 'function' && document.getElementById('saved-verses')) {
+        showSavedVerses();
     }
-    
+
     isRestoringState = false;
 }
 
-function triggerCloudSync() {
-    if (googleUser && googleUser.sub) {
-        saveStateToProfile('account_' + googleUser.sub);
-    } else {
-        saveStateToProfile('guest');
-    }
+function loadStateFromProfile(profileId) {
+    switchProfile(profileId);
+}
 
+function saveStateToProfile(profileId) {
+    // Isolated profile storage handles saving automatically via intercepted setItem
+}
+
+function triggerCloudSync() {
     if (!googleUser || !googleAccessToken) return;
     clearTimeout(cloudSyncTimeout);
     cloudSyncTimeout = setTimeout(() => {
@@ -139,6 +187,7 @@ function triggerCloudSync() {
 
 
 
+const validReligions = ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Sikhism', 'Judaism', 'Philosophy'];
 let religionVerses = {};
 let religionBooks = {};
 let globalSelectedRels = null;
@@ -147,9 +196,9 @@ try {
     if (rawRels !== null) {
         const parsed = JSON.parse(rawRels);
         if (Array.isArray(parsed)) {
-            globalSelectedRels = parsed;
+            globalSelectedRels = parsed.filter(r => validReligions.includes(r));
         } else if (typeof parsed === 'string') {
-            globalSelectedRels = [parsed];
+            globalSelectedRels = validReligions.includes(parsed) ? [parsed] : null;
         }
     }
 } catch (e) {
@@ -184,8 +233,8 @@ if (Array.isArray(savedVerses)) {
 let audio;
 let currentTrack = 0;
 const musicTracks = [
-    'https://www.fesliyanstudios.com/download-link.php?src=i&id=897',
     'https://www.fesliyanstudios.com/download-link.php?src=i&id=310',
+    'https://www.fesliyanstudios.com/download-link.php?src=i&id=897',
     'https://www.fesliyanstudios.com/download-link.php?src=i&id=3007',
 ];
 let currentReligion = '';
@@ -217,7 +266,7 @@ const MIN_CHAR_LIMIT = 70;
 const maxCharLimit = 210;
 let darkModeStr = localStorage.getItem('darkModeEnabled');
 let darkModeEnabled = darkModeStr === null ? true : darkModeStr === 'true';
-const religions = ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Sikhism', 'Judaism', 'Philosophy', 'Psychology'];
+const religions = ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Sikhism', 'Judaism', 'Philosophy'];
 
 const dataUrls = {
     Christianity: ['./data/bible.json?v=21'],
@@ -226,8 +275,7 @@ const dataUrls = {
     Judaism: ['./data/sefaria.json?v=21'],
     Sikhism: ['./data/gurbani.json?v=21'],
     Buddhism: ['./data/buddhism.json?v=21'],
-    Philosophy: ['./data/philosophy.json?v=21'],
-    Psychology: ['./data/psychology.json?v=21']
+    Philosophy: ['./data/philosophy.json?v=21']
 };
 let loadedReligions = new Set();
 // Settings
@@ -331,11 +379,8 @@ let isProgrammaticScroll = false;
 
 
 async function initApp() {
-    if (!navigator.onLine && googleUser) {
-        googleUser = null;
-        loadStateFromProfile('guest');
-        updateUserUI();
-    }
+    updateUserUI();
+    switchProfile(getActiveProfileId());
     applyAutoSpeed(selectedVoice);
     try {
         addSelectionListeners();
@@ -373,17 +418,22 @@ async function initApp() {
         
         const musicBtn = document.getElementById('music-toggle');
         if (musicEnabled === 'true' && musicBtn) {
-            musicBtn.classList.add('active');
-            // Try autoplay, but catch and attach to first interaction if blocked
-            audio.play().catch(e => {
+            audio.play().then(() => {
+                musicBtn.classList.add('active');
+            }).catch(e => {
                 const playOnInteract = () => {
-                    if (document.getElementById('music-toggle').classList.contains('active')) {
-                        audio.play().catch(e => {});
+                    if (localStorage.getItem('musicEnabled') !== 'false') {
+                        audio.play().then(() => {
+                            const btn = document.getElementById('music-toggle');
+                            if (btn) btn.classList.add('active');
+                            document.removeEventListener('click', playOnInteract);
+                            document.removeEventListener('pointerdown', playOnInteract);
+                            document.removeEventListener('touchstart', playOnInteract);
+                        }).catch(err => {});
                     }
-                    document.removeEventListener('click', playOnInteract);
-                    document.removeEventListener('touchstart', playOnInteract);
                 };
                 document.addEventListener('click', playOnInteract);
+                document.addEventListener('pointerdown', playOnInteract);
                 document.addEventListener('touchstart', playOnInteract, {passive: true});
             });
         }
@@ -427,10 +477,11 @@ async function initApp() {
 }
 function updateDarkModeIcon(isDark) {
     const btn = document.getElementById('dark-mode-toggle');
+    if (!btn) return;
     if (isDark) {
-        btn.innerHTML = '<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
+        btn.innerHTML = '<svg id="dark-mode-icon-svg" style="width:22px;height:22px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
     } else {
-        btn.innerHTML = '<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+        btn.innerHTML = '<svg id="dark-mode-icon-svg" style="width:22px;height:22px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
     }
 }
 function setupGestures() {
@@ -450,6 +501,8 @@ function setupGestures() {
         const clickX = e.clientX;
         
         // Use 40% on left and right for navigation. The middle 20% selects the verse.
+        const isFeed = document.getElementById('verse-feed').classList.contains('active-section');
+        if (!isFeed) return;
         if (clickX < width * 0.4) {
             prevCard();
         } else if (clickX > width * 0.6) {
@@ -513,7 +566,7 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
     piperInitPromise = (async () => {
         piperInitializing = true;
         try {
-            const tts = await import("./libs/piper/piper-bundle.js?v=" + Date.now());
+            const tts = await import("./libs/piper/piper-bundle.js?v=20");
             if (tts.TtsSession._instance) {
                 tts.TtsSession._instance = null; // Force reload of ONNX model
             }
@@ -560,12 +613,20 @@ function updateMusicVolume() {
 }
 
 function toggleTTSSource() {
+    if (!isPremiumUser) {
+        openPremiumModal();
+        return;
+    }
     ttsAnnounceSource = !ttsAnnounceSource;
     localStorage.setItem('ttsAnnounceSource', ttsAnnounceSource);
     updateTogglesUI();
 }
 
 function toggleTTSRandom() {
+    if (!isPremiumUser) {
+        openPremiumModal();
+        return;
+    }
     ttsRandomVoice = !ttsRandomVoice;
     localStorage.setItem('ttsRandomVoice', ttsRandomVoice);
     updateTogglesUI();
@@ -663,11 +724,12 @@ async function playText(text, context) {
                .replace(/\[l\d+\]/gi, '')
                .replace(/-/g, ' ');
 
-    // Immediately update UI so it feels instant
+    // Immediately update UI with loading state while pre-generating audio
     isSpeaking = true;
     isPaused = false;
     currentAudioContextType = context;
     updateSpeakButton('speak-general');
+    
     const btn = document.getElementById('speak-general');
     if (btn) btn.classList.add('loading');
 
@@ -737,6 +799,7 @@ async function playText(text, context) {
                 if (currentAudioContextType === 'feed' && autoMode) nextCard(true);
                 else if (currentAudioContextType === 'book' && autoNextBook) advanceBookVerse();
                 else if (currentAudioContextType === 'saved' && autoMode) advanceSavedVerse();
+                else if (currentAudioContextType === 'search' && autoMode) advanceSearchVerse();
                 
                 setTimeout(() => {
                     if (!isSpeaking) stopWaveformVisualizer(true);
@@ -789,6 +852,10 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
     for (let i = 0; i < chunks.length; i++) {
         if (generationId !== currentGenerationId) break;
         
+        // Yield to browser macrotask event loop so scrolling and touch inputs run at 60fps with zero lag
+        await new Promise(r => setTimeout(r, 40));
+        if (generationId !== currentGenerationId) break;
+        
         try {
             const ctx = getAudioContext();
             if (ctx.state === 'suspended') await ctx.resume();
@@ -831,16 +898,15 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
         }
     }
     
-    // Only start playback AFTER all chunks are generated to prevent WASM blocking the visualizer
+    isQueueGenerating = false;
     if (generationId === currentGenerationId && audioChunkQueue.length > 0) {
         const btn = document.getElementById('speak-general');
         if (btn) btn.classList.remove('loading');
         isGenerating = false;
-        isQueueGenerating = false;
         
-        // Use a short timeout to let the UI breathe before starting playback
         setTimeout(() => {
             if (generationId === currentGenerationId) {
+                startWaveformVisualizer();
                 startAudioPlayback(0, generationId);
             }
         }, 50);
@@ -884,6 +950,8 @@ function startAudioPlayback(offset, generationId) {
                     advanceBookVerse();
                 } else if (currentAudioContextType === 'saved' && autoMode) {
                     advanceSavedVerse();
+                } else if (currentAudioContextType === 'search' && autoMode) {
+                    advanceSearchVerse();
                 }
                 
                 setTimeout(() => {
@@ -1077,7 +1145,6 @@ async function loadReligionData(rel) {
         if (rel === 'Sikhism') processSikhismData(responses[0]);
         if (rel === 'Buddhism') processBuddhismData(responses[0]);
         if (rel === 'Philosophy') processGenericData(responses[0], 'Philosophy');
-        if (rel === 'Psychology') processGenericData(responses[0], 'Psychology');
 
         loadedReligions.add(rel);
         buildSettings();
@@ -1105,17 +1172,65 @@ async function loadUnselectedDataInBackground() {
         }
     }
 }
+function formatVerseRef(v) {
+    if (!v) return '';
+    const book = v.book || '';
+    
+    let chap = '';
+    if (v.chapterNum !== undefined && v.chapterNum !== null && v.chapterNum !== '') {
+        chap = v.chapterNum;
+    } else if (v.chapterIndex !== undefined && v.chapterIndex !== null && v.chapterIndex !== '') {
+        chap = v.chapterIndex;
+    } else if (typeof v.chapter === 'number') {
+        chap = v.chapter;
+    } else if (typeof v.chapter === 'string') {
+        const match = v.chapter.match(/\d+/);
+        if (match) {
+            chap = parseInt(match[0]);
+        }
+    }
+    
+    let verse = '';
+    if (v.verseNum !== undefined && v.verseNum !== null && v.verseNum !== '') {
+        verse = v.verseNum;
+    } else if (typeof v.verse === 'number') {
+        verse = v.verse;
+    } else if (typeof v.verse === 'string') {
+        const match = v.verse.match(/\d+/);
+        if (match) {
+            verse = parseInt(match[0]);
+        } else {
+            verse = v.verse;
+        }
+    }
+
+    let chapPart = (chap !== '' && chap !== null && chap !== undefined) ? ' ' + chap : '';
+    let versePart = (verse !== '' && verse !== null && verse !== undefined) ? (chapPart ? ':' + verse : ' ' + verse) : '';
+    
+    return `${book}${chapPart}${versePart}`.trim();
+}
+
 function cleanText(text) {
     if (!text) return '';
-    if (text.toLowerCase().includes('peace') || text.includes('pbuh') || text.includes('\ufdfa')) {
-        text = text.replace(/\(*(?:may )?peace [a-z]e upon him\)*/gi, '(pbuh)')
-                   .replace(/\(\(pbuh\)\)/gi, '(pbuh)')
-                   .replace(/\ufdfa/g, '(pbuh)');
-    }
-    return text.replace(/[{}[\]\@#*_+=~0-9]/g, '')
+    
+    // Standardize all forms of Islamic honorifics strictly to (pbuh)
+    text = text.replace(/[\(\[\{]*\s*(?:may\s+)?peace\s+(?:be\s+)?upon\s+him\s*[\)\]\}]*/gi, ' (pbuh) ')
+               .replace(/[\(\[\{]*\s*pbuh\s*[\)\]\}]*/gi, ' (pbuh) ')
+               .replace(/ﷺ|\ufdfa/g, ' (pbuh) ');
+    
+    text = text.replace(/[{}[\]\@#*_+=~0-9]/g, '')
                .replace(/\s+/g, ' ')
                .replace(/^[\s\-.,:;]+/, '')
                .trim();
+
+    // Final safety check to eliminate any double parentheses around (pbuh)
+    while (text.includes('((pbuh))')) {
+        text = text.replace('((pbuh))', '(pbuh)');
+    }
+    while (text.includes('( (pbuh) )')) {
+        text = text.replace('( (pbuh) )', '(pbuh)');
+    }
+    return text;
 }
 function processBibleData(bible) {
     let christianVerses = [];
@@ -1273,7 +1388,7 @@ function processHinduBooks(data, allowedBooks = null, excludedBooks = null) {
             return numA - numB;
         });
 
-        chapKeys.forEach(chapName => {
+        chapKeys.forEach((chapName, chapIdx) => {
             chapterOrder.push(chapName);
             chapters[chapName] = {};
             const verses = bookData[chapName];
@@ -1284,14 +1399,23 @@ function processHinduBooks(data, allowedBooks = null, excludedBooks = null) {
                 return numA - numB;
             });
             
-            verseKeys.forEach(vKey => {
+            verseKeys.forEach((vKey, vIdx) => {
                 const text = verses[vKey];
                 if (text && text.trim() !== '') {
                     chapters[chapName][vKey] = text;
+                    
+                    const chapMatch = chapName.match(/\d+/);
+                    const chapNum = chapMatch ? parseInt(chapMatch[0]) : (chapIdx + 1);
+                    
+                    const vMatch = vKey.match(/\d+/);
+                    const verseNum = vMatch ? parseInt(vMatch[0]) : (vIdx + 1);
+                    
                     hinduVerses.push({
                         book: bookName,
                         chapter: chapName,
-                        verse: vKey,
+                        chapterNum: chapNum,
+                        verseNum: verseNum,
+                        verse: verseNum,
                         text: text,
                         religion: 'Hinduism'
                     });
@@ -1537,9 +1661,14 @@ async function skipOnboarding() {
     goTo('verse-feed');
 }
 function buildSettings() {
+    if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
+        globalSelectedRels = [...religions];
+        localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
+    }
     document.querySelectorAll('.global-rel-btn').forEach(btn => {
+        if (btn.id === 'dark-mode-toggle') return;
         const rel = btn.textContent.trim();
-        if (globalSelectedRels && globalSelectedRels.includes(rel)) {
+        if (globalSelectedRels.includes(rel)) {
             btn.classList.add('active');
         } else {
             btn.classList.remove('active');
@@ -1679,8 +1808,24 @@ function generateBatch(type, lastRels = []) {
         if (availablePool.length === 0) {
             availablePool = pool;
         }
-        const idx = Math.floor(Math.random() * availablePool.length);
-        const selectedVerse = availablePool[idx];
+        
+        // Group available verses by book to guarantee fair, balanced variety across different books
+        const bookMap = {};
+        availablePool.forEach(v => {
+            const b = v.book || 'Unknown';
+            if (!bookMap[b]) bookMap[b] = [];
+            bookMap[b].push(v);
+        });
+        
+        const bookNames = Object.keys(bookMap);
+        let selectedVerse = null;
+        if (bookNames.length > 0) {
+            const randomBook = bookNames[Math.floor(Math.random() * bookNames.length)];
+            const bookVerses = bookMap[randomBook];
+            selectedVerse = bookVerses[Math.floor(Math.random() * bookVerses.length)];
+        } else {
+            selectedVerse = availablePool[Math.floor(Math.random() * availablePool.length)];
+        }
         
         if (selectedVerse && selectedVerse.text) {
             allVersesUsed.general.add(selectedVerse.text);
@@ -1706,8 +1851,89 @@ function getVerseAtIndex(index) {
     }
     return verseBatches.general[index];
 }
+
+function renderAdCard(direction = 'next') {
+    const stage = document.getElementById('feed-stage');
+    if (!stage) return;
+    
+    const card = document.createElement('div');
+    card.classList.add('verse-card', 'ad-card');
+
+    if (direction === 'next') {
+        card.classList.add('card-right');
+    } else if (direction === 'prev') {
+        card.classList.add('card-left');
+    } else {
+        card.classList.add('card-center');
+    }
+    
+    const textEl = document.createElement('div');
+    textEl.classList.add('verse-text');
+    textEl.style.fontSize = '1.3rem';
+    textEl.style.opacity = '0.9';
+    textEl.style.textAlign = 'center';
+    textEl.innerText = "Discover more peace.\nUnlock premium for an ad-free experience.";
+    
+    const footer = document.createElement('div');
+    footer.classList.add('card-footer');
+    const refEl = document.createElement('div');
+    refEl.classList.add('verse-ref');
+    refEl.innerText = "Sponsored";
+    refEl.style.color = "var(--p-gold)";
+    
+    const upgradeBtn = document.createElement('button');
+    upgradeBtn.innerText = "Upgrade Now";
+    upgradeBtn.style.background = "linear-gradient(135deg, var(--p-gold), var(--p-brown))";
+    upgradeBtn.style.color = "var(--bg-grad-1)";
+    upgradeBtn.style.border = "none";
+    upgradeBtn.style.borderRadius = "20px";
+    upgradeBtn.style.padding = "8px 20px";
+    upgradeBtn.style.fontWeight = "bold";
+    upgradeBtn.style.marginTop = "20px";
+    upgradeBtn.style.cursor = "pointer";
+    upgradeBtn.onclick = () => openPremiumModal();
+    
+    const contentWrapper = document.createElement('div');
+    contentWrapper.style.display = 'flex';
+    contentWrapper.style.flexDirection = 'column';
+    contentWrapper.style.alignItems = 'center';
+    contentWrapper.style.justifyContent = 'center';
+    contentWrapper.style.height = '100%';
+    contentWrapper.style.gap = '15px';
+    
+    contentWrapper.appendChild(textEl);
+    contentWrapper.appendChild(upgradeBtn);
+    
+    card.appendChild(contentWrapper);
+    footer.appendChild(refEl);
+    card.appendChild(footer);
+    
+    stage.appendChild(card);
+
+    requestAnimationFrame(() => {
+        if (direction !== 'none') {
+            const oldCard = stage.querySelector('.verse-card.card-center');
+            if (oldCard) {
+                oldCard.classList.remove('card-center');
+                if (direction === 'next') oldCard.classList.add('card-left');
+                else oldCard.classList.add('card-right');
+                setTimeout(() => oldCard.remove(), 400);
+            }
+            card.classList.remove('card-right', 'card-left');
+            card.classList.add('card-center');
+        } else {
+            const others = stage.querySelectorAll('.verse-card:not(:last-child)');
+            others.forEach(c => c.remove());
+            card.classList.add('card-center');
+        }
+    });
+}
 function renderFeedCard(index, direction = 'none') {
     const stage = document.getElementById('feed-stage');
+    if (!stage) return;
+    if (direction === 'none') {
+        stage.innerHTML = '';
+    }
     const verse = getVerseAtIndex(index);
     if (!verse) return;
     const card = document.createElement('div');
@@ -1738,10 +1964,7 @@ function renderFeedCard(index, direction = 'none') {
         }
         textEl.innerText = displayVerse;
         
-        // Construct the source reference with book name, chapter and verse
-        // Just have book names; no number sourcing.
-        let refText = verse.book;
-        refEl.innerText = refText;
+        refEl.innerText = formatVerseRef(verse);
     }
 
     footer.appendChild(refEl);
@@ -1766,51 +1989,99 @@ function renderFeedCard(index, direction = 'none') {
         }
     });
 }
+let adSwipeCounter = 0;
+let showingFeedAd = false;
+
 function nextCard(isAuto = false) {
-    deselectVerse();
     const wasPlaying = isSpeaking && !isPaused;
     stopAudio();
-    currentVerseIndex.general++;
-    renderFeedCard(currentVerseIndex.general, 'next');
 
-        if (isAuto || wasPlaying) {
-            const verse = getVerseAtIndex(currentVerseIndex.general);
-            if (verse) {
-                let spokenText = verse.spoken_text || verse.text;
-                if (!spokenText.endsWith('.')) spokenText += '.';
-                
-                if (ttsAnnounceSource) {
-                    spokenText += '. ' + verse.book + '.';
-                }
-
-                setTimeout(() => {
-                    playText(spokenText, 'feed');
-                    autoMode = true;
-                }, 400); // Allow card animation to finish
+    if (!isPremiumUser && !showingFeedAd) {
+        adSwipeCounter++;
+        if (adSwipeCounter >= 12) {
+            adSwipeCounter = 0;
+            showingFeedAd = true;
+            renderAdCard('next');
+            if (isAuto || wasPlaying) {
+                // Auto-skip the text ad after 4 seconds if they were listening in auto mode
+                setTimeout(() => nextCard(true), 4000);
+            } else {
+                deselectVerse();
             }
+            return;
         }
+    }
+
+    if (showingFeedAd) {
+        showingFeedAd = false;
+        renderFeedCard(currentVerseIndex.general, 'next');
+    } else {
+        currentVerseIndex.general++;
+        renderFeedCard(currentVerseIndex.general, 'next');
+    }
+
+    const newVerse = getVerseAtIndex(currentVerseIndex.general);
+
+    if (isAuto || wasPlaying) {
+        if (newVerse) {
+            selectVerse(newVerse, 'feed', 'feed-card-' + currentVerseIndex.general, true);
+            let spokenText = newVerse.spoken_text || newVerse.text;
+            if (!spokenText.endsWith('.')) spokenText += '.';
+            
+            if (ttsAnnounceSource) {
+                spokenText += '. ' + newVerse.book + '.';
+            }
+
+            setTimeout(() => {
+                playText(spokenText, 'feed');
+                autoMode = true;
+            }, 400); // Allow card animation to finish
+        }
+    } else {
+        deselectVerse();
+    }
 }
+
 function prevCard() {
-    deselectVerse();
     const wasPlaying = isSpeaking && !isPaused;
     stopAudio();
+    
+    if (showingFeedAd) {
+        showingFeedAd = false;
+        renderFeedCard(currentVerseIndex.general, 'prev');
+        const newVerse = getVerseAtIndex(currentVerseIndex.general);
+        if (wasPlaying && newVerse) {
+            selectVerse(newVerse, 'feed', 'feed-card-' + currentVerseIndex.general, true);
+            let spokenText = newVerse.spoken_text || newVerse.text;
+            if (!spokenText.endsWith('.')) spokenText += '.';
+            if (ttsAnnounceSource) {
+                spokenText += '. ' + newVerse.book + '.';
+            }
+            playText(spokenText, 'feed');
+            autoMode = true;
+        } else {
+            deselectVerse();
+        }
+        return;
+    }
+
     if (currentVerseIndex.general > 0) {
         currentVerseIndex.general--;
         renderFeedCard(currentVerseIndex.general, 'prev');
-
-        if (wasPlaying) {
-            const verse = getVerseAtIndex(currentVerseIndex.general);
-            if (verse) {
-                let spokenText = verse.spoken_text || verse.text;
-                if (!spokenText.endsWith('.')) spokenText += '.';
-                
-                if (ttsAnnounceSource) {
-                    spokenText += '. ' + verse.book + '.';
-                }
-
-                playText(spokenText, 'feed');
-                autoMode = true;
+        const newVerse = getVerseAtIndex(currentVerseIndex.general);
+        if (wasPlaying && newVerse) {
+            selectVerse(newVerse, 'feed', 'feed-card-' + currentVerseIndex.general, true);
+            let spokenText = newVerse.spoken_text || newVerse.text;
+            if (!spokenText.endsWith('.')) spokenText += '.';
+            
+            if (ttsAnnounceSource) {
+                spokenText += '. ' + newVerse.book + '.';
             }
+
+            playText(spokenText, 'feed');
+            autoMode = true;
+        } else {
+            deselectVerse();
         }
     }
 }
@@ -1819,11 +2090,8 @@ function goTo(section) {
 
     if (selectedVerse && selectedVerse.type === 'book') {
         lastSelectedBookVerse = selectedVerse;
-        selectedVerse = null;
-        deactivatePillUI();
-    } else {
-        deselectVerse();
     }
+    
     stopAudio();
     document.querySelectorAll('.app-section').forEach(s => {
         s.classList.remove('active-section');
@@ -1837,20 +2105,14 @@ function goTo(section) {
     if (section === 'verse-feed') {
         const n = document.getElementById('nav-feed'); if (n) n.classList.add('active-nav');
         const t = document.querySelector('.tab-btn[data-target="verse-feed"]'); if (t) t.classList.add('active');
+        if (verseBatches.general.length === 0) {
+            initializeVerseFeed();
+        }
+        deselectVerse();
     }
     if (section === 'read-books') {
         const n = document.getElementById('nav-books'); if (n) n.classList.add('active-nav');
         const t = document.querySelector('.tab-btn[data-target="read-books"]'); if (t) t.classList.add('active');
-    }
-    if (section === 'saved-verses') {
-        const n = document.getElementById('nav-saved'); if (n) n.classList.add('active-nav');
-        const t = document.querySelector('.tab-btn[data-target="saved-verses"]'); if (t) t.classList.add('active');
-    }
-    if (section === 'settings') {
-        const n = document.getElementById('nav-settings'); if (n) n.classList.add('active-nav');
-        const t = document.querySelector('.tab-btn[data-target="settings"]'); if (t) t.classList.add('active');
-    }
-    if (section === 'read-books') {
         const bookList = document.getElementById('book-list-view');
         const subBookList = document.getElementById('sub-book-list-view');
         const bookContent = document.getElementById('book-content-view');
@@ -1858,20 +2120,31 @@ function goTo(section) {
         if (isAlreadyActive || (bookList.classList.contains('hidden') && 
             subBookList.classList.contains('hidden') && 
             bookContent.classList.contains('hidden'))) {
+            deselectVerse();
             showReligions();
+        } else if (!bookContent.classList.contains('hidden') && lastSelectedBookVerse) {
+            selectVerse(lastSelectedBookVerse, 'book', lastSelectedBookVerse.elementId || ('book-verse-' + bookVoiceCurrentVerse), true);
+        } else {
+            deselectVerse();
         }
     }
-    if (section === 'verse-feed') {
-        if (verseBatches.general.length === 0) {
-            initializeVerseFeed();
+    if (section === 'saved-verses') {
+        const n = document.getElementById('nav-saved'); if (n) n.classList.add('active-nav');
+        const t = document.querySelector('.tab-btn[data-target="saved-verses"]'); if (t) t.classList.add('active');
+        if (!isAlreadyActive) {
+            selectedSavedAlbum = null;
+            deselectVerse();
         }
+        showSavedVerses();
     }
     if (section === 'settings') {
+        const n = document.getElementById('nav-settings'); if (n) n.classList.add('active-nav');
+        const t = document.querySelector('.tab-btn[data-target="settings"]'); if (t) t.classList.add('active');
         buildSettings();
         renderVoiceSettings();
         updateTogglesUI();
+        deselectVerse();
     }
-    if (section === 'saved-verses') showSavedVerses();
 }
 window.switchTab = goTo;
 
@@ -2107,9 +2380,13 @@ function showReligions() {
     document.getElementById('sub-book-list-view').classList.add('hidden');
     document.getElementById('book-content-view').classList.add('hidden');
 
-    const populationOrder = ['Christianity', 'Islam', 'Hinduism', 'Sikhism', 'Buddhism', 'Judaism', 'Philosophy', 'Psychology'];
-    const activeRels = (globalSelectedRels && globalSelectedRels.length > 0) ? globalSelectedRels : religions;
-    const sortedRels = activeRels.slice().sort((a, b) => {
+    if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
+        globalSelectedRels = [...religions];
+        localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
+    }
+
+    const populationOrder = ['Christianity', 'Islam', 'Hinduism', 'Sikhism', 'Buddhism', 'Judaism', 'Philosophy'];
+    const sortedRels = globalSelectedRels.slice().sort((a, b) => {
         let idxA = populationOrder.indexOf(a);
         let idxB = populationOrder.indexOf(b);
         if (idxA === -1) idxA = 999;
@@ -2163,18 +2440,55 @@ function highlightSearchTerms(text, terms) {
     return text.replace(regex, '<span style="background: rgba(var(--loader-rgb), 0.25); color: inherit; font-weight: bold; border-radius: 3px; padding: 0 2px;">$1</span>');
 }
 
+let searchDebounceTimeout = null;
+window.currentSearchResultsMatches = [];
+let currentSearchRenderedCount = 0;
+let currentSearchTermsInfo = [];
+
+function debouncedPerformLibSearch() {
+    clearTimeout(searchDebounceTimeout);
+    searchDebounceTimeout = setTimeout(performLibSearch, 300);
+}
+
+function checkTermMatch(vText, vTrans, term, isExactWord) {
+    if (term === 'pbuh' || term === 'phub') {
+        return vText.includes('pbuh') || vTrans.includes('pbuh') || 
+               vText.includes('peace be upon him') || vTrans.includes('peace be upon him') || 
+               vText.includes('ﷺ') || vTrans.includes('ﷺ');
+    }
+    
+    if (isExactWord) {
+        const pattern = '(?:^|[^a-zA-Z0-9])' + escapeRegExp(term) + '(?:$|[^a-zA-Z0-9])';
+        const regex = new RegExp(pattern, 'i');
+        return regex.test(vText) || regex.test(vTrans);
+    } else {
+        return vText.includes(term) || vTrans.includes(term);
+    }
+}
+
 function performLibSearch() {
     const input = document.getElementById('lib-search-input');
     const resultsContainer = document.getElementById('lib-search-results');
     if (!input || !resultsContainer) return;
     
-    const term = input.value.toLowerCase().trim();
-    if (term.length < 2) {
+    const rawVal = input.value.toLowerCase();
+    if (rawVal.trim().length < 2) {
         resultsContainer.innerHTML = '';
+        window.currentSearchResultsMatches = [];
+        currentSearchRenderedCount = 0;
+        currentSearchTermsInfo = [];
         return;
     }
     
-    const terms = term.split(/\s+/).filter(t => t.length > 0);
+    const hasTrailingSpace = /\s$/.test(rawVal);
+    const tokens = rawVal.trim().split(/\s+/).filter(t => t.length > 0);
+    
+    currentSearchTermsInfo = tokens.map((token, idx) => {
+        const isLast = (idx === tokens.length - 1);
+        const isExactWord = !isLast || hasTrailingSpace;
+        return { token, isExactWord };
+    });
+    
     const pool = (currentReligion && religionVerses[currentReligion]) ? religionVerses[currentReligion] : Object.values(religionVerses).flat();
     
     const matches = [];
@@ -2183,67 +2497,100 @@ function performLibSearch() {
         if (!v) continue;
         const vText = (v.text || '').toLowerCase();
         const vTrans = (v.translation || '').toLowerCase();
-        const matchesAll = terms.every(t => {
-            if (t === 'pbuh' || t === 'phub') {
-                return vText.includes('pbuh') || vTrans.includes('pbuh') || 
-                       vText.includes('peace be upon him') || vTrans.includes('peace be upon him') || 
-                       vText.includes('ﷺ') || vTrans.includes('ﷺ');
-            }
-            return vText.includes(t) || vTrans.includes(t);
+        
+        const matchesAll = currentSearchTermsInfo.every(info => {
+            return checkTermMatch(vText, vTrans, info.token, info.isExactWord);
         });
+        
         if (matchesAll) {
             matches.push(v);
-            if (matches.length >= 50) break;
         }
     }
     
+    window.currentSearchResultsMatches = matches;
+    currentSearchRenderedCount = 0;
+    
+    const currHeight = resultsContainer.offsetHeight;
+    if (currHeight > 0) {
+        resultsContainer.style.minHeight = currHeight + 'px';
+    }
+    
     resultsContainer.innerHTML = '';
+    
     if (matches.length === 0) {
+        resultsContainer.style.minHeight = '';
         resultsContainer.innerHTML = '<div style="text-align: center; padding: 20px; opacity: 0.6;">No verses found</div>';
         return;
     }
     
-    matches.forEach((match, idx) => {
+    renderSearchBatch(20);
+    setupSearchScrollListener();
+    
+    requestAnimationFrame(() => {
+        resultsContainer.style.minHeight = '';
+    });
+    
+    renderSearchBatch(20);
+    setupSearchScrollListener();
+}
+
+function renderSearchBatch(batchSize = 20) {
+    const resultsContainer = document.getElementById('lib-search-results');
+    if (!resultsContainer || !window.currentSearchResultsMatches) return;
+    
+    const matches = window.currentSearchResultsMatches;
+    const startIndex = currentSearchRenderedCount;
+    const endIndex = Math.min(startIndex + batchSize, matches.length);
+    
+    if (startIndex >= matches.length) return;
+    
+    for (let idx = startIndex; idx < endIndex; idx++) {
+        const match = matches[idx];
         const card = document.createElement('div');
         card.className = 'saved-verse';
         card.id = 'search-verse-' + idx;
         card.style.marginBottom = '15px';
         card.style.textAlign = 'left';
         card.style.cursor = 'pointer';
+        card.style.animation = 'sectionFadeIn 0.20s ease-out forwards';
         
-        let chapStr = match.chapter ? (typeof match.chapter === 'number' ? 'Chapter ' + match.chapter : match.chapter) : '';
-        let verseStr = match.verse ? ':' + match.verse : '';
-        let refStr = `${match.book || ''} ${chapStr}${verseStr}`.trim();
+        let refStr = formatVerseRef(match);
         
-        const highlightedText = highlightSearchTerms(match.text, terms);
+        const highlightedText = highlightSearchTerms(match.text, currentSearchTermsInfo.map(t => t.token));
         let html = `<div style="font-size: 1.1em; line-height: 1.6; margin-bottom: 8px; display: block; word-break: break-word;">${highlightedText}</div>`;
         if (match.translation && match.translation !== match.text) {
-            const highlightedTrans = highlightSearchTerms(match.translation, terms);
+            const highlightedTrans = highlightSearchTerms(match.translation, currentSearchTermsInfo.map(t => t.token));
             html += `<div style="font-size: 0.9em; opacity: 0.8; line-height: 1.5; font-style: italic; margin-bottom: 10px;">${highlightedTrans}</div>`;
         }
         
-        // Source reference always at the bottom left
-        html += `<div class="verse-ref" style="font-size: 0.8em; opacity: 0.6; margin-top: 8px; text-align: left;">${refStr}</div>`;
+        html += `<div class="verse-ref" style="font-size: 0.8em; opacity: 0.6; margin-top: 15px; text-align: left;">${refStr}</div>`;
         
         card.innerHTML = html;
         card.onclick = (e) => {
             if (e) e.stopPropagation();
-            const wasSelected = selectedVerse && selectedVerse.elementId === card.id;
-            deselectVerse();
-            if (!wasSelected) {
-                selectedVerse = {
-                    type: 'saved',
-                    text: match.text,
-                    translation: match.translation || '',
-                    book: match.book,
-                    chapter: match.chapter,
-                    verse: match.verse,
-                    elementId: card.id
-                };
-                highlightSelectedVerseElement(true);
-            }
+            selectVerse(match, 'search', card.id, false);
         };
         resultsContainer.appendChild(card);
+    }
+    
+    currentSearchRenderedCount = endIndex;
+}
+
+let isSearchScrollListenerAttached = false;
+function setupSearchScrollListener() {
+    if (isSearchScrollListenerAttached) return;
+    isSearchScrollListenerAttached = true;
+    
+    const container = document.getElementById('read-books');
+    if (!container) return;
+    
+    container.addEventListener('scroll', () => {
+        if (!window.currentSearchResultsMatches || window.currentSearchResultsMatches.length === 0) return;
+        if (currentSearchRenderedCount >= window.currentSearchResultsMatches.length) return;
+        
+        if (container.scrollTop + container.clientHeight >= container.scrollHeight - 300) {
+            renderSearchBatch(20);
+        }
     });
 }
 function showBooks(rel) {
@@ -2254,9 +2601,17 @@ function showBooks(rel) {
     document.getElementById('book-content-view').classList.add('hidden');
 
     const searchInput = document.getElementById('lib-search-input');
-    if (searchInput) searchInput.value = '';
     const resultsContainer = document.getElementById('lib-search-results');
-    if (resultsContainer) resultsContainer.innerHTML = '';
+    
+    if (searchInput && searchInput.value.trim().length >= 2) {
+        performLibSearch();
+    } else {
+        if (searchInput) searchInput.value = '';
+        if (resultsContainer) resultsContainer.innerHTML = '';
+        window.currentSearchResultsMatches = [];
+        currentSearchRenderedCount = 0;
+    }
+    
     const bookListContainer = document.getElementById('book-list');
 
     const list = document.getElementById('book-list');
@@ -2377,36 +2732,61 @@ function initializeChapterView(content, chapterOrder) {
     if (targetInfo) {
         renderChapter(targetInfo.chapter);
         scrollToBookVerse(bookVoiceCurrentVerse);
-        setTimeout(() => selectVerse({ ...targetInfo, isManual: true }, 'book', 'book-verse-' + bookVoiceCurrentVerse, true), 100);
     } else if (chapterList.length > 0) {
         renderChapter(chapterList[0]);
-        const firstIndex = chapterStartIndices[chapterList[0]];
-        const firstInfo = globalVerseMap[firstIndex];
-        if (firstInfo) setTimeout(() => selectVerse({ ...firstInfo, isManual: true }, 'book', 'book-verse-' + firstIndex, true), 100);
     }
+    updatePillUI();
 }
+let currentBookChapterState = null;
+let currentBookChapterRenderedCount = 0;
+
 function renderChapter(chapter) {
-    if (currentRenderedChapter === chapter) return;
+    if (currentRenderedChapter === chapter && currentBookChapterRenderedCount > 0) return;
 
     const container = document.getElementById('book-content-text');
+    if (!container) return;
     container.innerHTML = '';
 
     const verses = currentBookContent[chapter];
     if (!verses) return;
+    
     const sortedKeys = Object.keys(verses).sort((a, b) => {
         const numA = Number(a.replace(/[^0-9.]/g, '')) || 0;
         const numB = Number(b.replace(/[^0-9.]/g, '')) || 0;
         return numA - numB;
     });
+    
     const startIndex = chapterStartIndices[chapter];
+    
+    currentBookChapterState = { chapter, sortedKeys, verses, startIndex };
+    currentBookChapterRenderedCount = 0;
+    currentRenderedChapter = chapter;
+    
+    renderBookChapterBatch(30);
+    setupBookChapterScrollListener();
+}
+
+function renderBookChapterBatch(batchSize = 30) {
+    const container = document.getElementById('book-content-text');
+    if (!container || !currentBookChapterState) return;
+    
+    const { sortedKeys, verses, startIndex } = currentBookChapterState;
+    const start = currentBookChapterRenderedCount;
+    const end = Math.min(start + batchSize, sortedKeys.length);
+    
+    if (start >= sortedKeys.length) return;
+    
     const frag = document.createDocumentFragment();
-    sortedKeys.forEach((vKey, i) => {
+    for (let i = start; i < end; i++) {
+        const vKey = sortedKeys[i];
         const gIndex = startIndex + i;
         const text = verses[vKey];
         const p = document.createElement('p');
         p.className = 'book-verse';
         p.id = 'book-verse-' + gIndex;
         p.style.cursor = 'pointer';
+        p.style.animation = 'sectionFadeIn 0.20s ease-out forwards';
+        
         let displayVerse = text;
         if (displayVerse.endsWith('.')) displayVerse = displayVerse.slice(0, -1);
         p.innerHTML = displayVerse;
@@ -2415,10 +2795,31 @@ function renderChapter(chapter) {
             handleVerseClick(gIndex);
         };
         frag.appendChild(p);
-    });
+    }
     container.appendChild(frag);
-    currentRenderedChapter = chapter;
-    document.getElementById('read-books').scrollTop = 0;
+    currentBookChapterRenderedCount = end;
+    updatePillUI();
+}
+
+let isBookChapterScrollAttached = false;
+function setupBookChapterScrollListener() {
+    if (isBookChapterScrollAttached) return;
+    isBookChapterScrollAttached = true;
+    
+    const scrollContainer = document.getElementById('read-books');
+    if (!scrollContainer) return;
+    
+    scrollContainer.addEventListener('scroll', () => {
+        const bookContent = document.getElementById('book-content-view');
+        if (!bookContent || bookContent.classList.contains('hidden')) return;
+        if (!currentBookChapterState) return;
+        
+        if (currentBookChapterRenderedCount >= currentBookChapterState.sortedKeys.length) return;
+        
+        if (scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 400) {
+            renderBookChapterBatch(30);
+        }
+    });
 }
 function populateChapterWheel() {
     const wheel = document.getElementById('chapter-scroll-wheel');
@@ -2624,6 +3025,16 @@ function syncWheelsToCurrent() {
 function setupWheelListeners() {
     // Horizontal chapter wheel listeners are set up in setupChapterWheelListeners()
     // called from populateChapterWheel() when a book is opened.
+    document.addEventListener('wheel', e => {
+        const isFeed = document.getElementById('verse-feed').classList.contains('active-section');
+        if (isFeed && !isProgrammaticScroll && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+            if (e.deltaY > 50) {
+                nextCard();
+            } else if (e.deltaY < -50) {
+                prevCard();
+            }
+        }
+    }, {passive: true});
 }
 function scrollToBookVerse(verseIndex) {
     const info = globalVerseMap[verseIndex];
@@ -2828,7 +3239,7 @@ function updateVoiceWheelActiveStyle() {
 
         if (absNormDist < 2.5) {
             const opacity = 1 - absNormDist * 0.4;
-            const scale = 1.1 - absNormDist * 0.15;
+            const scale = 1.0 - absNormDist * 0.15;
             const angle = normDist * 40;
             return {
                 opacity: Math.max(0.1, opacity),
@@ -2873,6 +3284,14 @@ function updateVoiceWheelActiveStyle() {
     if (activeItem) {
         const newVal = activeItem.dataset.val;
         if (selectedVoice !== newVal) {
+            if (!isPremiumUser) {
+                // Not premium, revert to Alan
+                selectedVoice = 'en_GB-alan-medium';
+                localStorage.setItem('selectedVoice', selectedVoice);
+                syncVoiceWheelToCurrent();
+                openPremiumModal();
+                return;
+            }
             selectedVoice = newVal;
             localStorage.setItem('selectedVoice', newVal);
 
@@ -3226,10 +3645,7 @@ function hideRadialMenu() {
 }
 
 function showToast(msg) {
-    const tt = document.getElementById('global-tooltip');
-    tt.innerText = msg;
-    tt.classList.remove('hidden');
-    setTimeout(() => tt.classList.add('hidden'), 2000);
+    return;
 }
 
 
@@ -3242,6 +3658,42 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+
+function advanceSearchVerse() {
+    if (!window.currentSearchResultsMatches || window.currentSearchResultsMatches.length === 0) return;
+    if (!selectedVerse || selectedVerse.type !== 'search') return;
+    
+    let currentIndex = window.currentSearchResultsMatches.findIndex((match, idx) => {
+        return 'search-verse-' + idx === selectedVerse.elementId;
+    });
+    
+    if (currentIndex >= 0 && currentIndex < window.currentSearchResultsMatches.length - 1) {
+        let nextIndex = currentIndex + 1;
+        let nextMatch = window.currentSearchResultsMatches[nextIndex];
+        let cardId = 'search-verse-' + nextIndex;
+        
+        if (nextIndex >= currentSearchRenderedCount) {
+            renderSearchBatch(10);
+        }
+        
+        selectVerse(nextMatch, 'search', cardId, true);
+        
+        setTimeout(() => {
+            const card = document.getElementById(cardId);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 50);
+        
+        setTimeout(() => {
+            let textToSpeak = nextMatch.spoken_text || nextMatch.text;
+            playText(textToSpeak, 'search');
+            autoMode = true;
+        }, 400);
+    } else {
+        stopAudio();
+    }
+}
 
 function advanceSavedVerse() {
     if (!window.currentSavedVersesRendered || window.currentSavedVersesRendered.length === 0) return;
@@ -3261,9 +3713,7 @@ function advanceSavedVerse() {
         setTimeout(() => {
             const card = document.getElementById(cardId);
             if (card) {
-                const container = document.getElementById('saved-verses');
-                const offset = card.offsetTop - container.offsetTop - (container.clientHeight / 2) + (card.clientHeight / 2);
-                container.scrollTo({ top: offset, behavior: 'smooth' });
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }, 50);
         
@@ -3294,6 +3744,10 @@ function startWaveformVisualizer() {
     const dataArray = new Uint8Array(bufferLength);
     
     function draw() {
+        if (!isSpeaking || isPaused) {
+            stopWaveformVisualizer(true);
+            return;
+        }
         waveformAnimFrame = requestAnimationFrame(draw);
         
         const dpr = window.devicePixelRatio || 1;
@@ -3370,10 +3824,16 @@ function startWaveformVisualizer() {
     draw();
 }
 
-function stopWaveformVisualizer(forceHide = false) {
+function stopWaveformVisualizer(forceHide = true) {
+    if (waveformAnimFrame) {
+        cancelAnimationFrame(waveformAnimFrame);
+        waveformAnimFrame = null;
+    }
     const canvas = document.getElementById('waveform-canvas');
-    if (canvas && (isPaused || forceHide)) {
+    if (canvas) {
         canvas.classList.remove('active');
+        const ctx = canvas.getContext('2d');
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 }
 
@@ -3393,7 +3853,12 @@ function openAlbumModal(verseObj) {
     pendingBookmarkVerse = verseObj;
     const modal = document.getElementById('album-modal');
     if (!modal) return;
-    populateAlbumWheel();
+    const hasAlbums = populateAlbumWheel();
+    if (!hasAlbums) {
+        showToast('No other folder available. Create a new folder first.');
+        openCreateBookmarkModal();
+        return;
+    }
     modal.classList.remove('hidden');
 }
 
@@ -3409,8 +3874,8 @@ function saveToAlbum(albumName) {
     
     // Check if it already exists
     const existingIdx = savedVerses.findIndex(s => {
-        if (s.id && pendingBookmarkVerse.id) return s.id === pendingBookmarkVerse.id;
-        return s.book === pendingBookmarkVerse.book && String(s.chapter) === String(pendingBookmarkVerse.chapter) && String(s.verse) === String(pendingBookmarkVerse.verse);
+        if (s && s.id && pendingBookmarkVerse.id) return s.id === pendingBookmarkVerse.id;
+        return s && s.book === pendingBookmarkVerse.book && String(s.chapter) === String(pendingBookmarkVerse.chapter) && String(s.verse) === String(pendingBookmarkVerse.verse);
     });
     
     let isSameAlbum = false;
@@ -3429,10 +3894,11 @@ function saveToAlbum(albumName) {
     
     if (!isSameAlbum) {
         localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
-        showToast('Saved to ' + albumName);
+        showToast(existingIdx > -1 ? ('Moved to ' + albumName) : ('Saved to ' + albumName));
     }
     
     closeAlbumModal();
+    deselectVerse();
     if (document.getElementById('saved-verses').classList.contains('active-section')) {
         showSavedVerses(true);
     }
@@ -3519,19 +3985,42 @@ function syncAlbumWheelToCurrent(smooth = true) {
 
 function populateAlbumWheel() {
     const wheel = document.getElementById('album-scroll-wheel');
-    if (!wheel) return;
+    if (!wheel) return false;
     
+    // Determine current folder of pendingBookmarkVerse if saved
+    let currentAlbum = null;
+    if (pendingBookmarkVerse) {
+        const existing = savedVerses.find(s => {
+            if (!s) return false;
+            if (s.id && pendingBookmarkVerse.id) return s.id === pendingBookmarkVerse.id;
+            return s.book === pendingBookmarkVerse.book && 
+                   String(s.chapter) === String(pendingBookmarkVerse.chapter) && 
+                   String(s.verse) === String(pendingBookmarkVerse.verse);
+        });
+        if (existing && existing.album) {
+            currentAlbum = existing.album;
+        } else if (pendingBookmarkVerse.album) {
+            currentAlbum = pendingBookmarkVerse.album;
+        }
+    }
+
     const albums = new Set();
     createdAlbums.forEach(name => {
         if (name && name !== 'Default') albums.add(name);
     });
     savedVerses.forEach(v => {
-        if (v.album && v.album !== 'Default') albums.add(v.album);
+        if (v && v.album && v.album !== 'Default') albums.add(v.album);
     });
     
-    const albumList = Array.from(albums);
+    let albumList = Array.from(albums);
+    
+    // Exclude currentAlbum if verse is already saved in a folder
+    if (currentAlbum) {
+        albumList = albumList.filter(name => name !== currentAlbum);
+    }
+    
     if (albumList.length === 0) {
-        albumList.push('Default');
+        return false;
     }
     
     wheel.innerHTML = '';
@@ -3569,6 +4058,8 @@ function populateAlbumWheel() {
     setTimeout(() => {
         syncAlbumWheelToCurrent(false);
     }, 50);
+
+    return true;
 }
 
 function updateAlbumWheelActiveStyle() {
@@ -3826,6 +4317,13 @@ function submitCreateAlbum() {
     const name = input.value.trim();
     if (!name) return;
     
+    // Premium Lock: Max 2 albums for free users
+    if (createdAlbums.length >= 2 && !isPremiumUser) {
+        closeCreateBookmarkModal();
+        openPremiumModal();
+        return;
+    }
+    
     if (!createdAlbums.includes(name)) {
         createdAlbums.push(name);
         localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
@@ -3869,6 +4367,7 @@ function submitCreateVerse() {
 }
 
 function deselectVerse() {
+    stopWaveformVisualizer(true);
     if (!selectedVerse) return;
     const wasFolder = selectedVerse.type === 'folder';
     highlightSelectedVerseElement(false);
@@ -3908,7 +4407,7 @@ function deactivatePillUI() {
 function highlightSelectedVerseElement(active) {
     if (!selectedVerse) return;
     const el = document.getElementById(selectedVerse.elementId);
-    if (selectedVerse.type === 'saved') {
+    if (selectedVerse.type === 'saved' || selectedVerse.type === 'search') {
         if (el) {
             if (active) {
                 el.style.background = 'var(--text-color)';
@@ -4062,6 +4561,8 @@ function updatePillUI() {
     const navMenu = document.getElementById('top-nav-menu');
     if (selectedVerse) {
         playBtn.classList.add('pill-active');
+        playBtn.style.display = 'flex';
+        playBtn.style.visibility = 'visible';
         if (navMenu) navMenu.classList.add('pill-active-menu');
     } else {
         playBtn.classList.remove('pill-active');
@@ -4191,14 +4692,26 @@ function handlePillLeftAction(e) {
         });
         localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
         
-        selectedSavedAlbum = null;
-        deselectVerse();
-        showSavedVerses(true);
-        showToast('Folder "' + albumName + '" deleted');
+        const el = document.getElementById(selectedVerse.elementId);
+        if (el) {
+            el.style.transition = 'opacity 0.20s ease, transform 0.20s ease';
+            el.style.opacity = '0';
+            el.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                selectedSavedAlbum = null;
+                deselectVerse();
+                showSavedVerses(true);
+            }, 200);
+        } else {
+            selectedSavedAlbum = null;
+            deselectVerse();
+            showSavedVerses(true);
+        }
+        
         return;
     }
     
-    if (selectedVerse.type === 'saved') {
+    if (selectedVerse.type === 'saved' || selectedVerse.type === 'search') {
         if (!selectedSavedAlbum) {
             // In "All" view: this is a bookmark button, open album modal
             openAlbumModal(selectedVerse);
@@ -4218,9 +4731,21 @@ function handlePillLeftAction(e) {
                 stopAudio(true);
             }
             
-            deselectVerse();
-            activeSavedVerse = null;
-            showSavedVerses();
+            const el = document.getElementById(selectedVerse.elementId);
+            if (el) {
+                el.style.transition = 'opacity 0.20s ease, transform 0.20s ease';
+                el.style.opacity = '0';
+                el.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    deselectVerse();
+                    activeSavedVerse = null;
+                    showSavedVerses();
+                }, 200);
+            } else {
+                deselectVerse();
+                activeSavedVerse = null;
+                showSavedVerses();
+            }
             showToast('Bookmark removed');
         }
     } else {
@@ -4285,6 +4810,10 @@ function handlePillPlay(e) {
             } else if (selectedVerse.type === 'feed') {
                 playText(selectedVerse.text, 'feed');
                 autoMode = false; // Only play this selected verse and stop
+            } else if (selectedVerse.type === 'search') {
+                let textToSpeak = selectedVerse.text;
+                playText(textToSpeak, 'search');
+                autoMode = true;
             } else if (selectedVerse.type === 'saved') {
                 const idx = window.currentSavedVersesRendered ? window.currentSavedVersesRendered.findIndex(item => {
                     let v = item.v;
@@ -4410,15 +4939,11 @@ function initGoogleAuth() {
                         email: payload.email,
                         sub: payload.sub
                     };
-                    // Isolate Guest Data BEFORE signing in
-                    if (!localStorage.getItem('googleUser')) {
-                        saveStateToProfile('guest');
-                    }
                     
-                    localStorage.setItem('googleUser', JSON.stringify(googleUser));
+                    originalSetItem.call(localStorage, 'googleUser', JSON.stringify(googleUser));
                     
-                    // Load Account state locally (creates empty state if new account)
-                    loadStateFromProfile('account_' + googleUser.sub);
+                    // Switch profile to Google Account (strictly isolated storage sandbox)
+                    switchProfile('account_' + googleUser.sub);
                     
                     // Sync user data with Google Drive AppData folder
                     syncUserDataWithGoogleDrive(tokenResponse.access_token);
@@ -4441,6 +4966,17 @@ function initGoogleAuth() {
 
     updateUserUI();
     updatePremiumModalActions();
+}
+
+function updatePremiumModalActions() {
+    const getPremiumBtn = document.getElementById('get-premium-btn');
+    if(getPremiumBtn) {
+        if(typeof googleUser !== 'undefined' && googleUser) {
+            getPremiumBtn.textContent = "Get Premium ($0.99)";
+        } else {
+            getPremiumBtn.textContent = "Login to Buy Premium";
+        }
+    }
 }
 
 function signInWithGoogle() {
@@ -4469,10 +5005,10 @@ async function syncUserDataWithGoogleDrive(accessToken) {
             bookMarkedVerse: JSON.parse(localStorage.getItem('bookMarkedVerse') || '{}'),
             globalSelectedRels: JSON.parse(localStorage.getItem('globalSelectedRels') || 'null'),
             darkModeEnabled: localStorage.getItem('darkModeEnabled') === 'true',
-            selectedVoice: localStorage.getItem('selectedVoice') || 'en_US-libritts_r-medium',
+            selectedVoice: localStorage.getItem('selectedVoice') || 'en_GB-alan-medium',
             ttsAnnounceSource: localStorage.getItem('ttsAnnounceSource') === 'true',
             ttsRandomVoice: localStorage.getItem('ttsRandomVoice') === 'true',
-            musicVolume: localStorage.getItem('musicVolume') || '0.2',
+            musicVolume: localStorage.getItem('musicVolume') || '0.5',
             musicEnabled: localStorage.getItem('musicEnabled') !== 'false',
             updatedAt: Date.now()
         });
@@ -4485,26 +5021,28 @@ async function syncUserDataWithGoogleDrive(accessToken) {
             const remoteData = await fileRes.json();
             
             if (remoteData && typeof remoteData === 'object') {
-                // Restore savedVerses
+                // Restore savedVerses strictly from cloud (sandbox handles separation)
                 if (Array.isArray(remoteData.savedVerses)) {
                     savedVerses = remoteData.savedVerses;
                     localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
                 }
-                // Restore createdAlbums
+                // Restore createdAlbums strictly from cloud
                 if (Array.isArray(remoteData.createdAlbums)) {
                     createdAlbums = remoteData.createdAlbums;
                     localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
                 }
-                // Restore bookMarkedVerse
+                // Restore bookMarkedVerse strictly from cloud
                 if (remoteData.bookMarkedVerse && typeof remoteData.bookMarkedVerse === 'object') {
                     bookMarkedVerse = remoteData.bookMarkedVerse;
                     localStorage.setItem('bookMarkedVerse', JSON.stringify(bookMarkedVerse));
                 }
-                // Restore globalSelectedRels (Topic selection)
+                // Restore globalSelectedRels (Topic selection) strictly from cloud
                 if (Array.isArray(remoteData.globalSelectedRels) && remoteData.globalSelectedRels.length > 0) {
-                    globalSelectedRels = remoteData.globalSelectedRels;
-                    localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
+                    globalSelectedRels = remoteData.globalSelectedRels.filter(r => ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Sikhism', 'Judaism', 'Philosophy'].includes(r));
+                } else {
+                    globalSelectedRels = [...religions];
                 }
+                localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
                 // Restore Dark Mode
                 if (typeof remoteData.darkModeEnabled !== 'undefined') {
                     darkModeEnabled = remoteData.darkModeEnabled === true || remoteData.darkModeEnabled === 'true';
@@ -4544,13 +5082,37 @@ async function syncUserDataWithGoogleDrive(accessToken) {
                     localStorage.setItem('musicEnabled', musicEnabled);
                     const musicBtn = document.getElementById('music-toggle');
                     if (musicBtn) {
-                        if (musicEnabled) musicBtn.classList.add('active');
-                        else musicBtn.classList.remove('active');
+                        if (musicEnabled) {
+                            if (typeof audio !== 'undefined' && audio) {
+                                audio.play().then(() => {
+                                    musicBtn.classList.add('active');
+                                }).catch(e => {
+                                    const playOnInteract = () => {
+                                        if (localStorage.getItem('musicEnabled') !== 'false') {
+                                            audio.play().then(() => {
+                                                const btn = document.getElementById('music-toggle');
+                                                if (btn) btn.classList.add('active');
+                                                document.removeEventListener('click', playOnInteract);
+                                                document.removeEventListener('pointerdown', playOnInteract);
+                                                document.removeEventListener('touchstart', playOnInteract);
+                                            }).catch(err => {});
+                                        }
+                                    };
+                                    document.addEventListener('click', playOnInteract);
+                                    document.addEventListener('pointerdown', playOnInteract);
+                                    document.addEventListener('touchstart', playOnInteract, {passive: true});
+                                });
+                            }
+                        } else {
+                            musicBtn.classList.remove('active');
+                            if (typeof audio !== 'undefined' && audio) audio.pause();
+                        }
                     }
                 }
-                
                 updateTogglesUI();
+                if (typeof syncVoiceWheelToCurrent === 'function') syncVoiceWheelToCurrent();
                 if (typeof showSavedVerses === 'function') showSavedVerses();
+                if (typeof renderAlbums === 'function') renderAlbums();
             }
 
             // Unified sync back to Drive
@@ -4622,21 +5184,18 @@ function closeUserProfileModal(e) {
 }
 
 function confirmSignOut() {
-    if (googleUser && googleUser.sub) {
-        saveStateToProfile('account_' + googleUser.sub);
-    }
-    
     googleUser = null;
-    localStorage.removeItem('googleUser');
+    originalRemoveItem.call(localStorage, 'googleUser');
     googleAccessToken = null;
 
-    // Restore Guest Mode state completely
-    loadStateFromProfile('guest');
+    // Restore Guest Mode state completely from pf_guest storage sandbox
+    switchProfile('guest');
 
     closeUserProfileModal();
     updateUserUI();
     updatePremiumModalActions();
-    if (typeof showSavedVerses === 'function' && document.getElementById('saved-list') && !document.getElementById('saved-verses').classList.contains('hidden')) {
+    const savedVersesEl = document.getElementById('saved-verses');
+    if (typeof showSavedVerses === 'function' && document.getElementById('saved-list') && savedVersesEl && savedVersesEl.classList.contains('active-section')) {
         showSavedVerses();
     }
     showToast('Signed out, restored Guest state');
@@ -4655,46 +5214,60 @@ function updateUserUI() {
         if (googleUser.picture && img) {
             img.src = googleUser.picture;
             img.classList.remove('hidden');
+            img.style.display = 'block';
             txt.classList.add('hidden');
         } else {
-            if (img) img.classList.add('hidden');
+            if (img) {
+                img.classList.add('hidden');
+                img.style.display = 'none';
+            }
             txt.classList.remove('hidden');
             txt.innerText = googleUser.name ? googleUser.name.charAt(0).toUpperCase() : 'U';
         }
     } else {
         svg.classList.remove('hidden');
         txt.classList.add('hidden');
-        if (img) img.classList.add('hidden');
+        if (img) {
+            img.classList.add('hidden');
+            img.style.display = 'none';
+        }
     }
 }
 
-function updatePremiumModalActions() {
-    const guestActions = document.getElementById('premium-guest-actions');
-    const userActions = document.getElementById('premium-user-actions');
-    if (!guestActions || !userActions) return;
-    
-    if (googleUser) {
-        guestActions.classList.add('hidden');
-        userActions.classList.remove('hidden');
-    } else {
-        guestActions.classList.remove('hidden');
-        userActions.classList.add('hidden');
+// --- Premium Modal Logic (RevenueCat) ---
+let isPremiumUser = false;
+let rcPackages = [];
+
+async function initRevenueCat() {
+    try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) {
+            const { Purchases } = window.Capacitor.Plugins;
+            // TODO: Replace this with your actual Public API Key from RevenueCat dashboard
+            await Purchases.configure({ apiKey: 'goog_YOUR_REVENUECAT_PUBLIC_KEY_HERE' });
+            
+            const customerInfo = await Purchases.getCustomerInfo();
+            if (customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && customerInfo.entitlements.active['Premium']) {
+                isPremiumUser = true;
+            }
+            
+            const offerings = await Purchases.getOfferings();
+            if (offerings.current && offerings.current.availablePackages) {
+                rcPackages = offerings.current.availablePackages;
+            }
+        } else {
+            // Web/dev mode bypass: auto-unlock premium for testing
+            isPremiumUser = true;
+        }
+    } catch (e) {
+        console.error("RevenueCat Init Error:", e);
     }
 }
 
-// Ensure initGoogleAuth is called if script loads later
-window.addEventListener('load', () => {
-    setTimeout(initGoogleAuth, 1000);
-});
-
-// --- Premium Modal Logic ---
 function openPremiumModal() {
     const modal = document.getElementById('premium-modal');
     if (modal) {
         modal.classList.remove('hidden');
-        if (typeof updatePremiumModalActions === 'function') {
-            updatePremiumModalActions();
-        }
+        renderPremiumPackages();
     }
 }
 
@@ -4704,20 +5277,81 @@ function closePremiumModal(e) {
     if (modal) modal.classList.add('hidden');
 }
 
+function renderPremiumPackages() {
+    const container = document.getElementById('premium-packages');
+    if (!container) return;
+    
+    if (rcPackages.length === 0) {
+        return;
+    }
+    container.innerHTML = rcPackages.map(pkg => `
+        <button class="premium-package-btn" onclick="purchasePackage('${pkg.identifier}')">
+            <span class="premium-package-title">${pkg.product.title}</span>
+            <span class="premium-package-price">${pkg.product.priceString}</span>
+        </button>
+    `).join('');
+}
+
+async function purchasePackage(packageIdentifier) {
+    showToast("Processing...");
+    try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) {
+            const { Purchases } = window.Capacitor.Plugins;
+            const pkg = rcPackages.find(p => p.identifier === packageIdentifier);
+            if (!pkg) return;
+            const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
+            if (customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && customerInfo.entitlements.active['Premium']) {
+                isPremiumUser = true;
+                showToast("Premium unlocked! Thank you!");
+                closePremiumModal();
+            }
+        }
+    } catch (e) {
+        if (!e.userCancelled) {
+            showToast("Purchase failed. Try again.");
+            console.error(e);
+        }
+    }
+}
+
+async function restorePurchases() {
+    showToast("Restoring...");
+    try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) {
+            const { Purchases } = window.Capacitor.Plugins;
+            const customerInfo = await Purchases.restorePurchases();
+            if (customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && customerInfo.entitlements.active['Premium']) {
+                isPremiumUser = true;
+                showToast("Premium restored! Welcome back.");
+                closePremiumModal();
+            } else {
+                showToast("No active subscription found.");
+            }
+        } else {
+            showToast("Restored (Web Test)");
+            isPremiumUser = true;
+            closePremiumModal();
+        }
+    } catch (e) {
+        showToast("Restore failed.");
+    }
+}
+
 function simulatePurchase() {
     showToast("Processing payment...");
     setTimeout(() => {
+        isPremiumUser = true;
         showToast("Premium unlocked! Thank you for subscribing.");
         closePremiumModal();
-        // Here you would normally set a local storage flag or update backend
     }, 1500);
 }
 
+window.addEventListener('load', () => {
+    initRevenueCat();
+});
+
 
 // --- Direct Google Drive Redirect & Offline Auto Guest ---
-function openGoogleDriveAppData() {
-    window.open('https://drive.google.com/drive/u/0/my-drive', '_blank');
-}
 
 // Auto Guest login when offline
 window.addEventListener('offline', () => {
@@ -4729,3 +5363,27 @@ window.addEventListener('offline', () => {
         showToast('No internet connection: Switched to Guest mode');
     }
 });
+
+function preloadPiperVoices() {
+    if ('caches' in window) {
+        const cacheName = 'religion-app-v20';
+        caches.open(cacheName).then(cache => {
+            const voiceUrls = [
+                './libs/piper/piper-bundle.js',
+                './libs/piper/piper_phonemize.data',
+                './libs/piper/piper_phonemize.wasm',
+                'https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/alan/medium/en_GB-alan-medium.onnx',
+                'https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/alan/medium/en_GB-alan-medium.onnx.json',
+                'https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/alba/medium/en_GB-alba-medium.onnx',
+                'https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/alba/medium/en_GB-alba-medium.onnx.json',
+                'https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/libritts_r/medium/en_US-libritts_r-medium.onnx',
+                'https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/libritts_r/medium/en_US-libritts_r-medium.onnx.json'
+            ];
+            voiceUrls.forEach(url => {
+                cache.match(url, { ignoreSearch: true }).then(res => {
+                    if (!res) cache.add(url).catch(e => {});
+                });
+            });
+        });
+    }
+}

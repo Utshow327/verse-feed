@@ -13,6 +13,7 @@
     "@capacitor/android": "^8.4.1",
     "@capacitor/cli": "^8.4.1",
     "@capacitor/core": "^8.4.1",
+    "@revenuecat/purchases-capacitor": "^13.2.5",
     "world-english-bible": "^1.0.1"
   }
 }
