@@ -1615,8 +1615,7 @@ h2 {
 }
 
 .main-play-btn.pill-active {
-    min-width: 155px;
-    width: auto;
+    width: 155px !important;
     border-radius: 25px !important;
 }
 

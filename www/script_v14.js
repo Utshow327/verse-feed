@@ -379,9 +379,6 @@ let isProgrammaticScroll = false;
 
 
 async function initApp() {
-    if (!navigator.onLine && googleUser) {
-        googleUser = null;
-    }
     updateUserUI();
     switchProfile(getActiveProfileId());
     applyAutoSpeed(selectedVoice);
@@ -504,6 +501,8 @@ function setupGestures() {
         const clickX = e.clientX;
         
         // Use 40% on left and right for navigation. The middle 20% selects the verse.
+        const isFeed = document.getElementById('verse-feed').classList.contains('active-section');
+        if (!isFeed) return;
         if (clickX < width * 0.4) {
             prevCard();
         } else if (clickX > width * 0.6) {
@@ -1852,6 +1851,36 @@ function getVerseAtIndex(index) {
     }
     return verseBatches.general[index];
 }
+
+// Interstitial ad: shown between verses every 12 swipes for free users
+async function showInterstitialAd() {
+    try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
+            const { AdMob } = window.Capacitor.Plugins;
+            await AdMob.showInterstitial();
+            // Prepare the next interstitial so it's ready for the next cycle
+            prepareNextInterstitial();
+        }
+    } catch (e) {
+        console.log('Interstitial show error (non-fatal):', e);
+    }
+}
+
+async function prepareNextInterstitial() {
+    try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
+            const { AdMob } = window.Capacitor.Plugins;
+            // TODO: Replace with your real Interstitial Ad Unit ID from AdMob
+            // You need to create an Interstitial ad unit in AdMob console
+            await AdMob.prepareInterstitial({
+                adId: 'ca-app-pub-3940256099942544/1033173712', // Google test ID — replace with real one!
+                isTesting: true
+            });
+        }
+    } catch (e) {
+        console.log('Interstitial prep error (non-fatal):', e);
+    }
+}
 function renderFeedCard(index, direction = 'none') {
     const stage = document.getElementById('feed-stage');
     if (!stage) return;
@@ -1913,11 +1942,24 @@ function renderFeedCard(index, direction = 'none') {
         }
     });
 }
+let adSwipeCounter = 0;
+
 function nextCard(isAuto = false) {
     const wasPlaying = isSpeaking && !isPaused;
     stopAudio();
+
+    // Show an interstitial ad every 12 swipes for free users
+    if (!isPremiumUser) {
+        adSwipeCounter++;
+        if (adSwipeCounter >= 12) {
+            adSwipeCounter = 0;
+            showInterstitialAd(); // Full-screen Google ad — does NOT block the feed
+        }
+    }
+
     currentVerseIndex.general++;
     renderFeedCard(currentVerseIndex.general, 'next');
+
     const newVerse = getVerseAtIndex(currentVerseIndex.general);
 
     if (isAuto || wasPlaying) {
@@ -1939,9 +1981,30 @@ function nextCard(isAuto = false) {
         deselectVerse();
     }
 }
+
 function prevCard() {
     const wasPlaying = isSpeaking && !isPaused;
     stopAudio();
+    
+    if (showingFeedAd) {
+        showingFeedAd = false;
+        renderFeedCard(currentVerseIndex.general, 'prev');
+        const newVerse = getVerseAtIndex(currentVerseIndex.general);
+        if (wasPlaying && newVerse) {
+            selectVerse(newVerse, 'feed', 'feed-card-' + currentVerseIndex.general, true);
+            let spokenText = newVerse.spoken_text || newVerse.text;
+            if (!spokenText.endsWith('.')) spokenText += '.';
+            if (ttsAnnounceSource) {
+                spokenText += '. ' + newVerse.book + '.';
+            }
+            playText(spokenText, 'feed');
+            autoMode = true;
+        } else {
+            deselectVerse();
+        }
+        return;
+    }
+
     if (currentVerseIndex.general > 0) {
         currentVerseIndex.general--;
         renderFeedCard(currentVerseIndex.general, 'prev');
@@ -2902,6 +2965,16 @@ function syncWheelsToCurrent() {
 function setupWheelListeners() {
     // Horizontal chapter wheel listeners are set up in setupChapterWheelListeners()
     // called from populateChapterWheel() when a book is opened.
+    document.addEventListener('wheel', e => {
+        const isFeed = document.getElementById('verse-feed').classList.contains('active-section');
+        if (isFeed && !isProgrammaticScroll && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+            if (e.deltaY > 50) {
+                nextCard();
+            } else if (e.deltaY < -50) {
+                prevCard();
+            }
+        }
+    }, {passive: true});
 }
 function scrollToBookVerse(verseIndex) {
     const info = globalVerseMap[verseIndex];
@@ -3106,7 +3179,7 @@ function updateVoiceWheelActiveStyle() {
 
         if (absNormDist < 2.5) {
             const opacity = 1 - absNormDist * 0.4;
-            const scale = 1.1 - absNormDist * 0.15;
+            const scale = 1.0 - absNormDist * 0.15;
             const angle = normDist * 40;
             return {
                 opacity: Math.max(0.1, opacity),
@@ -4184,8 +4257,8 @@ function submitCreateAlbum() {
     const name = input.value.trim();
     if (!name) return;
     
-    // Premium Lock: Max 3 albums for free users
-    if (createdAlbums.length >= 3 && !isPremiumUser) {
+    // Premium Lock: Max 2 albums for free users
+    if (createdAlbums.length >= 2 && !isPremiumUser) {
         closeCreateBookmarkModal();
         openPremiumModal();
         return;
@@ -5109,11 +5182,11 @@ async function initRevenueCat() {
     try {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) {
             const { Purchases } = window.Capacitor.Plugins;
-            // TODO: Replace this with your actual Public API Key from RevenueCat dashboard
-            await Purchases.configure({ apiKey: 'goog_YOUR_REVENUECAT_PUBLIC_KEY_HERE' });
+            // Replace this with your actual Public API Key from RevenueCat dashboard
+            await Purchases.configure({ apiKey: 'goog_oaXBzDwHBvBaJzSuIZbFuuvwkLM' });
             
             const customerInfo = await Purchases.getCustomerInfo();
-            if (customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && customerInfo.entitlements.active['Premium']) {
+            if (customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && customerInfo.entitlements.active['VerseFeed Premium']) {
                 isPremiumUser = true;
             }
             
@@ -5121,9 +5194,32 @@ async function initRevenueCat() {
             if (offerings.current && offerings.current.availablePackages) {
                 rcPackages = offerings.current.availablePackages;
             }
+        } else {
+            // Web/dev mode bypass: auto-unlock premium for testing
+            isPremiumUser = true;
         }
     } catch (e) {
         console.error("RevenueCat Init Error:", e);
+    }
+}
+
+async function initAdMob() {
+    try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
+            const { AdMob } = window.Capacitor.Plugins;
+            await AdMob.initialize({
+                requestTrackingAuthorization: true,
+                testingDevices: [],
+                initializeForTesting: false,
+            });
+
+            // Pre-load the first interstitial ad so it's ready when needed
+            if (!isPremiumUser) {
+                prepareNextInterstitial();
+            }
+        }
+    } catch (e) {
+        console.error("AdMob Init Error:", e);
     }
 }
 
@@ -5143,24 +5239,11 @@ function closePremiumModal(e) {
 
 function renderPremiumPackages() {
     const container = document.getElementById('premium-packages');
-    const loading = document.getElementById('premium-loading');
     if (!container) return;
     
     if (rcPackages.length === 0) {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) {
-            if (loading) loading.classList.remove('hidden');
-        } else {
-            // Web fallback simulation
-            container.innerHTML = `
-                <button class="premium-package-btn" onclick="simulatePurchase()">
-                    <span class="premium-package-title">Lifetime Access</span>
-                    <span class="premium-package-price">$14.99 (Web Test)</span>
-                </button>
-            `;
-        }
         return;
     }
-    if (loading) loading.classList.add('hidden');
     container.innerHTML = rcPackages.map(pkg => `
         <button class="premium-package-btn" onclick="purchasePackage('${pkg.identifier}')">
             <span class="premium-package-title">${pkg.product.title}</span>
@@ -5177,7 +5260,7 @@ async function purchasePackage(packageIdentifier) {
             const pkg = rcPackages.find(p => p.identifier === packageIdentifier);
             if (!pkg) return;
             const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
-            if (customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && customerInfo.entitlements.active['Premium']) {
+            if (customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && customerInfo.entitlements.active['VerseFeed Premium']) {
                 isPremiumUser = true;
                 showToast("Premium unlocked! Thank you!");
                 closePremiumModal();
@@ -5197,7 +5280,7 @@ async function restorePurchases() {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) {
             const { Purchases } = window.Capacitor.Plugins;
             const customerInfo = await Purchases.restorePurchases();
-            if (customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && customerInfo.entitlements.active['Premium']) {
+            if (customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && customerInfo.entitlements.active['VerseFeed Premium']) {
                 isPremiumUser = true;
                 showToast("Premium restored! Welcome back.");
                 closePremiumModal();
@@ -5223,8 +5306,9 @@ function simulatePurchase() {
     }, 1500);
 }
 
-window.addEventListener('load', () => {
-    initRevenueCat();
+window.addEventListener('load', async () => {
+    await initRevenueCat();
+    await initAdMob();
 });
 
 

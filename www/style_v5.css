@@ -970,7 +970,7 @@ h2 {
 /* Voice Settings Dropdown (iOS Wheel Style) */
 #voice-scroll-wheel-container {
     position: relative;
-    width: 90px;
+    width: 75px;
     height: 120px;
     display: flex;
     justify-content: center;
@@ -1033,7 +1033,6 @@ h2 {
     cursor: pointer;
     opacity: 0.5;
     transform-style: preserve-3d;
-    backface-visibility: hidden;
     -webkit-font-smoothing: antialiased;
     will-change: transform, opacity;
 }
@@ -2280,16 +2279,100 @@ h2 {
     0%, 100% {
         opacity: 1;
     }
-    50% {
         opacity: 0.35;
     }
 }
 
+
+
 /* --- Premium Paywall --- */
 .premium-paywall {
-    background: linear-gradient(180deg, rgba(30,30,30,0.95) 0%, rgba(15,15,15,1) 100%);
-    border: 1px solid rgba(255, 215, 0, 0.3);
-    box-shadow: 0 0 30px rgba(255, 215, 0, 0.1);
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    border-radius: 20px;
+    padding: 30px 25px;
+    max-width: 340px;
+    width: 90%;
+}
+.premium-modal-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+.premium-title {
+    font-size: 1.5rem;
+    margin: 0;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--p-gold), var(--p-brown));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 0.5px;
+}
+.premium-features-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    padding: 0 5px;
+}
+.premium-feature-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.premium-feature-row span {
+    color: var(--text-color);
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+.premium-buy-pill {
+    position: relative;
+    width: 100%;
+    height: 48px;
+    border: none;
+    border-radius: 24px;
+    cursor: pointer;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--p-gold), var(--p-brown), var(--p-gold));
+    background-size: 200% 200%;
+    animation: premiumShimmer 3s ease infinite;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+.premium-buy-pill:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+.premium-buy-pill:active {
+    transform: scale(0.97);
+}
+.premium-buy-pill-text {
+    position: relative;
+    z-index: 1;
+    color: var(--p-sand);
+    font-size: 1.05rem;
+    font-weight: 700;
+    font-family: inherit;
+    letter-spacing: 0.3px;
+}
+@keyframes premiumShimmer {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+.premium-restore-btn {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    opacity: 0.5;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 5px 10px;
+    font-family: inherit;
+    font-size: 0.85rem;
 }
 .premium-package-btn {
     display: flex;
@@ -2297,7 +2380,7 @@ h2 {
     align-items: center;
     justify-content: center;
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 215, 0, 0.2);
+    border: 1px solid var(--glass-border);
     border-radius: 12px;
     padding: 15px;
     cursor: pointer;
@@ -2305,8 +2388,8 @@ h2 {
     width: 100%;
 }
 .premium-package-btn:hover {
-    background: rgba(255, 215, 0, 0.1);
-    border-color: rgba(255, 215, 0, 0.5);
+    background: rgba(188, 174, 158, 0.15);
+    border-color: var(--p-gold);
     transform: translateY(-2px);
 }
 .premium-package-title {
@@ -2318,5 +2401,5 @@ h2 {
 .premium-package-price {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #FFD700;
+    color: var(--p-gold);
 }
