@@ -271,7 +271,7 @@ const religions = ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Sikhism', '
 const dataUrls = {
     Christianity: ['./data/bible.json?v=21'],
     Islam: ['./data/quran_v2.json?v=21', './data/hadiths_v2.json?v=21'],
-    Hinduism: ['./data/gita.json?v=21', './data/hindu_books.json?v=21'],
+    Hinduism: ['./data/gita.json?v=21'], // Removed hindu_books.json to fix garbled Rigveda Agni verses
     Judaism: ['./data/sefaria.json?v=21'],
     Sikhism: ['./data/gurbani.json?v=21'],
     Buddhism: ['./data/buddhism.json?v=21'],
@@ -304,7 +304,12 @@ let createdAlbums = JSON.parse(localStorage.getItem('createdAlbums') || '[]');
 if (!Array.isArray(createdAlbums)) createdAlbums = [];
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let audioAnalyser = null;
+let waveformAnimFrame = null;
 let unlockTriggered = false;
+
+// Random Ad scheduling (every 10-15 verses)
+let nextAdIndex = Math.floor(Math.random() * 6) + 10;
 
 function unlockAudio() {
     if (unlockTriggered) return;
@@ -447,23 +452,23 @@ async function initApp() {
         setupGestures();
         setupWheelListeners();
         
-        // Load datasets FIRST before routing to verse-feed or hiding loading screen
-        await loadSelectedData();
+        // Do not await loadSelectedData, let it load in background so app starts instantly
+        loadSelectedData().then(() => {
+            // Once initial data loads, initialize the feed if we haven't already
+            if (Object.keys(verseBatches.general).length === 0) {
+                initializeVerseFeed();
+            }
+        });
         
-        // Generate batch and render card
-        initializeVerseFeed();
-
-        localStorage.setItem('hasOnboarded', 'true');
+        // Show feed UI immediately (will be blank for a split second until data loads)
         goTo('verse-feed');
 
         const loadingScreen = document.getElementById('loading');
         if (loadingScreen) {
+            loadingScreen.classList.add('loaded');
             setTimeout(() => {
-                loadingScreen.classList.add('loaded');
-                setTimeout(() => {
-                    loadingScreen.style.display = 'none';
-                }, 600);
-            }, 1000); // Wait 1 second to ensure instant responsiveness on hide
+                loadingScreen.style.display = 'none';
+            }, 300);
         }
 
         // Initialize Piper TTS in background without blocking UI rendering
@@ -484,6 +489,8 @@ function updateDarkModeIcon(isDark) {
         btn.innerHTML = '<svg id="dark-mode-icon-svg" style="width:22px;height:22px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
     }
 }
+let lastSwipeTime = 0;
+
 function setupGestures() {
     document.addEventListener('touchstart', e => {
         touchStartX = e.changedTouches[0].screenX;
@@ -496,6 +503,8 @@ function setupGestures() {
     }, { passive: false });
     const feedStage = document.getElementById('feed-stage');
     feedStage.addEventListener('click', (e) => {
+        if (Date.now() - lastSwipeTime < 500) return; // Prevent phantom clicks after a swipe
+        
         if (e.target.closest('.bookmark-btn') || e.target.closest('.speak-btn')) return;
         const width = window.innerWidth;
         const clickX = e.clientX;
@@ -524,6 +533,7 @@ function handleGesture() {
     const diffY = touchEndY - touchStartY;
     const isFeed = document.getElementById('verse-feed').classList.contains('active-section');
     if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+        lastSwipeTime = Date.now();
         if (diffX > 0) {
             if (isFeed) {
                 prevCard();
@@ -792,14 +802,16 @@ async function playText(text, context) {
         currentUtterance.rate = speedSlider ? parseFloat(speedSlider.value) : 0.5;
         currentUtterance.onend = () => {
             if (isPaused) return;
+            const wasAutoMode = autoMode; // Save state before stopAudio clears it
+            const currentContext = currentAudioContextType;
             isSpeaking = false;
             updateSpeakButton('speak-general');
             clearTimeout(autoNextTimeout);
             autoNextTimeout = setTimeout(() => {
-                if (currentAudioContextType === 'feed' && autoMode) nextCard(true);
-                else if (currentAudioContextType === 'book' && autoNextBook) advanceBookVerse();
-                else if (currentAudioContextType === 'saved' && autoMode) advanceSavedVerse();
-                else if (currentAudioContextType === 'search' && autoMode) advanceSearchVerse();
+                if (currentContext === 'feed' && wasAutoMode) nextCard(true);
+                else if (currentContext === 'book' && autoNextBook) advanceBookVerse();
+                else if (currentContext === 'saved' && wasAutoMode) advanceSavedVerse();
+                else if (currentContext === 'search' && wasAutoMode) advanceSearchVerse();
                 
                 setTimeout(() => {
                     if (!isSpeaking) stopWaveformVisualizer(true);
@@ -1138,8 +1150,7 @@ async function loadReligionData(rel) {
         }
         if (rel === 'Hinduism') { 
             processGitaData(responses[0]); 
-            await new Promise(r => setTimeout(r, 5)); // Yield
-            processHinduBooks(responses[1]); 
+            // hindu_books.json was removed
         }
         if (rel === 'Judaism') processSefariaData(responses[0]);
         if (rel === 'Sikhism') processSikhismData(responses[0]);
@@ -1847,40 +1858,20 @@ function getVerseAtIndex(index) {
         if (newBatch.length === 0) {
             break;
         }
-        verseBatches.general.push(...newBatch);
+        
+        for (let verse of newBatch) {
+            if (verseBatches.general.length === nextAdIndex && !isPremiumUser) {
+                verseBatches.general.push({ isAd: true });
+                nextAdIndex += Math.floor(Math.random() * 6) + 10; // Schedule next ad in 10-15 verses
+            }
+            verseBatches.general.push(verse);
+        }
     }
     return verseBatches.general[index];
 }
 
-// Interstitial ad: shown between verses every 12 swipes for free users
-async function showInterstitialAd() {
-    try {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
-            const { AdMob } = window.Capacitor.Plugins;
-            await AdMob.showInterstitial();
-            // Prepare the next interstitial so it's ready for the next cycle
-            prepareNextInterstitial();
-        }
-    } catch (e) {
-        console.log('Interstitial show error (non-fatal):', e);
-    }
-}
+// Interstitial ads removed in favor of in-feed AdSense ads
 
-async function prepareNextInterstitial() {
-    try {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
-            const { AdMob } = window.Capacitor.Plugins;
-            // TODO: Replace with your real Interstitial Ad Unit ID from AdMob
-            // You need to create an Interstitial ad unit in AdMob console
-            await AdMob.prepareInterstitial({
-                adId: 'ca-app-pub-3940256099942544/1033173712', // Google test ID — replace with real one!
-                isTesting: true
-            });
-        }
-    } catch (e) {
-        console.log('Interstitial prep error (non-fatal):', e);
-    }
-}
 function renderFeedCard(index, direction = 'none') {
     const stage = document.getElementById('feed-stage');
     if (!stage) return;
@@ -1908,16 +1899,37 @@ function renderFeedCard(index, direction = 'none') {
     refEl.classList.add('verse-ref');
 
     if (verse) {
-        let displayVerse = cleanText(verse.text);
-        // Clean/strip author attribution and other HTML tags for the feed card display
-        displayVerse = displayVerse.replace(/<span class='author-attr'>.*?<\/span>/gm, '');
-        displayVerse = displayVerse.replace(/<[^>]*>?/gm, '');
-        if (displayVerse.endsWith('.')) {
-            displayVerse = displayVerse.slice(0, -1);
+        if (verse.isAd) {
+            textEl.innerHTML = `
+                <div class="ad-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 10px; font-weight: bold; text-align: center;">Sponsored</div>
+                <div class="ad-container" style="width: 100%; min-height: 250px; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.05); border-radius: 12px; margin-bottom: 20px;">
+                    <!-- PASTE YOUR GOOGLE ADSENSE CODE HERE -->
+                    <ins class="adsbygoogle"
+                         style="display:block"
+                         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+                         data-ad-slot="XXXXXXXXXX"
+                         data-ad-format="auto"
+                         data-full-width-responsive="true"></ins>
+                </div>
+            `;
+            // Execute the AdSense script
+            setTimeout(() => {
+                try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
+            }, 100);
+            
+            refEl.innerText = 'Advertisement';
+        } else {
+            let displayVerse = cleanText(verse.text);
+            // Clean/strip author attribution and other HTML tags for the feed card display
+            displayVerse = displayVerse.replace(/<span class='author-attr'>.*?<\/span>/gm, '');
+            displayVerse = displayVerse.replace(/<[^>]*>?/gm, '');
+            if (displayVerse.endsWith('.')) {
+                displayVerse = displayVerse.slice(0, -1);
+            }
+            textEl.innerText = displayVerse;
+            
+            refEl.innerText = formatVerseRef(verse);
         }
-        textEl.innerText = displayVerse;
-        
-        refEl.innerText = formatVerseRef(verse);
     }
 
     footer.appendChild(refEl);
@@ -1948,22 +1960,13 @@ function nextCard(isAuto = false) {
     const wasPlaying = isSpeaking && !isPaused;
     stopAudio();
 
-    // Show an interstitial ad every 12 swipes for free users
-    if (!isPremiumUser) {
-        adSwipeCounter++;
-        if (adSwipeCounter >= 12) {
-            adSwipeCounter = 0;
-            showInterstitialAd(); // Full-screen Google ad — does NOT block the feed
-        }
-    }
-
     currentVerseIndex.general++;
     renderFeedCard(currentVerseIndex.general, 'next');
 
     const newVerse = getVerseAtIndex(currentVerseIndex.general);
 
     if (isAuto || wasPlaying) {
-        if (newVerse) {
+        if (newVerse && !newVerse.isAd) {
             selectVerse(newVerse, 'feed', 'feed-card-' + currentVerseIndex.general, true);
             let spokenText = newVerse.spoken_text || newVerse.text;
             if (!spokenText.endsWith('.')) spokenText += '.';
@@ -1976,6 +1979,13 @@ function nextCard(isAuto = false) {
                 playText(spokenText, 'feed');
                 autoMode = true;
             }, 400); // Allow card animation to finish
+        } else if (newVerse && newVerse.isAd) {
+            // Auto-skip the ad after 3.5 seconds
+            autoMode = true;
+            clearTimeout(autoNextTimeout);
+            autoNextTimeout = setTimeout(() => {
+                nextCard(true);
+            }, 3500);
         }
     } else {
         deselectVerse();
@@ -1985,31 +1995,12 @@ function nextCard(isAuto = false) {
 function prevCard() {
     const wasPlaying = isSpeaking && !isPaused;
     stopAudio();
-    
-    if (showingFeedAd) {
-        showingFeedAd = false;
-        renderFeedCard(currentVerseIndex.general, 'prev');
-        const newVerse = getVerseAtIndex(currentVerseIndex.general);
-        if (wasPlaying && newVerse) {
-            selectVerse(newVerse, 'feed', 'feed-card-' + currentVerseIndex.general, true);
-            let spokenText = newVerse.spoken_text || newVerse.text;
-            if (!spokenText.endsWith('.')) spokenText += '.';
-            if (ttsAnnounceSource) {
-                spokenText += '. ' + newVerse.book + '.';
-            }
-            playText(spokenText, 'feed');
-            autoMode = true;
-        } else {
-            deselectVerse();
-        }
-        return;
-    }
 
     if (currentVerseIndex.general > 0) {
         currentVerseIndex.general--;
         renderFeedCard(currentVerseIndex.general, 'prev');
         const newVerse = getVerseAtIndex(currentVerseIndex.general);
-        if (wasPlaying && newVerse) {
+        if (wasPlaying && newVerse && !newVerse.isAd) {
             selectVerse(newVerse, 'feed', 'feed-card-' + currentVerseIndex.general, true);
             let spokenText = newVerse.spoken_text || newVerse.text;
             if (!spokenText.endsWith('.')) spokenText += '.';
@@ -2020,6 +2011,12 @@ function prevCard() {
 
             playText(spokenText, 'feed');
             autoMode = true;
+        } else if (wasPlaying && newVerse && newVerse.isAd) {
+            autoMode = true;
+            clearTimeout(autoNextTimeout);
+            autoNextTimeout = setTimeout(() => {
+                nextCard(true);
+            }, 3500);
         } else {
             deselectVerse();
         }
@@ -3668,9 +3665,6 @@ function advanceSavedVerse() {
 }
 
 /* --- Audio Waveform Visualizer --- */
-
-let audioAnalyser = null;
-let waveformAnimFrame = null;
 
 function startWaveformVisualizer() {
     const canvas = document.getElementById('waveform-canvas');
