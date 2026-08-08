@@ -1615,7 +1615,8 @@ h2 {
 }
 
 .main-play-btn.pill-active {
-    width: 170px !important;
+    min-width: 155px;
+    width: auto;
     border-radius: 25px !important;
 }
 
@@ -2336,9 +2337,10 @@ h2 {
     border-radius: 24px;
     cursor: pointer;
     overflow: hidden;
-    background: linear-gradient(135deg, var(--p-gold), var(--p-brown), var(--p-gold));
-    background-size: 200% 200%;
-    animation: premiumShimmer 3s ease infinite;
+    background-image: linear-gradient(135deg, var(--p-gold), var(--p-brown));
+    color: var(--p-sand);
+    font-size: 1.1rem;
+    font-weight: 700;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }

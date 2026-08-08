@@ -271,7 +271,7 @@ const religions = ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Sikhism', '
 const dataUrls = {
     Christianity: ['./data/bible.json?v=21'],
     Islam: ['./data/quran_v2.json?v=21', './data/hadiths_v2.json?v=21'],
-    Hinduism: ['./data/gita.json?v=21', './data/hindu_books.json?v=21'],
+    Hinduism: ['./data/gita.json?v=21'], // Removed hindu_books.json to fix garbled Rigveda Agni verses
     Judaism: ['./data/sefaria.json?v=21'],
     Sikhism: ['./data/gurbani.json?v=21'],
     Buddhism: ['./data/buddhism.json?v=21'],
@@ -447,23 +447,23 @@ async function initApp() {
         setupGestures();
         setupWheelListeners();
         
-        // Load datasets FIRST before routing to verse-feed or hiding loading screen
-        await loadSelectedData();
+        // Do not await loadSelectedData, let it load in background so app starts instantly
+        loadSelectedData().then(() => {
+            // Once initial data loads, initialize the feed if we haven't already
+            if (Object.keys(verseBatches.general).length === 0) {
+                initializeVerseFeed();
+            }
+        });
         
-        // Generate batch and render card
-        initializeVerseFeed();
-
-        localStorage.setItem('hasOnboarded', 'true');
+        // Show feed UI immediately (will be blank for a split second until data loads)
         goTo('verse-feed');
 
         const loadingScreen = document.getElementById('loading');
         if (loadingScreen) {
+            loadingScreen.classList.add('loaded');
             setTimeout(() => {
-                loadingScreen.classList.add('loaded');
-                setTimeout(() => {
-                    loadingScreen.style.display = 'none';
-                }, 600);
-            }, 1000); // Wait 1 second to ensure instant responsiveness on hide
+                loadingScreen.style.display = 'none';
+            }, 300);
         }
 
         // Initialize Piper TTS in background without blocking UI rendering
@@ -792,14 +792,16 @@ async function playText(text, context) {
         currentUtterance.rate = speedSlider ? parseFloat(speedSlider.value) : 0.5;
         currentUtterance.onend = () => {
             if (isPaused) return;
+            const wasAutoMode = autoMode; // Save state before stopAudio clears it
+            const currentContext = currentAudioContextType;
             isSpeaking = false;
             updateSpeakButton('speak-general');
             clearTimeout(autoNextTimeout);
             autoNextTimeout = setTimeout(() => {
-                if (currentAudioContextType === 'feed' && autoMode) nextCard(true);
-                else if (currentAudioContextType === 'book' && autoNextBook) advanceBookVerse();
-                else if (currentAudioContextType === 'saved' && autoMode) advanceSavedVerse();
-                else if (currentAudioContextType === 'search' && autoMode) advanceSearchVerse();
+                if (currentContext === 'feed' && wasAutoMode) nextCard(true);
+                else if (currentContext === 'book' && autoNextBook) advanceBookVerse();
+                else if (currentContext === 'saved' && wasAutoMode) advanceSavedVerse();
+                else if (currentContext === 'search' && wasAutoMode) advanceSearchVerse();
                 
                 setTimeout(() => {
                     if (!isSpeaking) stopWaveformVisualizer(true);
@@ -1138,8 +1140,7 @@ async function loadReligionData(rel) {
         }
         if (rel === 'Hinduism') { 
             processGitaData(responses[0]); 
-            await new Promise(r => setTimeout(r, 5)); // Yield
-            processHinduBooks(responses[1]); 
+            // hindu_books.json was removed
         }
         if (rel === 'Judaism') processSefariaData(responses[0]);
         if (rel === 'Sikhism') processSikhismData(responses[0]);
@@ -1852,81 +1853,34 @@ function getVerseAtIndex(index) {
     return verseBatches.general[index];
 }
 
-function renderAdCard(direction = 'next') {
-    const stage = document.getElementById('feed-stage');
-    if (!stage) return;
-    
-    const card = document.createElement('div');
-    card.classList.add('verse-card', 'ad-card');
-
-    if (direction === 'next') {
-        card.classList.add('card-right');
-    } else if (direction === 'prev') {
-        card.classList.add('card-left');
-    } else {
-        card.classList.add('card-center');
-    }
-    
-    const textEl = document.createElement('div');
-    textEl.classList.add('verse-text');
-    textEl.style.fontSize = '1.3rem';
-    textEl.style.opacity = '0.9';
-    textEl.style.textAlign = 'center';
-    textEl.innerText = "Discover more peace.\nUnlock premium for an ad-free experience.";
-    
-    const footer = document.createElement('div');
-    footer.classList.add('card-footer');
-    const refEl = document.createElement('div');
-    refEl.classList.add('verse-ref');
-    refEl.innerText = "Sponsored";
-    refEl.style.color = "var(--p-gold)";
-    
-    const upgradeBtn = document.createElement('button');
-    upgradeBtn.innerText = "Upgrade Now";
-    upgradeBtn.style.background = "linear-gradient(135deg, var(--p-gold), var(--p-brown))";
-    upgradeBtn.style.color = "var(--bg-grad-1)";
-    upgradeBtn.style.border = "none";
-    upgradeBtn.style.borderRadius = "20px";
-    upgradeBtn.style.padding = "8px 20px";
-    upgradeBtn.style.fontWeight = "bold";
-    upgradeBtn.style.marginTop = "20px";
-    upgradeBtn.style.cursor = "pointer";
-    upgradeBtn.onclick = () => openPremiumModal();
-    
-    const contentWrapper = document.createElement('div');
-    contentWrapper.style.display = 'flex';
-    contentWrapper.style.flexDirection = 'column';
-    contentWrapper.style.alignItems = 'center';
-    contentWrapper.style.justifyContent = 'center';
-    contentWrapper.style.height = '100%';
-    contentWrapper.style.gap = '15px';
-    
-    contentWrapper.appendChild(textEl);
-    contentWrapper.appendChild(upgradeBtn);
-    
-    card.appendChild(contentWrapper);
-    footer.appendChild(refEl);
-    card.appendChild(footer);
-    
-    stage.appendChild(card);
-
-    requestAnimationFrame(() => {
-        if (direction !== 'none') {
-            const oldCard = stage.querySelector('.verse-card.card-center');
-            if (oldCard) {
-                oldCard.classList.remove('card-center');
-                if (direction === 'next') oldCard.classList.add('card-left');
-                else oldCard.classList.add('card-right');
-                setTimeout(() => oldCard.remove(), 400);
-            }
-            card.classList.remove('card-right', 'card-left');
-            card.classList.add('card-center');
-        } else {
-            const others = stage.querySelectorAll('.verse-card:not(:last-child)');
-            others.forEach(c => c.remove());
-            card.classList.add('card-center');
+// Interstitial ad: shown between verses every 12 swipes for free users
+async function showInterstitialAd() {
+    try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
+            const { AdMob } = window.Capacitor.Plugins;
+            await AdMob.showInterstitial();
+            // Prepare the next interstitial so it's ready for the next cycle
+            prepareNextInterstitial();
         }
-    });
+    } catch (e) {
+        console.log('Interstitial show error (non-fatal):', e);
+    }
+}
+
+async function prepareNextInterstitial() {
+    try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
+            const { AdMob } = window.Capacitor.Plugins;
+            // TODO: Replace with your real Interstitial Ad Unit ID from AdMob
+            // You need to create an Interstitial ad unit in AdMob console
+            await AdMob.prepareInterstitial({
+                adId: 'ca-app-pub-3940256099942544/1033173712', // Google test ID — replace with real one!
+                isTesting: true
+            });
+        }
+    } catch (e) {
+        console.log('Interstitial prep error (non-fatal):', e);
+    }
 }
 function renderFeedCard(index, direction = 'none') {
     const stage = document.getElementById('feed-stage');
@@ -1990,35 +1944,22 @@ function renderFeedCard(index, direction = 'none') {
     });
 }
 let adSwipeCounter = 0;
-let showingFeedAd = false;
 
 function nextCard(isAuto = false) {
     const wasPlaying = isSpeaking && !isPaused;
     stopAudio();
 
-    if (!isPremiumUser && !showingFeedAd) {
+    // Show an interstitial ad every 12 swipes for free users
+    if (!isPremiumUser) {
         adSwipeCounter++;
         if (adSwipeCounter >= 12) {
             adSwipeCounter = 0;
-            showingFeedAd = true;
-            renderAdCard('next');
-            if (isAuto || wasPlaying) {
-                // Auto-skip the text ad after 4 seconds if they were listening in auto mode
-                setTimeout(() => nextCard(true), 4000);
-            } else {
-                deselectVerse();
-            }
-            return;
+            showInterstitialAd(); // Full-screen Google ad — does NOT block the feed
         }
     }
 
-    if (showingFeedAd) {
-        showingFeedAd = false;
-        renderFeedCard(currentVerseIndex.general, 'next');
-    } else {
-        currentVerseIndex.general++;
-        renderFeedCard(currentVerseIndex.general, 'next');
-    }
+    currentVerseIndex.general++;
+    renderFeedCard(currentVerseIndex.general, 'next');
 
     const newVerse = getVerseAtIndex(currentVerseIndex.general);
 
@@ -5242,11 +5183,11 @@ async function initRevenueCat() {
     try {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) {
             const { Purchases } = window.Capacitor.Plugins;
-            // TODO: Replace this with your actual Public API Key from RevenueCat dashboard
-            await Purchases.configure({ apiKey: 'goog_YOUR_REVENUECAT_PUBLIC_KEY_HERE' });
+            // Replace this with your actual Public API Key from RevenueCat dashboard
+            await Purchases.configure({ apiKey: 'goog_oaXBzDwHBvBaJzSuIZbFuuvwkLM' });
             
             const customerInfo = await Purchases.getCustomerInfo();
-            if (customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && customerInfo.entitlements.active['Premium']) {
+            if (customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && customerInfo.entitlements.active['VerseFeed Premium']) {
                 isPremiumUser = true;
             }
             
@@ -5260,6 +5201,26 @@ async function initRevenueCat() {
         }
     } catch (e) {
         console.error("RevenueCat Init Error:", e);
+    }
+}
+
+async function initAdMob() {
+    try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
+            const { AdMob } = window.Capacitor.Plugins;
+            await AdMob.initialize({
+                requestTrackingAuthorization: true,
+                testingDevices: [],
+                initializeForTesting: false,
+            });
+
+            // Pre-load the first interstitial ad so it's ready when needed
+            if (!isPremiumUser) {
+                prepareNextInterstitial();
+            }
+        }
+    } catch (e) {
+        console.error("AdMob Init Error:", e);
     }
 }
 
@@ -5300,7 +5261,7 @@ async function purchasePackage(packageIdentifier) {
             const pkg = rcPackages.find(p => p.identifier === packageIdentifier);
             if (!pkg) return;
             const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
-            if (customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && customerInfo.entitlements.active['Premium']) {
+            if (customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && customerInfo.entitlements.active['VerseFeed Premium']) {
                 isPremiumUser = true;
                 showToast("Premium unlocked! Thank you!");
                 closePremiumModal();
@@ -5320,7 +5281,7 @@ async function restorePurchases() {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) {
             const { Purchases } = window.Capacitor.Plugins;
             const customerInfo = await Purchases.restorePurchases();
-            if (customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && customerInfo.entitlements.active['Premium']) {
+            if (customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && customerInfo.entitlements.active['VerseFeed Premium']) {
                 isPremiumUser = true;
                 showToast("Premium restored! Welcome back.");
                 closePremiumModal();
@@ -5346,8 +5307,9 @@ function simulatePurchase() {
     }, 1500);
 }
 
-window.addEventListener('load', () => {
-    initRevenueCat();
+window.addEventListener('load', async () => {
+    await initRevenueCat();
+    await initAdMob();
 });
 
 
