@@ -115,7 +115,7 @@ function switchProfile(targetProfileId) {
     else document.body.removeAttribute('data-theme');
     if (typeof updateDarkModeIcon === 'function') updateDarkModeIcon(darkModeEnabled);
 
-    selectedVoice = localStorage.getItem('selectedVoice') || 'en_US-libritts_r-medium';
+    selectedVoice = localStorage.getItem('selectedVoice') || 'en_GB-alan-medium';
     ttsAnnounceSource = localStorage.getItem('ttsAnnounceSource') === 'true';
     ttsRandomVoice = localStorage.getItem('ttsRandomVoice') === 'true';
 
@@ -4973,6 +4973,8 @@ function initGoogleAuth() {
                 })
                 .then(res => res.json())
                 .then(payload => {
+                    const currentState = getLocalState();
+                    
                     googleUser = {
                         name: payload.name,
                         picture: payload.picture,
@@ -4982,8 +4984,22 @@ function initGoogleAuth() {
                     
                     originalSetItem.call(localStorage, 'googleUser', JSON.stringify(googleUser));
                     
+                    const newProfileId = 'account_' + googleUser.sub;
+                    const hasData = originalGetItem.call(localStorage, 'pf_' + newProfileId + '_updatedAt');
+                    
+                    if (!hasData) {
+                        // First time logging into this account on this device. Copy guest/previous data over.
+                        originalSetItem.call(localStorage, 'pf_' + newProfileId + '_savedVerses', JSON.stringify(currentState.savedVerses || []));
+                        originalSetItem.call(localStorage, 'pf_' + newProfileId + '_createdAlbums', JSON.stringify(currentState.createdAlbums || []));
+                        originalSetItem.call(localStorage, 'pf_' + newProfileId + '_bookMarkedVerse', JSON.stringify(currentState.bookMarkedVerse || {}));
+                        if (currentState.globalSelectedRels) {
+                            originalSetItem.call(localStorage, 'pf_' + newProfileId + '_globalSelectedRels', JSON.stringify(currentState.globalSelectedRels));
+                        }
+                        originalSetItem.call(localStorage, 'pf_' + newProfileId + '_updatedAt', Date.now().toString());
+                    }
+                    
                     // Switch profile to Google Account (strictly isolated storage sandbox)
-                    switchProfile('account_' + googleUser.sub);
+                    switchProfile(newProfileId);
                     
                     // Sync user data with Google Drive AppData folder
                     syncUserDataWithGoogleDrive(tokenResponse.access_token);
