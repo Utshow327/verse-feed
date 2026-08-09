@@ -4987,10 +4987,6 @@ function initGoogleAuth() {
                     
                     // Sync user data with Google Drive AppData folder for this specific account
                     syncUserDataWithGoogleDrive(tokenResponse.access_token);
-                    updateUserUI();
-                }).catch(err => {
-                    console.error("Google Auth userinfo error:", err);
-                });
 
                     if (document.getElementById('onboarding') && document.getElementById('onboarding').classList.contains('active-section')) {
                         goTo('verse-feed');
