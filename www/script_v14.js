@@ -5055,6 +5055,14 @@ async function syncUserDataWithGoogleDrive(accessToken) {
         });
         const listData = await listRes.json();
 
+        if (!listRes.ok) {
+            console.error("Google Drive list failed:", listRes.status, listData);
+            if (listRes.status === 403 || listRes.status === 401) {
+                showToast("Cloud sync: Drive permission required");
+            }
+            return;
+        }
+
         if (listData.files && listData.files.length > 0) {
             const fileId = listData.files[0].id;
             const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
