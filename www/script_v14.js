@@ -5066,11 +5066,15 @@ async function syncUserDataWithGoogleDrive(accessToken) {
                 const localState = getLocalState();
                 const remoteIsNewer = (remoteData.updatedAt || 0) > (localState.updatedAt || 0);
 
-                // Merge savedVerses (Union by ID)
+                // Merge savedVerses
                 let mergedSavedVerses = [...(localState.savedVerses || [])];
                 if (Array.isArray(remoteData.savedVerses)) {
                     remoteData.savedVerses.forEach(rv => {
-                        if (!mergedSavedVerses.find(lv => lv.id === rv.id)) {
+                        const exists = mergedSavedVerses.some(lv => 
+                            (lv.id && rv.id && lv.id === rv.id) ||
+                            (lv.book && rv.book && lv.book === rv.book && String(lv.chapter) === String(rv.chapter) && String(lv.verse) === String(rv.verse))
+                        );
+                        if (!exists) {
                             mergedSavedVerses.push(rv);
                         }
                     });
@@ -5078,12 +5082,17 @@ async function syncUserDataWithGoogleDrive(accessToken) {
                 savedVerses = mergedSavedVerses;
                 localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
 
-                // Merge createdAlbums (Union by ID)
+                // Merge createdAlbums
                 let mergedAlbums = [...(localState.createdAlbums || [])];
                 if (Array.isArray(remoteData.createdAlbums)) {
                     remoteData.createdAlbums.forEach(ra => {
-                        if (!mergedAlbums.find(la => la.id === ra.id)) {
-                            mergedAlbums.push(ra);
+                        if (typeof ra === 'string') {
+                            if (!mergedAlbums.includes(ra)) {
+                                mergedAlbums.push(ra);
+                            }
+                        } else if (ra && typeof ra === 'object') {
+                            const exists = mergedAlbums.some(la => typeof la === 'object' ? (la.name === ra.name || la.id === ra.id) : la === ra.name);
+                            if (!exists) mergedAlbums.push(ra);
                         }
                     });
                 }
