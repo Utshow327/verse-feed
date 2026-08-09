@@ -4973,8 +4973,6 @@ function initGoogleAuth() {
                 })
                 .then(res => res.json())
                 .then(payload => {
-                    const currentState = getLocalState();
-                    
                     googleUser = {
                         name: payload.name,
                         picture: payload.picture,
@@ -4984,25 +4982,15 @@ function initGoogleAuth() {
                     
                     originalSetItem.call(localStorage, 'googleUser', JSON.stringify(googleUser));
                     
-                    const newProfileId = 'account_' + googleUser.sub;
-                    const hasData = originalGetItem.call(localStorage, 'pf_' + newProfileId + '_updatedAt');
+                    // Switch profile to Google Account
+                    switchProfile('account_' + googleUser.sub);
                     
-                    if (!hasData) {
-                        // First time logging into this account on this device. Copy guest/previous data over.
-                        originalSetItem.call(localStorage, 'pf_' + newProfileId + '_savedVerses', JSON.stringify(currentState.savedVerses || []));
-                        originalSetItem.call(localStorage, 'pf_' + newProfileId + '_createdAlbums', JSON.stringify(currentState.createdAlbums || []));
-                        originalSetItem.call(localStorage, 'pf_' + newProfileId + '_bookMarkedVerse', JSON.stringify(currentState.bookMarkedVerse || {}));
-                        if (currentState.globalSelectedRels) {
-                            originalSetItem.call(localStorage, 'pf_' + newProfileId + '_globalSelectedRels', JSON.stringify(currentState.globalSelectedRels));
-                        }
-                        originalSetItem.call(localStorage, 'pf_' + newProfileId + '_updatedAt', Date.now().toString());
-                    }
-                    
-                    // Switch profile to Google Account (strictly isolated storage sandbox)
-                    switchProfile(newProfileId);
-                    
-                    // Sync user data with Google Drive AppData folder
+                    // Sync user data with Google Drive AppData folder for this specific account
                     syncUserDataWithGoogleDrive(tokenResponse.access_token);
+                    updateUserUI();
+                }).catch(err => {
+                    console.error("Google Auth userinfo error:", err);
+                });
 
                     if (document.getElementById('onboarding') && document.getElementById('onboarding').classList.contains('active-section')) {
                         goTo('verse-feed');
@@ -5046,6 +5034,22 @@ function signInWithGoogle() {
     }
 }
 
+function getLocalState() {
+    return {
+        savedVerses: JSON.parse(localStorage.getItem('savedVerses') || '[]'),
+        createdAlbums: JSON.parse(localStorage.getItem('createdAlbums') || '[]'),
+        bookMarkedVerse: JSON.parse(localStorage.getItem('bookMarkedVerse') || '{}'),
+        globalSelectedRels: JSON.parse(localStorage.getItem('globalSelectedRels') || 'null'),
+        darkModeEnabled: localStorage.getItem('darkModeEnabled') === 'true',
+        selectedVoice: localStorage.getItem('selectedVoice') || 'en_GB-alan-medium',
+        ttsAnnounceSource: localStorage.getItem('ttsAnnounceSource') === 'true',
+        ttsRandomVoice: localStorage.getItem('ttsRandomVoice') === 'true',
+        musicVolume: localStorage.getItem('musicVolume') || '0.5',
+        musicEnabled: localStorage.getItem('musicEnabled') !== 'false',
+        updatedAt: Date.now()
+    };
+}
+
 async function syncUserDataWithGoogleDrive(accessToken) {
     if (!accessToken) return;
     googleAccessToken = accessToken;
@@ -5054,20 +5058,6 @@ async function syncUserDataWithGoogleDrive(accessToken) {
             headers: { Authorization: `Bearer ${accessToken}` }
         });
         const listData = await listRes.json();
-
-        const getLocalState = () => ({
-            savedVerses: JSON.parse(localStorage.getItem('savedVerses') || '[]'),
-            createdAlbums: JSON.parse(localStorage.getItem('createdAlbums') || '[]'),
-            bookMarkedVerse: JSON.parse(localStorage.getItem('bookMarkedVerse') || '{}'),
-            globalSelectedRels: JSON.parse(localStorage.getItem('globalSelectedRels') || 'null'),
-            darkModeEnabled: localStorage.getItem('darkModeEnabled') === 'true',
-            selectedVoice: localStorage.getItem('selectedVoice') || 'en_GB-alan-medium',
-            ttsAnnounceSource: localStorage.getItem('ttsAnnounceSource') === 'true',
-            ttsRandomVoice: localStorage.getItem('ttsRandomVoice') === 'true',
-            musicVolume: localStorage.getItem('musicVolume') || '0.5',
-            musicEnabled: localStorage.getItem('musicEnabled') !== 'false',
-            updatedAt: Date.now()
-        });
 
         if (listData.files && listData.files.length > 0) {
             const fileId = listData.files[0].id;
