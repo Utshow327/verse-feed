@@ -1920,13 +1920,13 @@ function renderFeedCard(index, direction = 'none') {
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 20px;">
                     <div style="font-size: 3rem; margin-bottom: 10px;">🌟</div>
                     <div style="font-size: 1.5rem; font-weight: 600; color: var(--text-color);">Support Our Mission</div>
-                    <div style="font-size: 1.1rem; opacity: 0.8; max-width: 80%; line-height: 1.5;">Do you want to support us? Consider getting Premium to unlock exclusive features and offline voices.</div>
-                    <button onclick="openPremiumModal()" class="action-btn" style="background: var(--bg-grad-1); color: #fff; border: none; padding: 15px 30px; border-radius: 30px; font-size: 1.1rem; font-weight: bold; margin-top: 20px; box-shadow: 0 4px 15px rgba(255,107,107,0.4); cursor: pointer; transform: scale(1); transition: transform 0.2s;">
-                        Get Premium
+                    <div style="font-size: 1.1rem; opacity: 0.8; max-width: 80%; line-height: 1.5;">Get exclusive features</div>
+                    <button onclick="openPremiumModal()" class="action-btn" style="background: var(--bg-grad-1); color: #fff; border: none; padding: 15px 40px; border-radius: 30px; font-size: 1.1rem; font-weight: bold; margin-top: 10px; box-shadow: 0 4px 15px rgba(255,107,107,0.4); cursor: pointer; transform: scale(1); transition: transform 0.2s;">
+                        Premium
                     </button>
                 </div>
             `;
-            refEl.innerText = 'Support Us';
+            refEl.innerText = '';
         } else {
             let displayVerse = cleanText(verse.text);
             // Clean/strip author attribution and other HTML tags for the feed card display
@@ -3584,13 +3584,7 @@ function executeRadialAction() {
             openAlbumModal(currentTargetVerse);
         }
     } else if (activeRadialId === 'share') {
-        const text = currentTargetVerse.text + " - " + currentTargetVerse.book + " " + currentTargetVerse.chapter + ":" + currentTargetVerse.verse;
-        if (navigator.share) {
-            navigator.share({ title: 'Daily Verse', text: text }).catch(console.error);
-        } else {
-            navigator.clipboard.writeText(text);
-            showToast('Copied to clipboard!');
-        }
+        generateAndShareImage(currentTargetVerse, currentTargetVerse.elementId);
     } else if (activeRadialId === 'delete') {
         const index = savedVerses.findIndex(s => s.book === currentTargetVerse.book && s.chapter === currentTargetVerse.chapter && s.verse === currentTargetVerse.verse);
         if (index > -1) {
@@ -4543,6 +4537,7 @@ function updatePillUI() {
 }
 
 function selectVerse(verseObj, type, elementId, forceSelect = false) {
+    if (verseObj && verseObj.isAd) return;
     // Clear all existing saved verse element highlights to prevent multi-selection
     document.querySelectorAll('.saved-verse').forEach(el => {
         el.style.background = '';
@@ -4838,12 +4833,85 @@ function handlePillShare(e) {
         return;
     }
     
-    const text = selectedVerse.text + " - " + selectedVerse.book + " " + selectedVerse.chapter + ":" + selectedVerse.verse;
-    if (navigator.share) {
-        navigator.share({ title: 'Daily Verse', text: text }).catch(console.error);
-    } else {
-        navigator.clipboard.writeText(text);
-        showToast('Copied to clipboard!');
+    generateAndShareImage(selectedVerse, selectedVerse.elementId);
+}
+
+async function generateAndShareImage(verseObj, elementId) {
+    if (!verseObj || !window.html2canvas) {
+        // Fallback to text
+        const text = verseObj.text + " - " + verseObj.book + " " + verseObj.chapter + ":" + verseObj.verse;
+        if (navigator.share) {
+            navigator.share({ title: 'Daily Verse', text: text }).catch(console.error);
+        } else {
+            navigator.clipboard.writeText(text);
+            showToast('Copied to clipboard!');
+        }
+        return;
+    }
+    
+    let targetEl;
+    if (elementId) {
+        targetEl = document.getElementById(elementId);
+    } 
+    if (!targetEl) {
+        targetEl = document.querySelector('.verse-card.card-center');
+    }
+    
+    if (!targetEl) return;
+    
+    showToast('Preparing image...');
+    
+    try {
+        const originalBoxShadow = targetEl.style.boxShadow;
+        targetEl.style.boxShadow = 'none';
+        
+        const brandingEl = document.createElement('div');
+        brandingEl.innerText = 'VerseFeed';
+        brandingEl.style.position = 'absolute';
+        brandingEl.style.bottom = '15px';
+        brandingEl.style.left = '0';
+        brandingEl.style.width = '100%';
+        brandingEl.style.textAlign = 'center';
+        brandingEl.style.fontSize = '1.2rem';
+        brandingEl.style.fontWeight = 'bold';
+        brandingEl.style.opacity = '0.5';
+        brandingEl.style.color = 'var(--text-color)';
+        targetEl.appendChild(brandingEl);
+        
+        const canvas = await html2canvas(targetEl, {
+            backgroundColor: document.body.getAttribute('data-theme') === 'dark' ? '#121212' : '#f5f7fa',
+            scale: 2,
+            logging: false
+        });
+        
+        targetEl.removeChild(brandingEl);
+        targetEl.style.boxShadow = originalBoxShadow;
+        
+        canvas.toBlob(async (blob) => {
+            if (!blob) return;
+            const file = new File([blob], 'versefeed_share.png', { type: 'image/png' });
+            const text = verseObj.text + " - " + verseObj.book + " " + verseObj.chapter + ":" + verseObj.verse;
+            
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        title: 'Daily Verse',
+                        text: text,
+                        files: [file]
+                    });
+                } catch (e) {
+                    console.error("Share failed", e);
+                }
+            } else if (navigator.share) {
+                navigator.share({ title: 'Daily Verse', text: text }).catch(console.error);
+            } else {
+                navigator.clipboard.writeText(text);
+                showToast('Copied to clipboard!');
+            }
+        }, 'image/png');
+    } catch (e) {
+        console.error('Error generating image', e);
+        showToast('Failed to generate image');
     }
 }
 
@@ -4993,94 +5061,121 @@ async function syncUserDataWithGoogleDrive(accessToken) {
             const remoteData = await fileRes.json();
             
             if (remoteData && typeof remoteData === 'object') {
-                // Restore savedVerses strictly from cloud (sandbox handles separation)
+                const localState = getLocalState();
+                const remoteIsNewer = (remoteData.updatedAt || 0) > (localState.updatedAt || 0);
+
+                // Merge savedVerses (Union by ID)
+                let mergedSavedVerses = [...(localState.savedVerses || [])];
                 if (Array.isArray(remoteData.savedVerses)) {
-                    savedVerses = remoteData.savedVerses;
-                    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                    remoteData.savedVerses.forEach(rv => {
+                        if (!mergedSavedVerses.find(lv => lv.id === rv.id)) {
+                            mergedSavedVerses.push(rv);
+                        }
+                    });
                 }
-                // Restore createdAlbums strictly from cloud
+                savedVerses = mergedSavedVerses;
+                localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+
+                // Merge createdAlbums (Union by ID)
+                let mergedAlbums = [...(localState.createdAlbums || [])];
                 if (Array.isArray(remoteData.createdAlbums)) {
-                    createdAlbums = remoteData.createdAlbums;
-                    localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
+                    remoteData.createdAlbums.forEach(ra => {
+                        if (!mergedAlbums.find(la => la.id === ra.id)) {
+                            mergedAlbums.push(ra);
+                        }
+                    });
                 }
-                // Restore bookMarkedVerse strictly from cloud
+                createdAlbums = mergedAlbums;
+                localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
+
+                // Merge bookMarkedVerse
+                let mergedBookmarks = Object.assign({}, localState.bookMarkedVerse || {});
                 if (remoteData.bookMarkedVerse && typeof remoteData.bookMarkedVerse === 'object') {
-                    bookMarkedVerse = remoteData.bookMarkedVerse;
-                    localStorage.setItem('bookMarkedVerse', JSON.stringify(bookMarkedVerse));
+                    Object.keys(remoteData.bookMarkedVerse).forEach(k => {
+                        if (!mergedBookmarks[k]) mergedBookmarks[k] = remoteData.bookMarkedVerse[k];
+                    });
                 }
-                // Restore globalSelectedRels (Topic selection) strictly from cloud
-                if (Array.isArray(remoteData.globalSelectedRels) && remoteData.globalSelectedRels.length > 0) {
-                    globalSelectedRels = remoteData.globalSelectedRels.filter(r => ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Sikhism', 'Judaism', 'Philosophy'].includes(r));
-                } else {
-                    globalSelectedRels = [...religions];
-                }
-                localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
-                // Restore Dark Mode
-                if (typeof remoteData.darkModeEnabled !== 'undefined') {
-                    darkModeEnabled = remoteData.darkModeEnabled === true || remoteData.darkModeEnabled === 'true';
-                    localStorage.setItem('darkModeEnabled', darkModeEnabled);
-                    if (darkModeEnabled) {
-                        document.body.setAttribute('data-theme', 'dark');
+                bookMarkedVerse = mergedBookmarks;
+                localStorage.setItem('bookMarkedVerse', JSON.stringify(bookMarkedVerse));
+
+                // Preferences: Overwrite local ONLY if cloud is newer
+                if (remoteIsNewer) {
+                    // Restore globalSelectedRels (Topic selection) strictly from cloud
+                    if (Array.isArray(remoteData.globalSelectedRels) && remoteData.globalSelectedRels.length > 0) {
+                        globalSelectedRels = remoteData.globalSelectedRels.filter(r => ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Sikhism', 'Judaism', 'Philosophy'].includes(r));
                     } else {
-                        document.body.removeAttribute('data-theme');
+                        globalSelectedRels = [...religions];
                     }
-                    updateDarkModeIcon(darkModeEnabled);
-                }
-                // Restore Voice Selection
-                if (remoteData.selectedVoice) {
-                    selectedVoice = remoteData.selectedVoice;
-                    localStorage.setItem('selectedVoice', selectedVoice);
-                    syncVoiceWheelToCurrent();
-                }
-                // Restore TTS Announce Source
-                if (typeof remoteData.ttsAnnounceSource !== 'undefined') {
-                    ttsAnnounceSource = remoteData.ttsAnnounceSource === true || remoteData.ttsAnnounceSource === 'true';
-                    localStorage.setItem('ttsAnnounceSource', ttsAnnounceSource);
-                }
-                // Restore TTS Random Voice
-                if (typeof remoteData.ttsRandomVoice !== 'undefined') {
-                    ttsRandomVoice = remoteData.ttsRandomVoice === true || remoteData.ttsRandomVoice === 'true';
-                    localStorage.setItem('ttsRandomVoice', ttsRandomVoice);
-                }
-                // Restore Music Volume & Enabled
-                if (typeof remoteData.musicVolume !== 'undefined') {
-                    localStorage.setItem('musicVolume', remoteData.musicVolume);
-                    if (typeof audio !== 'undefined' && audio) audio.volume = parseFloat(remoteData.musicVolume);
-                    const slider = document.getElementById('music-volume-slider');
-                    if (slider) slider.value = remoteData.musicVolume;
-                }
-                if (typeof remoteData.musicEnabled !== 'undefined') {
-                    const musicEnabled = remoteData.musicEnabled === true || remoteData.musicEnabled === 'true';
-                    localStorage.setItem('musicEnabled', musicEnabled);
-                    const musicBtn = document.getElementById('music-toggle');
-                    if (musicBtn) {
-                        if (musicEnabled) {
-                            if (typeof audio !== 'undefined' && audio) {
-                                audio.play().then(() => {
-                                    musicBtn.classList.add('active');
-                                }).catch(e => {
-                                    const playOnInteract = () => {
-                                        if (localStorage.getItem('musicEnabled') !== 'false') {
-                                            audio.play().then(() => {
-                                                const btn = document.getElementById('music-toggle');
-                                                if (btn) btn.classList.add('active');
-                                                document.removeEventListener('click', playOnInteract);
-                                                document.removeEventListener('pointerdown', playOnInteract);
-                                                document.removeEventListener('touchstart', playOnInteract);
-                                            }).catch(err => {});
-                                        }
-                                    };
-                                    document.addEventListener('click', playOnInteract);
-                                    document.addEventListener('pointerdown', playOnInteract);
-                                    document.addEventListener('touchstart', playOnInteract, {passive: true});
-                                });
-                            }
+                    localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
+                    
+                    // Restore Dark Mode
+                    if (typeof remoteData.darkModeEnabled !== 'undefined') {
+                        darkModeEnabled = remoteData.darkModeEnabled === true || remoteData.darkModeEnabled === 'true';
+                        localStorage.setItem('darkModeEnabled', darkModeEnabled);
+                        if (darkModeEnabled) {
+                            document.body.setAttribute('data-theme', 'dark');
                         } else {
-                            musicBtn.classList.remove('active');
-                            if (typeof audio !== 'undefined' && audio) audio.pause();
+                            document.body.removeAttribute('data-theme');
+                        }
+                        updateDarkModeIcon(darkModeEnabled);
+                    }
+                    // Restore Voice Selection
+                    if (remoteData.selectedVoice) {
+                        selectedVoice = remoteData.selectedVoice;
+                        localStorage.setItem('selectedVoice', selectedVoice);
+                        syncVoiceWheelToCurrent();
+                    }
+                    // Restore TTS Announce Source
+                    if (typeof remoteData.ttsAnnounceSource !== 'undefined') {
+                        ttsAnnounceSource = remoteData.ttsAnnounceSource === true || remoteData.ttsAnnounceSource === 'true';
+                        localStorage.setItem('ttsAnnounceSource', ttsAnnounceSource);
+                    }
+                    // Restore TTS Random Voice
+                    if (typeof remoteData.ttsRandomVoice !== 'undefined') {
+                        ttsRandomVoice = remoteData.ttsRandomVoice === true || remoteData.ttsRandomVoice === 'true';
+                        localStorage.setItem('ttsRandomVoice', ttsRandomVoice);
+                    }
+                    // Restore Music Volume & Enabled
+                    if (typeof remoteData.musicVolume !== 'undefined') {
+                        localStorage.setItem('musicVolume', remoteData.musicVolume);
+                        if (typeof audio !== 'undefined' && audio) audio.volume = parseFloat(remoteData.musicVolume);
+                        const slider = document.getElementById('music-volume-slider');
+                        if (slider) slider.value = remoteData.musicVolume;
+                    }
+                    if (typeof remoteData.musicEnabled !== 'undefined') {
+                        const musicEnabled = remoteData.musicEnabled === true || remoteData.musicEnabled === 'true';
+                        localStorage.setItem('musicEnabled', musicEnabled);
+                        const musicBtn = document.getElementById('music-toggle');
+                        if (musicBtn) {
+                            if (musicEnabled) {
+                                if (typeof audio !== 'undefined' && audio) {
+                                    audio.play().then(() => {
+                                        musicBtn.classList.add('active');
+                                    }).catch(e => {
+                                        const playOnInteract = () => {
+                                            if (localStorage.getItem('musicEnabled') !== 'false') {
+                                                audio.play().then(() => {
+                                                    const btn = document.getElementById('music-toggle');
+                                                    if (btn) btn.classList.add('active');
+                                                    document.removeEventListener('click', playOnInteract);
+                                                    document.removeEventListener('pointerdown', playOnInteract);
+                                                    document.removeEventListener('touchstart', playOnInteract);
+                                                }).catch(err => {});
+                                            }
+                                        };
+                                        document.addEventListener('click', playOnInteract);
+                                        document.addEventListener('pointerdown', playOnInteract);
+                                        document.addEventListener('touchstart', playOnInteract, {passive: true});
+                                    });
+                                }
+                            } else {
+                                musicBtn.classList.remove('active');
+                                if (typeof audio !== 'undefined' && audio) audio.pause();
+                            }
                         }
                     }
                 }
+                
                 updateTogglesUI();
                 if (typeof syncVoiceWheelToCurrent === 'function') syncVoiceWheelToCurrent();
                 if (typeof showSavedVerses === 'function') showSavedVerses();
