@@ -382,8 +382,24 @@ let lastActiveChapterIdx = -1;
 let isProgrammaticScroll = false;
 // (System TTS fallback setup removed, purely using offline Piper TTS)
 
+async function checkForAppUpdates() {
+    if (!window.Capacitor || !Capacitor.isNative) return;
+    try {
+        const AppUpdate = Capacitor.Plugins.AppUpdate;
+        if (AppUpdate) {
+            const result = await AppUpdate.getAppUpdateInfo();
+            // 2 = UPDATE_AVAILABLE
+            if (result.updateAvailability === 2 && result.immediateUpdateAllowed) {
+                await AppUpdate.performImmediateUpdate();
+            }
+        }
+    } catch (e) {
+        console.error("App Update check failed:", e);
+    }
+}
 
 async function initApp() {
+    checkForAppUpdates();
     updateUserUI();
     switchProfile(getActiveProfileId());
     applyAutoSpeed(selectedVoice);
@@ -1901,23 +1917,16 @@ function renderFeedCard(index, direction = 'none') {
     if (verse) {
         if (verse.isAd) {
             textEl.innerHTML = `
-                <div class="ad-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 10px; font-weight: bold; text-align: center;">Sponsored</div>
-                <div class="ad-container" style="width: 100%; min-height: 250px; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.05); border-radius: 12px; margin-bottom: 20px;">
-                    <!-- PASTE YOUR GOOGLE ADSENSE CODE HERE -->
-                    <ins class="adsbygoogle"
-                         style="display:block"
-                         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-                         data-ad-slot="XXXXXXXXXX"
-                         data-ad-format="auto"
-                         data-full-width-responsive="true"></ins>
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 20px;">
+                    <div style="font-size: 3rem; margin-bottom: 10px;">🌟</div>
+                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--text-color);">Support Our Mission</div>
+                    <div style="font-size: 1.1rem; opacity: 0.8; max-width: 80%; line-height: 1.5;">Do you want to support us? Consider getting Premium to unlock exclusive features and offline voices.</div>
+                    <button onclick="openPremiumModal()" class="action-btn" style="background: var(--bg-grad-1); color: #fff; border: none; padding: 15px 30px; border-radius: 30px; font-size: 1.1rem; font-weight: bold; margin-top: 20px; box-shadow: 0 4px 15px rgba(255,107,107,0.4); cursor: pointer; transform: scale(1); transition: transform 0.2s;">
+                        Get Premium
+                    </button>
                 </div>
             `;
-            // Execute the AdSense script
-            setTimeout(() => {
-                try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
-            }, 100);
-            
-            refEl.innerText = 'Advertisement';
+            refEl.innerText = 'Support Us';
         } else {
             let displayVerse = cleanText(verse.text);
             // Clean/strip author attribution and other HTML tags for the feed card display
@@ -1954,11 +1963,30 @@ function renderFeedCard(index, direction = 'none') {
         }
     });
 }
-let adSwipeCounter = 0;
+
+let versesSinceLastPromo = 0;
+let nextPromoTarget = Math.floor(Math.random() * (20 - 14 + 1)) + 14; // Random between 14 and 20
 
 function nextCard(isAuto = false) {
     const wasPlaying = isSpeaking && !isPaused;
     stopAudio();
+
+    versesSinceLastPromo++;
+    if (versesSinceLastPromo >= nextPromoTarget) {
+        versesSinceLastPromo = 0;
+        nextPromoTarget = Math.floor(Math.random() * (20 - 14 + 1)) + 14;
+        
+        // Inject Premium Promo verse
+        const adVerse = {
+            text: "Hey! Do you want to support us? Consider getting Premium to unlock more features.",
+            book: "Premium",
+            chapter: "Support",
+            verse: "Us",
+            religion: "System",
+            isAd: true
+        };
+        verseBatches.general.splice(currentVerseIndex.general + 1, 0, adVerse);
+    }
 
     currentVerseIndex.general++;
     renderFeedCard(currentVerseIndex.general, 'next');
