@@ -4494,10 +4494,20 @@ function updatePillUI() {
     
     const navMenu = document.getElementById('top-nav-menu');
     if (selectedVerse) {
-        playBtn.classList.add('pill-active');
+        let shouldExpand = true;
+        if (selectedVerse.type === 'feed' && !selectedVerse.isManual) {
+            shouldExpand = false;
+        }
+
+        if (shouldExpand) {
+            playBtn.classList.add('pill-active');
+            if (navMenu) navMenu.classList.add('pill-active-menu');
+        } else {
+            playBtn.classList.remove('pill-active');
+            if (navMenu) navMenu.classList.remove('pill-active-menu');
+        }
         playBtn.style.display = 'flex';
         playBtn.style.visibility = 'visible';
-        if (navMenu) navMenu.classList.add('pill-active-menu');
     } else {
         playBtn.classList.remove('pill-active');
         if (navMenu) navMenu.classList.remove('pill-active-menu');
