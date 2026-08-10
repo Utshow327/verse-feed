@@ -4960,14 +4960,14 @@ function confirmRenameAlbum() { submitRenameAlbum(); }
 // FIREBASE AUTHENTICATION & FIRESTORE CLOUD SYNC
 // ==============================================
 
-// Paste your Firebase Config keys here (from Firebase Console -> Project Settings -> General -> Your apps)
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "SENDER_ID",
-    appId: "APP_ID"
+  apiKey: "AIzaSyCy1lG5CcGlMj4qGEuUJt-8L_Tul6ZMrKM",
+  authDomain: "religionapp-38998.firebaseapp.com",
+  projectId: "religionapp-38998",
+  storageBucket: "religionapp-38998.firebasestorage.app",
+  messagingSenderId: "131330287162",
+  appId: "1:131330287162:web:84e3694ec4d07987163703",
+  measurementId: "G-R240CQB881"
 };
 
 let db = null;
