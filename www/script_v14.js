@@ -5123,6 +5123,7 @@ function switchAuthTab(mode) {
     const btnSignup = document.getElementById('auth-tab-signup');
     const nameContainer = document.getElementById('auth-name-container');
     const confirmContainer = document.getElementById('auth-confirm-container');
+    const googleContainer = document.getElementById('auth-google-container');
     const submitBtn = document.getElementById('auth-submit-btn');
 
     if (mode === 'signin') {
@@ -5136,6 +5137,7 @@ function switchAuthTab(mode) {
         }
         if (nameContainer) nameContainer.style.display = 'none';
         if (confirmContainer) confirmContainer.style.display = 'none';
+        if (googleContainer) googleContainer.style.display = 'flex';
         if (submitBtn) submitBtn.innerText = 'Sign In';
     } else {
         if (btnSignup) {
@@ -5148,7 +5150,8 @@ function switchAuthTab(mode) {
         }
         if (nameContainer) nameContainer.style.display = 'flex';
         if (confirmContainer) confirmContainer.style.display = 'flex';
-        if (submitBtn) submitBtn.innerText = 'Create Account';
+        if (googleContainer) googleContainer.style.display = 'none';
+        if (submitBtn) submitBtn.innerText = 'Sign Up';
     }
 }
 
