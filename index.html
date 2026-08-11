@@ -451,25 +451,25 @@
             <!-- Form Container -->
             <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; margin: 10px 0 6px 0;">
                 <!-- Form Inputs (Upper Section) -->
-                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px;">
-                    <div id="auth-name-container" style="display: none; flex-direction: column; gap: 3px;">
-                        <label style="font-size: 0.75rem; opacity: 0.7; text-align: left; padding-left: 2px;">Full Name</label>
-                        <input type="text" id="auth-name" placeholder="John Doe" autocomplete="name" style="width: 100%; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--card-bg); color: var(--text-color); font-family: inherit; box-sizing: border-box;">
+                <div style="display: flex; flex-direction: column; gap: 18px; margin-top: 14px;">
+                    <div id="auth-name-container" style="display: none; flex-direction: column; gap: 4px;">
+                        <label style="font-size: 0.75rem; opacity: 0.7; text-align: left; padding-left: 12px; margin: 0;">Full Name</label>
+                        <input type="text" id="auth-name" placeholder="John Doe" autocomplete="name" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--card-bg); color: var(--text-color); font-family: inherit; box-sizing: border-box;">
                     </div>
 
-                    <div style="display: flex; flex-direction: column; gap: 3px;">
-                        <label style="font-size: 0.75rem; opacity: 0.7; text-align: left; padding-left: 2px;">Email Address</label>
-                        <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email" style="width: 100%; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--card-bg); color: var(--text-color); font-family: inherit; box-sizing: border-box;">
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <label style="font-size: 0.75rem; opacity: 0.7; text-align: left; padding-left: 12px; margin: 0;">Email Address</label>
+                        <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--card-bg); color: var(--text-color); font-family: inherit; box-sizing: border-box;">
                     </div>
 
-                    <div style="display: flex; flex-direction: column; gap: 3px;">
-                        <label style="font-size: 0.75rem; opacity: 0.7; text-align: left; padding-left: 2px;">Password</label>
-                        <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password" style="width: 100%; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--card-bg); color: var(--text-color); font-family: inherit; box-sizing: border-box;">
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <label style="font-size: 0.75rem; opacity: 0.7; text-align: left; padding-left: 12px; margin: 0;">Password</label>
+                        <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--card-bg); color: var(--text-color); font-family: inherit; box-sizing: border-box;">
                     </div>
 
-                    <div id="auth-confirm-container" style="display: none; flex-direction: column; gap: 3px;">
-                        <label style="font-size: 0.75rem; opacity: 0.7; text-align: left; padding-left: 2px;">Confirm Password</label>
-                        <input type="password" id="auth-confirm-password" placeholder="••••••••" autocomplete="new-password" style="width: 100%; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--card-bg); color: var(--text-color); font-family: inherit; box-sizing: border-box;">
+                    <div id="auth-confirm-container" style="display: none; flex-direction: column; gap: 4px;">
+                        <label style="font-size: 0.75rem; opacity: 0.7; text-align: left; padding-left: 12px; margin: 0;">Confirm Password</label>
+                        <input type="password" id="auth-confirm-password" placeholder="••••••••" autocomplete="new-password" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--card-bg); color: var(--text-color); font-family: inherit; box-sizing: border-box;">
                     </div>
                 </div>
 
@@ -547,6 +547,7 @@
         </div>
     </div>
     <!-- Premium Paywall Modal -->
+    <input type="file" id="user-avatar-file-input" style="display: none;" accept="image/*" onchange="handleAvatarUpload(event)" />
     <div id="premium-modal" class="modal-overlay hidden" onclick="closePremiumModal()">
         <div class="modal-content premium-paywall" onclick="event.stopPropagation()">
             <div class="premium-modal-inner">
