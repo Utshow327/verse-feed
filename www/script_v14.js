@@ -5353,7 +5353,7 @@ function formatFirebaseAuthError(error) {
         case 'auth/user-not-found':
             return "No account found with this email. Switch to Sign Up above.";
         case 'auth/email-already-in-use':
-            return "An account already exists with this email. Switch to Sign In above.";
+            return "An account already exists with this email. If this is your email, switch to Sign In & click 'Forgot Password'.";
         case 'auth/invalid-email':
             return "Please enter a valid email address.";
         case 'auth/weak-password':
@@ -5473,29 +5473,8 @@ function handleEmailSignUp() {
             }
         })
         .catch((error) => {
-            if (error && error.code === 'auth/email-already-in-use') {
-                const actionCodeSettings = {
-                    url: window.location.origin + window.location.pathname,
-                    handleCodeInApp: true
-                };
-                firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings)
-                    .then(() => {
-                        localStorage.setItem('verification_resend_time', Date.now());
-                        closeEmailAuthModal();
-                        showEmailVerifyModal(email);
-                    })
-                    .catch(() => {
-                        // Fallback to sending password reset / verification link if email link is disabled in console
-                        firebase.auth().sendPasswordResetEmail(email).finally(() => {
-                            localStorage.setItem('verification_resend_time', Date.now());
-                            closeEmailAuthModal();
-                            showEmailVerifyModal(email);
-                        });
-                    });
-            } else {
-                console.error("Email Sign Up Error:", error);
-                showAuthErrorMsg(formatFirebaseAuthError(error));
-            }
+            console.error("Email Sign Up Error:", error);
+            showAuthErrorMsg(formatFirebaseAuthError(error));
         });
 }
 
