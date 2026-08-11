@@ -5385,7 +5385,8 @@ function handleEmailSignUp() {
 let isGooglePopupOpen = false;
 
 function toggleGoogleAuth() {
-    if (googleUser) {
+    const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+    if (googleUser || user) {
         openUserProfileModal();
     } else {
         openEmailAuthModal('signin');
@@ -5535,25 +5536,34 @@ async function loadUserDataFromFirestore(uid) {
 
 
 function openUserProfileModal() {
-    if (!googleUser) return;
+    const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+    if (!googleUser && !user) {
+        openEmailAuthModal('signin');
+        return;
+    }
+    if (typeof cancelNameEditMode === 'function') cancelNameEditMode();
     const modal = document.getElementById('user-profile-modal');
     const nameEl = document.getElementById('user-modal-name');
     const emailEl = document.getElementById('user-modal-email');
     const imgEl = document.getElementById('user-modal-avatar-img');
     const txtEl = document.getElementById('user-modal-avatar-text');
     
-    if (nameEl) nameEl.innerText = googleUser.name || 'User';
-    if (emailEl) emailEl.innerText = googleUser.email || '';
+    const name = (googleUser && googleUser.name) || (user && (user.displayName || user.email)) || 'User';
+    const email = (googleUser && googleUser.email) || (user && user.email) || '';
+    const picture = (googleUser && googleUser.picture) || (user && user.photoURL) || localStorage.getItem('customUserAvatar') || '';
+
+    if (nameEl) nameEl.innerText = name;
+    if (emailEl) emailEl.innerText = email;
     
     if (imgEl && txtEl) {
-        if (googleUser.picture) {
-            imgEl.src = googleUser.picture;
+        if (picture) {
+            imgEl.src = picture;
             imgEl.style.display = 'block';
             txtEl.style.display = 'none';
         } else {
             imgEl.style.display = 'none';
             txtEl.style.display = 'inline';
-            txtEl.innerText = googleUser.name ? googleUser.name.charAt(0).toUpperCase() : 'U';
+            txtEl.innerText = name ? name.charAt(0).toUpperCase() : 'U';
         }
     }
     
