@@ -4972,6 +4972,41 @@ const firebaseConfig = {
 
 let db = null;
 
+function applyUserAuthSuccess(user) {
+    if (!user) return;
+    googleUser = {
+        name: user.displayName || user.email || 'User',
+        picture: user.photoURL || '',
+        email: user.email || '',
+        sub: user.uid
+    };
+    try { originalSetItem.call(localStorage, 'googleUser', JSON.stringify(googleUser)); } catch(e){}
+    
+    switchProfile('account_' + user.uid);
+    loadUserDataFromFirestore(user.uid);
+    
+    if (document.getElementById('onboarding') && document.getElementById('onboarding').classList.contains('active-section')) {
+        goTo('verse-feed');
+    }
+    closeEmailAuthModal();
+    closeEmailVerifyModal();
+    updatePremiumModalActions();
+    updateUserUI();
+}
+
+function updatePremiumModalActions() {
+    const btn = document.querySelector('.premium-buy-pill');
+    if (!btn) return;
+    const txt = btn.querySelector('.premium-buy-pill-text');
+    if (googleUser || (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser)) {
+        if (txt) txt.innerText = 'Get Premium — $2.99/mo';
+        btn.onclick = typeof simulatePurchase === 'function' ? simulatePurchase : function(){};
+    } else {
+        if (txt) txt.innerText = 'Login to Buy Premium';
+        btn.onclick = () => { if(typeof closePremiumModal === 'function') closePremiumModal(); openEmailAuthModal('signin'); };
+    }
+}
+
 function initFirebaseAuth() {
     if (typeof firebase === 'undefined') return;
     
@@ -4988,27 +5023,22 @@ function initFirebaseAuth() {
         
         firebase.auth().onAuthStateChanged((user) => {
             if (user) {
-                googleUser = {
-                    name: user.displayName || user.email || 'User',
-                    picture: user.photoURL || '',
-                    email: user.email || '',
-                    sub: user.uid
-                };
-                originalSetItem.call(localStorage, 'googleUser', JSON.stringify(googleUser));
-                
-                switchProfile('account_' + user.uid);
-                loadUserDataFromFirestore(user.uid);
-                
-                if (document.getElementById('onboarding') && document.getElementById('onboarding').classList.contains('active-section')) {
-                    goTo('verse-feed');
+                const isPasswordUser = user.providerData && user.providerData.some(p => p.providerId === 'password');
+                if (isPasswordUser && !user.emailVerified) {
+                    googleUser = null;
+                    try { originalRemoveItem.call(localStorage, 'googleUser'); } catch(e){}
+                    switchProfile('guest');
+                    updatePremiumModalActions();
+                    updateUserUI();
+                    showEmailVerifyModal(user.email);
+                } else {
+                    applyUserAuthSuccess(user);
                 }
-                
-                updatePremiumModalActions();
-                updateUserUI();
             } else {
                 googleUser = null;
-                originalRemoveItem.call(localStorage, 'googleUser');
+                try { originalRemoveItem.call(localStorage, 'googleUser'); } catch(e){}
                 switchProfile('guest');
+                closeEmailVerifyModal();
                 updatePremiumModalActions();
                 updateUserUI();
             }
@@ -5020,14 +5050,206 @@ document.addEventListener('DOMContentLoaded', () => {
     initFirebaseAuth();
 });
 
-function updatePremiumModalActions() {
-    const getPremiumBtn = document.getElementById('get-premium-btn');
-    if(getPremiumBtn) {
-        if(typeof googleUser !== 'undefined' && googleUser) {
-            getPremiumBtn.textContent = "Get Premium ($0.99)";
+function showEmailVerifyModal(email) {
+    const modal = document.getElementById('email-verify-modal');
+    const emailEl = document.getElementById('verify-modal-email');
+    if (emailEl) emailEl.innerText = email || '';
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeEmailVerifyModal() {
+    const modal = document.getElementById('email-verify-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function checkEmailVerification() {
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        showToast("No active user session. Please sign in.");
+        closeEmailVerifyModal();
+        return;
+    }
+    showToast("Checking verification status...");
+    user.reload().then(() => {
+        if (user.emailVerified) {
+            showToast("Email verified successfully! Welcome!");
+            applyUserAuthSuccess(user);
         } else {
-            getPremiumBtn.textContent = "Login to Buy Premium";
+            showToast("Email is not verified yet. Please check your inbox or spam folder.");
         }
+    }).catch(err => {
+        console.error("Reload user error:", err);
+        showToast("Failed to verify status. Please try again.");
+    });
+}
+
+function resendVerificationEmail() {
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+    user.sendEmailVerification().then(() => {
+        showToast("Verification email resent! Check your inbox or spam.");
+    }).catch(err => {
+        console.error("Resend verification error:", err);
+        showToast(err.message || "Failed to resend email.");
+    });
+}
+
+function cancelEmailVerification() {
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+        firebase.auth().signOut().catch(() => {});
+    }
+    closeEmailVerifyModal();
+}
+
+let currentAuthMode = 'signin';
+
+function openEmailAuthModal(tab = 'signin') {
+    switchAuthTab(tab);
+    const modal = document.getElementById('email-auth-modal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeEmailAuthModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    const modal = document.getElementById('email-auth-modal');
+    if (modal) modal.classList.add('hidden');
+    clearAuthErrorMsg();
+}
+
+function switchAuthTab(mode) {
+    currentAuthMode = mode;
+    clearAuthErrorMsg();
+    const btnSignin = document.getElementById('auth-tab-signin');
+    const btnSignup = document.getElementById('auth-tab-signup');
+    const nameContainer = document.getElementById('auth-name-container');
+    const confirmContainer = document.getElementById('auth-confirm-container');
+    const submitBtn = document.getElementById('auth-submit-btn');
+
+    if (mode === 'signin') {
+        if (btnSignin) {
+            btnSignin.style.background = 'var(--card-bg)';
+            btnSignin.style.opacity = '1';
+        }
+        if (btnSignup) {
+            btnSignup.style.background = 'transparent';
+            btnSignup.style.opacity = '0.6';
+        }
+        if (nameContainer) nameContainer.style.display = 'none';
+        if (confirmContainer) confirmContainer.style.display = 'none';
+        if (submitBtn) submitBtn.innerText = 'Sign In';
+    } else {
+        if (btnSignup) {
+            btnSignup.style.background = 'var(--card-bg)';
+            btnSignup.style.opacity = '1';
+        }
+        if (btnSignin) {
+            btnSignin.style.background = 'transparent';
+            btnSignin.style.opacity = '0.6';
+        }
+        if (nameContainer) nameContainer.style.display = 'flex';
+        if (confirmContainer) confirmContainer.style.display = 'flex';
+        if (submitBtn) submitBtn.innerText = 'Create Account';
+    }
+}
+
+function showAuthErrorMsg(msg, isInfo = false) {
+    const errorEl = document.getElementById('auth-error-msg');
+    if (errorEl) {
+        errorEl.innerText = msg || '';
+        errorEl.style.color = isInfo ? 'var(--accent)' : '#ff4757';
+    }
+}
+
+function clearAuthErrorMsg() {
+    showAuthErrorMsg('');
+}
+
+function submitAuthForm() {
+    if (currentAuthMode === 'signin') {
+        handleEmailSignIn();
+    } else {
+        handleEmailSignUp();
+    }
+}
+
+function handleEmailSignIn() {
+    clearAuthErrorMsg();
+    const emailEl = document.getElementById('auth-email');
+    const passEl = document.getElementById('auth-password');
+    if (!emailEl || !passEl) return;
+    const email = emailEl.value.trim();
+    const password = passEl.value;
+    if (!email || !password) {
+        showAuthErrorMsg("Please enter email and password");
+        return;
+    }
+    showAuthErrorMsg("Signing in...", true);
+    firebase.auth().signInWithEmailAndPassword(email, password)
+        .then((result) => {
+            if (result && result.user) {
+                if (!result.user.emailVerified) {
+                    closeEmailAuthModal();
+                    showEmailVerifyModal(result.user.email);
+                } else {
+                    applyUserAuthSuccess(result.user);
+                    showToast("Signed in successfully!");
+                }
+            }
+        })
+        .catch((error) => {
+            console.error("Email Sign In Error:", error);
+            showAuthErrorMsg(error.message || "Sign in failed");
+        });
+}
+
+function handleEmailSignUp() {
+    clearAuthErrorMsg();
+    const nameEl = document.getElementById('auth-name');
+    const emailEl = document.getElementById('auth-email');
+    const passEl = document.getElementById('auth-password');
+    const confirmPassEl = document.getElementById('auth-confirm-password');
+
+    const name = nameEl ? nameEl.value.trim() : '';
+    const email = emailEl ? emailEl.value.trim() : '';
+    const password = passEl ? passEl.value : '';
+    const confirmPassword = confirmPassEl ? confirmPassEl.value : '';
+
+    if (!name) { showAuthErrorMsg("Please enter your name"); return; }
+    if (!email || !password) { showAuthErrorMsg("Please enter email & password"); return; }
+    if (password.length < 6) { showAuthErrorMsg("Password must be at least 6 characters"); return; }
+    if (password !== confirmPassword) { showAuthErrorMsg("Passwords do not match"); return; }
+
+    showAuthErrorMsg("Creating account...", true);
+
+    firebase.auth().createUserWithEmailAndPassword(email, password)
+        .then((result) => {
+            if (result && result.user) {
+                if (name && result.user.updateProfile) {
+                    result.user.updateProfile({ displayName: name }).catch(() => {});
+                }
+                result.user.sendEmailVerification().then(() => {
+                    closeEmailAuthModal();
+                    showEmailVerifyModal(email);
+                }).catch((err) => {
+                    console.error("Error sending email verification:", err);
+                    closeEmailAuthModal();
+                    showEmailVerifyModal(email);
+                });
+            }
+        })
+        .catch((error) => {
+            console.error("Email Sign Up Error:", error);
+            showAuthErrorMsg(error.message || "Failed to create account");
+        });
+}
+
+let isGooglePopupOpen = false;
+
+function toggleGoogleAuth() {
+    if (googleUser) {
+        openUserProfileModal();
+    } else {
+        openEmailAuthModal('signin');
     }
 }
 
@@ -5036,33 +5258,20 @@ function signInWithGoogle() {
         showToast("Firebase loading, please try again in a moment...");
         return;
     }
+    if (isGooglePopupOpen) return;
     
+    isGooglePopupOpen = true;
     const provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(provider).catch((error) => {
+    firebase.auth().signInWithPopup(provider).then(() => {
+        isGooglePopupOpen = false;
+        closeEmailAuthModal();
+    }).catch((error) => {
+        isGooglePopupOpen = false;
         console.error("Google Sign In Error:", error);
-        showToast("Sign in error: " + (error.message || "Failed"));
+        if (error.code !== 'auth/cancelled-popup-request' && error.code !== 'auth/popup-closed-by-user') {
+            showToast("Sign in error: " + (error.message || "Failed"));
+        }
     });
-}
-
-function confirmSignOut() {
-    if (typeof firebase !== 'undefined' && firebase.auth) {
-        firebase.auth().signOut().then(() => {
-            googleUser = null;
-            originalRemoveItem.call(localStorage, 'googleUser');
-            switchProfile('guest');
-            closeUserProfileModal();
-            updateUserUI();
-            showToast("Signed out successfully");
-        }).catch(err => {
-            console.error("Sign out error:", err);
-        });
-    } else {
-        googleUser = null;
-        originalRemoveItem.call(localStorage, 'googleUser');
-        switchProfile('guest');
-        closeUserProfileModal();
-        updateUserUI();
-    }
 }
 
 function getLocalState() {
@@ -5183,13 +5392,7 @@ async function loadUserDataFromFirestore(uid) {
     }
 }
 
-function toggleGoogleAuth() {
-    if (googleUser) {
-        openUserProfileModal();
-    } else {
-        signInWithGoogle();
-    }
-}
+
 
 function openUserProfileModal() {
     if (!googleUser) return;
@@ -5224,21 +5427,29 @@ function closeUserProfileModal(e) {
 }
 
 function confirmSignOut() {
-    googleUser = null;
-    originalRemoveItem.call(localStorage, 'googleUser');
-    googleAccessToken = null;
+    const doCleanup = () => {
+        googleUser = null;
+        try { originalRemoveItem.call(localStorage, 'googleUser'); } catch(e){}
+        googleAccessToken = null;
+        switchProfile('guest');
+        closeUserProfileModal();
+        updateUserUI();
+        updatePremiumModalActions();
+        const savedVersesEl = document.getElementById('saved-verses');
+        if (typeof showSavedVerses === 'function' && document.getElementById('saved-list') && savedVersesEl && savedVersesEl.classList.contains('active-section')) {
+            showSavedVerses();
+        }
+        showToast('Signed out, restored Guest state');
+    };
 
-    // Restore Guest Mode state completely from pf_guest storage sandbox
-    switchProfile('guest');
-
-    closeUserProfileModal();
-    updateUserUI();
-    updatePremiumModalActions();
-    const savedVersesEl = document.getElementById('saved-verses');
-    if (typeof showSavedVerses === 'function' && document.getElementById('saved-list') && savedVersesEl && savedVersesEl.classList.contains('active-section')) {
-        showSavedVerses();
+    if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+        firebase.auth().signOut().then(doCleanup).catch((err) => {
+            console.error("Firebase SignOut Error:", err);
+            doCleanup();
+        });
+    } else {
+        doCleanup();
     }
-    showToast('Signed out, restored Guest state');
 }
 
 function updateUserUI() {
