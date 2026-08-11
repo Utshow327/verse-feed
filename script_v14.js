@@ -5445,6 +5445,7 @@ function handleEmailSignUp() {
                     result.user.updateProfile({ displayName: name }).catch(() => {});
                 }
                 result.user.sendEmailVerification().then(() => {
+                    localStorage.setItem('verification_resend_time', Date.now());
                     closeEmailAuthModal();
                     showEmailVerifyModal(email);
                 }).catch((err) => {
