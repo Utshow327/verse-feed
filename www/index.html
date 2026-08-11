@@ -442,7 +442,7 @@
 
     <!-- Email Auth Modal (Sign In / Sign Up) -->
     <div id="email-auth-modal" class="modal-overlay hidden" onclick="closeEmailAuthModal(event)">
-        <div class="modal-content" onclick="event.stopPropagation()" style="width: 90%; max-width: 360px; height: 380px; padding: 20px 22px; border-radius: 20px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+        <div class="modal-content" onclick="event.stopPropagation()" style="width: 90%; max-width: 360px; height: 470px; padding: 20px 22px; border-radius: 20px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
             <!-- Tabs -->
             <div style="display: flex; background: rgba(255,255,255,0.06); border-radius: 12px; padding: 3px; border: 1px solid var(--glass-border); box-sizing: border-box; flex-shrink: 0; height: 38px;">
                 <button id="auth-tab-signin" onclick="switchAuthTab('signin')" style="flex: 1; padding: 7px; border: none; border-radius: 10px; background: var(--card-bg); color: var(--text-color); font-weight: 600; cursor: pointer; font-family: inherit; box-sizing: border-box; transition: background 0.2s ease, opacity 0.2s ease;">Sign In</button>
@@ -461,6 +461,19 @@
                     <div style="display: flex; flex-direction: column; gap: 4px;">
                         <label style="font-size: 0.75rem; opacity: 0.7; text-align: left; padding-left: 2px; margin: 0;">Email Address</label>
                         <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--card-bg); color: var(--text-color); font-family: inherit; box-sizing: border-box;">
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <label style="font-size: 0.75rem; opacity: 0.7; text-align: left; padding-left: 2px; margin: 0;">Password</label>
+                        <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--card-bg); color: var(--text-color); font-family: inherit; box-sizing: border-box;">
+                        <div id="auth-forgot-password-container" style="text-align: right; margin-top: 2px;">
+                            <span onclick="resetPassword()" style="font-size: 0.75rem; color: var(--accent); cursor: pointer; text-decoration: underline;">Forgot Password?</span>
+                        </div>
+                    </div>
+
+                    <div id="auth-confirm-container" style="display: none; flex-direction: column; gap: 4px;">
+                        <label style="font-size: 0.75rem; opacity: 0.7; text-align: left; padding-left: 2px; margin: 0;">Confirm Password</label>
+                        <input type="password" id="auth-confirm-password" placeholder="••••••••" autocomplete="new-password" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--card-bg); color: var(--text-color); font-family: inherit; box-sizing: border-box;">
                     </div>
                 </div>
 

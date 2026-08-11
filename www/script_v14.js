@@ -5334,8 +5334,10 @@ function switchAuthTab(mode) {
     const btnSignin = document.getElementById('auth-tab-signin');
     const btnSignup = document.getElementById('auth-tab-signup');
     const nameContainer = document.getElementById('auth-name-container');
+    const confirmContainer = document.getElementById('auth-confirm-container');
     const googleContainer = document.getElementById('auth-google-container');
     const submitBtn = document.getElementById('auth-submit-btn');
+    const forgotContainer = document.getElementById('auth-forgot-password-container');
 
     if (mode === 'signin') {
         if (btnSignin) {
@@ -5347,8 +5349,10 @@ function switchAuthTab(mode) {
             btnSignup.style.opacity = '0.6';
         }
         if (nameContainer) nameContainer.style.display = 'none';
+        if (confirmContainer) confirmContainer.style.display = 'none';
         if (googleContainer) googleContainer.style.display = 'flex';
-        if (submitBtn) submitBtn.innerText = 'Send Login Link';
+        if (forgotContainer) forgotContainer.style.display = 'block';
+        if (submitBtn) submitBtn.innerText = 'Sign In';
     } else {
         if (btnSignup) {
             btnSignup.style.background = 'var(--card-bg)';
@@ -5359,8 +5363,10 @@ function switchAuthTab(mode) {
             btnSignin.style.opacity = '0.6';
         }
         if (nameContainer) nameContainer.style.display = 'flex';
+        if (confirmContainer) confirmContainer.style.display = 'flex';
         if (googleContainer) googleContainer.style.display = 'none';
-        if (submitBtn) submitBtn.innerText = 'Send Verification Link';
+        if (forgotContainer) forgotContainer.style.display = 'none';
+        if (submitBtn) submitBtn.innerText = 'Sign Up';
     }
 }
 
@@ -5380,13 +5386,15 @@ function formatFirebaseAuthError(error) {
     switch (code) {
         case 'auth/invalid-credential':
         case 'auth/wrong-password':
-            return "Incorrect email address. Please check your details.";
+            return "Incorrect email or password. Please check your details.";
         case 'auth/user-not-found':
             return "No account found with this email. Switch to Sign Up above.";
         case 'auth/email-already-in-use':
             return "An account already exists with this email. Switch to Sign In above.";
         case 'auth/invalid-email':
             return "Please enter a valid email address.";
+        case 'auth/weak-password':
+            return "Password should be at least 6 characters long.";
         case 'auth/too-many-requests':
             return "Too many failed attempts. Please wait a moment and try again.";
         case 'auth/network-request-failed':
@@ -5413,26 +5421,30 @@ function submitAuthForm() {
 function handleEmailSignIn() {
     clearAuthErrorMsg();
     const emailEl = document.getElementById('auth-email');
-    if (!emailEl) return;
+    const passEl = document.getElementById('auth-password');
+    if (!emailEl || !passEl) return;
     const email = emailEl.value.trim();
-    if (!email) {
-        showAuthErrorMsg("Please enter your email address");
+    const password = passEl.value;
+    if (!email || !password) {
+        showAuthErrorMsg("Please enter email and password");
         return;
     }
-    showAuthErrorMsg("Sending login link...", true);
-    const actionCodeSettings = {
-        url: window.location.origin + window.location.pathname,
-        handleCodeInApp: true
-    };
-    firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings)
-        .then(() => {
-            window.localStorage.setItem('emailForSignIn', email);
-            localStorage.setItem('verification_resend_time', Date.now());
-            closeEmailAuthModal();
-            showEmailVerifyModal(email);
+    showAuthErrorMsg("Signing in...", true);
+    firebase.auth().signInWithEmailAndPassword(email, password)
+        .then((result) => {
+            if (result && result.user) {
+                if (!result.user.emailVerified) {
+                    closeEmailAuthModal();
+                    showEmailVerifyModal(result.user.email);
+                    showToast("Please verify your email to complete sign in.");
+                } else {
+                    applyUserAuthSuccess(result.user);
+                    showToast("Signed in successfully!");
+                }
+            }
         })
         .catch((error) => {
-            console.error("Email Sign In Link Error:", error);
+            console.error("Email Sign In Error:", error);
             showAuthErrorMsg(formatFirebaseAuthError(error));
         });
 }
