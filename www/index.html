@@ -270,8 +270,9 @@
                     <button id="user-google-btn" onclick="toggleGoogleAuth()" title="Account / Sign In" style="position: relative; overflow: hidden; width: 50px; height: 50px; border-radius: 50%; background: var(--card-bg); border: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s ease; flex-shrink: 0; padding: 0; color: var(--text-color); font-family: inherit;">
                         <img id="google-avatar-img" class="hidden" referrerpolicy="no-referrer" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
                         <svg id="google-icon-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                            <polyline points="10 17 15 12 10 7"></polyline>
+                            <line x1="15" y1="12" x2="3" y2="12"></line>
                         </svg>
                         <span id="google-avatar-text" class="hidden" style="font-weight: bold; font-size: 1.1rem;">D</span>
                     </button>
@@ -449,7 +450,7 @@
             </div>
 
             <!-- Form Container -->
-            <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 7px; margin: 6px 0 10px 0;">
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-start; gap: 8px; margin: 14px 0 6px 0;">
                 <!-- Form Fields -->
                 <div id="auth-name-container" style="display: none; flex-direction: column; gap: 2px;">
                     <label style="font-size: 0.75rem; opacity: 0.7;">Full Name</label>
