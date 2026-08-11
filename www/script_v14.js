@@ -5163,6 +5163,34 @@ function showAuthErrorMsg(msg, isInfo = false) {
     }
 }
 
+function formatFirebaseAuthError(error) {
+    if (!error) return "An error occurred. Please try again.";
+    const code = error.code || '';
+    const message = error.message || '';
+
+    switch (code) {
+        case 'auth/invalid-credential':
+        case 'auth/wrong-password':
+            return "Incorrect email or password. Please check your details.";
+        case 'auth/user-not-found':
+            return "No account found with this email. Switch to Sign Up above.";
+        case 'auth/email-already-in-use':
+            return "An account already exists with this email. Switch to Sign In above.";
+        case 'auth/invalid-email':
+            return "Please enter a valid email address.";
+        case 'auth/weak-password':
+            return "Password should be at least 6 characters long.";
+        case 'auth/too-many-requests':
+            return "Too many failed attempts. Please wait a moment and try again.";
+        case 'auth/network-request-failed':
+            return "Network error. Please check your internet connection.";
+        case 'auth/user-disabled':
+            return "This user account has been disabled.";
+        default:
+            return message.replace(/^Firebase:\s*/i, '').replace(/\s*\(auth\/[^)]+\)\.?$/i, '') || "Authentication error.";
+    }
+}
+
 function clearAuthErrorMsg() {
     showAuthErrorMsg('');
 }
@@ -5193,6 +5221,7 @@ function handleEmailSignIn() {
                 if (!result.user.emailVerified) {
                     closeEmailAuthModal();
                     showEmailVerifyModal(result.user.email);
+                    showToast("Please verify your email to complete sign in.");
                 } else {
                     applyUserAuthSuccess(result.user);
                     showToast("Signed in successfully!");
@@ -5201,7 +5230,7 @@ function handleEmailSignIn() {
         })
         .catch((error) => {
             console.error("Email Sign In Error:", error);
-            showAuthErrorMsg(error.message || "Sign in failed");
+            showAuthErrorMsg(formatFirebaseAuthError(error));
         });
 }
 
@@ -5242,7 +5271,7 @@ function handleEmailSignUp() {
         })
         .catch((error) => {
             console.error("Email Sign Up Error:", error);
-            showAuthErrorMsg(error.message || "Failed to create account");
+            showAuthErrorMsg(formatFirebaseAuthError(error));
         });
 }
 
