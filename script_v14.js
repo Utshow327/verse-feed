@@ -5270,10 +5270,12 @@ function signInWithGoogle() {
         closeEmailAuthModal();
     }).catch((error) => {
         isGooglePopupOpen = false;
-        console.error("Google Sign In Error:", error);
-        if (error.code !== 'auth/cancelled-popup-request' && error.code !== 'auth/popup-closed-by-user') {
-            showToast("Sign in error: " + (error.message || "Failed"));
+        if (error && (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user')) {
+            console.log("Google Sign-In cancelled by user.");
+            return;
         }
+        console.error("Google Sign In Error:", error);
+        showToast("Sign in error: " + (error ? (error.message || "Failed") : "Failed"));
     });
 }
 
