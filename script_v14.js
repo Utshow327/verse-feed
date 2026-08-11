@@ -5450,6 +5450,9 @@ function handleEmailSignUp() {
                     showEmailVerifyModal(email);
                 }).catch((err) => {
                     console.error("Error sending email verification:", err);
+                    if (err && err.code === 'auth/too-many-requests') {
+                        localStorage.setItem('verification_resend_time', Date.now());
+                    }
                     closeEmailAuthModal();
                     showEmailVerifyModal(email);
                 });
