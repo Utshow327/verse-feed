@@ -504,12 +504,9 @@
     </div>
 
     <!-- Email Verification Modal -->
-    <div id="email-verify-modal" class="modal-overlay hidden" onclick="event.stopPropagation()">
+    <div id="email-verify-modal" class="modal-overlay hidden" onclick="cancelEmailVerification()">
         <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 380px; text-align: center; padding: 25px; border-radius: 20px;">
             <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
-                <div style="width: 54px; height: 54px; border-radius: 50%; background: rgba(52, 152, 219, 0.15); display: flex; align-items: center; justify-content: center; color: #3498db; margin: 0 auto;">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                </div>
                 <h3 style="margin: 0; font-size: 1.2rem; color: var(--text-color);">Verify Your Email</h3>
                 <p style="margin: 0; font-size: 0.88rem; opacity: 0.8; line-height: 1.4; color: var(--text-color);">
                     Verification link sent to <b id="verify-modal-email"></b>.<br>
@@ -520,11 +517,8 @@
                     <button onclick="checkEmailVerification()" style="width: 100%; height: 44px; border-radius: 22px; border: none; background: var(--accent); color: white; font-weight: 600; font-size: 0.95rem; cursor: pointer; font-family: inherit;">
                         I've Verified My Email
                     </button>
-                    <button onclick="resendVerificationEmail()" style="width: 100%; height: 40px; border-radius: 20px; border: 1px solid var(--glass-border); background: var(--card-bg); color: var(--text-color); font-weight: 500; font-size: 0.88rem; cursor: pointer; font-family: inherit;">
+                    <button id="resend-verify-btn" onclick="resendVerificationEmail()" style="width: 100%; height: 40px; border-radius: 20px; border: 1px solid var(--glass-border); background: var(--card-bg); color: var(--text-color); font-weight: 500; font-size: 0.88rem; cursor: pointer; font-family: inherit; transition: opacity 0.3s ease;">
                         Resend Email
-                    </button>
-                    <button onclick="cancelEmailVerification()" style="background: transparent; border: none; color: var(--text-color); opacity: 0.6; cursor: pointer; font-size: 0.85rem; margin-top: 4px;">
-                        Cancel / Sign Out
                     </button>
                 </div>
             </div>

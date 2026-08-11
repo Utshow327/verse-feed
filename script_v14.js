@@ -553,8 +553,6 @@ function handleGesture() {
         if (diffX > 0) {
             if (isFeed) {
                 prevCard();
-            } else {
-                goBack();
             }
         } else {
             if (isFeed) {
@@ -5050,16 +5048,64 @@ document.addEventListener('DOMContentLoaded', () => {
     initFirebaseAuth();
 });
 
+let resendTimerInterval = null;
+
+function updateResendTimerUI() {
+    const btn = document.getElementById('resend-verify-btn');
+    if (!btn) return;
+    
+    const lastResendTime = localStorage.getItem('verification_resend_time');
+    if (!lastResendTime) {
+        btn.disabled = false;
+        btn.innerText = "Resend Email";
+        btn.style.opacity = "1";
+        return;
+    }
+    
+    const COOLDOWN_MS = 3 * 60 * 1000; // 3 minutes
+    const now = Date.now();
+    const elapsed = now - parseInt(lastResendTime);
+    
+    if (elapsed >= COOLDOWN_MS) {
+        localStorage.removeItem('verification_resend_time');
+        btn.disabled = false;
+        btn.innerText = "Resend Email";
+        btn.style.opacity = "1";
+        if (resendTimerInterval) {
+            clearInterval(resendTimerInterval);
+            resendTimerInterval = null;
+        }
+    } else {
+        const remaining = COOLDOWN_MS - elapsed;
+        const minutes = Math.floor(remaining / 60000);
+        const seconds = Math.floor((remaining % 60000) / 1000);
+        btn.disabled = true;
+        btn.innerText = `Resend Email (${minutes}:${seconds.toString().padStart(2, '0')})`;
+        btn.style.opacity = "0.5";
+        
+        if (!resendTimerInterval) {
+            resendTimerInterval = setInterval(updateResendTimerUI, 1000);
+        }
+    }
+}
+
 function showEmailVerifyModal(email) {
     const modal = document.getElementById('email-verify-modal');
     const emailEl = document.getElementById('verify-modal-email');
     if (emailEl) emailEl.innerText = email || '';
-    if (modal) modal.classList.remove('hidden');
+    if (modal) {
+        modal.classList.remove('hidden');
+        updateResendTimerUI();
+    }
 }
 
 function closeEmailVerifyModal() {
     const modal = document.getElementById('email-verify-modal');
     if (modal) modal.classList.add('hidden');
+    if (resendTimerInterval) {
+        clearInterval(resendTimerInterval);
+        resendTimerInterval = null;
+    }
 }
 
 function checkEmailVerification() {
@@ -5097,15 +5143,23 @@ function resendVerificationEmail() {
     if (errorEl) errorEl.innerText = "";
     
     if (!user) return;
+    
+    const btn = document.getElementById('resend-verify-btn');
+    if (btn && btn.disabled) return;
+    
     showToast("Resending verification email...");
     user.sendEmailVerification().then(() => {
         showToast("Verification email resent! Check your spam folder.");
         if (errorEl) errorEl.innerText = "Email resent successfully! Check spam folder.";
+        localStorage.setItem('verification_resend_time', Date.now());
+        updateResendTimerUI();
     }).catch(err => {
         console.error("Resend verification error:", err);
         let msg = "Failed to resend email.";
         if (err && err.code === 'auth/too-many-requests') {
-            msg = "Too many requests. Please wait a few minutes before resending.";
+            msg = "Too many requests. Please wait before resending.";
+            localStorage.setItem('verification_resend_time', Date.now());
+            updateResendTimerUI();
         } else if (err && err.message) {
             msg = err.message;
         }
