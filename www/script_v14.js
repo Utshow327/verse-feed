@@ -5217,67 +5217,6 @@ function resendVerificationEmail() {
     });
 }
 
-function triggerAvatarUpload() {
-    const user = firebase.auth().currentUser;
-    if (!user) return;
-    const isGoogle = user.providerData && user.providerData.some(p => p.providerId === 'google.com');
-    if (isGoogle) {
-        showToast("Google profile photo is managed via your Google Account.");
-        return;
-    }
-    const input = document.getElementById('user-avatar-file-input');
-    if (input) input.click();
-}
-
-function handleAvatarUpload(event) {
-    const file = event.target.files && event.target.files[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-        showToast("Please select an image file.");
-        return;
-    }
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-            const canvas = document.createElement('canvas');
-            const maxDim = 256;
-            let w = img.width;
-            let h = img.height;
-            if (w > h) {
-                if (w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
-            } else {
-                if (h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
-            }
-            canvas.width = w;
-            canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, w, h);
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-
-            const user = firebase.auth().currentUser;
-            if (user) {
-                showToast("Updating profile picture...");
-                localStorage.setItem('customUserAvatar_' + user.uid, dataUrl);
-                if (googleUser) {
-                    googleUser.picture = dataUrl;
-                    try { originalSetItem.call(localStorage, 'googleUser', JSON.stringify(googleUser)); } catch(e){}
-                }
-                user.updateProfile({ photoURL: dataUrl }).then(() => {
-                    applyUserAuthSuccess(user);
-                    showToast("Profile picture updated!");
-                }).catch(err => {
-                    console.log("PhotoURL length limit bypassed via local/custom avatar storage:", err);
-                    applyUserAuthSuccess(user);
-                    showToast("Profile picture updated!");
-                });
-            }
-        };
-        img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-}
-
 function enableNameEditMode() {
     const nameEl = document.getElementById('user-modal-name');
     if (!nameEl || nameEl.isEditing) return;
