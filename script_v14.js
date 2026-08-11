@@ -5064,37 +5064,55 @@ function closeEmailVerifyModal() {
 
 function checkEmailVerification() {
     const user = firebase.auth().currentUser;
+    const errorEl = document.getElementById('verify-error-msg');
+    if (errorEl) errorEl.innerText = "";
+    
     if (!user) {
         showToast("No active user session. Please sign in.");
         closeEmailVerifyModal();
         return;
     }
-    showToast("Checking verification status...");
     user.reload().then(() => {
         if (user.emailVerified) {
             showToast("Email verified successfully! Welcome!");
             applyUserAuthSuccess(user);
         } else {
-            showToast("Email is not verified yet. Please check your inbox or spam folder.");
+            if (errorEl) {
+                errorEl.innerText = "Email is not verified yet. Please check your spam folder.";
+            } else {
+                showToast("Email is not verified yet. Please check your spam folder.");
+            }
         }
     }).catch(err => {
         console.error("Reload user error:", err);
-        showToast("Failed to verify status. Please try again.");
+        if (errorEl) {
+            errorEl.innerText = "Failed to verify status. Please try again.";
+        }
     });
 }
 
 function resendVerificationEmail() {
     const user = firebase.auth().currentUser;
+    const errorEl = document.getElementById('verify-error-msg');
+    if (errorEl) errorEl.innerText = "";
+    
     if (!user) return;
     showToast("Resending verification email...");
     user.sendEmailVerification().then(() => {
         showToast("Verification email resent! Check your spam folder.");
+        if (errorEl) errorEl.innerText = "Email resent successfully! Check spam folder.";
     }).catch(err => {
         console.error("Resend verification error:", err);
+        let msg = "Failed to resend email.";
         if (err && err.code === 'auth/too-many-requests') {
-            showToast("Too many requests. Please wait a few minutes before resending.");
+            msg = "Too many requests. Please wait a few minutes before resending.";
+        } else if (err && err.message) {
+            msg = err.message;
+        }
+        if (errorEl) {
+            errorEl.innerText = msg;
         } else {
-            showToast(err ? (err.message || "Failed to resend email.") : "Failed to resend email.");
+            showToast(msg);
         }
     });
 }
