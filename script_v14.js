@@ -5157,48 +5157,54 @@ function handleAvatarUpload(event) {
 
 function enableNameEditMode() {
     const nameEl = document.getElementById('user-modal-name');
-    const editContainer = document.getElementById('user-name-edit-container');
-    const editInput = document.getElementById('user-name-edit-input');
-    if (nameEl && editContainer && editInput) {
-        editInput.value = nameEl.innerText.trim();
-        if (nameEl.parentElement) nameEl.parentElement.style.display = 'none';
-        editContainer.style.display = 'flex';
-        editInput.focus();
-    }
-}
-
-function cancelNameEditMode() {
-    const nameEl = document.getElementById('user-modal-name');
-    const editContainer = document.getElementById('user-name-edit-container');
-    if (nameEl && editContainer) {
-        if (nameEl.parentElement) nameEl.parentElement.style.display = 'flex';
-        editContainer.style.display = 'none';
-    }
-}
-
-function saveUpdatedProfileName() {
-    const editInput = document.getElementById('user-name-edit-input');
-    if (!editInput) return;
-    const rawVal = editInput.value;
-    const cleanName = rawVal.replace(/[^A-Za-z\s]/g, '').trim();
-
-    if (!cleanName) {
-        showToast("Name cannot be empty & accepts English letters only.");
-        return;
-    }
-
-    const user = firebase.auth().currentUser;
-    if (user) {
-        showToast("Updating name...");
-        user.updateProfile({ displayName: cleanName }).then(() => {
-            cancelNameEditMode();
-            applyUserAuthSuccess(user);
-            showToast("Name updated successfully!");
-        }).catch(err => {
-            console.error("Name update error:", err);
-            showToast("Failed to update name.");
-        });
-    }
+    if (!nameEl || nameEl.isEditing) return;
+    
+    const currentName = nameEl.innerText.trim();
+    nameEl.isEditing = true;
+    nameEl.innerHTML = `<input type="text" id="inline-name-input" value="${currentName}" style="font-size: 1.2rem; font-family: var(--font-main); color: var(--text-color); background: rgba(0,0,0,0.1); border: 1px solid var(--accent); border-radius: 6px; padding: 2px 8px; text-align: center; width: 100%; box-sizing: border-box; outline: none;" />`;
+    
+    const inputEl = document.getElementById('inline-name-input');
+    inputEl.focus();
+    inputEl.setSelectionRange(0, inputEl.value.length);
+    
+    const saveFn = () => {
+        if (!nameEl.isEditing) return;
+        nameEl.isEditing = false;
+        
+        let newName = inputEl.value.replace(/[^A-Za-z\s]/g, '').trim();
+        if (!newName) {
+            newName = currentName;
+            showToast("Name cannot be empty & accepts English letters only.");
+        }
+        
+        nameEl.innerHTML = '';
+        nameEl.innerText = newName;
+        
+        if (newName !== currentName) {
+            const user = firebase.auth().currentUser;
+            if (user) {
+                showToast("Updating name...");
+                user.updateProfile({ displayName: newName }).then(() => {
+                    applyUserAuthSuccess(user);
+                    showToast("Name updated successfully!");
+                }).catch(err => {
+                    console.error("Name update error:", err);
+                    showToast("Failed to update name.");
+                    nameEl.innerText = currentName;
+                });
+            }
+        }
+    };
+    
+    inputEl.addEventListener('blur', saveFn);
+    inputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') saveFn();
+        else if (e.key === 'Escape') {
+            nameEl.isEditing = false;
+            nameEl.innerHTML = '';
+            nameEl.innerText = currentName;
+        }
+    });
 }
 
 function cancelEmailVerification() {
