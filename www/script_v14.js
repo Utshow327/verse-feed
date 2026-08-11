@@ -5093,6 +5093,12 @@ function showEmailVerifyModal(email) {
     const modal = document.getElementById('email-verify-modal');
     const emailEl = document.getElementById('verify-modal-email');
     if (emailEl) emailEl.innerText = email || '';
+    
+    // Automatically start 3-minute resend timer when verify email pop-up first appears
+    if (!localStorage.getItem('verification_resend_time')) {
+        localStorage.setItem('verification_resend_time', Date.now());
+    }
+    
     if (modal) {
         modal.classList.remove('hidden');
         updateResendTimerUI();
