@@ -1,11 +1,23 @@
 import http.server
 import socketserver
+import socket
 import gzip
 import io
 import os
 
 PORT = 8000
 ALLOWED_EXTENSIONS = {'.html', '.css', '.js', '.mjs', '.json', '.wasm', '.data', '.onnx', '.ico', '.png', '.jpg', '.svg'}
+
+class DualStackThreadingServer(socketserver.ThreadingTCPServer):
+    """Dual-stack IPv4/IPv6 TCP server."""
+    address_family = socket.AF_INET6
+
+    def server_bind(self):
+        try:
+            self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+        except (AttributeError, OSError):
+            pass
+        super().server_bind()
 
 class SecureGzipHandler(http.server.SimpleHTTPRequestHandler):
     """Serves files with gzip compression, caching, and security headers."""
@@ -48,10 +60,13 @@ class SecureGzipHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404, 'Not Found')
             return
 
-        # Block listing of directories (only serve files)
-        if os.path.isdir(real) and not self.path.rstrip('/') == '':
-            # Allow root index only
-            pass
+        # If directory requested, append index.html for proper file type & gzip handling
+        if os.path.isdir(real):
+            index_path = os.path.join(real, 'index.html')
+            if os.path.exists(index_path):
+                path = index_path
+            else:
+                return super().do_GET()
 
         # Check file extension is allowed
         _, ext = os.path.splitext(path)
@@ -106,10 +121,12 @@ class SecureGzipHandler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
-with socketserver.ThreadingTCPServer(("", PORT), SecureGzipHandler) as httpd:
-    httpd.allow_reuse_address = True
-    print(f"Serving at http://localhost:{PORT} (Threaded + Gzip + Secure)")
-    try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        pass
+if __name__ == '__main__':
+    with DualStackThreadingServer(("::", PORT), SecureGzipHandler) as httpd:
+        httpd.allow_reuse_address = True
+        print(f"Serving at http://localhost:{PORT} (Dual-Stack IPv4/IPv6 + Threaded + Gzip + Secure)")
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            pass
+
