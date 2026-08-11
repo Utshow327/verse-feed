@@ -5019,6 +5019,45 @@ function initFirebaseAuth() {
     if (firebase.apps.length) {
         db = firebase.firestore();
         
+        // Handle Email Link Verification & Reclaiming Account
+        if (firebase.auth().isSignInWithEmailLink(window.location.href)) {
+            let email = window.localStorage.getItem('emailForSignIn');
+            if (!email) {
+                email = window.prompt('Please confirm your email address for verification:');
+            }
+            if (email) {
+                showToast("Verifying email and completing account setup...");
+                firebase.auth().signInWithEmailLink(email, window.location.href)
+                    .then((result) => {
+                        window.localStorage.removeItem('emailForSignIn');
+                        const savedName = window.localStorage.getItem('nameForSignUp');
+                        const savedPass = window.localStorage.getItem('passwordToSetOnVerify');
+                        
+                        const tasks = [];
+                        if (savedName && result.user && result.user.updateProfile) {
+                            tasks.push(result.user.updateProfile({ displayName: savedName }));
+                        }
+                        if (savedPass && result.user && result.user.updatePassword) {
+                            tasks.push(result.user.updatePassword(savedPass));
+                        }
+
+                        Promise.all(tasks).finally(() => {
+                            window.localStorage.removeItem('nameForSignUp');
+                            window.localStorage.removeItem('passwordToSetOnVerify');
+                            if (window.history && window.history.replaceState) {
+                                window.history.replaceState({}, document.title, window.location.pathname);
+                            }
+                            showToast("Email verified successfully! Welcome!");
+                            applyUserAuthSuccess(result.user);
+                        });
+                    })
+                    .catch((error) => {
+                        console.error("Sign in with email link error:", error);
+                        showToast("Verification link expired or invalid. Please request a new link.");
+                    });
+            }
+        }
+
         firebase.auth().onAuthStateChanged((user) => {
             if (user) {
                 const isPasswordUser = user.providerData && user.providerData.some(p => p.providerId === 'password');
@@ -5466,6 +5505,10 @@ function handleEmailSignUp() {
 
     showAuthErrorMsg("Creating account...", true);
 
+    window.localStorage.setItem('emailForSignIn', email);
+    if (name) window.localStorage.setItem('nameForSignUp', name);
+    if (password) window.localStorage.setItem('passwordToSetOnVerify', password);
+
     firebase.auth().createUserWithEmailAndPassword(email, password)
         .then((result) => {
             if (result && result.user) {
@@ -5478,9 +5521,7 @@ function handleEmailSignUp() {
                     showEmailVerifyModal(email);
                 }).catch((err) => {
                     console.error("Error sending email verification:", err);
-                    if (err && err.code === 'auth/too-many-requests') {
-                        localStorage.setItem('verification_resend_time', Date.now());
-                    }
+                    localStorage.setItem('verification_resend_time', Date.now());
                     closeEmailAuthModal();
                     showEmailVerifyModal(email);
                 });
@@ -5488,7 +5529,26 @@ function handleEmailSignUp() {
         })
         .catch((error) => {
             console.error("Email Sign Up Error:", error);
-            showAuthErrorMsg(formatFirebaseAuthError(error));
+            if (error && error.code === 'auth/email-already-in-use') {
+                const actionCodeSettings = {
+                    url: window.location.origin + window.location.pathname,
+                    handleCodeInApp: true
+                };
+                firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings)
+                    .then(() => {
+                        localStorage.setItem('verification_resend_time', Date.now());
+                        closeEmailAuthModal();
+                        showEmailVerifyModal(email);
+                    })
+                    .catch((linkErr) => {
+                        console.error("Link send error on email-already-in-use:", linkErr);
+                        localStorage.setItem('verification_resend_time', Date.now());
+                        closeEmailAuthModal();
+                        showEmailVerifyModal(email);
+                    });
+            } else {
+                showAuthErrorMsg(formatFirebaseAuthError(error));
+            }
         });
 }
 
