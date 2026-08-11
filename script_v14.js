@@ -5086,12 +5086,119 @@ function checkEmailVerification() {
 function resendVerificationEmail() {
     const user = firebase.auth().currentUser;
     if (!user) return;
+    showToast("Resending verification email...");
     user.sendEmailVerification().then(() => {
-        showToast("Verification email resent! Check your inbox or spam.");
+        showToast("Verification email resent! Check your spam folder.");
     }).catch(err => {
         console.error("Resend verification error:", err);
-        showToast(err.message || "Failed to resend email.");
+        if (err && err.code === 'auth/too-many-requests') {
+            showToast("Too many requests. Please wait a few minutes before resending.");
+        } else {
+            showToast(err ? (err.message || "Failed to resend email.") : "Failed to resend email.");
+        }
     });
+}
+
+function triggerAvatarUpload() {
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+    const isGoogle = user.providerData && user.providerData.some(p => p.providerId === 'google.com');
+    if (isGoogle) {
+        showToast("Google profile photo is managed via your Google Account.");
+        return;
+    }
+    const input = document.getElementById('user-avatar-file-input');
+    if (input) input.click();
+}
+
+function handleAvatarUpload(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+        showToast("Please select an image file.");
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const maxDim = 256;
+            let w = img.width;
+            let h = img.height;
+            if (w > h) {
+                if (w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
+            } else {
+                if (h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
+            }
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+            const user = firebase.auth().currentUser;
+            if (user) {
+                showToast("Updating profile picture...");
+                user.updateProfile({ photoURL: dataUrl }).then(() => {
+                    localStorage.setItem('customUserAvatar', dataUrl);
+                    applyUserAuthSuccess(user);
+                    showToast("Profile picture updated!");
+                }).catch(err => {
+                    console.error("Avatar update error:", err);
+                    showToast("Failed to update profile picture.");
+                });
+            }
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function enableNameEditMode() {
+    const nameEl = document.getElementById('user-modal-name');
+    const editContainer = document.getElementById('user-name-edit-container');
+    const editInput = document.getElementById('user-name-edit-input');
+    if (nameEl && editContainer && editInput) {
+        editInput.value = nameEl.innerText.trim();
+        if (nameEl.parentElement) nameEl.parentElement.style.display = 'none';
+        editContainer.style.display = 'flex';
+        editInput.focus();
+    }
+}
+
+function cancelNameEditMode() {
+    const nameEl = document.getElementById('user-modal-name');
+    const editContainer = document.getElementById('user-name-edit-container');
+    if (nameEl && editContainer) {
+        if (nameEl.parentElement) nameEl.parentElement.style.display = 'flex';
+        editContainer.style.display = 'none';
+    }
+}
+
+function saveUpdatedProfileName() {
+    const editInput = document.getElementById('user-name-edit-input');
+    if (!editInput) return;
+    const rawVal = editInput.value;
+    const cleanName = rawVal.replace(/[^A-Za-z\s]/g, '').trim();
+
+    if (!cleanName) {
+        showToast("Name cannot be empty & accepts English letters only.");
+        return;
+    }
+
+    const user = firebase.auth().currentUser;
+    if (user) {
+        showToast("Updating name...");
+        user.updateProfile({ displayName: cleanName }).then(() => {
+            cancelNameEditMode();
+            applyUserAuthSuccess(user);
+            showToast("Name updated successfully!");
+        }).catch(err => {
+            console.error("Name update error:", err);
+            showToast("Failed to update name.");
+        });
+    }
 }
 
 function cancelEmailVerification() {
