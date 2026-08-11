@@ -5019,6 +5019,35 @@ function initFirebaseAuth() {
     if (firebase.apps.length) {
         db = firebase.firestore();
         
+        // Handle Email Link Verification (Passwordless Account Creation)
+        if (firebase.auth().isSignInWithEmailLink(window.location.href)) {
+            let email = window.localStorage.getItem('emailForSignIn');
+            if (!email) {
+                email = window.prompt('Please confirm your email address for verification:');
+            }
+            if (email) {
+                showToast("Verifying email and creating account...");
+                firebase.auth().signInWithEmailLink(email, window.location.href)
+                    .then((result) => {
+                        window.localStorage.removeItem('emailForSignIn');
+                        const savedName = window.localStorage.getItem('nameForSignUp');
+                        if (savedName && result.user && result.user.updateProfile) {
+                            result.user.updateProfile({ displayName: savedName }).catch(() => {});
+                            window.localStorage.removeItem('nameForSignUp');
+                        }
+                        if (window.history && window.history.replaceState) {
+                            window.history.replaceState({}, document.title, window.location.pathname);
+                        }
+                        showToast("Email verified successfully! Welcome!");
+                        applyUserAuthSuccess(result.user);
+                    })
+                    .catch((error) => {
+                        console.error("Sign in with email link error:", error);
+                        showToast("Verification link expired or invalid. Please request a new link.");
+                    });
+            }
+        }
+        
         firebase.auth().onAuthStateChanged((user) => {
             if (user) {
                 const isPasswordUser = user.providerData && user.providerData.some(p => p.providerId === 'password');
@@ -5113,62 +5142,60 @@ function checkEmailVerification() {
     const errorEl = document.getElementById('verify-error-msg');
     if (errorEl) errorEl.innerText = "";
     
-    if (!user) {
-        showToast("No active user session. Please sign in.");
-        closeEmailVerifyModal();
+    if (user && user.emailVerified) {
+        showToast("Email verified successfully! Welcome!");
+        applyUserAuthSuccess(user);
         return;
     }
-    user.reload().then(() => {
-        if (user.emailVerified) {
-            showToast("Email verified successfully! Welcome!");
-            applyUserAuthSuccess(user);
-        } else {
-            if (errorEl) {
-                errorEl.innerText = "Email is not verified yet. Please check your spam folder.";
-            } else {
-                showToast("Email is not verified yet. Please check your spam folder.");
-            }
-        }
-    }).catch(err => {
-        console.error("Reload user error:", err);
-        if (errorEl) {
-            errorEl.innerText = "Failed to verify status. Please try again.";
-        }
-    });
+    
+    if (errorEl) {
+        errorEl.innerText = "Please open the link sent to your email inbox (or spam folder) to complete sign-up.";
+    } else {
+        showToast("Please open the link sent to your email to complete sign-up.");
+    }
 }
 
 function resendVerificationEmail() {
-    const user = firebase.auth().currentUser;
     const errorEl = document.getElementById('verify-error-msg');
     if (errorEl) errorEl.innerText = "";
     
-    if (!user) return;
+    const email = localStorage.getItem('emailForSignIn') || (firebase.auth().currentUser ? firebase.auth().currentUser.email : '');
+    if (!email) {
+        showToast("No email found. Please re-enter your email.");
+        return;
+    }
     
     const btn = document.getElementById('resend-verify-btn');
     if (btn && btn.disabled) return;
     
-    showToast("Resending verification email...");
-    user.sendEmailVerification().then(() => {
-        showToast("Verification email resent! Check your spam folder.");
-        if (errorEl) errorEl.innerText = "Email resent successfully! Check spam folder.";
-        localStorage.setItem('verification_resend_time', Date.now());
-        updateResendTimerUI();
-    }).catch(err => {
-        console.error("Resend verification error:", err);
-        let msg = "Failed to resend email.";
-        if (err && err.code === 'auth/too-many-requests') {
-            msg = "Too many requests. Please wait before resending.";
+    showToast("Resending verification link...");
+    const actionCodeSettings = {
+        url: window.location.origin + window.location.pathname,
+        handleCodeInApp: true
+    };
+    firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings)
+        .then(() => {
+            showToast("Verification email resent! Check your spam folder.");
+            if (errorEl) errorEl.innerText = "Verification link resent! Check spam folder.";
             localStorage.setItem('verification_resend_time', Date.now());
             updateResendTimerUI();
-        } else if (err && err.message) {
-            msg = err.message;
-        }
-        if (errorEl) {
-            errorEl.innerText = msg;
-        } else {
-            showToast(msg);
-        }
-    });
+        })
+        .catch(err => {
+            console.error("Resend verification error:", err);
+            let msg = "Failed to resend email.";
+            if (err && err.code === 'auth/too-many-requests') {
+                msg = "Too many requests. Please wait before resending.";
+                localStorage.setItem('verification_resend_time', Date.now());
+                updateResendTimerUI();
+            } else if (err && err.message) {
+                msg = err.message;
+            }
+            if (errorEl) {
+                errorEl.innerText = msg;
+            } else {
+                showToast(msg);
+            }
+        });
 }
 
 function triggerAvatarUpload() {
@@ -5445,44 +5472,39 @@ function handleEmailSignUp() {
     clearAuthErrorMsg();
     const nameEl = document.getElementById('auth-name');
     const emailEl = document.getElementById('auth-email');
-    const passEl = document.getElementById('auth-password');
-    const confirmPassEl = document.getElementById('auth-confirm-password');
 
     const name = nameEl ? nameEl.value.trim() : '';
     const email = emailEl ? emailEl.value.trim() : '';
-    const password = passEl ? passEl.value : '';
-    const confirmPassword = confirmPassEl ? confirmPassEl.value : '';
 
     if (!name) { showAuthErrorMsg("Please enter your name"); return; }
-    if (!email || !password) { showAuthErrorMsg("Please enter email & password"); return; }
-    if (password.length < 6) { showAuthErrorMsg("Password must be at least 6 characters"); return; }
-    if (password !== confirmPassword) { showAuthErrorMsg("Passwords do not match"); return; }
+    if (!email) { showAuthErrorMsg("Please enter your email address"); return; }
 
-    showAuthErrorMsg("Creating account...", true);
+    showAuthErrorMsg("Sending verification link...", true);
 
-    firebase.auth().createUserWithEmailAndPassword(email, password)
-        .then((result) => {
-            if (result && result.user) {
-                if (name && result.user.updateProfile) {
-                    result.user.updateProfile({ displayName: name }).catch(() => {});
-                }
-                result.user.sendEmailVerification().then(() => {
-                    localStorage.setItem('verification_resend_time', Date.now());
-                    closeEmailAuthModal();
-                    showEmailVerifyModal(email);
-                }).catch((err) => {
-                    console.error("Error sending email verification:", err);
-                    if (err && err.code === 'auth/too-many-requests') {
-                        localStorage.setItem('verification_resend_time', Date.now());
-                    }
-                    closeEmailAuthModal();
-                    showEmailVerifyModal(email);
-                });
+    const actionCodeSettings = {
+        url: window.location.origin + window.location.pathname,
+        handleCodeInApp: true
+    };
+
+    firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings)
+        .then(() => {
+            window.localStorage.setItem('emailForSignIn', email);
+            if (name) {
+                window.localStorage.setItem('nameForSignUp', name);
             }
+            localStorage.setItem('verification_resend_time', Date.now());
+            closeEmailAuthModal();
+            showEmailVerifyModal(email);
         })
         .catch((error) => {
-            console.error("Email Sign Up Error:", error);
-            showAuthErrorMsg(formatFirebaseAuthError(error));
+            console.error("Error sending verification link:", error);
+            if (error && error.code === 'auth/too-many-requests') {
+                localStorage.setItem('verification_resend_time', Date.now());
+                closeEmailAuthModal();
+                showEmailVerifyModal(email);
+            } else {
+                showAuthErrorMsg(formatFirebaseAuthError(error));
+            }
         });
 }
 
