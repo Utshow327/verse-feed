@@ -5473,7 +5473,6 @@ function handleEmailSignUp() {
             }
         })
         .catch((error) => {
-            console.error("Email Sign Up Error:", error);
             if (error && error.code === 'auth/email-already-in-use') {
                 const actionCodeSettings = {
                     url: window.location.origin + window.location.pathname,
@@ -5485,13 +5484,16 @@ function handleEmailSignUp() {
                         closeEmailAuthModal();
                         showEmailVerifyModal(email);
                     })
-                    .catch((linkErr) => {
-                        console.error("Link send error on email-already-in-use:", linkErr);
-                        localStorage.setItem('verification_resend_time', Date.now());
-                        closeEmailAuthModal();
-                        showEmailVerifyModal(email);
+                    .catch(() => {
+                        // Fallback to sending password reset / verification link if email link is disabled in console
+                        firebase.auth().sendPasswordResetEmail(email).finally(() => {
+                            localStorage.setItem('verification_resend_time', Date.now());
+                            closeEmailAuthModal();
+                            showEmailVerifyModal(email);
+                        });
                     });
             } else {
+                console.error("Email Sign Up Error:", error);
                 showAuthErrorMsg(formatFirebaseAuthError(error));
             }
         });
