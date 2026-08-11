@@ -465,6 +465,9 @@
                     <div style="display: flex; flex-direction: column; gap: 4px;">
                         <label style="font-size: 0.75rem; opacity: 0.7; text-align: left; padding-left: 2px; margin: 0;">Password</label>
                         <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--card-bg); color: var(--text-color); font-family: inherit; box-sizing: border-box;">
+                        <div id="auth-forgot-password-container" style="text-align: right; margin-top: 2px;">
+                            <span onclick="resetPassword()" style="font-size: 0.75rem; color: var(--accent); cursor: pointer; text-decoration: underline;">Forgot Password?</span>
+                        </div>
                     </div>
 
                     <div id="auth-confirm-container" style="display: none; flex-direction: column; gap: 4px;">

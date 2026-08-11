@@ -5310,6 +5310,7 @@ function switchAuthTab(mode) {
     const confirmContainer = document.getElementById('auth-confirm-container');
     const googleContainer = document.getElementById('auth-google-container');
     const submitBtn = document.getElementById('auth-submit-btn');
+    const forgotContainer = document.getElementById('auth-forgot-password-container');
 
     if (mode === 'signin') {
         if (btnSignin) {
@@ -5323,6 +5324,7 @@ function switchAuthTab(mode) {
         if (nameContainer) nameContainer.style.display = 'none';
         if (confirmContainer) confirmContainer.style.display = 'none';
         if (googleContainer) googleContainer.style.display = 'flex';
+        if (forgotContainer) forgotContainer.style.display = 'block';
         if (submitBtn) submitBtn.innerText = 'Sign In';
     } else {
         if (btnSignup) {
@@ -5336,6 +5338,7 @@ function switchAuthTab(mode) {
         if (nameContainer) nameContainer.style.display = 'flex';
         if (confirmContainer) confirmContainer.style.display = 'flex';
         if (googleContainer) googleContainer.style.display = 'none';
+        if (forgotContainer) forgotContainer.style.display = 'none';
         if (submitBtn) submitBtn.innerText = 'Sign Up';
     }
 }
@@ -5415,6 +5418,25 @@ function handleEmailSignIn() {
         })
         .catch((error) => {
             console.error("Email Sign In Error:", error);
+            showAuthErrorMsg(formatFirebaseAuthError(error));
+        });
+}
+
+function resetPassword() {
+    clearAuthErrorMsg();
+    const emailEl = document.getElementById('auth-email');
+    const email = emailEl ? emailEl.value.trim() : '';
+    if (!email) {
+        showAuthErrorMsg("Please enter your email to reset password.");
+        return;
+    }
+    showAuthErrorMsg("Sending reset link...", true);
+    firebase.auth().sendPasswordResetEmail(email)
+        .then(() => {
+            showAuthErrorMsg("Password reset link sent! Check your inbox.", true);
+        })
+        .catch((error) => {
+            console.error("Reset Password Error:", error);
             showAuthErrorMsg(formatFirebaseAuthError(error));
         });
 }
