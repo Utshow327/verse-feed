@@ -175,11 +175,11 @@ function saveStateToProfile(profileId) {
 }
 
 function triggerCloudSync() {
-    if (!googleUser || !googleUser.sub) return;
+    if (!googleUser || !googleAccessToken) return;
     clearTimeout(cloudSyncTimeout);
     cloudSyncTimeout = setTimeout(() => {
-        if (typeof saveUserDataToFirestore === 'function') {
-            saveUserDataToFirestore(googleUser.sub);
+        if (typeof syncUserDataWithGoogleDrive === 'function') {
+            syncUserDataWithGoogleDrive(googleAccessToken);
         }
     }, 1500);
 }
@@ -4956,322 +4956,78 @@ function submitRenameAlbum() {
 function confirmRenameAlbum() { submitRenameAlbum(); }
 
 
-// ==============================================
-// FIREBASE AUTHENTICATION & FIRESTORE CLOUD SYNC
-// ==============================================
+// --- Google Auth Logic ---
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCy1lG5CcGlMj4qGEuUJt-8L_Tul6ZMrKM",
-  authDomain: "religionapp-38998.firebaseapp.com",
-  projectId: "religionapp-38998",
-  storageBucket: "religionapp-38998.firebasestorage.app",
-  messagingSenderId: "131330287162",
-  appId: "1:131330287162:web:84e3694ec4d07987163703",
-  measurementId: "G-R240CQB881"
-};
+let tokenClient = null;
 
-let db = null;
-
-function applyUserAuthSuccess(user) {
-    if (!user) return;
-    googleUser = {
-        name: user.displayName || user.email || 'User',
-        picture: user.photoURL || '',
-        email: user.email || '',
-        sub: user.uid
-    };
-    try { originalSetItem.call(localStorage, 'googleUser', JSON.stringify(googleUser)); } catch(e){}
+function initGoogleAuth() {
+    if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) return;
     
-    switchProfile('account_' + user.uid);
-    loadUserDataFromFirestore(user.uid);
-    
-    if (document.getElementById('onboarding') && document.getElementById('onboarding').classList.contains('active-section')) {
-        goTo('verse-feed');
-    }
-    closeEmailAuthModal();
-    closeEmailVerifyModal();
-    updatePremiumModalActions();
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: "582271758376-3e00o7pmfmvctlvrddaabtlqabgoeqo0.apps.googleusercontent.com",
+        scope: "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive.appdata",
+        callback: (tokenResponse) => {
+            if (tokenResponse && tokenResponse.access_token) {
+                fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+                })
+                .then(res => res.json())
+                .then(payload => {
+                    googleUser = {
+                        name: payload.name,
+                        picture: payload.picture,
+                        email: payload.email,
+                        sub: payload.sub
+                    };
+                    
+                    originalSetItem.call(localStorage, 'googleUser', JSON.stringify(googleUser));
+                    
+                    // Switch profile to Google Account
+                    switchProfile('account_' + googleUser.sub);
+                    
+                    // Sync user data with Google Drive AppData folder for this specific account
+                    syncUserDataWithGoogleDrive(tokenResponse.access_token);
+
+                    if (document.getElementById('onboarding') && document.getElementById('onboarding').classList.contains('active-section')) {
+                        goTo('verse-feed');
+                    }
+                    
+                    updatePremiumModalActions();
+                    updateUserUI();
+                    showToast('Signed in as ' + payload.name + ' (Google Drive Sync active)');
+                })
+                .catch(err => {
+                    console.error('Userinfo fetch error:', err);
+                    showToast('Failed to retrieve user profile');
+                });
+            }
+        }
+    });
+
     updateUserUI();
+    updatePremiumModalActions();
 }
 
 function updatePremiumModalActions() {
-    const btn = document.querySelector('.premium-buy-pill');
-    if (!btn) return;
-    const txt = btn.querySelector('.premium-buy-pill-text');
-    if (googleUser || (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser)) {
-        if (txt) txt.innerText = 'Get Premium — $2.99/mo';
-        btn.onclick = typeof simulatePurchase === 'function' ? simulatePurchase : function(){};
-    } else {
-        if (txt) txt.innerText = 'Login to Buy Premium';
-        btn.onclick = () => { if(typeof closePremiumModal === 'function') closePremiumModal(); openEmailAuthModal('signin'); };
-    }
-}
-
-function initFirebaseAuth() {
-    if (typeof firebase === 'undefined') return;
-    
-    if (!firebase.apps.length) {
-        try {
-            firebase.initializeApp(firebaseConfig);
-        } catch(e) {
-            console.error("Firebase init error:", e);
-        }
-    }
-    
-    if (firebase.apps.length) {
-        db = firebase.firestore();
-        
-        firebase.auth().onAuthStateChanged((user) => {
-            if (user) {
-                const isPasswordUser = user.providerData && user.providerData.some(p => p.providerId === 'password');
-                if (isPasswordUser && !user.emailVerified) {
-                    googleUser = null;
-                    try { originalRemoveItem.call(localStorage, 'googleUser'); } catch(e){}
-                    switchProfile('guest');
-                    updatePremiumModalActions();
-                    updateUserUI();
-                    showEmailVerifyModal(user.email);
-                } else {
-                    applyUserAuthSuccess(user);
-                }
-            } else {
-                googleUser = null;
-                try { originalRemoveItem.call(localStorage, 'googleUser'); } catch(e){}
-                switchProfile('guest');
-                closeEmailVerifyModal();
-                updatePremiumModalActions();
-                updateUserUI();
-            }
-        });
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    initFirebaseAuth();
-});
-
-function showEmailVerifyModal(email) {
-    const modal = document.getElementById('email-verify-modal');
-    const emailEl = document.getElementById('verify-modal-email');
-    if (emailEl) emailEl.innerText = email || '';
-    if (modal) modal.classList.remove('hidden');
-}
-
-function closeEmailVerifyModal() {
-    const modal = document.getElementById('email-verify-modal');
-    if (modal) modal.classList.add('hidden');
-}
-
-function checkEmailVerification() {
-    const user = firebase.auth().currentUser;
-    if (!user) {
-        showToast("No active user session. Please sign in.");
-        closeEmailVerifyModal();
-        return;
-    }
-    showToast("Checking verification status...");
-    user.reload().then(() => {
-        if (user.emailVerified) {
-            showToast("Email verified successfully! Welcome!");
-            applyUserAuthSuccess(user);
+    const getPremiumBtn = document.getElementById('get-premium-btn');
+    if(getPremiumBtn) {
+        if(typeof googleUser !== 'undefined' && googleUser) {
+            getPremiumBtn.textContent = "Get Premium ($0.99)";
         } else {
-            showToast("Email is not verified yet. Please check your inbox or spam folder.");
+            getPremiumBtn.textContent = "Login to Buy Premium";
         }
-    }).catch(err => {
-        console.error("Reload user error:", err);
-        showToast("Failed to verify status. Please try again.");
-    });
-}
-
-function resendVerificationEmail() {
-    const user = firebase.auth().currentUser;
-    if (!user) return;
-    user.sendEmailVerification().then(() => {
-        showToast("Verification email resent! Check your inbox or spam.");
-    }).catch(err => {
-        console.error("Resend verification error:", err);
-        showToast(err.message || "Failed to resend email.");
-    });
-}
-
-function cancelEmailVerification() {
-    if (typeof firebase !== 'undefined' && firebase.auth) {
-        firebase.auth().signOut().catch(() => {});
-    }
-    closeEmailVerifyModal();
-}
-
-let currentAuthMode = 'signin';
-
-function openEmailAuthModal(tab = 'signin') {
-    switchAuthTab(tab);
-    const modal = document.getElementById('email-auth-modal');
-    if (modal) modal.classList.remove('hidden');
-}
-
-function closeEmailAuthModal(e) {
-    if (e && e.target !== e.currentTarget) return;
-    const modal = document.getElementById('email-auth-modal');
-    if (modal) modal.classList.add('hidden');
-    clearAuthErrorMsg();
-}
-
-function switchAuthTab(mode) {
-    currentAuthMode = mode;
-    clearAuthErrorMsg();
-    const btnSignin = document.getElementById('auth-tab-signin');
-    const btnSignup = document.getElementById('auth-tab-signup');
-    const nameContainer = document.getElementById('auth-name-container');
-    const confirmContainer = document.getElementById('auth-confirm-container');
-    const submitBtn = document.getElementById('auth-submit-btn');
-
-    if (mode === 'signin') {
-        if (btnSignin) {
-            btnSignin.style.background = 'var(--card-bg)';
-            btnSignin.style.opacity = '1';
-        }
-        if (btnSignup) {
-            btnSignup.style.background = 'transparent';
-            btnSignup.style.opacity = '0.6';
-        }
-        if (nameContainer) nameContainer.style.display = 'none';
-        if (confirmContainer) confirmContainer.style.display = 'none';
-        if (submitBtn) submitBtn.innerText = 'Sign In';
-    } else {
-        if (btnSignup) {
-            btnSignup.style.background = 'var(--card-bg)';
-            btnSignup.style.opacity = '1';
-        }
-        if (btnSignin) {
-            btnSignin.style.background = 'transparent';
-            btnSignin.style.opacity = '0.6';
-        }
-        if (nameContainer) nameContainer.style.display = 'flex';
-        if (confirmContainer) confirmContainer.style.display = 'flex';
-        if (submitBtn) submitBtn.innerText = 'Create Account';
-    }
-}
-
-function showAuthErrorMsg(msg, isInfo = false) {
-    const errorEl = document.getElementById('auth-error-msg');
-    if (errorEl) {
-        errorEl.innerText = msg || '';
-        errorEl.style.color = isInfo ? 'var(--accent)' : '#ff4757';
-    }
-}
-
-function clearAuthErrorMsg() {
-    showAuthErrorMsg('');
-}
-
-function submitAuthForm() {
-    if (currentAuthMode === 'signin') {
-        handleEmailSignIn();
-    } else {
-        handleEmailSignUp();
-    }
-}
-
-function handleEmailSignIn() {
-    clearAuthErrorMsg();
-    const emailEl = document.getElementById('auth-email');
-    const passEl = document.getElementById('auth-password');
-    if (!emailEl || !passEl) return;
-    const email = emailEl.value.trim();
-    const password = passEl.value;
-    if (!email || !password) {
-        showAuthErrorMsg("Please enter email and password");
-        return;
-    }
-    showAuthErrorMsg("Signing in...", true);
-    firebase.auth().signInWithEmailAndPassword(email, password)
-        .then((result) => {
-            if (result && result.user) {
-                if (!result.user.emailVerified) {
-                    closeEmailAuthModal();
-                    showEmailVerifyModal(result.user.email);
-                } else {
-                    applyUserAuthSuccess(result.user);
-                    showToast("Signed in successfully!");
-                }
-            }
-        })
-        .catch((error) => {
-            console.error("Email Sign In Error:", error);
-            showAuthErrorMsg(error.message || "Sign in failed");
-        });
-}
-
-function handleEmailSignUp() {
-    clearAuthErrorMsg();
-    const nameEl = document.getElementById('auth-name');
-    const emailEl = document.getElementById('auth-email');
-    const passEl = document.getElementById('auth-password');
-    const confirmPassEl = document.getElementById('auth-confirm-password');
-
-    const name = nameEl ? nameEl.value.trim() : '';
-    const email = emailEl ? emailEl.value.trim() : '';
-    const password = passEl ? passEl.value : '';
-    const confirmPassword = confirmPassEl ? confirmPassEl.value : '';
-
-    if (!name) { showAuthErrorMsg("Please enter your name"); return; }
-    if (!email || !password) { showAuthErrorMsg("Please enter email & password"); return; }
-    if (password.length < 6) { showAuthErrorMsg("Password must be at least 6 characters"); return; }
-    if (password !== confirmPassword) { showAuthErrorMsg("Passwords do not match"); return; }
-
-    showAuthErrorMsg("Creating account...", true);
-
-    firebase.auth().createUserWithEmailAndPassword(email, password)
-        .then((result) => {
-            if (result && result.user) {
-                if (name && result.user.updateProfile) {
-                    result.user.updateProfile({ displayName: name }).catch(() => {});
-                }
-                result.user.sendEmailVerification().then(() => {
-                    closeEmailAuthModal();
-                    showEmailVerifyModal(email);
-                }).catch((err) => {
-                    console.error("Error sending email verification:", err);
-                    closeEmailAuthModal();
-                    showEmailVerifyModal(email);
-                });
-            }
-        })
-        .catch((error) => {
-            console.error("Email Sign Up Error:", error);
-            showAuthErrorMsg(error.message || "Failed to create account");
-        });
-}
-
-let isGooglePopupOpen = false;
-
-function toggleGoogleAuth() {
-    if (googleUser) {
-        openUserProfileModal();
-    } else {
-        openEmailAuthModal('signin');
     }
 }
 
 function signInWithGoogle() {
-    if (typeof firebase === 'undefined' || !firebase.auth) {
-        showToast("Firebase loading, please try again in a moment...");
-        return;
+    if (!tokenClient) {
+        initGoogleAuth();
     }
-    if (isGooglePopupOpen) return;
-    
-    isGooglePopupOpen = true;
-    const provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(provider).then(() => {
-        isGooglePopupOpen = false;
-        closeEmailAuthModal();
-    }).catch((error) => {
-        isGooglePopupOpen = false;
-        console.error("Google Sign In Error:", error);
-        if (error.code !== 'auth/cancelled-popup-request' && error.code !== 'auth/popup-closed-by-user') {
-            showToast("Sign in error: " + (error.message || "Failed"));
-        }
-    });
+    if (tokenClient) {
+        tokenClient.requestAccessToken();
+    } else {
+        showToast("Google Auth loading, please try again in a moment...");
+    }
 }
 
 function getLocalState() {
@@ -5290,24 +5046,30 @@ function getLocalState() {
     };
 }
 
-async function saveUserDataToFirestore(uid) {
-    if (!db || !uid) return;
+async function syncUserDataWithGoogleDrive(accessToken) {
+    if (!accessToken) return;
+    googleAccessToken = accessToken;
     try {
-        const payloadToSave = getLocalState();
-        await db.collection('users').doc(uid).set(payloadToSave, { merge: true });
-    } catch(err) {
-        console.error("Firestore Save Error:", err);
-    }
-}
+        const listRes = await fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='versefeed_data.json'", {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const listData = await listRes.json();
 
-async function loadUserDataFromFirestore(uid) {
-    if (!db || !uid) return;
-    try {
-        const docRef = db.collection('users').doc(uid);
-        const doc = await docRef.get();
-        
-        if (doc.exists) {
-            const remoteData = doc.data();
+        if (!listRes.ok) {
+            console.error("Google Drive list failed:", listRes.status, listData);
+            if (listRes.status === 403 || listRes.status === 401) {
+                showToast("Cloud sync: Drive permission required");
+            }
+            return;
+        }
+
+        if (listData.files && listData.files.length > 0) {
+            const fileId = listData.files[0].id;
+            const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+                headers: { Authorization: `Bearer ${accessToken}` }
+            });
+            const remoteData = await fileRes.json();
+            
             if (remoteData && typeof remoteData === 'object') {
                 const localState = getLocalState();
                 const remoteIsNewer = (remoteData.updatedAt || 0) > (localState.updatedAt || 0);
@@ -5355,8 +5117,9 @@ async function loadUserDataFromFirestore(uid) {
                 bookMarkedVerse = mergedBookmarks;
                 localStorage.setItem('bookMarkedVerse', JSON.stringify(bookMarkedVerse));
 
-                // Preferences
+                // Preferences: Overwrite local ONLY if cloud is newer
                 if (remoteIsNewer) {
+                    // Restore globalSelectedRels (Topic selection) strictly from cloud
                     if (Array.isArray(remoteData.globalSelectedRels) && remoteData.globalSelectedRels.length > 0) {
                         globalSelectedRels = remoteData.globalSelectedRels.filter(r => ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Sikhism', 'Judaism', 'Philosophy'].includes(r));
                     } else {
@@ -5364,16 +5127,71 @@ async function loadUserDataFromFirestore(uid) {
                     }
                     localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
                     
+                    // Restore Dark Mode
                     if (typeof remoteData.darkModeEnabled !== 'undefined') {
                         darkModeEnabled = remoteData.darkModeEnabled === true || remoteData.darkModeEnabled === 'true';
                         localStorage.setItem('darkModeEnabled', darkModeEnabled);
-                        if (darkModeEnabled) document.body.setAttribute('data-theme', 'dark');
-                        else document.body.removeAttribute('data-theme');
+                        if (darkModeEnabled) {
+                            document.body.setAttribute('data-theme', 'dark');
+                        } else {
+                            document.body.removeAttribute('data-theme');
+                        }
                         updateDarkModeIcon(darkModeEnabled);
                     }
+                    // Restore Voice Selection
                     if (remoteData.selectedVoice) {
                         selectedVoice = remoteData.selectedVoice;
                         localStorage.setItem('selectedVoice', selectedVoice);
+                        syncVoiceWheelToCurrent();
+                    }
+                    // Restore TTS Announce Source
+                    if (typeof remoteData.ttsAnnounceSource !== 'undefined') {
+                        ttsAnnounceSource = remoteData.ttsAnnounceSource === true || remoteData.ttsAnnounceSource === 'true';
+                        localStorage.setItem('ttsAnnounceSource', ttsAnnounceSource);
+                    }
+                    // Restore TTS Random Voice
+                    if (typeof remoteData.ttsRandomVoice !== 'undefined') {
+                        ttsRandomVoice = remoteData.ttsRandomVoice === true || remoteData.ttsRandomVoice === 'true';
+                        localStorage.setItem('ttsRandomVoice', ttsRandomVoice);
+                    }
+                    // Restore Music Volume & Enabled
+                    if (typeof remoteData.musicVolume !== 'undefined') {
+                        localStorage.setItem('musicVolume', remoteData.musicVolume);
+                        if (typeof audio !== 'undefined' && audio) audio.volume = parseFloat(remoteData.musicVolume);
+                        const slider = document.getElementById('music-volume-slider');
+                        if (slider) slider.value = remoteData.musicVolume;
+                    }
+                    if (typeof remoteData.musicEnabled !== 'undefined') {
+                        const musicEnabled = remoteData.musicEnabled === true || remoteData.musicEnabled === 'true';
+                        localStorage.setItem('musicEnabled', musicEnabled);
+                        const musicBtn = document.getElementById('music-toggle');
+                        if (musicBtn) {
+                            if (musicEnabled) {
+                                if (typeof audio !== 'undefined' && audio) {
+                                    audio.play().then(() => {
+                                        musicBtn.classList.add('active');
+                                    }).catch(e => {
+                                        const playOnInteract = () => {
+                                            if (localStorage.getItem('musicEnabled') !== 'false') {
+                                                audio.play().then(() => {
+                                                    const btn = document.getElementById('music-toggle');
+                                                    if (btn) btn.classList.add('active');
+                                                    document.removeEventListener('click', playOnInteract);
+                                                    document.removeEventListener('pointerdown', playOnInteract);
+                                                    document.removeEventListener('touchstart', playOnInteract);
+                                                }).catch(err => {});
+                                            }
+                                        };
+                                        document.addEventListener('click', playOnInteract);
+                                        document.addEventListener('pointerdown', playOnInteract);
+                                        document.addEventListener('touchstart', playOnInteract, {passive: true});
+                                    });
+                                }
+                            } else {
+                                musicBtn.classList.remove('active');
+                                if (typeof audio !== 'undefined' && audio) audio.pause();
+                            }
+                        }
                     }
                 }
                 
@@ -5381,18 +5199,43 @@ async function loadUserDataFromFirestore(uid) {
                 if (typeof syncVoiceWheelToCurrent === 'function') syncVoiceWheelToCurrent();
                 if (typeof showSavedVerses === 'function') showSavedVerses();
                 if (typeof renderAlbums === 'function') renderAlbums();
-
-                saveUserDataToFirestore(uid);
             }
+
+            // Unified sync back to Drive
+            const payloadToSave = getLocalState();
+            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+                method: 'PATCH',
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payloadToSave)
+            });
         } else {
-            saveUserDataToFirestore(uid);
+            const payloadToSave = getLocalState();
+            const meta = { name: 'versefeed_data.json', parents: ['appDataFolder'] };
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
+            form.append('file', new Blob([JSON.stringify(payloadToSave)], { type: 'application/json' }));
+
+            await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${accessToken}` },
+                body: form
+            });
         }
-    } catch(err) {
-        console.error("Firestore Load Error:", err);
+    } catch (err) {
+        console.error("Google Drive Sync Error:", err);
     }
 }
 
-
+function toggleGoogleAuth() {
+    if (googleUser) {
+        openUserProfileModal();
+    } else {
+        signInWithGoogle();
+    }
+}
 
 function openUserProfileModal() {
     if (!googleUser) return;
@@ -5427,29 +5270,21 @@ function closeUserProfileModal(e) {
 }
 
 function confirmSignOut() {
-    const doCleanup = () => {
-        googleUser = null;
-        try { originalRemoveItem.call(localStorage, 'googleUser'); } catch(e){}
-        googleAccessToken = null;
-        switchProfile('guest');
-        closeUserProfileModal();
-        updateUserUI();
-        updatePremiumModalActions();
-        const savedVersesEl = document.getElementById('saved-verses');
-        if (typeof showSavedVerses === 'function' && document.getElementById('saved-list') && savedVersesEl && savedVersesEl.classList.contains('active-section')) {
-            showSavedVerses();
-        }
-        showToast('Signed out, restored Guest state');
-    };
+    googleUser = null;
+    originalRemoveItem.call(localStorage, 'googleUser');
+    googleAccessToken = null;
 
-    if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
-        firebase.auth().signOut().then(doCleanup).catch((err) => {
-            console.error("Firebase SignOut Error:", err);
-            doCleanup();
-        });
-    } else {
-        doCleanup();
+    // Restore Guest Mode state completely from pf_guest storage sandbox
+    switchProfile('guest');
+
+    closeUserProfileModal();
+    updateUserUI();
+    updatePremiumModalActions();
+    const savedVersesEl = document.getElementById('saved-verses');
+    if (typeof showSavedVerses === 'function' && document.getElementById('saved-list') && savedVersesEl && savedVersesEl.classList.contains('active-section')) {
+        showSavedVerses();
     }
+    showToast('Signed out, restored Guest state');
 }
 
 function updateUserUI() {
