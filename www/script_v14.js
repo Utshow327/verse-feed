@@ -4972,9 +4972,16 @@ let db = null;
 
 function applyUserAuthSuccess(user) {
     if (!user) return;
+    
+    const savedName = localStorage.getItem('nameForSignUp');
+    if (savedName && savedName !== user.displayName && user.updateProfile) {
+        user.updateProfile({ displayName: savedName }).catch(() => {});
+        localStorage.removeItem('nameForSignUp');
+    }
+
     const localAvatar = localStorage.getItem('customUserAvatar_' + user.uid);
     googleUser = {
-        name: user.displayName || user.email || 'User',
+        name: user.displayName || savedName || user.email || 'User',
         picture: localAvatar || user.photoURL || '',
         email: user.email || '',
         sub: user.uid
