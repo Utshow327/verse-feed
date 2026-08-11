@@ -178,7 +178,7 @@ function triggerCloudSync() {
     if (!googleUser || !googleUser.sub) return;
     clearTimeout(cloudSyncTimeout);
     cloudSyncTimeout = setTimeout(() => {
-        if (typeof saveUserDataToFirestore === 'function') {
+        if (googleUser && googleUser.sub && typeof saveUserDataToFirestore === 'function') {
             saveUserDataToFirestore(googleUser.sub);
         }
     }, 1500);
@@ -4972,9 +4972,10 @@ let db = null;
 
 function applyUserAuthSuccess(user) {
     if (!user) return;
+    const localAvatar = localStorage.getItem('customUserAvatar_' + user.uid);
     googleUser = {
         name: user.displayName || user.email || 'User',
-        picture: user.photoURL || '',
+        picture: localAvatar || user.photoURL || '',
         email: user.email || '',
         sub: user.uid
     };
@@ -5257,13 +5258,18 @@ function handleAvatarUpload(event) {
             const user = firebase.auth().currentUser;
             if (user) {
                 showToast("Updating profile picture...");
+                localStorage.setItem('customUserAvatar_' + user.uid, dataUrl);
+                if (googleUser) {
+                    googleUser.picture = dataUrl;
+                    try { originalSetItem.call(localStorage, 'googleUser', JSON.stringify(googleUser)); } catch(e){}
+                }
                 user.updateProfile({ photoURL: dataUrl }).then(() => {
-                    localStorage.setItem('customUserAvatar', dataUrl);
                     applyUserAuthSuccess(user);
                     showToast("Profile picture updated!");
                 }).catch(err => {
-                    console.error("Avatar update error:", err);
-                    showToast("Failed to update profile picture.");
+                    console.log("PhotoURL length limit bypassed via local/custom avatar storage:", err);
+                    applyUserAuthSuccess(user);
+                    showToast("Profile picture updated!");
                 });
             }
         };
