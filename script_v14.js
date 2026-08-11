@@ -5261,21 +5261,20 @@ function signInWithGoogle() {
         showToast("Firebase loading, please try again in a moment...");
         return;
     }
-    if (isGooglePopupOpen) return;
     
     isGooglePopupOpen = true;
     const provider = new firebase.auth.GoogleAuthProvider();
     firebase.auth().signInWithPopup(provider).then(() => {
-        isGooglePopupOpen = false;
         closeEmailAuthModal();
     }).catch((error) => {
-        isGooglePopupOpen = false;
         if (error && (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user')) {
             console.log("Google Sign-In cancelled by user.");
             return;
         }
         console.error("Google Sign In Error:", error);
         showToast("Sign in error: " + (error ? (error.message || "Failed") : "Failed"));
+    }).finally(() => {
+        isGooglePopupOpen = false;
     });
 }
 
