@@ -507,15 +507,22 @@ function updateDarkModeIcon(isDark) {
 }
 let lastSwipeTime = 0;
 
+let touchStartTarget = null;
+
 function setupGestures() {
     document.addEventListener('touchstart', e => {
-        touchStartX = e.changedTouches[0].screenX;
-        touchStartY = e.changedTouches[0].screenY;
+        if (e.changedTouches && e.changedTouches[0]) {
+            touchStartTarget = e.target;
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }
     }, { passive: false });
     document.addEventListener('touchend', e => {
-        touchEndX = e.changedTouches[0].screenX;
-        touchEndY = e.changedTouches[0].screenY;
-        handleGesture();
+        if (e.changedTouches && e.changedTouches[0]) {
+            touchEndX = e.changedTouches[0].screenX;
+            touchEndY = e.changedTouches[0].screenY;
+            handleGesture();
+        }
     }, { passive: false });
     const feedStage = document.getElementById('feed-stage');
     feedStage.addEventListener('click', (e) => {
@@ -545,6 +552,10 @@ function setupGestures() {
     });
 }
 function handleGesture() {
+    const activeModal = document.querySelector('.modal-overlay:not(.hidden)');
+    if (activeModal) return;
+    if (touchStartTarget && touchStartTarget.closest && (touchStartTarget.closest('.modal-overlay') || touchStartTarget.closest('[id*="wheel"]'))) return;
+
     const diffX = touchEndX - touchStartX;
     const diffY = touchEndY - touchStartY;
     const isFeed = document.getElementById('verse-feed').classList.contains('active-section');
@@ -2989,6 +3000,11 @@ function setupWheelListeners() {
     // Horizontal chapter wheel listeners are set up in setupChapterWheelListeners()
     // called from populateChapterWheel() when a book is opened.
     document.addEventListener('wheel', e => {
+        // Stop card navigation if any modal overlay is active or event is targeting a modal/wheel element
+        const activeModal = document.querySelector('.modal-overlay:not(.hidden)');
+        if (activeModal) return;
+        if (e.target && e.target.closest && (e.target.closest('.modal-overlay') || e.target.closest('[id*="wheel"]') || e.target.closest('.tooltip'))) return;
+
         const isFeed = document.getElementById('verse-feed').classList.contains('active-section');
         if (isFeed && !isProgrammaticScroll && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
             if (e.deltaY > 50) {
@@ -3885,9 +3901,10 @@ function setupAlbumWheelListeners() {
 
     wheel.addEventListener('wheel', e => {
         e.preventDefault();
+        e.stopPropagation();
         const scrollAmount = e.deltaY;
         wheel.scrollBy({ top: scrollAmount, behavior: 'smooth' });
-    });
+    }, { passive: false });
 
     wheel.addEventListener('scroll', () => {
         updateAlbumWheelActiveStyle();
