@@ -1926,12 +1926,14 @@ function renderFeedCard(index, direction = 'none') {
     if (verse) {
         if (verse.isAd) {
             textEl.innerHTML = `
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 20px;">
-                    <div style="font-size: 3rem; margin-bottom: 10px;">🌟</div>
-                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--text-color);">Support Our Mission</div>
-                    <div style="font-size: 1.1rem; opacity: 0.8; max-width: 80%; line-height: 1.5;">Get exclusive features</div>
-                    <button onclick="openPremiumModal()" class="action-btn" style="background: var(--bg-grad-1); color: #fff; border: none; padding: 15px 40px; border-radius: 30px; font-size: 1.1rem; font-weight: bold; margin-top: 10px; box-shadow: 0 4px 15px rgba(255,107,107,0.4); cursor: pointer; transform: scale(1); transition: transform 0.2s;">
-                        Premium
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 16px; padding: 20px;">
+                    <div style="width: 54px; height: 54px; border-radius: 50%; border: 1px solid var(--glass-border); background: var(--card-bg); display: flex; align-items: center; justify-content: center; box-shadow: var(--glass-shadow);">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+                    </div>
+                    <div style="font-size: 1.35rem; font-weight: 600; color: var(--text-color); font-family: var(--font-main); letter-spacing: 0.3px;">Support VerseFeed</div>
+                    <div style="font-size: 0.95rem; color: var(--text-color); opacity: 0.75; max-width: 85%; line-height: 1.5; font-family: var(--font-main);">Unlock HD voices, custom controls & an ad-free experience.</div>
+                    <button onclick="openPremiumModal()" style="background: var(--card-bg); color: var(--accent); border: 1px solid var(--glass-border); padding: 12px 32px; border-radius: 24px; font-size: 0.95rem; font-weight: 600; margin-top: 6px; box-shadow: var(--glass-shadow); cursor: pointer; transition: all 0.2s ease; font-family: inherit;">
+                        Upgrade to Premium
                     </button>
                 </div>
             `;
