@@ -4974,14 +4974,16 @@ function applyUserAuthSuccess(user) {
     if (!user) return;
     
     const savedName = localStorage.getItem('nameForSignUp');
-    if (savedName && savedName !== user.displayName && user.updateProfile) {
+    if (savedName && user.updateProfile) {
         user.updateProfile({ displayName: savedName }).catch(() => {});
+        try { user.displayName = savedName; } catch(e){}
         localStorage.removeItem('nameForSignUp');
     }
 
+    const nameToUse = savedName || user.displayName || user.email || 'User';
     const localAvatar = localStorage.getItem('customUserAvatar_' + user.uid);
     googleUser = {
-        name: user.displayName || savedName || user.email || 'User',
+        name: nameToUse,
         picture: localAvatar || user.photoURL || '',
         email: user.email || '',
         sub: user.uid
