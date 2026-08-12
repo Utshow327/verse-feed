@@ -2997,23 +2997,7 @@ function syncWheelsToCurrent() {
 }
 
 function setupWheelListeners() {
-    // Horizontal chapter wheel listeners are set up in setupChapterWheelListeners()
-    // called from populateChapterWheel() when a book is opened.
-    document.addEventListener('wheel', e => {
-        // Stop card navigation if any modal overlay is active or event is targeting a modal/wheel element
-        const activeModal = document.querySelector('.modal-overlay:not(.hidden)');
-        if (activeModal) return;
-        if (e.target && e.target.closest && (e.target.closest('.modal-overlay') || e.target.closest('[id*="wheel"]') || e.target.closest('.tooltip'))) return;
-
-        const isFeed = document.getElementById('verse-feed').classList.contains('active-section');
-        if (isFeed && !isProgrammaticScroll && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-            if (e.deltaY > 50) {
-                nextCard();
-            } else if (e.deltaY < -50) {
-                prevCard();
-            }
-        }
-    }, {passive: true});
+    // Mouse wheel scrolling for home feed verse cards disabled per user request
 }
 function scrollToBookVerse(verseIndex) {
     const info = globalVerseMap[verseIndex];
