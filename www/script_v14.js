@@ -4975,9 +4975,10 @@ function applyUserAuthSuccess(user) {
     
     const savedName = localStorage.getItem('nameForSignUp');
     if (savedName && user.updateProfile) {
-        user.updateProfile({ displayName: savedName }).catch(() => {});
-        try { user.displayName = savedName; } catch(e){}
-        localStorage.removeItem('nameForSignUp');
+        user.updateProfile({ displayName: savedName }).then(() => {
+            localStorage.removeItem('nameForSignUp');
+        }).catch(() => {});
+        try { Object.defineProperty(user, 'displayName', { value: savedName, writable: true }); } catch(e){}
     }
 
     const nameToUse = savedName || user.displayName || user.email || 'User';
