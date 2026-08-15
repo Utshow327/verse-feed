@@ -5751,8 +5751,25 @@ function signInWithGoogle() {
 }
 
 function getLocalState() {
+    const rawSaved = JSON.parse(localStorage.getItem('savedVerses') || '[]');
+    const compactSaved = rawSaved.map(s => {
+        if (!s) return null;
+        return {
+            id: s.id || undefined,
+            book: s.book,
+            chapter: s.chapter,
+            verse: s.verse,
+            religion: s.religion,
+            album: s.album,
+            author: s.author || undefined,
+            translation: s.translation || undefined,
+            text: s.text,
+            time: s.time || undefined
+        };
+    }).filter(Boolean);
+
     return {
-        savedVerses: JSON.parse(localStorage.getItem('savedVerses') || '[]'),
+        savedVerses: compactSaved,
         createdAlbums: JSON.parse(localStorage.getItem('createdAlbums') || '[]'),
         bookMarkedVerse: JSON.parse(localStorage.getItem('bookMarkedVerse') || '{}'),
         globalSelectedRels: JSON.parse(localStorage.getItem('globalSelectedRels') || 'null'),
@@ -5763,7 +5780,7 @@ function getLocalState() {
         musicVolume: localStorage.getItem('musicVolume') || '0.3',
         musicEnabled: localStorage.getItem('musicEnabled') !== 'false',
         currentMusicTrack: localStorage.getItem('currentMusicTrack') || '0',
-        seenVersesHistory: (seenVersesList || []).slice(-1500),
+        seenVersesHistory: (seenVersesList || []).slice(-500),
         updatedAt: Date.now()
     };
 }
@@ -5798,8 +5815,8 @@ async function loadUserDataFromFirestore(uid) {
                             seenVersesList.push(vId);
                         }
                     });
-                    if (seenVersesList.length > 3000) {
-                        seenVersesList = seenVersesList.slice(-3000);
+                    if (seenVersesList.length > 1000) {
+                        seenVersesList = seenVersesList.slice(-1000);
                         seenVersesSet = new Set(seenVersesList);
                     }
                     localStorage.setItem('seenVersesHistory', JSON.stringify(seenVersesList));
