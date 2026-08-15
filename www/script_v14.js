@@ -283,19 +283,13 @@ const musicTracks = [
 ];
 
 function getRandomMusicTrackIndex(excludeIndex = -1) {
-    const categories = [
-        [6], // Flute
-        [7], // Guitar
-        [8], // Meditation
-        [0, 1, 2, 3, 4, 5] // Ambient Dreams
-    ];
-    let currentCat = -1;
-    if (excludeIndex >= 0) {
-        currentCat = categories.findIndex(cat => cat.includes(excludeIndex));
+    // Build list of all track indices excluding the current one
+    const allIndices = [];
+    for (let i = 0; i < musicTracks.length; i++) {
+        if (i !== excludeIndex) allIndices.push(i);
     }
-    const availCats = categories.filter((cat, idx) => idx !== currentCat);
-    const chosenCat = availCats[Math.floor(Math.random() * availCats.length)];
-    return chosenCat[Math.floor(Math.random() * chosenCat.length)];
+    if (allIndices.length === 0) return 0;
+    return allIndices[Math.floor(Math.random() * allIndices.length)];
 }
 
 let currentTrack = getRandomMusicTrackIndex(-1);
@@ -4105,7 +4099,11 @@ function saveToAlbum(albumName) {
     }
     
     closeAlbumModal();
-    deselectVerse();
+    // Don't deselect verse in book section — keep the verse selected after bookmarking
+    const isBookSection = document.getElementById('read-books') && document.getElementById('read-books').classList.contains('active-section');
+    if (!isBookSection) {
+        deselectVerse();
+    }
     if (document.getElementById('saved-verses').classList.contains('active-section')) {
         showSavedVerses(true);
     }
@@ -4998,32 +4996,48 @@ function formatVerseForShare(verseObj) {
     return `${text}\n\n- ${ref}\n(VerseFeed)`;
 }
 
+async function shareTextFallback(text) {
+    try {
+        // Try Capacitor Share plugin first (works reliably on native)
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share) {
+            await window.Capacitor.Plugins.Share.share({ title: 'VerseFeed', text: text, dialogTitle: 'Share Verse' });
+            return;
+        }
+        if (navigator.share) {
+            await navigator.share({ title: 'VerseFeed', text: text });
+        } else if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+            showToast('Verse copied to clipboard!');
+        } else {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('Verse copied to clipboard!');
+        }
+    } catch (e) {
+        console.error('Share failed', e);
+        // Final fallback: clipboard copy
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+                showToast('Verse copied to clipboard!');
+            }
+        } catch (e2) {
+            showToast('Could not share');
+        }
+    }
+}
+
 async function generateAndShareImage(verseObj, elementId) {
     if (!verseObj || !window.html2canvas) {
         // Fallback to text sharing
         const text = formatVerseForShare(verseObj);
-        try {
-            if (navigator.share) {
-                await navigator.share({ title: 'VerseFeed', text: text });
-            } else if (navigator.clipboard && navigator.clipboard.writeText) {
-                await navigator.clipboard.writeText(text);
-                showToast('Verse copied to clipboard!');
-            } else {
-                // Legacy fallback
-                const ta = document.createElement('textarea');
-                ta.value = text;
-                ta.style.position = 'fixed';
-                ta.style.opacity = '0';
-                document.body.appendChild(ta);
-                ta.select();
-                document.execCommand('copy');
-                document.body.removeChild(ta);
-                showToast('Verse copied to clipboard!');
-            }
-        } catch (e) {
-            console.error('Share failed', e);
-            showToast('Could not share');
-        }
+        await shareTextFallback(text);
         return;
     }
     
@@ -5094,24 +5108,28 @@ async function generateAndShareImage(verseObj, elementId) {
         document.body.removeChild(posterContainer);
         
         canvas.toBlob(async (blob) => {
-            if (!blob) return;
-            const file = new File([blob], 'versefeed_share.png', { type: 'image/png' });
+            if (!blob) {
+                const text = formatVerseForShare(verseObj);
+                await shareTextFallback(text);
+                return;
+            }
             const text = formatVerseForShare(verseObj);
             
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                navigator.share({
-                    files: [file],
-                    title: 'Daily Verse',
-                    text: text
-                }).catch(console.error);
-            } else {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'versefeed_share.png';
-                a.click();
-                URL.revokeObjectURL(url);
-                showToast('Image downloaded!');
+            try {
+                const file = new File([blob], 'versefeed_share.png', { type: 'image/png' });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: 'Daily Verse',
+                        text: text
+                    });
+                } else {
+                    // Can't share files, fall back to text share
+                    await shareTextFallback(text);
+                }
+            } catch (shareErr) {
+                console.error('Image share error, falling back to text', shareErr);
+                await shareTextFallback(text);
             }
         }, 'image/png');
     } catch (e) {
@@ -5736,18 +5754,31 @@ function signInWithGoogle() {
     
     isGooglePopupOpen = true;
     const provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(provider).then(() => {
-        closeEmailAuthModal();
-    }).catch((error) => {
-        if (error && (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user')) {
-            console.log("Google Sign-In cancelled by user.");
-            return;
-        }
-        console.error("Google Sign In Error:", error);
-        showToast("Sign in error: " + (error ? (error.message || "Failed") : "Failed"));
-    }).finally(() => {
-        isGooglePopupOpen = false;
-    });
+    
+    // Use signInWithRedirect for Capacitor (WebView doesn't support popups properly)
+    // and signInWithPopup for regular browser
+    const isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+    
+    if (isNative) {
+        firebase.auth().signInWithRedirect(provider).catch((error) => {
+            console.error("Google Sign In Redirect Error:", error);
+            showToast("Sign in error: " + (error ? (error.message || "Failed") : "Failed"));
+            isGooglePopupOpen = false;
+        });
+    } else {
+        firebase.auth().signInWithPopup(provider).then(() => {
+            closeEmailAuthModal();
+        }).catch((error) => {
+            if (error && (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user')) {
+                console.log("Google Sign-In cancelled by user.");
+                return;
+            }
+            console.error("Google Sign In Error:", error);
+            showToast("Sign in error: " + (error ? (error.message || "Failed") : "Failed"));
+        }).finally(() => {
+            isGooglePopupOpen = false;
+        });
+    }
 }
 
 function sanitizeForFirestore(obj) {
@@ -6132,10 +6163,6 @@ async function initAdMob() {
                 initializeForTesting: false,
             });
 
-            // Pre-load the first interstitial ad so it's ready when needed
-            if (!isPremiumUser) {
-                prepareNextInterstitial();
-            }
         }
     } catch (e) {
         console.error("AdMob Init Error:", e);
