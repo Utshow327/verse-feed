@@ -2143,22 +2143,22 @@ h2 {
     transform: scale(0.97);
 }
 
-/* Premium Animated Gradient Pill Button - High Contrast App Palette */
+/* Premium Animated Gradient Pill Button - App Palette */
 .premium-gradient-btn {
     flex: 1;
     height: 50px;
     border-radius: 25px;
-    color: #ffffff !important;
+    color: var(--text-color);
     font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
     font-family: inherit;
-    border: 1px solid rgba(102, 93, 85, 0.25) !important;
-    background: linear-gradient(135deg, #7C6752, #A3876F, #6B5743, #8C745E) !important;
-    background-size: 300% 300% !important;
-    animation: premiumGradientShine 8s ease infinite !important;
-    box-shadow: 0 6px 20px rgba(102, 93, 85, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.35);
-    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    border: none !important;
+    background: linear-gradient(135deg, var(--p-gold), var(--p-sand), var(--bg-grad-1), var(--p-gold));
+    background-size: 300% 300%;
+    animation: premiumGradientShine 8s ease infinite;
+    box-shadow: var(--glass-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2167,20 +2167,16 @@ h2 {
 }
 
 [data-theme="dark"] .premium-gradient-btn {
-    color: #f7e7ce !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #3d352e) !important;
-    background-size: 300% 300% !important;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.08);
-}
-
-.premium-gradient-btn:hover {
-    filter: brightness(1.05);
+    color: #f7e7ce;
+    border: none !important;
+    border-color: transparent !important;
+    background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #3d352e);
+    background-size: 300% 300%;
 }
 
 .premium-gradient-btn:active {
-    transform: scale(0.97);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transform: scale(0.96);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Reusable Glassmorphism Modal Buttons */
@@ -2435,53 +2431,37 @@ h2 {
     display: flex;
     flex-direction: column;
     gap: 14px;
-.premium-features-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
     width: 100%;
-    align-items: center;
     padding: 0 5px;
 }
 .premium-feature-row {
     display: flex;
     align-items: center;
-    justify-content: center;
-    text-align: center;
+    gap: 12px;
 }
 .premium-feature-row span {
     color: var(--text-color);
-    font-size: 0.96rem;
-    font-weight: 600;
-    letter-spacing: 0.2px;
-    opacity: 0.85;
+    font-size: 0.95rem;
+    font-weight: 500;
 }
 .premium-buy-pill {
     position: relative;
     width: 100%;
     height: 48px;
-    border: 1px solid rgba(102, 93, 85, 0.3);
+    border: none;
     border-radius: 24px;
     cursor: pointer;
-    background: var(--p-brown);
-    color: #ffffff;
-    font-size: 1.05rem;
+    overflow: hidden;
+    background-image: linear-gradient(135deg, var(--p-gold), var(--p-brown));
+    color: var(--p-sand);
+    font-size: 1.1rem;
     font-weight: 700;
-    transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-[data-theme="dark"] .premium-buy-pill {
-    background: #3d352e;
-    color: #f7e7ce;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
 }
 .premium-buy-pill:hover {
-    opacity: 0.92;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 .premium-buy-pill:active {
     transform: scale(0.97);
@@ -2489,7 +2469,7 @@ h2 {
 .premium-buy-pill-text {
     position: relative;
     z-index: 1;
-    color: inherit;
+    color: var(--p-sand);
     font-size: 1.05rem;
     font-weight: 700;
     font-family: inherit;
