@@ -5750,25 +5750,42 @@ function signInWithGoogle() {
     });
 }
 
+function sanitizeForFirestore(obj) {
+    if (obj === undefined) return null;
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) {
+        return obj.map(sanitizeForFirestore).filter(v => v !== undefined);
+    }
+    const cleaned = {};
+    for (const key of Object.keys(obj)) {
+        const val = obj[key];
+        if (val !== undefined) {
+            cleaned[key] = sanitizeForFirestore(val);
+        }
+    }
+    return cleaned;
+}
+
 function getLocalState() {
     const rawSaved = JSON.parse(localStorage.getItem('savedVerses') || '[]');
     const compactSaved = rawSaved.map(s => {
         if (!s) return null;
-        return {
-            id: s.id || undefined,
-            book: s.book,
-            chapter: s.chapter,
-            verse: s.verse,
-            religion: s.religion,
-            album: s.album,
-            author: s.author || undefined,
-            translation: s.translation || undefined,
-            text: s.text,
-            time: s.time || undefined
+        const item = {
+            book: s.book || '',
+            chapter: s.chapter !== undefined && s.chapter !== null ? s.chapter : '',
+            verse: s.verse !== undefined && s.verse !== null ? s.verse : '',
+            religion: s.religion || '',
+            album: s.album || 'All',
+            text: s.text || ''
         };
+        if (s.id) item.id = s.id;
+        if (s.author) item.author = s.author;
+        if (s.translation) item.translation = s.translation;
+        if (s.time) item.time = s.time;
+        return item;
     }).filter(Boolean);
 
-    return {
+    const state = {
         savedVerses: compactSaved,
         createdAlbums: JSON.parse(localStorage.getItem('createdAlbums') || '[]'),
         bookMarkedVerse: JSON.parse(localStorage.getItem('bookMarkedVerse') || '{}'),
@@ -5783,6 +5800,8 @@ function getLocalState() {
         seenVersesHistory: (seenVersesList || []).slice(-500),
         updatedAt: Date.now()
     };
+
+    return sanitizeForFirestore(state);
 }
 
 async function saveUserDataToFirestore(uid) {
