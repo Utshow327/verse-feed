@@ -6166,8 +6166,8 @@ function renderPremiumPackages() {
     if (!container) return;
 
     let monthlyPrice = "$2.99";
-    let annualPrice = "$19.99";
-    let annualPerMonth = "$1.66";
+    let annualPrice = "$29.99";
+    let annualPerMonth = "$2.50";
 
     // If RevenueCat packages loaded from Google Play:
     if (rcPackages && rcPackages.length > 0) {
@@ -6190,7 +6190,7 @@ function renderPremiumPackages() {
                 <span class="plan-subtext">/ month</span>
             </div>
             <div class="premium-plan-card ${selectedPlanType === 'annual' ? 'selected' : ''}" onclick="selectPremiumPlan('annual')">
-                <span class="plan-badge">Save 45%</span>
+                <span class="plan-badge">Save 17%</span>
                 <span class="plan-name">Annual</span>
                 <span class="plan-price">${annualPrice}</span>
                 <span class="plan-subtext">${annualPerMonth}/mo billed yearly</span>
