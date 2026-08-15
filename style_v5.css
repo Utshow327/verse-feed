@@ -2432,12 +2432,14 @@ h2 {
     flex-direction: column;
     gap: 14px;
     width: 100%;
+    align-items: center;
     padding: 0 5px;
 }
 .premium-feature-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: center;
+    text-align: center;
 }
 .premium-feature-row span {
     color: var(--text-color);
