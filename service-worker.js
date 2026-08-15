@@ -22,8 +22,6 @@ const STATIC_ASSETS = [
     './libs/piper/piper_phonemize.wasm',
     './libs/piper/ort-wasm-simd-threaded.wasm',
     './libs/piper/ort-wasm-simd-threaded.jsep.wasm',
-    './libs/piper/ort-wasm-simd-threaded.jspi.wasm',
-    './libs/piper/ort-wasm-simd-threaded.wasm',
     './libs/piper/ort.min.js'
 ];
 
