@@ -2143,22 +2143,22 @@ h2 {
     transform: scale(0.97);
 }
 
-/* Premium Animated Gradient Pill Button - App Palette */
+/* Premium Animated Gradient Pill Button - High Contrast App Palette */
 .premium-gradient-btn {
     flex: 1;
     height: 50px;
     border-radius: 25px;
-    color: var(--text-color);
+    color: #ffffff;
     font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
     font-family: inherit;
-    border: none !important;
-    background: linear-gradient(135deg, var(--p-gold), var(--p-sand), var(--bg-grad-1), var(--p-gold));
+    border: 1px solid rgba(102, 93, 85, 0.25) !important;
+    background: linear-gradient(135deg, #7C6752, #9E846C, #6B5743, #8C745E);
     background-size: 300% 300%;
     animation: premiumGradientShine 8s ease infinite;
-    box-shadow: var(--glass-shadow);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 6px 20px rgba(102, 93, 85, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2168,15 +2168,72 @@ h2 {
 
 [data-theme="dark"] .premium-gradient-btn {
     color: #f7e7ce;
-    border: none !important;
-    border-color: transparent !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
     background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #3d352e);
     background-size: 300% 300%;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+}
+
+.premium-gradient-btn:hover {
+    filter: brightness(1.05);
 }
 
 .premium-gradient-btn:active {
-    transform: scale(0.96);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: scale(0.97);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Reusable Glassmorphism Modal Buttons */
+.modal-action-btn {
+    width: 100%;
+    height: 46px;
+    border-radius: 23px;
+    border: 1px solid var(--glass-border);
+    background: var(--card-bg);
+    color: var(--text-color);
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: var(--glass-shadow);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    transition: transform 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.modal-action-btn:hover {
+    opacity: 0.9;
+}
+.modal-action-btn:active {
+    transform: scale(0.97);
+}
+
+.modal-action-danger-btn {
+    width: 100%;
+    height: 46px;
+    border-radius: 23px;
+    border: 1px solid rgba(220, 53, 69, 0.45);
+    background: rgba(220, 53, 69, 0.1);
+    color: #ff5252;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 4px 16px rgba(220, 53, 69, 0.15);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    transition: transform 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.modal-action-danger-btn:hover {
+    background: rgba(220, 53, 69, 0.18);
+}
+.modal-action-danger-btn:active {
+    transform: scale(0.97);
 }
 
 @keyframes premiumGradientShine {
