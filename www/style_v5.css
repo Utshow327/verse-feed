@@ -92,34 +92,62 @@ html, body {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 9999;
+    z-index: 99999;
+    pointer-events: all;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    transform: translate3d(0, 0, 0);
+    transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s ease;
 }
 
-.elegant-spinner {
-    width: 40px;
-    height: 40px;
+.loading-dots {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    transform: translate3d(0, 0, 0);
+}
+
+.loading-dots .dot {
+    width: 11px;
+    height: 11px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(var(--loader-rgb), 1) 0%, rgba(var(--loader-rgb), 0.6) 100%);
-    box-shadow: 0 0 15px rgba(var(--loader-rgb), 0.5);
-    animation: elegant-pulse 1.2s ease-in-out infinite alternate;
+    background: var(--accent);
+    transform: translate3d(0, 0, 0);
     will-change: transform, opacity;
+    animation: dot-breathe 1.2s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
 }
 
-@keyframes elegant-pulse {
-    0% { transform: scale(0.8); opacity: 0.5; }
-    100% { transform: scale(1.2); opacity: 1; }
+.loading-dots .dot:nth-child(2) {
+    animation-delay: 0.16s;
+}
+
+.loading-dots .dot:nth-child(3) {
+    animation-delay: 0.32s;
+}
+
+@keyframes dot-breathe {
+    0%, 100% {
+        transform: scale3d(0.6, 0.6, 1);
+        opacity: 0.25;
+    }
+    50% {
+        transform: scale3d(1.15, 1.15, 1);
+        opacity: 0.95;
+    }
 }
 
 /* When loaded, gracefully fade out */
-#loading { transition: background-color 0.4s ease, opacity 0.4s ease; }
 #loading.loaded {
     opacity: 0;
+    visibility: hidden;
     pointer-events: none !important;
 }
-#loading.loaded .elegant-spinner {
+#loading.loaded .loading-dots .dot {
     animation: none;
-    transition: transform 0.4s ease, opacity 0.4s ease;
-    transform: scale(0.5);
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    transform: scale3d(0, 0, 1);
     opacity: 0;
 }
 
@@ -164,16 +192,7 @@ html, body {
     justify-content: space-between;
 }
 
-#top-nav-menu.pill-active-menu {
-    gap: 12px !important;
-    padding: 6px 18px !important;
-}
 
-@media (max-width: 480px) {
-    #top-nav-menu.pill-active-menu {
-        width: 92% !important;
-    }
-}
 
 .nav-icon {
     background: none;
@@ -345,14 +364,19 @@ html, body {
     margin-bottom: 40px;
 }
 
+.card-footer,
+.saved-verse-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 22px;
+}
+
 .card-footer {
     position: absolute;
     bottom: 20px;
     left: 25px;
     right: 25px;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
     pointer-events: none;
 }
 
@@ -367,7 +391,9 @@ html, body {
     max-width: 70%;
     pointer-events: auto;
     margin-right: 10px;
-    line-height: 1.4;
+    line-height: 1;
+    display: flex;
+    align-items: center;
 }
 
 .bookmark-btn {
@@ -773,8 +799,8 @@ h2 {
 }
 
 .book-verse {
-    user-select: none;
-    -webkit-user-select: none;
+    user-select: text;
+    -webkit-user-select: text;
     margin-bottom: 20px;
     padding: 10px;
     border-radius: 8px;
@@ -843,6 +869,22 @@ h2 {
     font-weight: 500;
     transition: all 0.2s ease;
     flex-shrink: 0;
+    position: relative;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+.album-square-btn .album-name {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
+    text-align: center;
+    cursor: pointer;
+    padding: 4px;
+    width: 100%;
 }
 
 .toggle-icon-btn {
@@ -1456,46 +1498,48 @@ h2 {
     transform: translateY(5px);
 }
 
-/* Custom Premium Toast Container */
+/* Custom Premium Toast Container (Small, Thin, Top-Center) */
 .toast-container {
     position: fixed;
-    bottom: 90px; /* raised above the bottom menu bar */
-    right: 20px;
+    bottom: 80px;
+    left: 50%;
     background: var(--card-bg);
     color: var(--text-color);
-    padding: 12px 18px 15px 18px; /* bottom padding slightly higher to accommodate the progress bar */
-    border-radius: 14px;
-    font-size: 0.95rem;
-    line-height: 1.4;
-    z-index: 11000; /* above the navigation menu (1000) and other elements */
-    pointer-events: auto; /* enable clicks on the action button */
-    max-width: 320px;
-    min-width: 250px;
-    max-width: calc(100% - 40px); /* prevent overflow on narrow screens */
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
+    padding: 6px 16px 8px 16px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.2;
+    z-index: 12000;
+    pointer-events: none;
+    width: fit-content;
+    max-width: 90vw;
+    min-width: 0;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-    overflow: hidden; /* clip progress bar at bottom */
-    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    justify-content: center;
+    gap: 8px;
+    overflow: hidden;
+    transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     opacity: 0;
-    transform: translateY(10px) scale(0.98);
-    pointer-events: none; /* ignore pointer events when hidden */
+    transform: translateX(-50%) translateY(12px) scale(0.95);
 }
 
 .toast-container.show {
     opacity: 1;
-    transform: translateY(0) scale(1);
-    pointer-events: auto; /* enable pointer events when shown */
+    transform: translateX(-50%) translateY(0) scale(1);
+    pointer-events: auto;
 }
 
 .toast-message {
-    flex-grow: 1;
+    white-space: nowrap;
+    font-size: 0.82rem;
     font-weight: 500;
+    letter-spacing: 0.2px;
 }
 
 .toast-action-btn {
@@ -1503,10 +1547,10 @@ h2 {
     border: none;
     color: var(--accent);
     font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 0.78rem;
     cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 6px;
+    padding: 2px 6px;
+    border-radius: 4px;
     transition: background 0.2s, color 0.2s;
     font-family: inherit;
     text-transform: uppercase;
@@ -1526,11 +1570,11 @@ h2 {
     position: absolute;
     bottom: 0;
     left: 0;
-    height: 3px;
+    height: 1.5px;
     width: 100%;
     background: var(--accent);
     transform-origin: left;
-    transform: scaleX(1);
+    transform: scaleX(0);
     pointer-events: none;
 }
 
@@ -1599,79 +1643,87 @@ h2 {
 
 
 
-/* Morphing Pill Button Styles */
-.main-play-btn {
-    position: relative;
-    width: 50px;
-    height: 50px;
-    border-radius: 50% !important;
-    transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1), border-radius 0.4s cubic-bezier(0.25, 1, 0.5, 1), transform 0.2s ease, box-shadow 0.2s ease !important;
-}
-
-.main-play-btn.pill-active {
-    width: 155px !important;
-    border-radius: 25px !important;
-}
-
-.pill-options-container {
-    display: flex;
+/* Bottom-Right Corner Action Options (Visible Only on Selection) */
+.verse-actions {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-}
-
-.pill-option-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    color: inherit;
-    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease;
-    cursor: pointer;
-    background: transparent;
-}
-
-.pill-option-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-}
-
-.pill-btn-left, .pill-btn-share {
-    position: absolute;
-    opacity: 0;
-    transform: scale(0.5);
-    pointer-events: none;
-}
-
-.pill-btn-left {
-    left: 8px;
-}
-
-.pill-btn-share {
-    right: 8px;
-}
-
-.pill-btn-play {
-    position: relative;
-    z-index: 2;
-    transform: scale(1);
-    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-.main-play-btn.pill-active .pill-btn-left,
-.main-play-btn.pill-active .pill-btn-share {
-    opacity: 1;
-    transform: scale(1);
+    justify-content: flex-end;
+    gap: 14px;
+    padding: 0;
+    margin: 0;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    width: fit-content;
     pointer-events: auto;
+    z-index: 10;
+    line-height: 1;
 }
 
-.pill-option-btn svg.hidden {
-    display: none !important;
+.card-footer .verse-actions,
+.saved-verse-footer .verse-actions {
+    margin-left: auto;
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.book-verse .verse-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 14px;
+    margin-top: 10px;
+    margin-left: auto;
+    width: 100%;
+}
+
+.album-square-btn .verse-actions {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    gap: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin: 0;
+    padding: 0;
+}
+
+.va-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    opacity: 0.9;
+    line-height: 1;
+    transform: none !important;
+    transition: none !important;
+}
+
+.va-btn svg {
+    width: 17px;
+    height: 17px;
+    display: block;
+}
+
+.va-btn:hover,
+.va-btn:active {
+    opacity: 1;
+    transform: none !important;
 }
 
 
@@ -1769,6 +1821,7 @@ h2 {
     perspective: 1000px;
     margin: 10px auto;
     background: transparent;
+    padding: 20px 40px;
 }
 #album-scroll-wheel-container::before,
 #album-scroll-wheel-container::after {
@@ -2100,7 +2153,7 @@ h2 {
     font-weight: 700;
     cursor: pointer;
     font-family: inherit;
-    border: 1px solid var(--glass-border);
+    border: none !important;
     background: linear-gradient(135deg, var(--p-gold), var(--p-sand), var(--bg-grad-1), var(--p-gold));
     background-size: 300% 300%;
     animation: premiumGradientShine 8s ease infinite;
@@ -2115,7 +2168,8 @@ h2 {
 
 [data-theme="dark"] .premium-gradient-btn {
     color: #f7e7ce;
-    border-color: rgba(247, 231, 206, 0.35);
+    border: none !important;
+    border-color: transparent !important;
     background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #3d352e);
     background-size: 300% 300%;
 }
@@ -2126,9 +2180,24 @@ h2 {
 }
 
 @keyframes premiumGradientShine {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 0% 0%; }
+}
+
+/* Feed Premium Card Background - Matches Premium Gradient Button Exactly */
+.verse-card.premium-ad-card {
+    border: none !important;
+    background: linear-gradient(135deg, var(--p-gold), #f7e7ce, var(--bg-grad-1), var(--p-brown), var(--p-gold)) !important;
+    background-size: 300% 300% !important;
+    animation: premiumGradientShine 5s linear infinite !important;
+}
+
+[data-theme="dark"] .verse-card.premium-ad-card {
+    border: none !important;
+    background: linear-gradient(135deg, #2b231a, #574b42, #1b1611, #705844, #2b231a) !important;
+    background-size: 300% 300% !important;
+    animation: premiumGradientShine 5s linear infinite !important;
 }
 
 .book-verse.marked {
