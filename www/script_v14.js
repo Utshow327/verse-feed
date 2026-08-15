@@ -6098,8 +6098,9 @@ function updateUserUI() {
 }
 
 // --- Premium Modal Logic (RevenueCat) ---
-var isPremiumUser = true;
+var isPremiumUser = false;
 var rcPackages = [];
+var selectedPlanType = 'annual'; // 'monthly' or 'annual'
 
 async function initRevenueCat() {
     try {
@@ -6109,7 +6110,7 @@ async function initRevenueCat() {
             
             const customerInfo = await Purchases.getCustomerInfo();
             const hasActiveEntitlement = customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && Object.keys(customerInfo.entitlements.active).length > 0;
-            isPremiumUser = true; // Premium forced on
+            isPremiumUser = Boolean(hasActiveEntitlement);
             
             const offerings = await Purchases.getOfferings();
             if (offerings.current && offerings.current.availablePackages) {
@@ -6155,39 +6156,90 @@ function closePremiumModal(e) {
     if (modal) modal.classList.add('hidden');
 }
 
+function selectPremiumPlan(planType) {
+    selectedPlanType = planType;
+    renderPremiumPackages();
+}
+
 function renderPremiumPackages() {
     const container = document.getElementById('premium-packages');
     if (!container) return;
-    
-    if (rcPackages.length === 0) {
-        return;
-    }
-    container.innerHTML = rcPackages.map(pkg => `
-        <button class="premium-package-btn" onclick="purchasePackage('${pkg.identifier}')">
-            <span class="premium-package-title">${pkg.product.title}</span>
-            <span class="premium-package-price">${pkg.product.priceString}</span>
-        </button>
-    `).join('');
-}
 
-async function purchasePackage(packageIdentifier) {
-    showToast("Processing...");
-    try {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) {
-            const { Purchases } = window.Capacitor.Plugins;
-            const pkg = rcPackages.find(p => p.identifier === packageIdentifier);
-            if (!pkg) return;
-            const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
-            const hasActiveEntitlement = customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && Object.keys(customerInfo.entitlements.active).length > 0;
-            if (hasActiveEntitlement) {
-                isPremiumUser = true;
-                showToast("Premium unlocked! Thank you!");
-                closePremiumModal();
+    let monthlyPrice = "$2.99";
+    let annualPrice = "$19.99";
+    let annualPerMonth = "$1.66";
+
+    // If RevenueCat packages loaded from Google Play:
+    if (rcPackages && rcPackages.length > 0) {
+        const monthlyPkg = rcPackages.find(p => p.packageType === 'MONTHLY' || (p.identifier && p.identifier.toLowerCase().includes('monthly')));
+        const annualPkg = rcPackages.find(p => p.packageType === 'ANNUAL' || (p.identifier && (p.identifier.toLowerCase().includes('annual') || p.identifier.toLowerCase().includes('yearly'))));
+        if (monthlyPkg && monthlyPkg.product) monthlyPrice = monthlyPkg.product.priceString;
+        if (annualPkg && annualPkg.product) {
+            annualPrice = annualPkg.product.priceString;
+            if (annualPkg.product.price) {
+                annualPerMonth = '$' + (annualPkg.product.price / 12).toFixed(2);
             }
         }
+    }
+
+    container.innerHTML = `
+        <div class="premium-plans-grid">
+            <div class="premium-plan-card ${selectedPlanType === 'monthly' ? 'selected' : ''}" onclick="selectPremiumPlan('monthly')">
+                <span class="plan-name">Monthly</span>
+                <span class="plan-price">${monthlyPrice}</span>
+                <span class="plan-subtext">/ month</span>
+            </div>
+            <div class="premium-plan-card ${selectedPlanType === 'annual' ? 'selected' : ''}" onclick="selectPremiumPlan('annual')">
+                <span class="plan-badge">Save 45%</span>
+                <span class="plan-name">Annual</span>
+                <span class="plan-price">${annualPrice}</span>
+                <span class="plan-subtext">${annualPerMonth}/mo billed yearly</span>
+            </div>
+        </div>
+    `;
+
+    const buyBtnText = document.querySelector('.premium-buy-pill-text');
+    if (buyBtnText) {
+        if (selectedPlanType === 'annual') {
+            buyBtnText.innerText = `Get Annual — ${annualPrice}/yr`;
+        } else {
+            buyBtnText.innerText = `Get Monthly — ${monthlyPrice}/mo`;
+        }
+    }
+}
+
+async function handlePremiumSubscribeClick() {
+    showToast("Processing payment...");
+    try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases && rcPackages.length > 0) {
+            const { Purchases } = window.Capacitor.Plugins;
+            let targetPkg = null;
+            if (selectedPlanType === 'annual') {
+                targetPkg = rcPackages.find(p => p.packageType === 'ANNUAL' || (p.identifier && (p.identifier.toLowerCase().includes('annual') || p.identifier.toLowerCase().includes('yearly')))) || rcPackages[0];
+            } else {
+                targetPkg = rcPackages.find(p => p.packageType === 'MONTHLY' || (p.identifier && p.identifier.toLowerCase().includes('monthly'))) || rcPackages[0];
+            }
+
+            if (targetPkg) {
+                const { customerInfo } = await Purchases.purchasePackage({ aPackage: targetPkg });
+                const hasActive = customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && Object.keys(customerInfo.entitlements.active).length > 0;
+                if (hasActive) {
+                    isPremiumUser = true;
+                    showToast("Premium unlocked! Thank you!");
+                    closePremiumModal();
+                    return;
+                }
+            }
+        }
+        // Fallback for Web/Dev simulation
+        setTimeout(() => {
+            isPremiumUser = true;
+            showToast("Premium unlocked! Thank you for subscribing.");
+            closePremiumModal();
+        }, 1200);
     } catch (e) {
         if (!e.userCancelled) {
-            showToast("Purchase failed. Try again.");
+            showToast("Purchase failed. Please try again.");
             console.error(e);
         }
     }
@@ -6215,15 +6267,6 @@ async function restorePurchases() {
     } catch (e) {
         showToast("Restore failed.");
     }
-}
-
-function simulatePurchase() {
-    showToast("Processing payment...");
-    setTimeout(() => {
-        isPremiumUser = true;
-        showToast("Premium unlocked! Thank you for subscribing.");
-        closePremiumModal();
-    }, 1500);
 }
 
 window.addEventListener('load', async () => {
