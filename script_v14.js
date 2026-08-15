@@ -3799,6 +3799,15 @@ function hideRadialMenu() {
 let toastHideTimeout = null;
 
 function showToast(msg, duration = 2200) {
+    if (!msg) return;
+    const lower = String(msg).toLowerCase();
+    const isSaveOrDelete = lower.includes('save') || 
+                           lower.includes('delet') || 
+                           lower.includes('remov') || 
+                           lower.includes('restor') || 
+                           lower.includes('undo');
+    if (!isSaveOrDelete) return;
+
     const toast = document.getElementById('global-toast');
     const msgEl = document.getElementById('toast-message');
     const actionBtn = document.getElementById('toast-action-btn');
@@ -5953,10 +5962,20 @@ function confirmSignOut() {
     }
 }
 
-function confirmDeleteAccount() {
+function openDeleteAccountModal() {
+    const modal = document.getElementById('delete-account-confirm-modal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeDeleteAccountModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    const modal = document.getElementById('delete-account-confirm-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function executeDeleteAccount() {
     if (!googleUser) return;
-    const confirmed = confirm("Are you sure you want to permanently delete your account and all cloud-synced verses? This action cannot be undone.");
-    if (!confirmed) return;
+    closeDeleteAccountModal();
 
     const userSub = googleUser.sub;
     const profileKey = 'account_' + userSub;
@@ -6085,7 +6104,6 @@ async function initAdMob() {
 }
 
 function openPremiumModal() {
-    if (isPremiumUser) return;
     const modal = document.getElementById('premium-modal');
     if (modal) {
         modal.classList.remove('hidden');
