@@ -3798,15 +3798,18 @@ function hideRadialMenu() {
 
 let toastHideTimeout = null;
 
+function isToastAllowed(msg) {
+    if (!msg) return false;
+    const m = String(msg).toLowerCase().trim();
+    if (m.startsWith('saved to') || m.startsWith('moved to')) return true;
+    if (m === 'verse deleted' || m === 'folder deleted' || m === 'account deleted') return true;
+    if (m === 'bookmark removed' || m === 'removed bookmark' || m === 'deleted from saved.') return true;
+    if (m === 'verse restored' || m === 'folder restored') return true;
+    return false;
+}
+
 function showToast(msg, duration = 2200) {
-    if (!msg) return;
-    const lower = String(msg).toLowerCase();
-    const isSaveOrDelete = lower.includes('save') || 
-                           lower.includes('delet') || 
-                           lower.includes('remov') || 
-                           lower.includes('restor') || 
-                           lower.includes('undo');
-    if (!isSaveOrDelete) return;
+    if (!isToastAllowed(msg)) return;
 
     const toast = document.getElementById('global-toast');
     const msgEl = document.getElementById('toast-message');
@@ -5949,7 +5952,6 @@ function confirmSignOut() {
         if (typeof showSavedVerses === 'function' && document.getElementById('saved-list') && savedVersesEl && savedVersesEl.classList.contains('active-section')) {
             showSavedVerses();
         }
-        showToast('Signed out, restored Guest state');
     };
 
     if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
@@ -5996,7 +5998,7 @@ function executeDeleteAccount() {
         if (typeof showSavedVerses === 'function' && document.getElementById('saved-list') && savedVersesEl && savedVersesEl.classList.contains('active-section')) {
             showSavedVerses();
         }
-        showToast('Account and cloud data permanently deleted');
+        showToast('Account deleted');
     };
 
     // 1. Delete from Firestore if available
