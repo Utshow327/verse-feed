@@ -5277,6 +5277,20 @@ function initFirebaseAuth() {
     if (firebase.apps.length) {
         db = firebase.firestore();
         
+        // Handle Google Sign-In redirect return
+        if (firebase.auth().getRedirectResult) {
+            firebase.auth().getRedirectResult().then((result) => {
+                if (result && result.user) {
+                    showToast("Signed in as " + (result.user.displayName || result.user.email || 'User'));
+                    applyUserAuthSuccess(result.user);
+                }
+            }).catch((error) => {
+                if (error && error.code !== 'auth/null-user') {
+                    console.error("Redirect auth error:", error);
+                }
+            });
+        }
+
         // Handle Email Link Verification & Reclaiming Account
         if (firebase.auth().isSignInWithEmailLink(window.location.href)) {
             let email = window.localStorage.getItem('emailForSignIn');
