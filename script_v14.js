@@ -126,8 +126,8 @@ function switchProfile(targetProfileId) {
     ttsAnnounceSource = localStorage.getItem('ttsAnnounceSource') === 'true';
     ttsRandomVoice = localStorage.getItem('ttsRandomVoice') === 'true';
 
-    let curVol = parseFloat(localStorage.getItem('musicVolume') || '0.6');
-    if (isNaN(curVol)) curVol = 0.4;
+    let curVol = parseFloat(localStorage.getItem('musicVolume') || '0.5');
+    if (isNaN(curVol)) curVol = 0.5;
     if (typeof audio !== 'undefined' && audio) {
         audio.volume = curVol;
     }
@@ -271,12 +271,6 @@ const voicesList = [
 ];
 
 const musicTracks = [
-    './music/ambient_dream_1.mp3',
-    './music/ambient_dream_2.mp3',
-    './music/ambient_dream_3.mp3',
-    './music/ambient_dream_4.mp3',
-    './music/ambient_dream_5.mp3',
-    './music/ambient_dream_6.mp3',
     './music/ambient_flute.mp3',
     './music/ambient_guitar.mp3',
     './music/ambient_meditation.mp3'
@@ -513,12 +507,12 @@ async function initApp() {
         }
 
         audio = document.getElementById('audio');
-        let initialVol = 0.6;
+        let initialVol = 0.5;
         let savedVol = localStorage.getItem('musicVolume');
-        if (savedVol !== null && savedVol !== '0.5' && savedVol !== '0.2' && savedVol !== '1' && savedVol !== '1.0' && savedVol !== '0.3') {
+        if (savedVol !== null && savedVol !== '1' && savedVol !== '1.0') {
             initialVol = parseFloat(savedVol);
         } else {
-            initialVol = 0.6;
+            initialVol = 0.5;
         }
         audio.volume = initialVol;
         localStorage.setItem('musicVolume', initialVol.toString());
@@ -555,6 +549,43 @@ async function initApp() {
                 document.addEventListener('click', playOnInteract);
                 document.addEventListener('pointerdown', playOnInteract);
                 document.addEventListener('touchstart', playOnInteract, {passive: true});
+            });
+        }
+
+        // Pause music when app is backgrounded / user switches apps, resume on return
+        let wasMusicPlayingBeforeBackground = false;
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (audio && !audio.paused) {
+                    wasMusicPlayingBeforeBackground = true;
+                    audio.pause();
+                }
+                if (isSpeaking && !isPaused) {
+                    stopAudio(true);
+                }
+            } else {
+                const mEnabled = localStorage.getItem('musicEnabled') !== 'false';
+                if (wasMusicPlayingBeforeBackground && mEnabled) {
+                    wasMusicPlayingBeforeBackground = false;
+                    if (audio) audio.play().catch(() => {});
+                }
+            }
+        });
+
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+            window.Capacitor.Plugins.App.addListener('appStateChange', ({ isActive }) => {
+                if (!isActive) {
+                    if (audio && !audio.paused) {
+                        wasMusicPlayingBeforeBackground = true;
+                        audio.pause();
+                    }
+                } else {
+                    const mEnabled = localStorage.getItem('musicEnabled') !== 'false';
+                    if (wasMusicPlayingBeforeBackground && mEnabled) {
+                        wasMusicPlayingBeforeBackground = false;
+                        if (audio) audio.play().catch(() => {});
+                    }
+                }
             });
         }
 
@@ -641,27 +672,31 @@ function setupGestures() {
         if (!appLoaded) return;
         if (Date.now() - lastSwipeTime < 500) return; // Prevent phantom clicks after a swipe
         
-        if (e.target.closest('.bookmark-btn') || e.target.closest('.speak-btn')) return;
+        if (e.target.closest('.bookmark-btn') || e.target.closest('.speak-btn') || e.target.closest('.card-peek-left') || e.target.closest('.card-peek-right')) return;
         const width = window.innerWidth;
         const clickX = e.clientX;
         
-        // Use 40% on left and right for navigation. The middle 20% selects the verse.
         const isFeed = document.getElementById('verse-feed').classList.contains('active-section');
         if (!isFeed) return;
         
-        const cardClicked = e.target.closest('.verse-card');
+        // 30% Left side: Prev Verse only
+        if (clickX < width * 0.3) {
+            prevCard();
+            return;
+        }
+        // 30% Right side: Next Verse only
+        if (clickX > width * 0.7) {
+            nextCard();
+            return;
+        }
+
+        // Middle 40% area: Select verse if clicked on card, else deselect
+        const cardClicked = e.target.closest('.verse-card.card-center');
         if (cardClicked) {
             const currentVerse = getVerseAtIndex(currentVerseIndex.general);
             if (currentVerse) {
                 selectVerse({ ...currentVerse, isManual: true }, 'feed', null);
             }
-            return;
-        }
-
-        if (clickX < width * 0.4) {
-            prevCard();
-        } else if (clickX > width * 0.6) {
-            nextCard();
         } else {
             deselectVerse();
         }
@@ -2098,15 +2133,10 @@ function getVerseAtIndex(index) {
 
 // Interstitial ads removed in favor of in-feed AdSense ads
 
-function renderFeedCard(index, direction = 'none') {
-    const stage = document.getElementById('feed-stage');
-    const verse = getVerseAtIndex(index);
-    if (!verse) return;
-
+function createFeedCardDOM(verse, extraClass) {
     const card = document.createElement('div');
     card.classList.add('verse-card');
-    if (direction === 'next') card.classList.add('card-right');
-    else if (direction === 'prev') card.classList.add('card-left');
+    if (extraClass) card.classList.add(extraClass);
 
     const textEl = document.createElement('div');
     textEl.classList.add('verse-text');
@@ -2141,6 +2171,38 @@ function renderFeedCard(index, direction = 'none') {
     footer.appendChild(refEl);
     card.appendChild(textEl);
     card.appendChild(footer);
+    return card;
+}
+
+function updatePeekCards(currentIndex) {
+    const stage = document.getElementById('feed-stage');
+    if (!stage) return;
+    stage.querySelectorAll('.card-peek-left, .card-peek-right').forEach(el => el.remove());
+
+    if (currentIndex > 0) {
+        const prevVerse = getVerseAtIndex(currentIndex - 1);
+        if (prevVerse) {
+            const leftPeek = createFeedCardDOM(prevVerse, 'card-peek-left');
+            stage.insertBefore(leftPeek, stage.firstChild);
+        }
+    }
+    const nextVerse = getVerseAtIndex(currentIndex + 1);
+    if (nextVerse) {
+        const rightPeek = createFeedCardDOM(nextVerse, 'card-peek-right');
+        stage.appendChild(rightPeek);
+    }
+}
+
+function renderFeedCard(index, direction = 'none') {
+    const stage = document.getElementById('feed-stage');
+    const verse = getVerseAtIndex(index);
+    if (!verse) return;
+
+    let card = null;
+    if (direction === 'next') card = createFeedCardDOM(verse, 'card-right');
+    else if (direction === 'prev') card = createFeedCardDOM(verse, 'card-left');
+    else card = createFeedCardDOM(verse, 'card-center');
+
     stage.appendChild(card);
     requestAnimationFrame(() => {
         if (direction !== 'none') {
@@ -2153,10 +2215,14 @@ function renderFeedCard(index, direction = 'none') {
             }
             card.classList.remove('card-right', 'card-left');
             card.classList.add('card-center');
+            setTimeout(() => {
+                updatePeekCards(index);
+            }, 300);
         } else {
             const others = stage.querySelectorAll('.verse-card:not(:last-child)');
             others.forEach(c => c.remove());
             card.classList.add('card-center');
+            updatePeekCards(index);
         }
     });
 }
@@ -5888,7 +5954,7 @@ function getLocalState() {
         selectedVoice: localStorage.getItem('selectedVoice') || 'en_GB-alan-medium',
         ttsAnnounceSource: localStorage.getItem('ttsAnnounceSource') === 'true',
         ttsRandomVoice: localStorage.getItem('ttsRandomVoice') === 'true',
-        musicVolume: localStorage.getItem('musicVolume') || '0.6',
+        musicVolume: localStorage.getItem('musicVolume') || '0.5',
         musicEnabled: localStorage.getItem('musicEnabled') !== 'false',
         currentMusicTrack: localStorage.getItem('currentMusicTrack') || '0',
         seenVersesHistory: (seenVersesList || []).slice(-500),
@@ -6095,6 +6161,30 @@ function confirmSignOut() {
         });
     } else {
         doCleanup();
+    }
+}
+
+let lastDeleteProfileTapTime = 0;
+function handleDeleteProfileBtnClick() {
+    const now = Date.now();
+    if (now - lastDeleteProfileTapTime < 400) {
+        lastDeleteProfileTapTime = 0;
+        openDeleteAccountModal();
+    } else {
+        lastDeleteProfileTapTime = now;
+        showToast("Double-tap Delete Account to proceed", 1500);
+    }
+}
+
+let lastDeleteConfirmTapTime = 0;
+function handleDeleteConfirmBtnClick() {
+    const now = Date.now();
+    if (now - lastDeleteConfirmTapTime < 400) {
+        lastDeleteConfirmTapTime = 0;
+        executeDeleteAccount();
+    } else {
+        lastDeleteConfirmTapTime = now;
+        showToast("Double-tap to permanently delete account", 1500);
     }
 }
 

@@ -496,7 +496,7 @@
                     <button onclick="confirmSignOut()" class="modal-action-btn">
                         Sign Out
                     </button>
-                    <button onclick="openDeleteAccountModal()" class="modal-action-danger-btn">
+                    <button onclick="handleDeleteProfileBtnClick()" class="modal-action-danger-btn">
                         Delete Account
                     </button>
                 </div>
@@ -513,7 +513,7 @@
                     Are you sure? All your saved verses, folders, and preferences will be permanently deleted.
                 </p>
                 <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 6px;">
-                    <button onclick="executeDeleteAccount()" class="modal-action-danger-btn">
+                    <button onclick="handleDeleteConfirmBtnClick()" class="modal-action-danger-btn">
                         Delete Account
                     </button>
                     <button onclick="closeDeleteAccountModal()" class="modal-action-btn">
@@ -566,7 +566,7 @@
     <div id="radial-overlay" class="radial-overlay"></div>
     <script src="libs/localforage.min.js"></script>
     <script src="libs/html2canvas.min.js"></script>
-    <script src="script_v14.js?v=127"></script>
+    <script src="script_v14.js?v=128"></script>
 
 
 

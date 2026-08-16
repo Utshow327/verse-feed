@@ -311,6 +311,7 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
 }
 
 .verse-card {
@@ -318,10 +319,10 @@ html, body {
     border: 1px solid var(--glass-border);
     border-radius: 24px;
     box-shadow: var(--glass-shadow);
-    width: 90%;
-    max-width: 800px;
+    width: 84%;
+    max-width: 760px;
     height: 65vh;
-    padding: 25px;
+    padding: 24px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -337,22 +338,36 @@ html, body {
     z-index: 10;
 }
 
+.card-peek-left {
+    transform: translateX(-104%) scale(0.92);
+    opacity: 0.3;
+    z-index: 4;
+    pointer-events: none;
+}
+
+.card-peek-right {
+    transform: translateX(104%) scale(0.92);
+    opacity: 0.3;
+    z-index: 4;
+    pointer-events: none;
+}
+
 .card-left {
     transform: translateX(-120%) scale(0.9);
     opacity: 0;
-    z-index: 5;
+    z-index: 3;
     pointer-events: none;
 }
 
 .card-right {
     transform: translateX(120%) scale(0.9);
     opacity: 0;
-    z-index: 5;
+    z-index: 3;
     pointer-events: none;
 }
 
 .verse-text {
-    font-size: 1.35rem;
+    font-size: clamp(1.05rem, 3.8vw, 1.35rem);
     line-height: 1.5;
     color: var(--text-color);
     flex-grow: 1;
@@ -2210,14 +2225,14 @@ h2 {
     width: 100%;
     height: 46px;
     border-radius: 23px;
-    border: 1px solid rgba(220, 53, 69, 0.45);
-    background: rgba(220, 53, 69, 0.1);
-    color: #ff5252;
+    border: 1px solid var(--glass-border);
+    background: var(--card-bg);
+    color: var(--text-color);
     font-weight: 600;
     font-size: 0.95rem;
     cursor: pointer;
     font-family: inherit;
-    box-shadow: 0 4px 16px rgba(220, 53, 69, 0.15);
+    box-shadow: var(--glass-shadow);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     transition: transform 0.2s ease, background 0.2s ease, opacity 0.2s ease;
@@ -2226,7 +2241,7 @@ h2 {
     justify-content: center;
 }
 .modal-action-danger-btn:hover {
-    background: rgba(220, 53, 69, 0.18);
+    opacity: 0.9;
 }
 .modal-action-danger-btn:active {
     transform: scale(0.97);
