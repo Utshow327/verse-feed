@@ -126,7 +126,7 @@ function switchProfile(targetProfileId) {
     ttsAnnounceSource = localStorage.getItem('ttsAnnounceSource') === 'true';
     ttsRandomVoice = localStorage.getItem('ttsRandomVoice') === 'true';
 
-    let curVol = parseFloat(localStorage.getItem('musicVolume') || '0.4');
+    let curVol = parseFloat(localStorage.getItem('musicVolume') || '0.6');
     if (isNaN(curVol)) curVol = 0.4;
     if (typeof audio !== 'undefined' && audio) {
         audio.volume = curVol;
@@ -513,12 +513,12 @@ async function initApp() {
         }
 
         audio = document.getElementById('audio');
-        let initialVol = 0.3;
+        let initialVol = 0.6;
         let savedVol = localStorage.getItem('musicVolume');
-        if (savedVol !== null && savedVol !== '0.5' && savedVol !== '0.2' && savedVol !== '1' && savedVol !== '1.0') {
+        if (savedVol !== null && savedVol !== '0.5' && savedVol !== '0.2' && savedVol !== '1' && savedVol !== '1.0' && savedVol !== '0.3') {
             initialVol = parseFloat(savedVol);
         } else {
-            initialVol = 0.3;
+            initialVol = 0.6;
         }
         audio.volume = initialVol;
         localStorage.setItem('musicVolume', initialVol.toString());
@@ -5002,14 +5002,9 @@ function handlePillShare(e) {
         return;
     }
     
-    // On native, skip slow html2canvas and share text directly for instant response
-    const isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
-    if (isNative) {
-        const text = formatVerseForShare(selectedVerse);
-        shareTextFallback(text);
-    } else {
-        generateAndShareImage(selectedVerse, selectedVerse.elementId);
-    }
+    // Generate and share image with progress notification
+    showToast('Generating image...', 8000);
+    generateAndShareImage(selectedVerse, selectedVerse.elementId);
 }
 
 function formatVerseForShare(verseObj) {
@@ -5074,7 +5069,6 @@ async function generateAndShareImage(verseObj, elementId) {
         return;
     }
     
-    showToast('Preparing image...');
     
     try {
         const isDark = document.body.getAttribute('data-theme') === 'dark';
@@ -5868,7 +5862,7 @@ function getLocalState() {
         selectedVoice: localStorage.getItem('selectedVoice') || 'en_GB-alan-medium',
         ttsAnnounceSource: localStorage.getItem('ttsAnnounceSource') === 'true',
         ttsRandomVoice: localStorage.getItem('ttsRandomVoice') === 'true',
-        musicVolume: localStorage.getItem('musicVolume') || '0.3',
+        musicVolume: localStorage.getItem('musicVolume') || '0.6',
         musicEnabled: localStorage.getItem('musicEnabled') !== 'false',
         currentMusicTrack: localStorage.getItem('currentMusicTrack') || '0',
         seenVersesHistory: (seenVersesList || []).slice(-500),
