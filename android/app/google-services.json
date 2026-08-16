@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "131330287162",
+    "project_id": "religionapp-38998",
+    "storage_bucket": "religionapp-38998.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:131330287162:android:d0a2e534550523d4163703",
+        "android_client_info": {
+          "package_name": "com.verse.feed"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "131330287162-p1k2ar5u020tqb0n19i4jppk9oqarr2f.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDlWvnio-q71DXlzePY2yOT0Q14i--gxWk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "131330287162-p1k2ar5u020tqb0n19i4jppk9oqarr2f.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -5787,7 +5787,7 @@ function toggleGoogleAuth() {
     }
 }
 
-function signInWithGoogle() {
+async function signInWithGoogle() {
     if (typeof firebase === 'undefined' || !firebase.auth) {
         showToast("Firebase loading, please try again in a moment...");
         return;
@@ -5795,10 +5795,36 @@ function signInWithGoogle() {
     
     const isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
     
-    if (isNative) {
-        // Google Sign-In via popup/redirect doesn't work in Capacitor WebView.
-        // Users should use Email login on the app. Google login works on web.
-        showToast("Please use Email sign-in on the app. Google sign-in is available on web.");
+    if (isNative && window.Capacitor.Plugins && window.Capacitor.Plugins.FirebaseAuthentication) {
+        try {
+            showToast("Signing in with Google...");
+            const res = await window.Capacitor.Plugins.FirebaseAuthentication.signInWithGoogle();
+            if (res && res.user) {
+                // If idToken exists, link to Web Firebase so Firestore cloud sync works identically
+                if (res.credential && res.credential.idToken) {
+                    const cred = firebase.auth.GoogleAuthProvider.credential(res.credential.idToken);
+                    const userCred = await firebase.auth().signInWithCredential(cred);
+                    applyUserAuthSuccess(userCred.user);
+                } else {
+                    applyUserAuthSuccess({
+                        uid: res.user.uid,
+                        displayName: res.user.displayName || res.user.name,
+                        email: res.user.email,
+                        photoURL: res.user.photoUrl
+                    });
+                }
+                closeEmailAuthModal();
+                showToast("Signed in as " + (res.user.displayName || res.user.email || 'User'));
+            }
+        } catch (err) {
+            console.error("Native Google Sign In Error:", err);
+            const errStr = (err && (err.message || String(err))).toLowerCase();
+            if (errStr.includes('12501') || errStr.includes('cancel') || errStr.includes('dismiss')) {
+                // User cancelled the native Google account picker dialog
+                return;
+            }
+            showToast("Google sign-in error: " + (err ? (err.message || "Failed") : "Failed"));
+        }
         return;
     }
     
@@ -6057,6 +6083,10 @@ function confirmSignOut() {
             showSavedVerses();
         }
     };
+
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.FirebaseAuthentication) {
+        try { window.Capacitor.Plugins.FirebaseAuthentication.signOut(); } catch(e){}
+    }
 
     if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
         firebase.auth().signOut().then(doCleanup).catch((err) => {
