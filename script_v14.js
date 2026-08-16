@@ -717,6 +717,15 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
     if (piperSession && piperSession.voiceId === voiceId) return piperInitPromise;
     piperInitPromise = (async () => {
         piperInitializing = true;
+        
+        // Show download notification for first-time voice loading
+        let downloadToast = null;
+        const voiceLabel = (voicesList.find(v => v.value === voiceId) || {}).label || voiceId;
+        const isFirstLoad = !piperSessionsCache[voiceId];
+        if (isFirstLoad) {
+            showToast('Downloading voice "' + voiceLabel + '"... This only happens once.', 15000);
+        }
+        
         try {
             const tts = await import("./libs/piper/piper-bundle.js?v=20");
             if (tts.TtsSession._instance) {
@@ -744,9 +753,16 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
             
             piperSessionsCache[voiceId] = newSession;
             piperSession = newSession;
+            
+            if (isFirstLoad) {
+                showToast('Voice "' + voiceLabel + '" ready!');
+            }
             console.log(`Piper TTS loaded with ${voiceId} via offline WebAssembly.`);
         } catch (e) {
             console.error("Piper TTS init failed:", e);
+            if (isFirstLoad) {
+                showToast('Voice download failed. Check your connection and try again.');
+            }
             piperSession = null;
             throw e;
         }
@@ -4986,7 +5002,14 @@ function handlePillShare(e) {
         return;
     }
     
-    generateAndShareImage(selectedVerse, selectedVerse.elementId);
+    // On native, skip slow html2canvas and share text directly for instant response
+    const isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+    if (isNative) {
+        const text = formatVerseForShare(selectedVerse);
+        shareTextFallback(text);
+    } else {
+        generateAndShareImage(selectedVerse, selectedVerse.elementId);
+    }
 }
 
 function formatVerseForShare(verseObj) {
@@ -5000,7 +5023,15 @@ async function shareTextFallback(text) {
     try {
         // Try Capacitor Share plugin first (works reliably on native)
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share) {
-            await window.Capacitor.Plugins.Share.share({ title: 'VerseFeed', text: text, dialogTitle: 'Share Verse' });
+            try {
+                await window.Capacitor.Plugins.Share.share({ title: 'VerseFeed', text: text, dialogTitle: 'Share Verse' });
+            } catch (shareErr) {
+                // User dismissed the share sheet — not an error, just ignore
+                if (shareErr && (shareErr.message || '').toLowerCase().includes('cancel')) return;
+                if (shareErr && (shareErr.message || '').toLowerCase().includes('dismiss')) return;
+                // For any other native share error, fall through to clipboard
+                throw shareErr;
+            }
             return;
         }
         if (navigator.share) {
@@ -5020,7 +5051,9 @@ async function shareTextFallback(text) {
             showToast('Verse copied to clipboard!');
         }
     } catch (e) {
-        console.error('Share failed', e);
+        // Suppress share-dismissed errors (not real failures)
+        const msg = (e && e.message) ? e.message.toLowerCase() : '';
+        if (msg.includes('cancel') || msg.includes('dismiss') || msg.includes('abort')) return;
         // Final fallback: clipboard copy
         try {
             if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -5766,33 +5799,29 @@ function signInWithGoogle() {
         return;
     }
     
-    isGooglePopupOpen = true;
-    const provider = new firebase.auth.GoogleAuthProvider();
-    
-    // Use signInWithRedirect for Capacitor (WebView doesn't support popups properly)
-    // and signInWithPopup for regular browser
     const isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
     
     if (isNative) {
-        firebase.auth().signInWithRedirect(provider).catch((error) => {
-            console.error("Google Sign In Redirect Error:", error);
-            showToast("Sign in error: " + (error ? (error.message || "Failed") : "Failed"));
-            isGooglePopupOpen = false;
-        });
-    } else {
-        firebase.auth().signInWithPopup(provider).then(() => {
-            closeEmailAuthModal();
-        }).catch((error) => {
-            if (error && (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user')) {
-                console.log("Google Sign-In cancelled by user.");
-                return;
-            }
-            console.error("Google Sign In Error:", error);
-            showToast("Sign in error: " + (error ? (error.message || "Failed") : "Failed"));
-        }).finally(() => {
-            isGooglePopupOpen = false;
-        });
+        // Google Sign-In via popup/redirect doesn't work in Capacitor WebView.
+        // Users should use Email login on the app. Google login works on web.
+        showToast("Please use Email sign-in on the app. Google sign-in is available on web.");
+        return;
     }
+    
+    isGooglePopupOpen = true;
+    const provider = new firebase.auth.GoogleAuthProvider();
+    firebase.auth().signInWithPopup(provider).then(() => {
+        closeEmailAuthModal();
+    }).catch((error) => {
+        if (error && (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user')) {
+            console.log("Google Sign-In cancelled by user.");
+            return;
+        }
+        console.error("Google Sign In Error:", error);
+        showToast("Sign in error: " + (error ? (error.message || "Failed") : "Failed"));
+    }).finally(() => {
+        isGooglePopupOpen = false;
+    });
 }
 
 function sanitizeForFirestore(obj) {
