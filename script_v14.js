@@ -1,6 +1,30 @@
 // ==============================================
 // GLOBAL USER STATE & ISOLATED PROFILE / CLOUD SYNC ENGINE
 // ==============================================
+const firebaseConfig = {
+  apiKey: "AIzaSyCy1lG5CcGlMj4qGEuUJt-8L_Tul6ZMrKM",
+  authDomain: "religionapp-38998.firebaseapp.com",
+  projectId: "religionapp-38998",
+  storageBucket: "religionapp-38998.firebasestorage.app",
+  messagingSenderId: "131330287162",
+  appId: "1:131330287162:web:84e3694ec4d07987163703",
+  measurementId: "G-R240CQB881"
+};
+
+let db = null;
+if (typeof firebase !== 'undefined') {
+    try {
+        if (!firebase.apps || !firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        if (typeof firebase.firestore === 'function') {
+            db = firebase.firestore();
+        }
+    } catch(e) {
+        console.warn("Early Firebase init notice:", e);
+    }
+}
+
 const originalGetItem = localStorage.getItem;
 const originalSetItem = localStorage.setItem;
 const originalRemoveItem = localStorage.removeItem;
@@ -15,6 +39,17 @@ let googleAccessToken = null;
 let cloudSyncTimeout = null;
 let isRestoringState = false;
 
+function getFirebaseCurrentUid() {
+    try {
+        if (googleUser && googleUser.sub) return googleUser.sub;
+        if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0 && typeof firebase.auth === 'function') {
+            const cur = firebase.auth().currentUser;
+            return cur ? cur.uid : null;
+        }
+    } catch(e) {}
+    return null;
+}
+
 const STATE_KEYS = [
     'globalSelectedRels', 'savedVerses', 'createdAlbums', 
     'bookMarkedVerse', 'darkModeEnabled', 'selectedVoice', 
@@ -23,10 +58,67 @@ const STATE_KEYS = [
 ];
 
 function getActiveProfileId() {
-    if (googleUser && googleUser.sub) {
-        return 'account_' + googleUser.sub;
+    const uid = getFirebaseCurrentUid();
+    if (uid) {
+        return 'account_' + uid;
     }
     return 'guest';
+}
+
+// --- Flash suppression & local bookmark echo guard ---
+let _flashSuppressDepth = 0;
+let localBookmarkSnapshot = '';
+let localBookmarkMutationUntil = 0;
+
+function getBookmarkSnapshotFromData(data) {
+    const sv = Array.isArray(data?.savedVerses) ? data.savedVerses.filter(v => v && v.text) : [];
+    const ca = Array.isArray(data?.createdAlbums) ? data.createdAlbums.filter(a => typeof a === 'string' && a.trim()) : [];
+    return JSON.stringify({ sv, ca });
+}
+
+function getLocalBookmarkSnapshot() {
+    return JSON.stringify({
+        sv: (savedVerses || []).filter(v => v && v.text),
+        ca: (createdAlbums || []).filter(a => typeof a === 'string' && a.trim())
+    });
+}
+
+function markLocalBookmarkMutation() {
+    localBookmarkSnapshot = getLocalBookmarkSnapshot();
+    localBookmarkMutationUntil = Date.now() + 8000;
+}
+
+function isBookmarkEcho(remoteData) {
+    if (!remoteData || Date.now() > localBookmarkMutationUntil) return false;
+    return getBookmarkSnapshotFromData(remoteData) === localBookmarkSnapshot;
+}
+
+function suppressFlash(fn) {
+    document.documentElement.classList.add('flash-suppress');
+    _flashSuppressDepth++;
+    try {
+        if (typeof fn === 'function') fn();
+    } finally {
+        _flashSuppressDepth--;
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                if (_flashSuppressDepth <= 0) {
+                    _flashSuppressDepth = 0;
+                    document.documentElement.classList.remove('flash-suppress');
+                }
+            });
+        });
+    }
+}
+
+function openModal(modalEl) {
+    if (!modalEl) return;
+    suppressFlash(() => modalEl.classList.remove('hidden'));
+}
+
+function closeModal(modalEl) {
+    if (!modalEl) return;
+    suppressFlash(() => modalEl.classList.add('hidden'));
 }
 
 // Automatic One-Time Migration of un-namespaced keys into pf_guest_*
@@ -57,6 +149,9 @@ localStorage.setItem = function(key, value) {
     if (STATE_KEYS.includes(key)) {
         const profileId = getActiveProfileId();
         originalSetItem.call(this, 'pf_' + profileId + '_' + key, value);
+        if ((key === 'savedVerses' || key === 'createdAlbums') && !isRestoringState) {
+            markLocalBookmarkMutation();
+        }
         if (!isRestoringState && typeof triggerCloudSync === 'function') {
             triggerCloudSync();
         }
@@ -76,17 +171,21 @@ localStorage.removeItem = function(key) {
 
 function switchProfile(targetProfileId) {
     isRestoringState = true;
+    const prevRels = globalSelectedRels ? JSON.stringify(globalSelectedRels) : null;
     
     try {
         savedVerses = JSON.parse(localStorage.getItem('savedVerses') || '[]');
+        if (!Array.isArray(savedVerses)) savedVerses = [];
     } catch(e) { savedVerses = []; }
 
     try {
         createdAlbums = JSON.parse(localStorage.getItem('createdAlbums') || '[]');
+        if (!Array.isArray(createdAlbums)) createdAlbums = [];
     } catch(e) { createdAlbums = []; }
 
     try {
         bookMarkedVerse = JSON.parse(localStorage.getItem('bookMarkedVerse') || '{}');
+        if (!bookMarkedVerse || typeof bookMarkedVerse !== 'object') bookMarkedVerse = {};
     } catch(e) { bookMarkedVerse = {}; }
 
     try {
@@ -121,13 +220,19 @@ function switchProfile(targetProfileId) {
     if (darkModeEnabled) document.body.setAttribute('data-theme', 'dark');
     else document.body.removeAttribute('data-theme');
     if (typeof updateDarkModeIcon === 'function') updateDarkModeIcon(darkModeEnabled);
+    if (typeof updateVisualizerThemeCache === 'function') updateVisualizerThemeCache();
 
     selectedVoice = localStorage.getItem('selectedVoice') || 'en_GB-alan-medium';
-    ttsAnnounceSource = localStorage.getItem('ttsAnnounceSource') === 'true';
-    ttsRandomVoice = localStorage.getItem('ttsRandomVoice') === 'true';
+    if (targetProfileId === 'guest' || !isPremiumUser) {
+        ttsAnnounceSource = false;
+        ttsRandomVoice = false;
+    } else {
+        ttsAnnounceSource = localStorage.getItem('ttsAnnounceSource') === 'true';
+        ttsRandomVoice = localStorage.getItem('ttsRandomVoice') === 'true';
+    }
 
-    let curVol = parseFloat(localStorage.getItem('musicVolume') || '0.5');
-    if (isNaN(curVol)) curVol = 0.5;
+    let curVol = parseFloat(localStorage.getItem('musicVolume') || '0.4');
+    if (isNaN(curVol)) curVol = 0.4;
     if (typeof audio !== 'undefined' && audio) {
         audio.volume = curVol;
     }
@@ -144,12 +249,12 @@ function switchProfile(targetProfileId) {
     if (musicBtn) {
         if (mEnabled) {
             if (typeof audio !== 'undefined' && audio) {
-                audio.play().then(() => {
+                safePlayAudio(audio).then(() => {
                     musicBtn.classList.add('active');
                 }).catch(e => {
                     const playOnInteract = () => {
                         if (localStorage.getItem('musicEnabled') !== 'false') {
-                            audio.play().then(() => {
+                            safePlayAudio(audio).then(() => {
                                 const btn = document.getElementById('music-toggle');
                                 if (btn) btn.classList.add('active');
                                 document.removeEventListener('click', playOnInteract);
@@ -173,12 +278,8 @@ function switchProfile(targetProfileId) {
     if (typeof buildSettings === 'function') buildSettings();
     if (typeof syncVoiceWheelToCurrent === 'function') syncVoiceWheelToCurrent();
 
-    if (typeof showSavedVerses === 'function' && document.getElementById('saved-verses')) {
-        showSavedVerses();
-    }
-
-    if (typeof updateBatchesAfterSettings === 'function') {
-        updateBatchesAfterSettings();
+    if (typeof showSavedVerses === 'function') {
+        showSavedVerses(true);
     }
 
     isRestoringState = false;
@@ -192,12 +293,19 @@ function saveStateToProfile(profileId) {
     // Isolated profile storage handles saving automatically via intercepted setItem
 }
 
-function triggerCloudSync() {
-    if (!googleUser || !googleUser.sub) return;
+function triggerCloudSync(immediate = false) {
+    const uid = getFirebaseCurrentUid();
+    if (!uid) return;
     clearTimeout(cloudSyncTimeout);
+    if (immediate) {
+        if (typeof saveUserDataToFirestore === 'function') {
+            saveUserDataToFirestore(uid);
+        }
+        return;
+    }
     cloudSyncTimeout = setTimeout(() => {
-        if (googleUser && googleUser.sub && typeof saveUserDataToFirestore === 'function') {
-            saveUserDataToFirestore(googleUser.sub);
+        if (typeof saveUserDataToFirestore === 'function') {
+            saveUserDataToFirestore(uid);
         }
     }, 1500);
 }
@@ -294,6 +402,12 @@ let currentBookName = '';
 let chapScrollTimeout = null;
 let voiceScrollTimeout = null;
 let visualizerFadeTimeout = null;
+let visualizerWorker = null;
+let visualizerWorkerReady = false;
+let visualizerLogicalWidth = typeof window !== 'undefined' ? window.innerWidth : 300;
+let visualizerLogicalHeight = 380;
+let visualizerAudioInterval = null;
+let currentAppSessionPremiumAngle = null;
 let isSpeaking = false;
 let isPaused = false;
 let isGenerating = false;
@@ -350,9 +464,8 @@ const dataUrls = {
 };
 let loadedReligions = new Set();
 // Settings
-let ttsAnnounceSource = localStorage.getItem('ttsAnnounceSource') === 'true';
-
-let ttsRandomVoice = localStorage.getItem('ttsRandomVoice') === 'true';
+let ttsAnnounceSource = false;
+let ttsRandomVoice = false;
 
 const voiceBaseLengths = {
     'en_GB-alan-medium': 0.9,
@@ -374,7 +487,57 @@ let selectedSavedAlbum = null;
 let createdAlbums = JSON.parse(localStorage.getItem('createdAlbums') || '[]');
 if (!Array.isArray(createdAlbums)) createdAlbums = [];
 
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let audioCtx = null;
+function getAudioCtx() {
+    if (!audioCtx) {
+        try {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (AudioContextClass) {
+                audioCtx = new AudioContextClass();
+            }
+        } catch (e) {}
+    }
+    return audioCtx;
+}
+
+let musicSourceNode = null;
+let musicHighpassFilter = null;
+function setupMusicAudioProcessing() {
+    try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        const ctx = getAudioContext();
+        if (ctx && ctx.state === 'suspended') {
+            ctx.resume().catch(() => {});
+        }
+        if (!musicSourceNode && audio) {
+            musicSourceNode = ctx.createMediaElementSource(audio);
+            musicHighpassFilter = ctx.createBiquadFilter();
+            musicHighpassFilter.type = 'highpass';
+            musicHighpassFilter.frequency.value = 130; // Cleanly cuts out sub-130Hz frequencies causing device vibration
+            musicHighpassFilter.Q.value = 0.7;
+            musicSourceNode.connect(musicHighpassFilter);
+            musicHighpassFilter.connect(ctx.destination);
+        }
+    } catch (e) {
+        // Direct audio element fallback
+    }
+}
+
+function safePlayAudio(audioEl) {
+    if (!audioEl) return Promise.resolve();
+    try {
+        setupMusicAudioProcessing();
+        const p = audioEl.play();
+        if (p && typeof p.then === 'function') {
+            return p;
+        }
+        return Promise.resolve();
+    } catch (e) {
+        return Promise.resolve();
+    }
+}
+
 let audioAnalyser = null;
 let waveformAnimFrame = null;
 let unlockTriggered = false;
@@ -397,17 +560,19 @@ let nextAdGap = getNextAdGap();
 
 function unlockAudio() {
     if (unlockTriggered) return;
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume();
     
     // Play a silent oscillator to force iOS WebKit to fully unlock the audio engine
     try {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
         gain.gain.value = 0;
         osc.connect(gain);
-        gain.connect(audioCtx.destination);
+        gain.connect(ctx.destination);
         osc.start(0);
-        osc.stop(audioCtx.currentTime + 0.01);
+        osc.stop(ctx.currentTime + 0.01);
     } catch (e) {}
     
     unlockTriggered = true;
@@ -426,37 +591,46 @@ document.addEventListener('click', unlockAudio, {passive: true});
 let noiseBuffer = null;
 function getNoiseBuffer() {
     if (noiseBuffer) return noiseBuffer;
-    const len = audioCtx.sampleRate * 0.015; // 15ms
-    noiseBuffer = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
-    const output = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < len; i++) {
-        output[i] = Math.random() * 2 - 1; // Pure white noise
+    const ctx = getAudioCtx();
+    if (!ctx) return null;
+    try {
+        const len = Math.floor(ctx.sampleRate * 0.015); // 15ms
+        noiseBuffer = ctx.createBuffer(1, len, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < len; i++) {
+            output[i] = Math.random() * 2 - 1; // Pure white noise
+        }
+    } catch (e) {
+        noiseBuffer = null;
     }
     return noiseBuffer;
 }
 
 function playScrollSound() {
-    if (audioCtx.state === 'suspended') return;
+    const ctx = getAudioCtx();
+    if (!ctx || ctx.state === 'suspended') return;
     try {
-        const source = audioCtx.createBufferSource();
-        source.buffer = getNoiseBuffer();
+        const buffer = getNoiseBuffer();
+        if (!buffer) return;
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
         
         // Lowpass filter makes it a dull mechanical plastic "click" rather than harsh static
-        const filter = audioCtx.createBiquadFilter();
+        const filter = ctx.createBiquadFilter();
         filter.type = 'lowpass';
         filter.frequency.value = 1200;
 
-        const gainNode = audioCtx.createGain();
-        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-        gainNode.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.002);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.014);
-        gainNode.gain.setValueAtTime(0, audioCtx.currentTime + 0.015);
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(0, ctx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.002);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.014);
+        gainNode.gain.setValueAtTime(0, ctx.currentTime + 0.015);
         
         source.connect(filter);
         filter.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
+        gainNode.connect(ctx.destination);
         
-        source.start(audioCtx.currentTime);
+        source.start(ctx.currentTime);
     } catch (e) {}
 }
 
@@ -483,61 +657,76 @@ async function checkForAppUpdates() {
 }
 
 async function initApp() {
+    initVisualizerWorker();
     checkForAppUpdates();
     updateUserUI();
     switchProfile(getActiveProfileId());
     applyAutoSpeed(selectedVoice);
+    applyRandomPremiumAngle();
     try {
         addSelectionListeners();
 
         const darkToggle = document.getElementById('dark-mode-toggle');
         updateDarkModeIcon(darkModeEnabled);
-        darkToggle.addEventListener('click', () => {
-            darkModeEnabled = !darkModeEnabled;
-            localStorage.setItem('darkModeEnabled', darkModeEnabled);
-            updateDarkModeIcon(darkModeEnabled);
-            if (darkModeEnabled) {
-                document.body.setAttribute('data-theme', 'dark');
-            } else {
-                document.body.removeAttribute('data-theme');
-            }
-        });
+        if (darkToggle) {
+            darkToggle.addEventListener('click', () => {
+                suppressFlash(() => {
+                darkModeEnabled = !darkModeEnabled;
+                localStorage.setItem('darkModeEnabled', darkModeEnabled);
+                updateDarkModeIcon(darkModeEnabled);
+                if (darkModeEnabled) {
+                    document.body.setAttribute('data-theme', 'dark');
+                } else {
+                    document.body.removeAttribute('data-theme');
+                }
+                updateVisualizerThemeCache();
+                });
+            });
+        }
         if (darkModeEnabled) {
             document.body.setAttribute('data-theme', 'dark');
         }
 
         audio = document.getElementById('audio');
-        let initialVol = 0.5;
+        let initialVol = 0.4;
         let savedVol = localStorage.getItem('musicVolume');
-        if (savedVol !== null && savedVol !== '1' && savedVol !== '1.0') {
+        if (savedVol !== null && savedVol !== '1' && savedVol !== '1.0' && savedVol !== '0.5' && savedVol !== '0.6') {
             initialVol = parseFloat(savedVol);
+            if (isNaN(initialVol)) initialVol = 0.4;
         } else {
-            initialVol = 0.5;
+            initialVol = 0.4;
         }
-        audio.volume = initialVol;
+        if (audio) {
+            audio.volume = initialVol;
+        }
         localStorage.setItem('musicVolume', initialVol.toString());
         
         let volumeSlider = document.getElementById('music-volume-slider');
         if (volumeSlider) {
             volumeSlider.value = initialVol;
+            const pct = Math.round(initialVol * 100);
+            volumeSlider.setAttribute('data-tooltip', 'Music Volume (' + pct + '%): Adjust the background music volume.');
+            volumeSlider.title = pct + '%';
         }
 
         // Random track on every app launch / reload
         currentTrack = getRandomMusicTrackIndex(-1);
-        audio.src = musicTracks[currentTrack];
-        audio.addEventListener('ended', nextTrack);
+        if (audio && musicTracks[currentTrack]) {
+            audio.src = musicTracks[currentTrack];
+            audio.addEventListener('ended', nextTrack);
+        }
 
         let musicEnabled = localStorage.getItem('musicEnabled');
         if (musicEnabled === null) musicEnabled = 'true'; // Default on
         
         const musicBtn = document.getElementById('music-toggle');
         if (musicEnabled === 'true' && musicBtn) {
-            audio.play().then(() => {
+            safePlayAudio(audio).then(() => {
                 musicBtn.classList.add('active');
             }).catch(e => {
                 const playOnInteract = () => {
                     if (localStorage.getItem('musicEnabled') !== 'false') {
-                        audio.play().then(() => {
+                        safePlayAudio(audio).then(() => {
                             const btn = document.getElementById('music-toggle');
                             if (btn) btn.classList.add('active');
                             document.removeEventListener('click', playOnInteract);
@@ -567,7 +756,10 @@ async function initApp() {
                 const mEnabled = localStorage.getItem('musicEnabled') !== 'false';
                 if (wasMusicPlayingBeforeBackground && mEnabled) {
                     wasMusicPlayingBeforeBackground = false;
-                    if (audio) audio.play().catch(() => {});
+                    if (audio) safePlayAudio(audio).catch(() => {});
+                }
+                if (googleUser && googleUser.sub && typeof loadUserDataFromFirestore === 'function') {
+                    loadUserDataFromFirestore(googleUser.sub);
                 }
             }
         });
@@ -583,7 +775,10 @@ async function initApp() {
                     const mEnabled = localStorage.getItem('musicEnabled') !== 'false';
                     if (wasMusicPlayingBeforeBackground && mEnabled) {
                         wasMusicPlayingBeforeBackground = false;
-                        if (audio) audio.play().catch(() => {});
+                        if (audio) safePlayAudio(audio).catch(() => {});
+                    }
+                    if (googleUser && googleUser.sub && typeof loadUserDataFromFirestore === 'function') {
+                        loadUserDataFromFirestore(googleUser.sub);
                     }
                 }
             });
@@ -595,51 +790,66 @@ async function initApp() {
             triggerCloudSync();
         }
 
-        setupGestures();
-        setupWheelListeners();
-        
-        // Show feed UI immediately
-        goTo('verse-feed');
+        setTimeout(() => {
+            setupGestures();
+            setupWheelListeners();
 
-        // Load data and show loading overlay until verses are ready
-        loadSelectedData().then(() => {
-            if (Object.keys(verseBatches.general).length === 0) {
-                initializeVerseFeed();
-            }
-            // Dismiss loading overlay and enable interaction
-            const loadingScreen = document.getElementById('loading');
-            if (loadingScreen) {
-                loadingScreen.classList.add('loaded');
-                setTimeout(() => {
-                    loadingScreen.style.display = 'none';
-                }, 400);
-            }
-            appLoaded = true;
-        }).catch(err => {
-            console.error("Data load error:", err);
-            if (Object.keys(verseBatches.general).length === 0) {
-                initializeVerseFeed();
-            }
-            const loadingScreen = document.getElementById('loading');
-            if (loadingScreen) {
-                loadingScreen.classList.add('loaded');
-                setTimeout(() => {
-                    loadingScreen.style.display = 'none';
-                }, 400);
-            }
-            appLoaded = true;
-        });
+            // Safety Watchdog: Guarantee loading overlay is dismissed even on slowest devices
+            setTimeout(() => {
+                const loadingScreen = document.getElementById('loading');
+                if (loadingScreen && loadingScreen.style.display !== 'none') {
+                    console.log('Safety watchdog dismissing loading overlay');
+                    loadingScreen.classList.add('loaded');
+                    setTimeout(() => {
+                        loadingScreen.style.display = 'none';
+                    }, 650);
+                    appLoaded = true;
+                }
+            }, 3000);
 
-        // Initialize Piper TTS in background without blocking UI rendering
-        try {
-            initPiper(selectedVoice).catch(e => console.log("Piper init error:", e));
-        } catch(e) {}
+            // Load data and show loading overlay until verses and layout are fully ready and responsive
+            loadSelectedData().then(async () => {
+                initializeVerseFeed();
+                goTo('verse-feed');
+                // Ensure browser finishes layout and initial DOM painting
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                appLoaded = true;
+
+                const loadingScreen = document.getElementById('loading');
+                if (loadingScreen) {
+                    loadingScreen.classList.add('loaded');
+                    setTimeout(() => {
+                        loadingScreen.style.display = 'none';
+                    }, 650);
+                }
+            }).catch(async err => {
+                console.error("Data load error:", err);
+                initializeVerseFeed();
+                goTo('verse-feed');
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                appLoaded = true;
+
+                const loadingScreen = document.getElementById('loading');
+                if (loadingScreen) {
+                    loadingScreen.classList.add('loaded');
+                    setTimeout(() => {
+                        loadingScreen.style.display = 'none';
+                    }, 650);
+                }
+            });
+        }, 10);
+
 
     } catch (error) {
         console.error('Initialization error:', error);
     }
 }
+let lastAppliedStatusBarTheme = true;
 function updateDarkModeIcon(isDark) {
+    if (lastAppliedStatusBarTheme !== isDark && window.AppSigner && typeof window.AppSigner.setStatusBarTheme === 'function') {
+        lastAppliedStatusBarTheme = isDark;
+        try { window.AppSigner.setStatusBarTheme(Boolean(isDark)); } catch (e) {}
+    }
     const btn = document.getElementById('dark-mode-toggle');
     if (!btn) return;
     if (isDark) {
@@ -659,14 +869,14 @@ function setupGestures() {
             touchStartX = e.changedTouches[0].screenX;
             touchStartY = e.changedTouches[0].screenY;
         }
-    }, { passive: false });
+    }, { passive: true });
     document.addEventListener('touchend', e => {
         if (e.changedTouches && e.changedTouches[0]) {
             touchEndX = e.changedTouches[0].screenX;
             touchEndY = e.changedTouches[0].screenY;
             handleGesture();
         }
-    }, { passive: false });
+    }, { passive: true });
     const feedStage = document.getElementById('feed-stage');
     feedStage.addEventListener('click', (e) => {
         if (!appLoaded) return;
@@ -753,14 +963,6 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
     piperInitPromise = (async () => {
         piperInitializing = true;
         
-        // Show download notification for first-time voice loading
-        let downloadToast = null;
-        const voiceLabel = (voicesList.find(v => v.value === voiceId) || {}).label || voiceId;
-        const isFirstLoad = !piperSessionsCache[voiceId];
-        if (isFirstLoad) {
-            showToast('Downloading voice "' + voiceLabel + '"... This only happens once.', 15000);
-        }
-        
         try {
             const tts = await import("./libs/piper/piper-bundle.js?v=20");
             if (tts.TtsSession._instance) {
@@ -788,16 +990,9 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
             
             piperSessionsCache[voiceId] = newSession;
             piperSession = newSession;
-            
-            if (isFirstLoad) {
-                showToast('Voice "' + voiceLabel + '" ready!');
-            }
             console.log(`Piper TTS loaded with ${voiceId} via offline WebAssembly.`);
         } catch (e) {
             console.error("Piper TTS init failed:", e);
-            if (isFirstLoad) {
-                showToast('Voice download failed. Check your connection and try again.');
-            }
             piperSession = null;
             throw e;
         }
@@ -851,14 +1046,15 @@ function toggleTTSRandom() {
 function updateTogglesUI() {
     const srcBtn = document.getElementById('tts-source-toggle');
     const rndBtn = document.getElementById('tts-random-toggle');
+    const allowPremiumToggles = isPremiumUser && (typeof getActiveProfileId === 'function' ? getActiveProfileId() !== 'guest' : false);
     if (srcBtn) {
-        if (ttsAnnounceSource) srcBtn.classList.add('active');
+        if (ttsAnnounceSource && allowPremiumToggles) srcBtn.classList.add('active');
         else srcBtn.classList.remove('active');
         
         srcBtn.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M7 9.5 C7 6 9 3 12 3 C15 3 17 6 17 9.5 C17 13 15 16 12 16 H11 C11 19 13 21 15 21 V23.5 C10 23.5 7 20 7 9.5 Z" /></svg>';
     }
     if (rndBtn) {
-        if (ttsRandomVoice) rndBtn.classList.add('active');
+        if (ttsRandomVoice && allowPremiumToggles) rndBtn.classList.add('active');
         else rndBtn.classList.remove('active');
     }
 }
@@ -870,7 +1066,7 @@ let currentGenerationId = 0;
 let audioChunkQueue = [];
 let playingQueueIndex = 0;
 
-function stopAudio(preserveAutoMode = false) {
+function stopAudio(preserveAutoMode = false, keepVisualizer = false) {
     currentGenerationId++;
     clearTimeout(playDebounceTimer);
     clearTimeout(autoNextTimeout);
@@ -898,7 +1094,9 @@ function stopAudio(preserveAutoMode = false) {
         autoMode = false;
         autoNextBook = false;
     }
-    stopWaveformVisualizer(true);
+    if (!keepVisualizer && !preserveAutoMode && !autoMode && !autoNextBook) {
+        stopWaveformVisualizer(true);
+    }
     updateSpeakIcons();
     const btn = document.getElementById('speak-general');
     if (btn) btn.classList.remove('loading');
@@ -928,7 +1126,7 @@ let lastRandomVoiceId = null;
 
 async function playText(text, context) {
     // Stop any current audio FIRST, which increments currentGenerationId and resets UI state
-    stopAudio(true);
+    stopAudio(true, true);
     // NOW capture the new generationId (after stop bumped it)
     const generationId = currentGenerationId;
 
@@ -1009,21 +1207,29 @@ async function playText(text, context) {
         currentUtterance.rate = speedSlider ? parseFloat(speedSlider.value) : 0.5;
         currentUtterance.onend = () => {
             if (isPaused) return;
-            const wasAutoMode = autoMode; // Save state before stopAudio clears it
+            const wasAutoMode = autoMode;
             const currentContext = currentAudioContextType;
-            isSpeaking = false;
-            updateSpeakButton('speak-general');
+            const isAutoContinuing = (currentContext === 'feed' && wasAutoMode) ||
+                                     (currentContext === 'book' && autoNextBook) ||
+                                     (currentContext === 'saved' && wasAutoMode) ||
+                                     (currentContext === 'search' && wasAutoMode);
+
+            if (!isAutoContinuing) {
+                isSpeaking = false;
+                updateSpeakButton('speak-general');
+                stopWaveformVisualizer(true);
+            }
+
             clearTimeout(autoNextTimeout);
             autoNextTimeout = setTimeout(() => {
                 if (currentContext === 'feed' && wasAutoMode) nextCard(true);
                 else if (currentContext === 'book' && autoNextBook) advanceBookVerse();
                 else if (currentContext === 'saved' && wasAutoMode) advanceSavedVerse();
                 else if (currentContext === 'search' && wasAutoMode) advanceSearchVerse();
-                
-                setTimeout(() => {
+                else {
                     if (!isSpeaking) stopWaveformVisualizer(true);
-                }, 50);
-            }, 800);
+                }
+            }, 400);
         };
         currentUtterance.onerror = (e) => {
             console.log("SpeechSynthesis error:", e);
@@ -1071,8 +1277,8 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
     for (let i = 0; i < chunks.length; i++) {
         if (generationId !== currentGenerationId) break;
         
-        // Yield to browser macrotask event loop so scrolling and touch inputs run at 60fps with zero lag
-        await new Promise(r => setTimeout(r, 40));
+        // Yield cleanly to browser animation frame loop to ensure 60fps rendering
+        await new Promise(r => requestAnimationFrame(() => setTimeout(r, 10)));
         if (generationId !== currentGenerationId) break;
         
         try {
@@ -1134,6 +1340,8 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
 
 function startAudioPlayback(offset, generationId) {
     if (generationId !== currentGenerationId) return;
+    const btn = document.getElementById('speak-general');
+    if (btn) btn.classList.remove('loading');
 
     if (playingQueueIndex >= audioChunkQueue.length) {
         if (isQueueGenerating) {
@@ -1155,11 +1363,20 @@ function startAudioPlayback(offset, generationId) {
             }, 100);
             return;
         } else {
-            isSpeaking = false;
             isPaused = false;
             isGenerating = false;
             currentAudioPausedAt = 0;
-            updateSpeakButton('speak-general');
+
+            const isAutoContinuing = (currentAudioContextType === 'feed' && autoMode) ||
+                                     (currentAudioContextType === 'book' && autoNextBook) ||
+                                     (currentAudioContextType === 'saved' && autoMode) ||
+                                     (currentAudioContextType === 'search' && autoMode);
+
+            if (!isAutoContinuing) {
+                isSpeaking = false;
+                updateSpeakButton('speak-general');
+                stopWaveformVisualizer(true);
+            }
 
             clearTimeout(autoNextTimeout);
             autoNextTimeout = setTimeout(() => {
@@ -1171,11 +1388,9 @@ function startAudioPlayback(offset, generationId) {
                     advanceSavedVerse();
                 } else if (currentAudioContextType === 'search' && autoMode) {
                     advanceSearchVerse();
-                }
-                
-                setTimeout(() => {
+                } else {
                     if (!isSpeaking) stopWaveformVisualizer(true);
-                }, 50);
+                }
             }, 300);
             return;
         }
@@ -1254,12 +1469,13 @@ function speakCurrent(type) {
                     currentAudioNode.onended = null;
                     currentAudioNode.stop();
                 } catch (e) { }
-                stopWaveformVisualizer();
             }
+            stopWaveformVisualizer(true);
             updateSpeakIcons();
             return;
         } else {
             isPaused = false;
+            startWaveformVisualizer();
             startAudioPlayback(0, currentGenerationId);
             updateSpeakIcons();
             return;
@@ -1275,14 +1491,21 @@ function speakCurrent(type) {
         } else {
             const verse = getVerseAtIndex(currentVerseIndex.general);
             if (verse) {
-                let text = verse.spoken_text || verse.text;
-                if (!text.endsWith('.')) text += '.';
-                
-                if (ttsAnnounceSource) {
-                    text += '. ' + verse.book + '.';
+                let text = '';
+                if (verse.isAd) {
+                    if (!verse.funnyLine) {
+                        verse.funnyLine = getNextFunnyLine();
+                    }
+                    text = "VerseFeed Premium. " + verse.funnyLine;
+                } else {
+                    text = verse.spoken_text || verse.text;
+                    if (!text.endsWith('.')) text += '.';
+                    
+                    if (ttsAnnounceSource) {
+                        text += '. ' + verse.book + '.';
+                    }
+                    text = text.replace(/`/g, '');
                 }
-
-                text = text.replace(/`/g, '');
                 playText(text, 'feed');
                 autoMode = true;
             }
@@ -1366,10 +1589,12 @@ async function loadSelectedData() {
     if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
         globalSelectedRels = [...religions];
     }
-    for (const rel of globalSelectedRels) {
-        await loadReligionData(rel);
-    }
-    loadUnselectedDataInBackground();
+    await Promise.all(globalSelectedRels.map(rel => loadReligionData(rel)));
+    
+    // Defer unselected background loading so initial feed animations and gestures are silky smooth
+    setTimeout(() => {
+        loadUnselectedDataInBackground();
+    }, 2500);
 }
 async function loadUnselectedDataInBackground() {
     for (const rel of religions) {
@@ -1431,8 +1656,8 @@ function formatVerseRef(v) {
 function cleanText(text) {
     if (!text) return '';
     
-    // Standardize all forms of Islamic honorifics strictly to (pbuh)
-    text = text.replace(/[\(\[\{]*\s*(?:may\s+)?peace\s+(?:be\s+)?upon\s+him\s*[\)\]\}]*/gi, ' (pbuh) ')
+    // Standardize all forms of Islamic honorifics strictly to (pbuh) with single brackets
+    text = text.replace(/[\(\[\{]*\s*(?:may\s+)?peace\s+(?:be\s+)?upon\s+(?:him|them|her)\s*[\)\]\}]*/gi, ' (pbuh) ')
                .replace(/[\(\[\{]*\s*pbuh\s*[\)\]\}]*/gi, ' (pbuh) ')
                .replace(/[\(\[\{]*\s*s\.a\.w\.?\s*[\)\]\}]*/gi, ' (pbuh) ')
                .replace(/[\(\[\{]*\s*saw\s*[\)\]\}]*/gi, ' (pbuh) ')
@@ -1443,13 +1668,14 @@ function cleanText(text) {
                .replace(/^[\s\-.,:;]+/, '')
                .trim();
 
-    // Final safety check to eliminate any double parentheses around (pbuh)
-    while (text.includes('((pbuh))')) {
-        text = text.replace('((pbuh))', '(pbuh)');
-    }
-    while (text.includes('( (pbuh) )')) {
-        text = text.replace('( (pbuh) )', '(pbuh)');
-    }
+    // Standardize all double/nested brackets to single (pbuh)
+    while (text.includes('((pbuh))')) text = text.replace('((pbuh))', '(pbuh)');
+    while (text.includes('( (pbuh) )')) text = text.replace('( (pbuh) )', '(pbuh)');
+    while (text.includes('(( pbuh ))')) text = text.replace('(( pbuh ))', '(pbuh)');
+    while (text.includes('((pbuh)')) text = text.replace('((pbuh)', '(pbuh)');
+    while (text.includes('(pbuh))')) text = text.replace('(pbuh))', '(pbuh)');
+    text = text.replace(/\(\s*pbuh\s*\)/gi, '(pbuh)').replace(/\s+/g, ' ').trim();
+
     return text;
 }
 function processBibleData(bible) {
@@ -1485,13 +1711,14 @@ function processQuranData(quran) {
     quran.forEach(surah => {
         let verses = {};
         surah.verses.forEach(v => {
-            verses[v.id] = v.translation;
+            const cleaned = cleanText(v.translation);
+            verses[v.id] = cleaned;
             islamVerses.push({
                 id: `islam_quran_${surah.id}_${v.id}`.toLowerCase().replace(/ /g, '_'),
                 book: 'Quran',
                 chapter: surah.id,
                 verse: v.id,
-                text: cleanText(v.translation),
+                text: cleaned,
                 religion: 'Islam'
             });
         });
@@ -1526,6 +1753,7 @@ function processHadithData(allHadiths) {
                 "same hadith has been",
                 "this hadith has been reported",
                 "this hadith is reported",
+                "this dispatched hadith has been",
                 "this hadith has been transmitted",
                 "exception of these words",
                 "with this addition",
@@ -1546,13 +1774,14 @@ function processHadithData(allHadiths) {
                 hadithCollections[collection].chapters[chapter] = {};
             }
 
-            hadithCollections[collection].chapters[chapter][verseStr] = text;
+            const cleanedText = cleanText(text);
+            hadithCollections[collection].chapters[chapter][verseStr] = cleanedText;
             islamVerses.push({
                 id: `islam_${collection}_${chapter}_${verseStr}`.toLowerCase().replace(/ /g, '_'),
                 book: collection,
                 chapter: chapter,
                 verse: verseStr,
-                text: cleanText(text),
+                text: cleanedText,
                 religion: 'Islam'
             });
         }
@@ -1914,18 +2143,21 @@ async function skipOnboarding() {
     goTo('verse-feed');
 }
 function buildSettings() {
-    if (!isPremiumUser || !globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
-        globalSelectedRels = [...religions];
-        localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
-    }
-    document.querySelectorAll('.global-rel-btn').forEach(btn => {
-        if (btn.id === 'dark-mode-toggle') return;
-        const rel = btn.textContent.trim();
-        if (globalSelectedRels.includes(rel)) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
+    suppressFlash(() => {
+        applyRandomPremiumAngle();
+        if (!isPremiumUser || !globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
+            globalSelectedRels = [...religions];
+            localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
         }
+        document.querySelectorAll('.global-rel-btn').forEach(btn => {
+            if (btn.id === 'dark-mode-toggle') return;
+            const rel = btn.textContent.trim();
+            if (globalSelectedRels.includes(rel)) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
     });
 }
 async function toggleGlobalReligion(rel) {
@@ -1978,7 +2210,7 @@ function pushVersesWithAdCheck(newBatch) {
         verseBatches.general.push(verse);
     }
 }
-function initializeVerseFeed() {
+function initializeVerseFeed(forceRefresh) {
     const stage = document.getElementById('feed-stage');
     const emptyState = document.getElementById('feed-empty-state');
 
@@ -1986,16 +2218,15 @@ function initializeVerseFeed() {
         globalSelectedRels = [...religions];
     }
     
-    emptyState.classList.add('hidden');
-    if (verseBatches.general.length > 0) {
-        renderFeedCard(currentVerseIndex.general);
+    if (emptyState) emptyState.classList.add('hidden');
+    if (!forceRefresh && verseBatches.general.length > 0) {
+        if (stage && !stage.querySelector('.card-center')) {
+            renderFeedCard(currentVerseIndex.general);
+        }
         return;
     }
     const newBatch = generateBatch('general', []);
     if (newBatch.length === 0) {
-        setTimeout(() => {
-            initializeVerseFeed();
-        }, 1000);
         return;
     }
     pushVersesWithAdCheck(newBatch);
@@ -2060,7 +2291,9 @@ function generateBatch(type, lastRels = []) {
     const per = Math.floor(size / rels.length);
     const extra = size % rels.length;
     let slots = [];
-    rels.forEach((r, i) => {
+    
+    const shuffledForExtra = [...rels].sort(() => Math.random() - 0.5);
+    shuffledForExtra.forEach((r, i) => {
         const count = per + (i < extra ? 1 : 0);
         slots.push(...Array(count).fill(r));
     });
@@ -2133,6 +2366,73 @@ function getVerseAtIndex(index) {
 
 // Interstitial ads removed in favor of in-feed AdSense ads
 
+const premiumFunnyLines = [
+    "Buy premium to be blessed forever.",
+    "If you buy VerseFeed Premium, you will gain +37 points of instant good luck.",
+    "The developer of this app is broke. Buy premium to make him slightly less broke.",
+    "Buying premium is scientifically proven to make your soul 42% lighter.",
+    "Our AI voice narrator is working overtime. Feed him with a premium subscription.",
+    "Unlock premium: Your future self will look back and say, that was the best investment ever.",
+    "Guaranteed 100% halal, kosher, and spiritually certified premium vibes.",
+    "Buy premium today to unlock infinite good karma and zero interruptions.",
+    "They say money can't buy inner peace, but it can remove all ads from your feed.",
+    "Even angels recommend upgrading to premium. Please don't fact-check that.",
+    "Support indie developers before the robots replace all of us.",
+    "Legend says every time someone buys premium, a developer gets a full night of sleep.",
+    "Warning: VerseFeed Premium may cause sudden moments of profound enlightenment.",
+    "Buy premium or the developer might have to survive on instant noodles for another month.",
+    "Upgrade now. Your spiritual feed deserves first-class treatment.",
+    "Ad-free reading, HD natural voices, and an indie dev who will genuinely celebrate your support.",
+    "Invest in your soul and help an indie dev pay his electricity bill at the same time.",
+    "Zero ads, pure verses, and instant VIP status in the spiritual realm.",
+    "Do it for the inner peace. And maybe for the broke developer too.",
+    "Buying premium won't solve all your problems, but your daily verses will sound angelic.",
+    "Upgrade to Premium: No ads, just pure unfiltered wisdom directly to your consciousness.",
+    "Skip the ads, keep the blessings. Upgrade to VerseFeed Premium today.",
+    "You scrolled 8 verses. You've unlocked the secret privilege of buying premium.",
+    "Treat yourself to premium. It's cheaper than a single coffee latte.",
+    "The monks in the mountains didn't have ads. Why should you? Go premium.",
+    "Support human creativity over soulless corporate algorithms. Get Premium.",
+    "An ad-free experience is the highest form of daily self-care.",
+    "Unlock all HD voice narrators. Because Alan sounds like he has a PhD in wisdom.",
+    "Premium members are 73% more likely to find inner serenity during traffic jams.",
+    "One subscription, zero ads, unlimited wisdom. Even King Solomon would approve.",
+    "Don't let ads disrupt your meditation. Tap below and transcend to premium.",
+    "Your spiritual journey without ads is like a highway with no speed bumps.",
+    "Feed your mind with pristine verses, unbothered by commercial interruptions.",
+    "Upgrade to premium: It's good for your karma and great for your battery life.",
+    "Unlock the ultimate spiritual toolkit: all voices, custom topics, and zero ads.",
+    "Think of premium as a tiny donation to keep VerseFeed accessible and ad-free.",
+    "The path to enlightenment does not include pop-up ads. Upgrade now.",
+    "Every time you upgrade to premium, an angel gets a tiny harp upgrade.",
+    "No ads, all HD voices, custom selections. The developer will personally say a prayer for you.",
+    "Why settle for standard when you can read ancient philosophy in pristine HD audio?",
+    "Your daily dose of scripture, delivered with zero clutter. Get Premium.",
+    "Ad-free reading is a modern spiritual blessing. Claim yours now.",
+    "Give your soul the VIP treatment it deserves. VerseFeed Premium awaits.",
+    "Spiritual wisdom is priceless, but removing ads is only a couple bucks.",
+    "Level up your mindfulness. VerseFeed Premium gives you uninterrupted flow.",
+    "If you upgrade right now, you get zero ads and 100% bragging rights in heaven.",
+    "No more interruptions. Just pure timeless wisdom from all religions.",
+    "Your attention is sacred. Protect it from ads with VerseFeed Premium.",
+    "Upgrade to Premium: The fastest way to support independent developers and clean design.",
+    "Make your feed as peaceful as a quiet dawn in the Himalayas. Go Premium.",
+    "Join the premium circle: HD voice narrations, unlimited custom topics, no ads ever.",
+    "You have good taste in spiritual apps. Complete the vibe with VerseFeed Premium."
+];
+
+let funnyLinesBag = [];
+function getNextFunnyLine() {
+    if (funnyLinesBag.length === 0) {
+        funnyLinesBag = [...premiumFunnyLines];
+        for (let i = funnyLinesBag.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [funnyLinesBag[i], funnyLinesBag[j]] = [funnyLinesBag[j], funnyLinesBag[i]];
+        }
+    }
+    return funnyLinesBag.pop();
+}
+
 function createFeedCardDOM(verse, extraClass) {
     const card = document.createElement('div');
     card.classList.add('verse-card');
@@ -2147,25 +2447,30 @@ function createFeedCardDOM(verse, extraClass) {
     refEl.classList.add('verse-ref');
 
     if (verse.isAd) {
+        if (!verse.funnyLine) {
+            verse.funnyLine = getNextFunnyLine();
+        }
+        
+        // 70% straight (0deg), 30% angled (-3deg or 3deg)
+        const isAngled = Math.random() > 0.70;
+        const angleDeg = isAngled ? (Math.random() > 0.5 ? 3 : -3) : 0;
+
         card.classList.add('premium-ad-card');
         textEl.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 28px; padding: 40px 28px; box-sizing: border-box;">
-                <span style="font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 3px; opacity: 0.8; color: var(--text-color);">VerseFeed Premium</span>
-                <div style="font-size: 2.2rem; font-weight: 700; color: var(--text-color); font-family: var(--font-main); line-height: 1.3; max-width: 95%;">
-                    HD Voices & Ad-Free
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 24px; padding: 32px 24px; box-sizing: border-box;">
+                <span style="font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 3px; opacity: 0.75; color: var(--text-color);">VerseFeed Premium</span>
+                <div style="font-size: clamp(1.25rem, 4.5vw, 1.7rem); font-weight: 700; color: var(--text-color); font-family: var(--font-main); line-height: 1.45; max-width: 92%;">
+                    ${verse.funnyLine}
                 </div>
-                <div style="font-size: 1.1rem; color: var(--text-color); opacity: 0.85; max-width: 90%; line-height: 1.6; font-family: var(--font-main);">
-                    Unlock all HD natural voices, custom random controls, and unlimited saved folders without interruptions.
-                </div>
-                <button onclick="openPremiumModal()" style="background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 14px 40px; border-radius: 28px; font-size: 1.05rem; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 8px; box-shadow: var(--glass-shadow); transition: transform 0.2s ease;">
+                <button onclick="openPremiumModal()" style="transform: rotate(${angleDeg}deg); background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 14px 40px; border-radius: 28px; font-size: 1.05rem; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 8px; box-shadow: var(--glass-shadow); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
                     Get Premium
                 </button>
             </div>
         `;
         refEl.innerText = '';
     } else {
-        textEl.innerText = verse.text;
-        refEl.innerText = formatVerseRef(verse);
+        textEl.textContent = verse.text || '';
+        refEl.textContent = formatVerseRef(verse) || '';
     }
 
     footer.appendChild(refEl);
@@ -2174,27 +2479,9 @@ function createFeedCardDOM(verse, extraClass) {
     return card;
 }
 
-function updatePeekCards(currentIndex) {
-    const stage = document.getElementById('feed-stage');
-    if (!stage) return;
-    stage.querySelectorAll('.card-peek-left, .card-peek-right').forEach(el => el.remove());
-
-    if (currentIndex > 0) {
-        const prevVerse = getVerseAtIndex(currentIndex - 1);
-        if (prevVerse) {
-            const leftPeek = createFeedCardDOM(prevVerse, 'card-peek-left');
-            stage.insertBefore(leftPeek, stage.firstChild);
-        }
-    }
-    const nextVerse = getVerseAtIndex(currentIndex + 1);
-    if (nextVerse) {
-        const rightPeek = createFeedCardDOM(nextVerse, 'card-peek-right');
-        stage.appendChild(rightPeek);
-    }
-}
-
 function renderFeedCard(index, direction = 'none') {
     const stage = document.getElementById('feed-stage');
+    if (!stage) return;
     const verse = getVerseAtIndex(index);
     if (!verse) return;
 
@@ -2203,33 +2490,36 @@ function renderFeedCard(index, direction = 'none') {
     else if (direction === 'prev') card = createFeedCardDOM(verse, 'card-left');
     else card = createFeedCardDOM(verse, 'card-center');
 
-    stage.appendChild(card);
-    requestAnimationFrame(() => {
-        if (direction !== 'none') {
-            const oldCard = stage.querySelector('.card-center');
-            if (oldCard) {
-                oldCard.classList.remove('card-center');
-                if (direction === 'next') oldCard.classList.add('card-left');
-                else oldCard.classList.add('card-right');
-                setTimeout(() => oldCard.remove(), 400);
-            }
-            card.classList.remove('card-right', 'card-left');
-            card.classList.add('card-center');
-            setTimeout(() => {
-                updatePeekCards(index);
-            }, 300);
-        } else {
-            const others = stage.querySelectorAll('.verse-card:not(:last-child)');
-            others.forEach(c => c.remove());
-            card.classList.add('card-center');
-            updatePeekCards(index);
+    card.id = 'feed-card-' + index;
+
+    if (direction !== 'none') {
+        const oldCard = stage.querySelector('.card-center');
+        card.classList.add('animating');
+        stage.appendChild(card);
+        void card.offsetWidth;
+        if (oldCard) {
+            oldCard.classList.add('animating');
+            oldCard.classList.remove('card-center');
+            if (direction === 'next') oldCard.classList.add('card-left');
+            else oldCard.classList.add('card-right');
+            setTimeout(() => oldCard.remove(), 400);
         }
-    });
+        card.classList.remove('card-right', 'card-left');
+        card.classList.add('card-center');
+        setTimeout(() => {
+            if (card) card.classList.remove('animating');
+        }, 400);
+    } else {
+        stage.innerHTML = '';
+        card.classList.remove('animating');
+        card.classList.add('card-center');
+        stage.appendChild(card);
+    }
 }
 
 function nextCard(isAuto = false) {
     const wasPlaying = isSpeaking && !isPaused;
-    stopAudio();
+    stopAudio(wasPlaying || isAuto, wasPlaying || isAuto);
 
     currentVerseIndex.general++;
     renderFeedCard(currentVerseIndex.general, 'next');
@@ -2238,7 +2528,6 @@ function nextCard(isAuto = false) {
 
     if (isAuto || wasPlaying) {
         if (newVerse && !newVerse.isAd) {
-            selectVerse(newVerse, 'feed', 'feed-card-' + currentVerseIndex.general, true);
             let spokenText = newVerse.spoken_text || newVerse.text;
             if (!spokenText.endsWith('.')) spokenText += '.';
             
@@ -2251,12 +2540,14 @@ function nextCard(isAuto = false) {
                 autoMode = true;
             }, 400); // Allow card animation to finish
         } else if (newVerse && newVerse.isAd) {
-            // Auto-skip the ad after 3.5 seconds
-            autoMode = true;
-            clearTimeout(autoNextTimeout);
-            autoNextTimeout = setTimeout(() => {
-                nextCard(true);
-            }, 3500);
+            if (!newVerse.funnyLine) {
+                newVerse.funnyLine = getNextFunnyLine();
+            }
+            const adSpokenText = "VerseFeed Premium. " + newVerse.funnyLine;
+            setTimeout(() => {
+                playText(adSpokenText, 'feed');
+                autoMode = true;
+            }, 400);
         }
     } else {
         deselectVerse();
@@ -2265,14 +2556,13 @@ function nextCard(isAuto = false) {
 
 function prevCard() {
     const wasPlaying = isSpeaking && !isPaused;
-    stopAudio();
+    stopAudio(wasPlaying, wasPlaying);
 
     if (currentVerseIndex.general > 0) {
         currentVerseIndex.general--;
         renderFeedCard(currentVerseIndex.general, 'prev');
         const newVerse = getVerseAtIndex(currentVerseIndex.general);
         if (wasPlaying && newVerse && !newVerse.isAd) {
-            selectVerse(newVerse, 'feed', 'feed-card-' + currentVerseIndex.general, true);
             let spokenText = newVerse.spoken_text || newVerse.text;
             if (!spokenText.endsWith('.')) spokenText += '.';
             
@@ -2283,11 +2573,12 @@ function prevCard() {
             playText(spokenText, 'feed');
             autoMode = true;
         } else if (wasPlaying && newVerse && newVerse.isAd) {
+            if (!newVerse.funnyLine) {
+                newVerse.funnyLine = getNextFunnyLine();
+            }
+            const adSpokenText = "VerseFeed Premium. " + newVerse.funnyLine;
+            playText(adSpokenText, 'feed');
             autoMode = true;
-            clearTimeout(autoNextTimeout);
-            autoNextTimeout = setTimeout(() => {
-                nextCard(true);
-            }, 3500);
         } else {
             deselectVerse();
         }
@@ -2295,18 +2586,22 @@ function prevCard() {
 }
 function goTo(section) {
     if (!appLoaded && section !== 'verse-feed') return;
-    const isAlreadyActive = document.getElementById(section) && document.getElementById(section).classList.contains('active-section');
+    const targetEl = document.getElementById(section);
+    if (!targetEl) return;
+    const isAlreadyActive = targetEl.classList.contains('active-section');
 
     if (selectedVerse && selectedVerse.type === 'book') {
         lastSelectedBookVerse = selectedVerse;
     }
     
     stopAudio();
-    document.querySelectorAll('.app-section').forEach(s => {
-        s.classList.remove('active-section');
-    });
-
-    document.getElementById(section).classList.add('active-section');
+    suppressFlash(() => {
+    if (!isAlreadyActive) {
+        document.querySelectorAll('.app-section').forEach(s => {
+            if (s !== targetEl) s.classList.remove('active-section');
+        });
+        targetEl.classList.add('active-section');
+    }
 
     document.querySelectorAll('.nav-icon').forEach(btn => btn.classList.remove('active-nav'));
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -2340,20 +2635,23 @@ function goTo(section) {
     if (section === 'saved-verses') {
         const n = document.getElementById('nav-saved'); if (n) n.classList.add('active-nav');
         const t = document.querySelector('.tab-btn[data-target="saved-verses"]'); if (t) t.classList.add('active');
-        if (!isAlreadyActive) {
+        if (isAlreadyActive && selectedSavedAlbum) {
             selectedSavedAlbum = null;
-            deselectVerse();
+        } else if (!isAlreadyActive) {
+            selectedSavedAlbum = null;
         }
-        showSavedVerses();
+        deselectVerse();
+        showSavedVerses(true);
     }
     if (section === 'settings') {
         const n = document.getElementById('nav-settings'); if (n) n.classList.add('active-nav');
         const t = document.querySelector('.tab-btn[data-target="settings"]'); if (t) t.classList.add('active');
+        deselectVerse();
         buildSettings();
         renderVoiceSettings();
         updateTogglesUI();
-        deselectVerse();
     }
+    }); // end suppressFlash
 }
 window.switchTab = goTo;
 
@@ -2415,7 +2713,11 @@ function getAlbumsGrouped() {
 }
 
 function showSavedVerses(rebuildFolders = true) {
+    suppressFlash(() => _showSavedVersesImpl(rebuildFolders));
+}
+function _showSavedVersesImpl(rebuildFolders = true) {
     const list = document.getElementById('saved-list');
+    if (!list) return;
     
     // Create containers if they don't exist
     let foldersContainer = document.getElementById('saved-folders-container');
@@ -2441,7 +2743,8 @@ function showSavedVerses(rebuildFolders = true) {
     });
 
     if (rebuildFolders) {
-        foldersContainer.innerHTML = '';
+        // Build in a fragment first, then swap atomically to avoid blank-frame flash
+        const frag = document.createDocumentFragment();
         const grid = document.createElement('div');
         grid.style.display = 'flex';
         grid.style.flexWrap = 'wrap';
@@ -2475,7 +2778,7 @@ function showSavedVerses(rebuildFolders = true) {
             
             const nameSpan = document.createElement('span');
             nameSpan.className = 'album-name';
-            nameSpan.innerText = albumName;
+            nameSpan.textContent = albumName;
             folder.appendChild(nameSpan);
             
             if ((selectedVerse && selectedVerse.type === 'folder' && selectedVerse.name === albumName) || selectedSavedAlbum === albumName) {
@@ -2500,11 +2803,48 @@ function showSavedVerses(rebuildFolders = true) {
             
             grid.appendChild(folder);
         }
-        foldersContainer.appendChild(grid);
+        frag.appendChild(grid);
+        // Atomic swap: replaces all children at once, no blank frame
+        foldersContainer.replaceChildren(frag);
     }
     
-    // Rebuild verses list
-    versesContainer.innerHTML = '';
+    // Rebuild verses list using a fragment for atomic swap
+    const versesFrag = document.createDocumentFragment();
+    
+    // If a folder is open/selected, show header with centered editable name and sleek delete button
+    if (selectedSavedAlbum) {
+        const header = document.createElement('div');
+        header.className = 'selected-folder-header';
+        
+        const titleWrap = document.createElement('div');
+        titleWrap.className = 'selected-folder-title-wrap';
+        titleWrap.title = 'Click to rename';
+        
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'selected-folder-title';
+        titleSpan.id = 'selected-folder-title';
+        titleSpan.textContent = selectedSavedAlbum;
+        
+        titleWrap.appendChild(titleSpan);
+        
+        titleWrap.onclick = (e) => {
+            e.stopPropagation();
+            startFolderInlineRename(selectedSavedAlbum, titleWrap);
+        };
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-folder-btn-sleek';
+        deleteBtn.title = 'Delete Folder';
+        deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            handleFolderDelete(e, selectedSavedAlbum);
+        };
+        
+        header.appendChild(titleWrap);
+        header.appendChild(deleteBtn);
+        versesFrag.appendChild(header);
+    }
     
     let versesToRender = validVerses;
     if (selectedSavedAlbum) {
@@ -2514,24 +2854,85 @@ function showSavedVerses(rebuildFolders = true) {
     window.currentSavedVersesRendered = versesToRender;
     
     if (versesToRender.length > 0) {
-        renderVersesList(versesToRender, versesContainer);
+        renderVersesList(versesToRender, versesFrag);
     } else {
         if (selectedSavedAlbum) {
             const placeholder = document.createElement('div');
             placeholder.style.display = 'flex';
             placeholder.style.alignItems = 'center';
             placeholder.style.justifyContent = 'center';
-            placeholder.style.height = '40vh'; // Center vertically in remaining space
+            placeholder.style.height = '30vh';
             placeholder.style.opacity = '0.6';
-            placeholder.style.fontSize = '1.2rem';
-            placeholder.innerText = 'No verses yet';
-            versesContainer.appendChild(placeholder);
+            placeholder.style.fontSize = '1.1rem';
+            placeholder.innerText = 'No verses in this folder';
+            versesFrag.appendChild(placeholder);
         }
     }
+    
+    // Atomic swap: replaces all children at once, no blank frame
+    versesContainer.replaceChildren(versesFrag);
     
     if (selectedVerse) {
         highlightSelectedVerseElement(true);
     }
+}
+
+function startFolderInlineRename(oldName, containerEl) {
+    if (!containerEl) return;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.maxLength = 10;
+    input.className = 'selected-folder-input';
+    input.value = oldName;
+    
+    let finished = false;
+    const finishRename = () => {
+        if (finished) return;
+        finished = true;
+        const newRaw = input.value.trim();
+        const newName = sanitizeFolderName(newRaw);
+        if (newName && newName !== oldName) {
+            const idx = createdAlbums.indexOf(oldName);
+            if (idx > -1) {
+                createdAlbums[idx] = newName;
+            } else if (!createdAlbums.includes(newName)) {
+                createdAlbums.push(newName);
+            }
+            localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
+            
+            savedVerses.forEach(s => {
+                if (s && s.album === oldName) s.album = newName;
+            });
+            localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+            
+            selectedSavedAlbum = newName;
+            if (selectedVerse && selectedVerse.type === 'folder') {
+                selectedVerse.name = newName;
+            }
+            triggerCloudSync();
+            showSavedVerses(true);
+            showToast('Folder renamed to "' + newName + '"');
+        } else {
+            showSavedVerses(false);
+        }
+    };
+
+    input.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            input.blur();
+        } else if (e.key === 'Escape') {
+            finished = true;
+            showSavedVerses(false);
+        }
+    };
+    
+    input.onblur = finishRename;
+    
+    containerEl.innerHTML = '';
+    containerEl.appendChild(input);
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
 }
 
 function renderVersesList(versesArray, listElement) {
@@ -2542,7 +2943,6 @@ function renderVersesList(versesArray, listElement) {
         div.id = 'saved-verse-' + i;
         div.classList.add('saved-verse');
         div.style.borderRadius = '16px';
-        div.style.transition = 'all 0.2s ease';
         
         const text = document.createElement('div');
         text.classList.add('verse-text');
@@ -3542,11 +3942,7 @@ function updateVoiceWheelActiveStyle() {
 
 function syncVoiceWheelToCurrent() {
     const wheel = document.getElementById('voice-scroll-wheel');
-    if (!wheel) return;
-    if (wheel.clientHeight === 0) {
-        setTimeout(syncVoiceWheelToCurrent, 50);
-        return;
-    }
+    if (!wheel || wheel.clientHeight === 0) return;
     const items = getVoiceWheelItems();
     const idx = items.findIndex(i => i.dataset.val === selectedVoice);
     if (idx !== -1) {
@@ -3635,14 +4031,12 @@ function onVoiceChange(val) {
 
 // --- Credits Modal ---
 function openCreditsModal() {
-    const modal = document.getElementById('credits-modal');
-    if (modal) modal.classList.remove('hidden');
+    openModal(document.getElementById('credits-modal'));
 }
 
 function closeCreditsModal(event) {
     if (event && event.type === 'click' && event.target !== event.currentTarget) return;
-    const modal = document.getElementById('credits-modal');
-    if (modal) modal.classList.add('hidden');
+    closeModal(document.getElementById('credits-modal'));
 }
 
 initApp();
@@ -3876,12 +4270,7 @@ let toastHideTimeout = null;
 
 function isToastAllowed(msg) {
     if (!msg) return false;
-    const m = String(msg).toLowerCase().trim();
-    if (m.startsWith('saved to') || m.startsWith('moved to')) return true;
-    if (m === 'verse deleted' || m === 'folder deleted' || m === 'account deleted') return true;
-    if (m === 'bookmark removed' || m === 'removed bookmark' || m === 'deleted from saved.') return true;
-    if (m === 'verse restored' || m === 'folder restored') return true;
-    return false;
+    return true; // Allow all toasts so the user always gets clear visual feedback
 }
 
 function showToast(msg, duration = 2200) {
@@ -3893,15 +4282,16 @@ function showToast(msg, duration = 2200) {
     const progressEl = document.getElementById('toast-progress');
     if (!toast || !msgEl) return;
     
-    msgEl.innerText = msg;
+    msgEl.textContent = msg;
     if (actionBtn) actionBtn.style.display = 'none';
     
     if (progressEl) {
         progressEl.style.transition = 'none';
         progressEl.style.transform = 'scaleX(0)';
-        void progressEl.offsetWidth;
-        progressEl.style.transition = `transform ${duration}ms linear`;
-        progressEl.style.transform = 'scaleX(1)';
+        requestAnimationFrame(() => {
+            progressEl.style.transition = `transform ${duration}ms linear`;
+            progressEl.style.transform = 'scaleX(1)';
+        });
     }
     
     toast.classList.add('show');
@@ -3996,94 +4386,176 @@ function advanceSavedVerse() {
     }
 }
 
-/* --- Audio Waveform Visualizer --- */
+/* --- Audio Waveform Visualizer with OffscreenCanvas Worker --- */
+function initVisualizerWorker() {
+    const canvas = document.getElementById('waveform-canvas');
+    if (!canvas) return;
+    
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+    const rootStyle = getComputedStyle(document.body);
+    const defaultRgb = isDark ? '238, 204, 180' : '48, 40, 34';
+    const rgbStr = (rootStyle && rootStyle.getPropertyValue('--visualizer-rgb').trim()) || defaultRgb;
+    const dpr = window.devicePixelRatio || 1;
+    visualizerLogicalWidth = window.innerWidth;
+    visualizerLogicalHeight = 380;
+    const targetWidth = Math.floor(visualizerLogicalWidth * dpr);
+    const targetHeight = Math.floor(visualizerLogicalHeight * dpr);
+    
+    if (typeof canvas.transferControlToOffscreen === 'function') {
+        try {
+            const offscreen = canvas.transferControlToOffscreen();
+            visualizerWorker = new Worker('visualizer-worker.js?v=9');
+            visualizerWorker.postMessage({
+                type: 'init',
+                canvas: offscreen,
+                width: visualizerLogicalWidth,
+                height: visualizerLogicalHeight,
+                targetWidth: targetWidth,
+                targetHeight: targetHeight,
+                dpr: dpr,
+                isDark: isDark,
+                rgbStr: rgbStr
+            }, [offscreen]);
+            visualizerWorkerReady = true;
+            return;
+        } catch (e) {
+            console.warn("OffscreenCanvas worker fallback:", e);
+        }
+    }
+    
+    resizeWaveformCanvas();
+    updateVisualizerThemeCache();
+}
+
+function updateVisualizerThemeCache() {
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+    const rootStyle = getComputedStyle(document.body);
+    const defaultRgb = isDark ? '238, 204, 180' : '48, 40, 34';
+    const rgbStr = (rootStyle && rootStyle.getPropertyValue('--visualizer-rgb').trim()) || defaultRgb;
+    if (visualizerWorkerReady && visualizerWorker) {
+        visualizerWorker.postMessage({ type: 'theme', isDark: isDark, rgbStr: rgbStr });
+    }
+}
+
+function resizeWaveformCanvas() {
+    const canvas = document.getElementById('waveform-canvas');
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    visualizerLogicalWidth = window.innerWidth;
+    visualizerLogicalHeight = 380;
+    const targetWidth = Math.floor(visualizerLogicalWidth * dpr);
+    const targetHeight = Math.floor(visualizerLogicalHeight * dpr);
+
+    if (visualizerWorkerReady && visualizerWorker) {
+        visualizerWorker.postMessage({
+            type: 'resize',
+            width: visualizerLogicalWidth,
+            height: visualizerLogicalHeight,
+            targetWidth: targetWidth,
+            targetHeight: targetHeight,
+            dpr: dpr
+        });
+    } else {
+        if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            canvas.style.width = visualizerLogicalWidth + 'px';
+            canvas.style.height = visualizerLogicalHeight + 'px';
+            const ctx = canvas.getContext('2d');
+            if (ctx) ctx.scale(dpr, dpr);
+        }
+    }
+}
+window.addEventListener('resize', resizeWaveformCanvas, { passive: true });
 
 function startWaveformVisualizer() {
     clearTimeout(visualizerFadeTimeout);
+    updateVisualizerThemeCache();
     const canvas = document.getElementById('waveform-canvas');
     if (canvas) canvas.classList.add('active');
-
-    if (waveformAnimFrame) return; // Prevent duplicate loops
-    if (!canvas || !audioAnalyser) return;
     
+    if (visualizerWorkerReady && visualizerWorker) {
+        visualizerWorker.postMessage({ type: 'start' });
+        
+        clearInterval(visualizerAudioInterval);
+        const dataArray = new Uint8Array((audioAnalyser && audioAnalyser.frequencyBinCount) || 64);
+        visualizerAudioInterval = setInterval(() => {
+            const isActive = canvas.classList.contains('active') && !isPaused;
+            if (!isSpeaking || isPaused) {
+                visualizerWorker.postMessage({ type: 'volume', vol: 0, isSpeaking: isSpeaking, isPaused: isPaused, isActive: isActive });
+                return;
+            }
+            if (audioAnalyser) {
+                audioAnalyser.getByteFrequencyData(dataArray);
+                let sum = 0;
+                const len = dataArray.length;
+                for (let i = 0; i < len; i++) sum += dataArray[i];
+                const avgVolume = sum / len / 255.0;
+                visualizerWorker.postMessage({ type: 'volume', vol: avgVolume, isSpeaking: isSpeaking, isPaused: isPaused, isActive: true });
+            }
+        }, 16);
+        return;
+    }
+
+    if (waveformAnimFrame) return;
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const bufferLength = audioAnalyser.frequencyBinCount;
+    if (!ctx) return;
+    const bufferLength = (audioAnalyser && audioAnalyser.frequencyBinCount) || 64;
     const dataArray = new Uint8Array(bufferLength);
     
     function draw() {
         if (!canvas) return;
         const isFading = !canvas.classList.contains('active');
-        
         if (isFading && (!isSpeaking || isPaused)) {
-            const currentOpacity = parseFloat(window.getComputedStyle(canvas).opacity || '0');
-            if (currentOpacity <= 0.01) {
-                if (waveformAnimFrame) {
-                    cancelAnimationFrame(waveformAnimFrame);
-                    waveformAnimFrame = null;
-                }
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                return;
+            if (waveformAnimFrame) {
+                cancelAnimationFrame(waveformAnimFrame);
+                waveformAnimFrame = null;
             }
+            ctx.clearRect(0, 0, visualizerLogicalWidth, visualizerLogicalHeight);
+            return;
         }
         
         waveformAnimFrame = requestAnimationFrame(draw);
         
-        const dpr = window.devicePixelRatio || 1;
-        const logicalWidth = window.innerWidth;
-        const logicalHeight = 380;
-        const targetWidth = Math.floor(logicalWidth * dpr);
-        const targetHeight = Math.floor(logicalHeight * dpr);
-
-        if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
-            canvas.width = targetWidth;
-            canvas.height = targetHeight;
-            canvas.style.width = logicalWidth + 'px';
-            canvas.style.height = logicalHeight + 'px';
-            ctx.scale(dpr, dpr);
-        }
-        
         let sum = 0;
-        const len = dataArray.length;
-
-        if (isSpeaking && !isPaused) {
+        if (audioAnalyser && isSpeaking && !isPaused) {
             audioAnalyser.getByteFrequencyData(dataArray);
-            for (let i = 0; i < len; i++) {
-                sum += dataArray[i];
-            }
+            const len = dataArray.length;
+            for (let i = 0; i < len; i++) sum += dataArray[i];
+            const avgVolume = sum / len / 255.0;
+            if (window.smoothedVolume === undefined) window.smoothedVolume = 0;
+            window.smoothedVolume += (avgVolume - window.smoothedVolume) * 0.12; 
+        } else {
+            if (window.smoothedVolume === undefined) window.smoothedVolume = 0;
+            window.smoothedVolume *= 0.92;
         }
         
-        const avgVolume = sum / len / 255.0;
-        
-        if (window.smoothedVolume === undefined) window.smoothedVolume = 0;
-        window.smoothedVolume += (avgVolume - window.smoothedVolume) * 0.12; 
-        
-        ctx.clearRect(0, 0, logicalWidth, logicalHeight);
+        ctx.clearRect(0, 0, visualizerLogicalWidth, visualizerLogicalHeight);
         
         const time = Date.now() * 0.001;
-        const numPoints = Math.max(120, Math.floor(logicalWidth / 4));
-        const sliceWidth = logicalWidth / (numPoints - 1);
-        
+        const numPoints = Math.max(120, Math.floor(visualizerLogicalWidth / 4));
+        const sliceWidth = visualizerLogicalWidth / (numPoints - 1);
         const rootStyle = getComputedStyle(document.body);
-        const isDark = document.body.getAttribute('data-theme') === 'dark';
-        const defaultRgb = isDark ? '215, 195, 175' : '66, 55, 45';
-        const rgbStr = rootStyle.getPropertyValue('--visualizer-rgb').trim() || defaultRgb;
+        const defaultRgb = isDark ? '238, 204, 180' : '48, 40, 34';
+        const rgbStr = (rootStyle && rootStyle.getPropertyValue('--visualizer-rgb').trim()) || defaultRgb;
 
         const drawLayer = (speed, frequency, amplitudeBase, audioMult, alpha) => {
             ctx.beginPath();
-            ctx.moveTo(0, logicalHeight);
+            ctx.moveTo(0, visualizerLogicalHeight);
             for (let i = 0; i < numPoints; i++) {
                 const x = i * sliceWidth;
                 const wave1 = Math.sin(x * frequency + time * speed);
                 const wave2 = Math.sin(x * frequency * 1.5 - time * speed * 0.8);
                 
                 const height = amplitudeBase + (wave1 * 12) + (wave2 * 8) + (window.smoothedVolume * audioMult);
-                const y = logicalHeight - Math.max(5, height);
+                const y = visualizerLogicalHeight - Math.max(5, height);
                 ctx.lineTo(x, y);
             }
-            ctx.lineTo(logicalWidth, logicalHeight);
+            ctx.lineTo(visualizerLogicalWidth, visualizerLogicalHeight);
             ctx.closePath();
             
-            const grad = ctx.createLinearGradient(0, logicalHeight, 0, logicalHeight - 120);
+            const grad = ctx.createLinearGradient(0, visualizerLogicalHeight, 0, visualizerLogicalHeight - 120);
             const layerAlpha = isDark ? Math.min(1.0, alpha * 1.35) : alpha;
             grad.addColorStop(0, `rgba(${rgbStr}, ${layerAlpha})`);
             grad.addColorStop(0.6, `rgba(${rgbStr}, ${layerAlpha * 0.4})`);
@@ -4093,10 +4565,9 @@ function startWaveformVisualizer() {
             ctx.fill();
         };
 
-        // Draw multiple softly layered sine waves
-        drawLayer(1.5, 0.005, 10, 60, 0.3);   // Back layer
-        drawLayer(1.8, 0.007, 15, 80, 0.55);  // Middle layer
-        drawLayer(2.2, 0.009, 20, 110, 0.85); // Front layer
+        drawLayer(1.5, 0.005, 10, 60, 0.3);
+        drawLayer(1.8, 0.007, 15, 80, 0.55);
+        drawLayer(2.2, 0.009, 20, 110, 0.85);
     }
     
     draw();
@@ -4107,16 +4578,32 @@ function stopWaveformVisualizer(forceHide = false) {
     if (canvas) {
         canvas.classList.remove('active');
         clearTimeout(visualizerFadeTimeout);
+        // Graceful 600ms CSS fade-out before stopping worker
         visualizerFadeTimeout = setTimeout(() => {
             if (!canvas.classList.contains('active')) {
-                if (waveformAnimFrame) {
-                    cancelAnimationFrame(waveformAnimFrame);
-                    waveformAnimFrame = null;
+                if (visualizerWorkerReady && visualizerWorker) {
+                    visualizerWorker.postMessage({ type: 'stop' });
+                    clearInterval(visualizerAudioInterval);
+                } else {
+                    if (waveformAnimFrame) {
+                        cancelAnimationFrame(waveformAnimFrame);
+                        waveformAnimFrame = null;
+                    }
+                    try {
+                        const ctx = canvas.getContext('2d');
+                        if (ctx) ctx.clearRect(0, 0, visualizerLogicalWidth, visualizerLogicalHeight);
+                    } catch (e) { }
                 }
-                const ctx = canvas.getContext('2d');
-                if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
             }
-        }, 550);
+        }, 600);
+    }
+}
+
+function applyRandomPremiumAngle() {
+    const btn = document.getElementById('user-premium-btn');
+    if (btn) {
+        btn.style.setProperty('--prem-angle', `0deg`);
+        btn.style.transform = `rotate(0deg)`;
     }
 }
 
@@ -4142,13 +4629,12 @@ function openAlbumModal(verseObj) {
         openCreateBookmarkModal();
         return;
     }
-    modal.classList.remove('hidden');
+    openModal(modal);
 }
 
 function closeAlbumModal(e) {
     if (e && e.target !== e.currentTarget) return;
-    const modal = document.getElementById('album-modal');
-    if (modal) modal.classList.add('hidden');
+    closeModal(document.getElementById('album-modal'));
     pendingBookmarkVerse = null;
 }
 
@@ -4410,14 +4896,13 @@ function openCreateBookmarkModal() {
     if (!modal) return;
     const input = document.getElementById('create-album-name');
     if (input) input.value = '';
-    modal.classList.remove('hidden');
+    openModal(modal);
     setTimeout(() => { if (input) input.focus(); }, 50);
 }
 
 function closeCreateBookmarkModal(e) {
     if (e && e.target !== e.currentTarget) return;
-    const modal = document.getElementById('create-bookmark-modal');
-    if (modal) modal.classList.add('hidden');
+    closeModal(document.getElementById('create-bookmark-modal'));
 }
 
 let lastDeletedItem = null;
@@ -4430,7 +4915,7 @@ function showDeleteToast(msg, undoCallback) {
     const progressEl = document.getElementById('toast-progress');
     if (!toast || !msgEl) return;
     
-    msgEl.innerText = msg;
+    msgEl.textContent = msg;
     if (actionBtn) {
         actionBtn.style.display = 'inline-block';
         actionBtn.innerText = 'Undo';
@@ -4445,9 +4930,10 @@ function showDeleteToast(msg, undoCallback) {
     if (progressEl) {
         progressEl.style.transition = 'none';
         progressEl.style.transform = 'scaleX(0)';
-        void progressEl.offsetWidth;
-        progressEl.style.transition = `transform ${duration}ms linear`;
-        progressEl.style.transform = 'scaleX(1)';
+        requestAnimationFrame(() => {
+            progressEl.style.transition = `transform ${duration}ms linear`;
+            progressEl.style.transform = 'scaleX(1)';
+        });
     }
     
     toast.classList.add('show');
@@ -4516,12 +5002,6 @@ function submitCreateAlbum() {
     showToast('Folder "' + name + '" created');
 }
 
-function handleFolderRename(e, folderName) {
-    if (e) e.stopPropagation();
-    const name = folderName || (selectedVerse && selectedVerse.name) || selectedSavedAlbum;
-    if (!name) return;
-    openRenameAlbumModal(name);
-}
 
 function handleFolderDelete(e, albumName) {
     if (e) e.stopPropagation();
@@ -4616,21 +5096,10 @@ function deselectVerse() {
 
 function createActionIconsElement(verseObj, type) {
     const isFolder = type === 'folder' || (verseObj && verseObj.type === 'folder');
+    if (isFolder) return null;
+
     const container = document.createElement('div');
     container.className = 'verse-actions';
-    
-    if (isFolder) {
-        const folderName = (verseObj && verseObj.name) || selectedSavedAlbum || '';
-        container.innerHTML = `
-            <button class="va-btn" onclick="handleFolderRename(event, '${folderName}')" aria-label="Rename Folder" title="Rename Folder">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-            </button>
-            <button class="va-btn" onclick="handleFolderDelete(event, '${folderName}')" aria-label="Delete Folder" title="Delete Folder">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-            </button>
-        `;
-        return container;
-    }
 
     if (type === 'saved') {
         container.innerHTML = `
@@ -4649,7 +5118,7 @@ function createActionIconsElement(verseObj, type) {
 
     // Default for Feed, Book, Search
     container.innerHTML = `
-        <button class="va-btn" onclick="handlePillLeftAction(event)" aria-label="Bookmark" title="Bookmark">
+        <button class="va-btn" onclick="handlePillBookmark(event)" aria-label="Bookmark" title="Bookmark">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
         </button>
         <button class="va-btn" onclick="handlePillShare(event)" aria-label="Share" title="Share">
@@ -4661,6 +5130,7 @@ function createActionIconsElement(verseObj, type) {
 
 function deactivatePillUI() {
     document.querySelectorAll('.verse-card .verse-actions, .saved-verse .verse-actions, .saved-verse-container .verse-actions, .book-verse .verse-actions, .album-square-btn .verse-actions').forEach(el => el.remove());
+    document.querySelectorAll('.selected-verse-active').forEach(el => el.classList.remove('selected-verse-active'));
 }
 
 function highlightSelectedVerseElement(active) {
@@ -4682,7 +5152,7 @@ function highlightSelectedVerseElement(active) {
                 
                 const footer = el.querySelector('.saved-verse-footer') || el;
                 const actions = createActionIconsElement(selectedVerse, selectedVerse.type);
-                footer.appendChild(actions);
+                if (actions) footer.appendChild(actions);
             } else {
                 el.style.background = '';
                 el.style.color = '';
@@ -4698,8 +5168,6 @@ function highlightSelectedVerseElement(active) {
         if (el) {
             if (active) {
                 el.classList.add('active');
-                const actions = createActionIconsElement(selectedVerse, 'folder');
-                el.appendChild(actions);
             } else {
                 if (selectedSavedAlbum !== selectedVerse.name) {
                     el.classList.remove('active');
@@ -4712,7 +5180,7 @@ function highlightSelectedVerseElement(active) {
                 document.querySelectorAll('.book-verse.marked').forEach(e => e.classList.remove('marked'));
                 el.classList.add('marked');
                 const actions = createActionIconsElement(selectedVerse, 'book');
-                el.appendChild(actions);
+                if (actions) el.appendChild(actions);
             } else {
                 el.classList.remove('marked');
             }
@@ -4733,7 +5201,7 @@ function highlightSelectedVerseElement(active) {
                 if (f) {
                     f.style.color = 'var(--bg-grad-1)';
                     const actions = createActionIconsElement(selectedVerse, 'feed');
-                    f.appendChild(actions);
+                    if (actions) f.appendChild(actions);
                 }
             } else {
                 card.style.background = '';
@@ -4894,21 +5362,9 @@ function handlePillLeftAction(e) {
         });
         localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
         
-        const el = document.getElementById(selectedVerse.elementId);
-        if (el) {
-            el.style.transition = 'opacity 0.20s ease, transform 0.20s ease';
-            el.style.opacity = '0';
-            el.style.transform = 'scale(0.95)';
-            setTimeout(() => {
-                selectedSavedAlbum = null;
-                deselectVerse();
-                showSavedVerses(true);
-            }, 200);
-        } else {
-            selectedSavedAlbum = null;
-            deselectVerse();
-            showSavedVerses(true);
-        }
+        selectedSavedAlbum = null;
+        deselectVerse();
+        showSavedVerses(true);
         
         return;
     }
@@ -4933,21 +5389,9 @@ function handlePillLeftAction(e) {
                 stopAudio(true);
             }
             
-            const el = document.getElementById(selectedVerse.elementId);
-            if (el) {
-                el.style.transition = 'opacity 0.20s ease, transform 0.20s ease';
-                el.style.opacity = '0';
-                el.style.transform = 'scale(0.95)';
-                setTimeout(() => {
-                    deselectVerse();
-                    activeSavedVerse = null;
-                    showSavedVerses();
-                }, 200);
-            } else {
-                deselectVerse();
-                activeSavedVerse = null;
-                showSavedVerses();
-            }
+            deselectVerse();
+            activeSavedVerse = null;
+            showSavedVerses(false);
             showToast('Bookmark removed');
         }
     } else {
@@ -4983,6 +5427,8 @@ function handlePillPlay(e) {
     const isFeedSection = document.getElementById('verse-feed').classList.contains('active-section');
 
     if (isSpeaking) {
+        const btn = document.getElementById('speak-general');
+        if (btn) btn.classList.remove('loading');
         if (!isPaused) {
             isPaused = true;
             if (currentAudioNode) {
@@ -4991,7 +5437,7 @@ function handlePillPlay(e) {
                     currentAudioNode.stop();
                 } catch (err) { }
             }
-            stopWaveformVisualizer();
+            stopWaveformVisualizer(true);
             updateSpeakIcons();
             updatePillUI();
         } else {
@@ -5048,16 +5494,40 @@ function handlePillPlay(e) {
     }
 }
 
+function handlePillBookmark(e) {
+    if (e) e.stopPropagation();
+    const verseToBookmark = selectedVerse || getCurrentActiveVerse() || getVerseAtIndex(currentVerseIndex.general);
+    if (!verseToBookmark) return;
+    
+    // Check if already bookmarked
+    const index = savedVerses.findIndex(s => {
+        if (s.id && verseToBookmark.id) return s.id === verseToBookmark.id;
+        return s.book === verseToBookmark.book && String(s.chapter) === String(verseToBookmark.chapter) && String(s.verse) === String(verseToBookmark.verse);
+    });
+    
+    if (index > -1) {
+        // Toggle/Remove bookmark
+        savedVerses.splice(index, 1);
+        localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+        if (typeof showSavedVerses === 'function') showSavedVerses(false);
+        showToast('Bookmark removed');
+    } else {
+        // Open Album/Folder selection modal
+        openAlbumModal(verseToBookmark);
+    }
+}
+
 function handlePillShare(e) {
     if (e) e.stopPropagation();
-    if (!selectedVerse) return;
+    const verseToShare = selectedVerse || getCurrentActiveVerse() || getVerseAtIndex(currentVerseIndex.general);
+    if (!verseToShare) return;
     
-    if (selectedVerse.type === 'folder') {
+    if (verseToShare.type === 'folder') {
         const input = document.getElementById('rename-album-input');
-        if (input) input.value = selectedVerse.name || '';
+        if (input) input.value = verseToShare.name || '';
         const modal = document.getElementById('rename-modal');
         if (modal) {
-            modal.classList.remove('hidden');
+            openModal(modal);
             if (input) {
                 setTimeout(() => {
                     input.focus();
@@ -5068,9 +5538,7 @@ function handlePillShare(e) {
         return;
     }
     
-    // Generate and share image with progress notification
-    showToast('Generating image...', 8000);
-    generateAndShareImage(selectedVerse, selectedVerse.elementId);
+    generateAndShareImage(verseToShare, verseToShare.elementId);
 }
 
 function formatVerseForShare(verseObj) {
@@ -5082,15 +5550,12 @@ function formatVerseForShare(verseObj) {
 
 async function shareTextFallback(text) {
     try {
-        // Try Capacitor Share plugin first (works reliably on native)
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share) {
             try {
                 await window.Capacitor.Plugins.Share.share({ title: 'VerseFeed', text: text, dialogTitle: 'Share Verse' });
             } catch (shareErr) {
-                // User dismissed the share sheet — not an error, just ignore
                 if (shareErr && (shareErr.message || '').toLowerCase().includes('cancel')) return;
                 if (shareErr && (shareErr.message || '').toLowerCase().includes('dismiss')) return;
-                // For any other native share error, fall through to clipboard
                 throw shareErr;
             }
             return;
@@ -5112,10 +5577,8 @@ async function shareTextFallback(text) {
             showToast('Verse copied to clipboard!');
         }
     } catch (e) {
-        // Suppress share-dismissed errors (not real failures)
         const msg = (e && e.message) ? e.message.toLowerCase() : '';
         if (msg.includes('cancel') || msg.includes('dismiss') || msg.includes('abort')) return;
-        // Final fallback: clipboard copy
         try {
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 await navigator.clipboard.writeText(text);
@@ -5127,86 +5590,131 @@ async function shareTextFallback(text) {
     }
 }
 
-async function generateAndShareImage(verseObj, elementId) {
-    if (!verseObj || !window.html2canvas) {
-        // Fallback to text sharing
-        const text = formatVerseForShare(verseObj);
-        await shareTextFallback(text);
-        return;
-    }
+function drawVersePosterToCanvas(verseObj, isDark) {
+    const canvas = document.createElement('canvas');
+    const width = 1080;
+    const height = 1080;
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
     
+    // Background gradient
+    const grad = ctx.createLinearGradient(0, 0, width, height);
+    if (isDark) {
+        grad.addColorStop(0, '#1F1D1B');
+        grad.addColorStop(1, '#141210');
+    } else {
+        grad.addColorStop(0, '#C8B8A6');
+        grad.addColorStop(1, '#A99684');
+    }
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+    
+    // Subtle inner border
+    ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(30, 29, 27, 0.08)';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(50, 50, width - 100, height - 100);
+    
+    // Verse Text
+    let rawText = verseObj.text || '';
+    rawText = rawText.replace(/<span class='author-attr'>.*?<\/span>/gm, '');
+    rawText = rawText.replace(/<[^>]*>?/gm, '');
+    
+    ctx.fillStyle = isDark ? '#f7e7ce' : '#1E1D1B';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    let fontSize = rawText.length > 200 ? 36 : (rawText.length > 120 ? 44 : (rawText.length > 60 ? 52 : 58));
+    ctx.font = `600 ${fontSize}px "Times New Roman", serif`;
+    
+    const maxWidth = 880;
+    const words = rawText.split(' ');
+    let lines = [];
+    let currentLine = '';
+    
+    for (let word of words) {
+        const testLine = currentLine ? currentLine + ' ' + word : word;
+        if (ctx.measureText(testLine).width > maxWidth) {
+            lines.push(currentLine);
+            currentLine = word;
+        } else {
+            currentLine = testLine;
+        }
+    }
+    if (currentLine) lines.push(currentLine);
+    
+    const lineHeight = fontSize * 1.48;
+    const totalTextHeight = lines.length * lineHeight;
+    let startY = (height / 2) - (totalTextHeight / 2) - 25;
+    
+    lines.forEach((line, idx) => {
+        ctx.fillText(line, width / 2, startY + (idx * lineHeight));
+    });
+    
+    // Source Reference
+    const ref = formatVerseRef(verseObj);
+    ctx.font = `400 32px "Times New Roman", serif`;
+    ctx.fillStyle = isDark ? 'rgba(247, 231, 206, 0.85)' : 'rgba(30, 29, 27, 0.85)';
+    ctx.fillText(ref, width / 2, startY + totalTextHeight + 45);
+    
+    // Branding
+    ctx.font = `700 26px "Times New Roman", serif`;
+    ctx.fillStyle = isDark ? 'rgba(247, 231, 206, 0.35)' : 'rgba(30, 29, 27, 0.35)';
+    ctx.fillText('VERSEFEED', width / 2, height - 85);
+    
+    return canvas;
+}
+
+async function generateAndShareImage(verseObj, elementId) {
+    if (!verseObj) return;
     
     try {
         const isDark = document.body.getAttribute('data-theme') === 'dark';
-        const posterContainer = document.createElement('div');
-        posterContainer.style.position = 'absolute';
-        posterContainer.style.left = '-9999px';
-        posterContainer.style.top = '-9999px';
-        posterContainer.style.width = '1080px';
-        posterContainer.style.height = '1080px'; // 1:1 Square aspect ratio
-        posterContainer.style.background = isDark ? 'linear-gradient(145deg, #121212, #1e1e1e)' : 'linear-gradient(145deg, #C8B8A6, #A99684)';
-        posterContainer.style.display = 'flex';
-        posterContainer.style.flexDirection = 'column';
-        posterContainer.style.justifyContent = 'center';
-        posterContainer.style.alignItems = 'center';
-        posterContainer.style.padding = '70px';
-        posterContainer.style.boxSizing = 'border-box';
-        posterContainer.style.fontFamily = 'system-ui, -apple-system, sans-serif';
-        posterContainer.style.color = isDark ? '#ffffff' : '#1E1D1B';
+        const canvas = drawVersePosterToCanvas(verseObj, isDark);
+        const text = formatVerseForShare(verseObj);
         
-        const verseLen = (verseObj.text || '').length;
-        const calcFontSize = verseLen > 180 ? '38px' : (verseLen > 120 ? '46px' : (verseLen > 60 ? '52px' : '58px'));
+        // 1. Native Capacitor with @capacitor/filesystem and @capacitor/share
+        const isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+        if (isNative && window.Capacitor.Plugins) {
+            const { Filesystem, Share } = window.Capacitor.Plugins;
+            if (Filesystem && Share) {
+                try {
+                    const dataUrl = canvas.toDataURL('image/png');
+                    const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
+                    const fileName = `verse_${Date.now()}.png`;
+                    
+                    await Filesystem.writeFile({
+                        path: fileName,
+                        data: base64Data,
+                        directory: 'CACHE'
+                    });
+                    
+                    const uriRes = await Filesystem.getUri({
+                        path: fileName,
+                        directory: 'CACHE'
+                    });
+                    
+                    if (uriRes && uriRes.uri) {
+                        await Share.share({
+                            title: 'VerseFeed',
+                            text: text,
+                            files: [uriRes.uri],
+                            dialogTitle: 'Share Verse'
+                        });
+                        return;
+                    }
+                } catch (nativeShareErr) {
+                    console.warn('Native Filesystem/Share error:', nativeShareErr);
+                }
+            }
+        }
         
-        const textEl = document.createElement('div');
-        textEl.innerText = verseObj.text;
-        textEl.style.fontSize = calcFontSize;
-        textEl.style.fontWeight = '600';
-        textEl.style.lineHeight = '1.45';
-        textEl.style.textAlign = 'center';
-        textEl.style.marginBottom = '40px';
-        textEl.style.maxWidth = '920px';
-        
-        const sourceEl = document.createElement('div');
-        sourceEl.innerText = formatVerseRef(verseObj);
-        sourceEl.style.fontSize = '34px';
-        sourceEl.style.fontWeight = '400';
-        sourceEl.style.opacity = '0.85';
-        sourceEl.style.textAlign = 'center';
-        
-        const brandingEl = document.createElement('div');
-        brandingEl.innerText = 'VerseFeed';
-        brandingEl.style.position = 'absolute';
-        brandingEl.style.bottom = '50px';
-        brandingEl.style.fontSize = '36px';
-        brandingEl.style.fontWeight = 'bold';
-        brandingEl.style.opacity = '0.35';
-        brandingEl.style.letterSpacing = '4px';
-        
-        posterContainer.appendChild(textEl);
-        posterContainer.appendChild(sourceEl);
-        posterContainer.appendChild(brandingEl);
-        
-        document.body.appendChild(posterContainer);
-        
-        const canvas = await html2canvas(posterContainer, {
-            scale: 2,
-            width: 1080,
-            height: 1080,
-            windowWidth: 1080,
-            windowHeight: 1080,
-            backgroundColor: isDark ? '#121212' : '#C8B8A6',
-            logging: false
-        });
-        
-        document.body.removeChild(posterContainer);
-        
+        // 2. Web / Browser Share API with image file
         canvas.toBlob(async (blob) => {
             if (!blob) {
-                const text = formatVerseForShare(verseObj);
                 await shareTextFallback(text);
                 return;
             }
-            const text = formatVerseForShare(verseObj);
             
             try {
                 const file = new File([blob], 'versefeed_share.png', { type: 'image/png' });
@@ -5216,25 +5724,38 @@ async function generateAndShareImage(verseObj, elementId) {
                         title: 'Daily Verse',
                         text: text
                     });
-                } else {
-                    // Can't share files, fall back to text share
-                    await shareTextFallback(text);
+                    return;
                 }
-            } catch (shareErr) {
-                console.error('Image share error, falling back to text', shareErr);
-                await shareTextFallback(text);
+            } catch (fileShareErr) {
+                console.warn('Navigator file share error:', fileShareErr);
             }
+            
+            // 3. Fallback: Direct image download
+            try {
+                const a = document.createElement('a');
+                a.href = canvas.toDataURL('image/png');
+                a.download = 'versefeed_share.png';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                showToast('Image downloaded');
+                return;
+            } catch (dlErr) {
+                console.warn('Download fallback error:', dlErr);
+            }
+            
+            await shareTextFallback(text);
         }, 'image/png');
     } catch (e) {
-        console.error('Error generating image', e);
-        showToast('Failed to generate image');
+        console.error('Error generating image poster:', e);
+        const text = formatVerseForShare(verseObj);
+        await shareTextFallback(text);
     }
 }
 
 function closeRenameModal(e) {
     if (e && e.target !== e.currentTarget) return;
-    const modal = document.getElementById('rename-modal');
-    if (modal) modal.classList.add('hidden');
+    closeModal(document.getElementById('rename-modal'));
 }
 
 let renamingAlbumName = null;
@@ -5245,7 +5766,7 @@ function openRenameAlbumModal(albumName) {
     const input = document.getElementById('rename-album-input');
     if (!modal || !input) return;
     input.value = albumName || '';
-    modal.classList.remove('hidden');
+    openModal(modal);
     setTimeout(() => {
         input.focus();
         input.select();
@@ -5293,18 +5814,6 @@ function confirmRenameAlbum() { submitRenameAlbum(); }
 // FIREBASE AUTHENTICATION & FIRESTORE CLOUD SYNC
 // ==============================================
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCy1lG5CcGlMj4qGEuUJt-8L_Tul6ZMrKM",
-  authDomain: "religionapp-38998.firebaseapp.com",
-  projectId: "religionapp-38998",
-  storageBucket: "religionapp-38998.firebasestorage.app",
-  messagingSenderId: "131330287162",
-  appId: "1:131330287162:web:84e3694ec4d07987163703",
-  measurementId: "G-R240CQB881"
-};
-
-let db = null;
-
 function applyUserAuthSuccess(user) {
     if (!user) return;
     
@@ -5334,26 +5843,7 @@ function applyUserAuthSuccess(user) {
     }
     closeEmailAuthModal();
     closeEmailVerifyModal();
-    updatePremiumModalActions();
     updateUserUI();
-}
-
-function updatePremiumModalActions() {
-    const btn = document.querySelector('.premium-buy-pill');
-    if (!btn) return;
-    const txt = btn.querySelector('.premium-buy-pill-text');
-    if (txt) txt.innerText = 'Get Premium — $2.99/mo';
-    
-    btn.onclick = () => {
-        const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
-        if (googleUser || user) {
-            if (typeof simulatePurchase === 'function') simulatePurchase();
-        } else {
-            if (typeof closePremiumModal === 'function') closePremiumModal();
-            openEmailAuthModal('signin');
-            showAuthErrorMsg("Please sign in or create an account to purchase Premium.", true);
-        }
-    };
 }
 
 function initFirebaseAuth() {
@@ -5430,7 +5920,6 @@ function initFirebaseAuth() {
                     googleUser = null;
                     try { originalRemoveItem.call(localStorage, 'googleUser'); } catch(e){}
                     switchProfile('guest');
-                    updatePremiumModalActions();
                     updateUserUI();
                     showEmailVerifyModal(user.email);
                 } else {
@@ -5441,7 +5930,6 @@ function initFirebaseAuth() {
                 try { originalRemoveItem.call(localStorage, 'googleUser'); } catch(e){}
                 switchProfile('guest');
                 closeEmailVerifyModal();
-                updatePremiumModalActions();
                 updateUserUI();
             }
         });
@@ -5504,14 +5992,13 @@ function showEmailVerifyModal(email) {
     }
     
     if (modal) {
-        modal.classList.remove('hidden');
+        openModal(modal);
         updateResendTimerUI();
     }
 }
 
 function closeEmailVerifyModal() {
-    const modal = document.getElementById('email-verify-modal');
-    if (modal) modal.classList.add('hidden');
+    closeModal(document.getElementById('email-verify-modal'));
     if (resendTimerInterval) {
         clearInterval(resendTimerInterval);
         resendTimerInterval = null;
@@ -5644,14 +6131,12 @@ let currentAuthMode = 'signin';
 
 function openEmailAuthModal(tab = 'signin') {
     switchAuthTab(tab);
-    const modal = document.getElementById('email-auth-modal');
-    if (modal) modal.classList.remove('hidden');
+    openModal(document.getElementById('email-auth-modal'));
 }
 
 function closeEmailAuthModal(e) {
     if (e && e.target !== e.currentTarget) return;
-    const modal = document.getElementById('email-auth-modal');
-    if (modal) modal.classList.add('hidden');
+    closeModal(document.getElementById('email-auth-modal'));
     clearAuthErrorMsg();
 }
 
@@ -5667,28 +6152,16 @@ function switchAuthTab(mode) {
     const forgotContainer = document.getElementById('auth-forgot-password-container');
 
     if (mode === 'signin') {
-        if (btnSignin) {
-            btnSignin.style.background = 'var(--card-bg)';
-            btnSignin.style.opacity = '1';
-        }
-        if (btnSignup) {
-            btnSignup.style.background = 'transparent';
-            btnSignup.style.opacity = '0.6';
-        }
+        if (btnSignin) btnSignin.classList.add('active');
+        if (btnSignup) btnSignup.classList.remove('active');
         if (nameContainer) nameContainer.style.display = 'none';
         if (confirmContainer) confirmContainer.style.display = 'none';
         if (googleContainer) googleContainer.style.display = 'flex';
         if (forgotContainer) forgotContainer.style.display = 'block';
         if (submitBtn) submitBtn.innerText = 'Sign In';
     } else {
-        if (btnSignup) {
-            btnSignup.style.background = 'var(--card-bg)';
-            btnSignup.style.opacity = '1';
-        }
-        if (btnSignin) {
-            btnSignin.style.background = 'transparent';
-            btnSignin.style.opacity = '0.6';
-        }
+        if (btnSignup) btnSignup.classList.add('active');
+        if (btnSignin) btnSignin.classList.remove('active');
         if (nameContainer) nameContainer.style.display = 'flex';
         if (confirmContainer) confirmContainer.style.display = 'flex';
         if (googleContainer) googleContainer.style.display = 'none';
@@ -5862,52 +6335,90 @@ async function signInWithGoogle() {
     const isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
     
     if (isNative && window.Capacitor.Plugins && window.Capacitor.Plugins.FirebaseAuthentication) {
+        const FA = window.Capacitor.Plugins.FirebaseAuthentication;
+        
+        async function processNativeResult(res) {
+            if (!res) return false;
+            const idToken = (res.credential && res.credential.idToken) || res.idToken || (res.user && res.user.idToken);
+            if (idToken) {
+                const cred = firebase.auth.GoogleAuthProvider.credential(idToken);
+                const userCred = await firebase.auth().signInWithCredential(cred);
+                applyUserAuthSuccess(userCred.user);
+            } else if (res.user) {
+                applyUserAuthSuccess({
+                    uid: res.user.uid,
+                    displayName: res.user.displayName || res.user.name,
+                    email: res.user.email,
+                    photoURL: res.user.photoUrl
+                });
+            } else {
+                return false;
+            }
+            closeEmailAuthModal();
+            showToast("Signed in as " + ((res.user && (res.user.displayName || res.user.name)) || (res.user && res.user.email) || 'User'));
+            return true;
+        }
+        
+        function isCancelError(errStr) {
+            return errStr.includes('12501') || errStr.includes('cancel') || errStr.includes('dismiss') || errStr.includes('closed');
+        }
+        
+        function isError10(errStr) {
+            return errStr.includes('10:') || errStr.includes('developer_error') || errStr.includes('apiexception: 10');
+        }
+        
+        // Attempt 1: Legacy GoogleSignIn (useCredentialManager: false)
         try {
             showToast("Signing in with Google...");
-            const res = await window.Capacitor.Plugins.FirebaseAuthentication.signInWithGoogle();
-            if (res && res.user) {
-                // If idToken exists, link to Web Firebase so Firestore cloud sync works identically
-                if (res.credential && res.credential.idToken) {
-                    const cred = firebase.auth.GoogleAuthProvider.credential(res.credential.idToken);
-                    const userCred = await firebase.auth().signInWithCredential(cred);
-                    applyUserAuthSuccess(userCred.user);
-                } else {
-                    applyUserAuthSuccess({
-                        uid: res.user.uid,
-                        displayName: res.user.displayName || res.user.name,
-                        email: res.user.email,
-                        photoURL: res.user.photoUrl
-                    });
+            await FA.signOut().catch(() => {});
+            const res = await FA.signInWithGoogle({ useCredentialManager: false, skipNativeAuth: true });
+            if (await processNativeResult(res)) return;
+        } catch (err1) {
+            console.error("Legacy GoogleSignIn Error:", JSON.stringify(err1), err1);
+            const errStr1 = (err1 && (err1.message || err1.code || JSON.stringify(err1) || String(err1))).toLowerCase();
+            if (isCancelError(errStr1)) return;
+            
+            if (isError10(errStr1)) {
+                // Attempt 2: Credential Manager (useCredentialManager: true)
+                try {
+                    console.log("Legacy failed with error 10, trying Credential Manager...");
+                    const res2 = await FA.signInWithGoogle({ useCredentialManager: true, skipNativeAuth: true });
+                    if (await processNativeResult(res2)) return;
+                } catch (err2) {
+                    console.error("Credential Manager Error:", JSON.stringify(err2), err2);
+                    const errStr2 = (err2 && (err2.message || err2.code || JSON.stringify(err2) || String(err2))).toLowerCase();
+                    if (isCancelError(errStr2)) return;
                 }
-                closeEmailAuthModal();
-                showToast("Signed in as " + (res.user.displayName || res.user.email || 'User'));
-            }
-        } catch (err) {
-            console.error("Native Google Sign In Error:", err);
-            const errStr = (err && (err.message || String(err))).toLowerCase();
-            if (errStr.includes('12501') || errStr.includes('cancel') || errStr.includes('dismiss')) {
-                // User cancelled the native Google account picker dialog
+                
+                showToast("Sign in failed. Please check your internet connection.");
                 return;
             }
-            showToast("Google sign-in error: " + (err ? (err.message || "Failed") : "Failed"));
+            
+            showToast("Google Login Error: " + (err1.message || "Failed"));
+            return;
         }
-        return;
     }
     
-    isGooglePopupOpen = true;
-    const provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(provider).then(() => {
-        closeEmailAuthModal();
-    }).catch((error) => {
+    // Web / Popup Fallback (Only runs if NOT native)
+    try {
+        isGooglePopupOpen = true;
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        const result = await firebase.auth().signInWithPopup(provider);
+        if (result && result.user) {
+            applyUserAuthSuccess(result.user);
+            closeEmailAuthModal();
+            showToast("Signed in successfully!");
+        }
+    } catch (error) {
         if (error && (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user')) {
-            console.log("Google Sign-In cancelled by user.");
             return;
         }
         console.error("Google Sign In Error:", error);
         showToast("Sign in error: " + (error ? (error.message || "Failed") : "Failed"));
-    }).finally(() => {
+    } finally {
         isGooglePopupOpen = false;
-    });
+    }
 }
 
 function sanitizeForFirestore(obj) {
@@ -5954,7 +6465,7 @@ function getLocalState() {
         selectedVoice: localStorage.getItem('selectedVoice') || 'en_GB-alan-medium',
         ttsAnnounceSource: localStorage.getItem('ttsAnnounceSource') === 'true',
         ttsRandomVoice: localStorage.getItem('ttsRandomVoice') === 'true',
-        musicVolume: localStorage.getItem('musicVolume') || '0.5',
+        musicVolume: localStorage.getItem('musicVolume') || '0.4',
         musicEnabled: localStorage.getItem('musicEnabled') !== 'false',
         currentMusicTrack: localStorage.getItem('currentMusicTrack') || '0',
         seenVersesHistory: (seenVersesList || []).slice(-500),
@@ -5964,13 +6475,143 @@ function getLocalState() {
     return sanitizeForFirestore(state);
 }
 
+let firestoreUnsubscribe = null;
+let isSavingToFirestore = false;
+
+function applyRemoteFirestoreData(remoteData) {
+    if (!remoteData || typeof remoteData !== 'object') return;
+    if (isBookmarkEcho(remoteData)) return;
+
+    const prevRestoring = isRestoringState;
+    isRestoringState = true;
+
+    try {
+        let needSavedRefresh = false;
+        let needSettingsRefresh = false;
+
+        // 1. Sync savedVerses from cloud
+        if (Array.isArray(remoteData.savedVerses)) {
+            const incoming = remoteData.savedVerses.filter(v => v && v.text);
+            if (getBookmarkSnapshotFromData({ savedVerses: incoming, createdAlbums: createdAlbums }) !== getLocalBookmarkSnapshot()) {
+                savedVerses = incoming;
+                localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                needSavedRefresh = true;
+            }
+        }
+
+        // 2. Sync createdAlbums from cloud
+        if (Array.isArray(remoteData.createdAlbums)) {
+            const incomingAlbums = remoteData.createdAlbums.filter(a => typeof a === 'string' && a.trim());
+            if (getBookmarkSnapshotFromData({ savedVerses: savedVerses, createdAlbums: incomingAlbums }) !== getLocalBookmarkSnapshot()) {
+                createdAlbums = incomingAlbums;
+                localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
+                needSavedRefresh = true;
+            }
+        }
+
+        // 3. Sync bookmarks directly from cloud
+        if (remoteData.bookMarkedVerse && typeof remoteData.bookMarkedVerse === 'object') {
+            if (JSON.stringify(bookMarkedVerse) !== JSON.stringify(remoteData.bookMarkedVerse)) {
+                bookMarkedVerse = remoteData.bookMarkedVerse;
+                localStorage.setItem('bookMarkedVerse', JSON.stringify(bookMarkedVerse));
+            }
+        }
+
+        // 4. Update seenVersesHistory
+        if (Array.isArray(remoteData.seenVersesHistory)) {
+            seenVersesList = remoteData.seenVersesHistory.slice(-1000);
+            seenVersesSet = new Set(seenVersesList);
+            localStorage.setItem('seenVersesHistory', JSON.stringify(seenVersesList));
+        }
+
+        // 5. Preferences
+        if (Array.isArray(remoteData.globalSelectedRels) && remoteData.globalSelectedRels.length > 0) {
+            const incomingRels = remoteData.globalSelectedRels.filter(r => ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Sikhism', 'Judaism', 'Philosophy'].includes(r));
+            if (JSON.stringify(globalSelectedRels) !== JSON.stringify(incomingRels)) {
+                globalSelectedRels = incomingRels;
+                localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
+                needSettingsRefresh = true;
+            }
+        }
+        
+        if (typeof remoteData.darkModeEnabled !== 'undefined') {
+            const newDark = remoteData.darkModeEnabled === true || remoteData.darkModeEnabled === 'true';
+            if (darkModeEnabled !== newDark) {
+                darkModeEnabled = newDark;
+                localStorage.setItem('darkModeEnabled', darkModeEnabled);
+                if (darkModeEnabled) document.body.setAttribute('data-theme', 'dark');
+                else document.body.removeAttribute('data-theme');
+                updateDarkModeIcon(darkModeEnabled);
+                updateVisualizerThemeCache();
+            }
+        }
+        if (remoteData.selectedVoice && selectedVoice !== remoteData.selectedVoice) {
+            selectedVoice = remoteData.selectedVoice;
+            localStorage.setItem('selectedVoice', selectedVoice);
+            if (typeof syncVoiceWheelToCurrent === 'function') syncVoiceWheelToCurrent();
+        }
+        if (typeof remoteData.currentMusicTrack !== 'undefined') {
+            localStorage.setItem('currentMusicTrack', remoteData.currentMusicTrack);
+        }
+        if (typeof remoteData.musicVolume !== 'undefined') {
+            localStorage.setItem('musicVolume', remoteData.musicVolume);
+            if (typeof audio !== 'undefined' && audio) {
+                audio.volume = parseFloat(remoteData.musicVolume);
+            }
+            const slider = document.getElementById('music-volume-slider');
+            if (slider) slider.value = remoteData.musicVolume;
+        }
+        
+        updateTogglesUI();
+        if (needSettingsRefresh && typeof buildSettings === 'function') {
+            const isSettingsActive = document.getElementById('settings') && document.getElementById('settings').classList.contains('active-section');
+            if (isSettingsActive) buildSettings();
+        }
+        if (needSavedRefresh && typeof showSavedVerses === 'function') {
+            const isSavedActive = document.getElementById('saved-verses') && document.getElementById('saved-verses').classList.contains('active-section');
+            if (isSavedActive) suppressFlash(() => showSavedVerses(true));
+        }
+    } finally {
+        isRestoringState = prevRestoring;
+    }
+}
+
+function setupFirestoreRealtimeSync(uid) {
+    if (!db || !uid) return;
+    if (firestoreUnsubscribe) {
+        try { firestoreUnsubscribe(); } catch(e){}
+        firestoreUnsubscribe = null;
+    }
+    try {
+        const docRef = db.collection('users').doc(uid);
+        firestoreUnsubscribe = docRef.onSnapshot((doc) => {
+            if (!doc.exists) return;
+            if (doc.metadata && doc.metadata.hasPendingWrites) return;
+            const remoteData = doc.data();
+            if (isBookmarkEcho(remoteData)) return;
+            if (isSavingToFirestore) return;
+            applyRemoteFirestoreData(remoteData);
+        }, (err) => {
+            console.warn("Firestore onSnapshot error:", err);
+        });
+    } catch(err) {
+        console.warn("Setup Firestore realtime sync failed:", err);
+    }
+}
+
 async function saveUserDataToFirestore(uid) {
     if (!db || !uid) return;
     try {
+        isSavingToFirestore = true;
+        markLocalBookmarkMutation();
         const payloadToSave = getLocalState();
         await db.collection('users').doc(uid).set(payloadToSave, { merge: true });
     } catch(err) {
         console.error("Firestore Save Error:", err);
+    } finally {
+        setTimeout(() => {
+            isSavingToFirestore = false;
+        }, 3000);
     }
 }
 
@@ -5982,111 +6623,11 @@ async function loadUserDataFromFirestore(uid) {
         
         if (doc.exists) {
             const remoteData = doc.data();
-            if (remoteData && typeof remoteData === 'object') {
-                const localState = getLocalState();
-                const remoteIsNewer = (remoteData.updatedAt || 0) > (localState.updatedAt || 0);
-
-                // Merge seenVersesHistory across devices
-                if (Array.isArray(remoteData.seenVersesHistory)) {
-                    remoteData.seenVersesHistory.forEach(vId => {
-                        if (!seenVersesSet.has(vId)) {
-                            seenVersesSet.add(vId);
-                            seenVersesList.push(vId);
-                        }
-                    });
-                    if (seenVersesList.length > 1000) {
-                        seenVersesList = seenVersesList.slice(-1000);
-                        seenVersesSet = new Set(seenVersesList);
-                    }
-                    localStorage.setItem('seenVersesHistory', JSON.stringify(seenVersesList));
-                }
-
-                // Merge savedVerses
-                let mergedSavedVerses = [...(localState.savedVerses || [])];
-                if (Array.isArray(remoteData.savedVerses)) {
-                    remoteData.savedVerses.forEach(rv => {
-                        const exists = mergedSavedVerses.some(lv => 
-                            (lv.id && rv.id && lv.id === rv.id) ||
-                            (lv.book && rv.book && lv.book === rv.book && String(lv.chapter) === String(rv.chapter) && String(lv.verse) === String(rv.verse))
-                        );
-                        if (!exists) {
-                            mergedSavedVerses.push(rv);
-                        }
-                    });
-                }
-                savedVerses = mergedSavedVerses;
-                localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
-
-                // Merge createdAlbums
-                let mergedAlbums = [...(localState.createdAlbums || [])];
-                if (Array.isArray(remoteData.createdAlbums)) {
-                    remoteData.createdAlbums.forEach(ra => {
-                        if (typeof ra === 'string') {
-                            if (!mergedAlbums.includes(ra)) {
-                                mergedAlbums.push(ra);
-                            }
-                        } else if (ra && typeof ra === 'object') {
-                            const exists = mergedAlbums.some(la => typeof la === 'object' ? (la.name === ra.name || la.id === ra.id) : la === ra.name);
-                            if (!exists) mergedAlbums.push(ra);
-                        }
-                    });
-                }
-                createdAlbums = mergedAlbums;
-                localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
-
-                // Merge bookMarkedVerse
-                let mergedBookmarks = Object.assign({}, localState.bookMarkedVerse || {});
-                if (remoteData.bookMarkedVerse && typeof remoteData.bookMarkedVerse === 'object') {
-                    Object.keys(remoteData.bookMarkedVerse).forEach(k => {
-                        if (!mergedBookmarks[k]) mergedBookmarks[k] = remoteData.bookMarkedVerse[k];
-                    });
-                }
-                bookMarkedVerse = mergedBookmarks;
-                localStorage.setItem('bookMarkedVerse', JSON.stringify(bookMarkedVerse));
-
-                // Preferences
-                if (remoteIsNewer) {
-                    if (Array.isArray(remoteData.globalSelectedRels) && remoteData.globalSelectedRels.length > 0) {
-                        globalSelectedRels = remoteData.globalSelectedRels.filter(r => ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Sikhism', 'Judaism', 'Philosophy'].includes(r));
-                    } else {
-                        globalSelectedRels = [...religions];
-                    }
-                    localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
-                    
-                    if (typeof remoteData.darkModeEnabled !== 'undefined') {
-                        darkModeEnabled = remoteData.darkModeEnabled === true || remoteData.darkModeEnabled === 'true';
-                        localStorage.setItem('darkModeEnabled', darkModeEnabled);
-                        if (darkModeEnabled) document.body.setAttribute('data-theme', 'dark');
-                        else document.body.removeAttribute('data-theme');
-                        updateDarkModeIcon(darkModeEnabled);
-                    }
-                    if (remoteData.selectedVoice) {
-                        selectedVoice = remoteData.selectedVoice;
-                        localStorage.setItem('selectedVoice', selectedVoice);
-                    }
-                    if (typeof remoteData.currentMusicTrack !== 'undefined') {
-                        localStorage.setItem('currentMusicTrack', remoteData.currentMusicTrack);
-                    }
-                    if (typeof remoteData.musicVolume !== 'undefined') {
-                        localStorage.setItem('musicVolume', remoteData.musicVolume);
-                        if (typeof audio !== 'undefined' && audio) {
-                            audio.volume = parseFloat(remoteData.musicVolume);
-                        }
-                        const slider = document.getElementById('music-volume-slider');
-                        if (slider) slider.value = remoteData.musicVolume;
-                    }
-                }
-                
-                updateTogglesUI();
-                if (typeof syncVoiceWheelToCurrent === 'function') syncVoiceWheelToCurrent();
-                if (typeof showSavedVerses === 'function') showSavedVerses();
-                if (typeof renderAlbums === 'function') renderAlbums();
-
-                saveUserDataToFirestore(uid);
-            }
+            applyRemoteFirestoreData(remoteData);
         } else {
             saveUserDataToFirestore(uid);
         }
+        setupFirestoreRealtimeSync(uid);
     } catch(err) {
         console.error("Firestore Load Error:", err);
     }
@@ -6126,16 +6667,19 @@ function openUserProfileModal() {
         }
     }
     
-    if (modal) modal.classList.remove('hidden');
+    openModal(modal);
 }
 
 function closeUserProfileModal(e) {
     if (e && e.target !== e.currentTarget) return;
-    const modal = document.getElementById('user-profile-modal');
-    if (modal) modal.classList.add('hidden');
+    closeModal(document.getElementById('user-profile-modal'));
 }
 
 function confirmSignOut() {
+    if (firestoreUnsubscribe) {
+        try { firestoreUnsubscribe(); } catch(e){}
+        firestoreUnsubscribe = null;
+    }
     const doCleanup = () => {
         googleUser = null;
         try { originalRemoveItem.call(localStorage, 'googleUser'); } catch(e){}
@@ -6143,10 +6687,8 @@ function confirmSignOut() {
         switchProfile('guest');
         closeUserProfileModal();
         updateUserUI();
-        updatePremiumModalActions();
-        const savedVersesEl = document.getElementById('saved-verses');
-        if (typeof showSavedVerses === 'function' && document.getElementById('saved-list') && savedVersesEl && savedVersesEl.classList.contains('active-section')) {
-            showSavedVerses();
+        if (typeof showSavedVerses === 'function') {
+            showSavedVerses(true);
         }
     };
 
@@ -6165,38 +6707,54 @@ function confirmSignOut() {
 }
 
 let lastDeleteProfileTapTime = 0;
+let deleteProfileToastTimer = null;
+
 function handleDeleteProfileBtnClick() {
     const now = Date.now();
-    if (now - lastDeleteProfileTapTime < 400) {
+    if (now - lastDeleteProfileTapTime < 300) {
         lastDeleteProfileTapTime = 0;
+        clearTimeout(deleteProfileToastTimer);
+        clearTimeout(toastHideTimeout);
+        const toast = document.getElementById('global-toast');
+        if (toast) toast.classList.remove('show');
         openDeleteAccountModal();
     } else {
         lastDeleteProfileTapTime = now;
-        showToast("Double-tap Delete Account to proceed", 1500);
+        clearTimeout(deleteProfileToastTimer);
+        deleteProfileToastTimer = setTimeout(() => {
+            showToast("Double-tap to Delete", 1500);
+        }, 300);
     }
 }
 
 let lastDeleteConfirmTapTime = 0;
+let deleteConfirmToastTimer = null;
+
 function handleDeleteConfirmBtnClick() {
     const now = Date.now();
-    if (now - lastDeleteConfirmTapTime < 400) {
+    if (now - lastDeleteConfirmTapTime < 300) {
         lastDeleteConfirmTapTime = 0;
+        clearTimeout(deleteConfirmToastTimer);
+        clearTimeout(toastHideTimeout);
+        const toast = document.getElementById('global-toast');
+        if (toast) toast.classList.remove('show');
         executeDeleteAccount();
     } else {
         lastDeleteConfirmTapTime = now;
-        showToast("Double-tap to permanently delete account", 1500);
+        clearTimeout(deleteConfirmToastTimer);
+        deleteConfirmToastTimer = setTimeout(() => {
+            showToast("Double-tap to Delete", 1500);
+        }, 300);
     }
 }
 
 function openDeleteAccountModal() {
-    const modal = document.getElementById('delete-account-confirm-modal');
-    if (modal) modal.classList.remove('hidden');
+    openModal(document.getElementById('delete-account-confirm-modal'));
 }
 
 function closeDeleteAccountModal(e) {
     if (e && e.target !== e.currentTarget) return;
-    const modal = document.getElementById('delete-account-confirm-modal');
-    if (modal) modal.classList.add('hidden');
+    closeModal(document.getElementById('delete-account-confirm-modal'));
 }
 
 function executeDeleteAccount() {
@@ -6217,10 +6775,8 @@ function executeDeleteAccount() {
         switchProfile('guest');
         closeUserProfileModal();
         updateUserUI();
-        updatePremiumModalActions();
-        const savedVersesEl = document.getElementById('saved-verses');
-        if (typeof showSavedVerses === 'function' && document.getElementById('saved-list') && savedVersesEl && savedVersesEl.classList.contains('active-section')) {
-            showSavedVerses();
+        if (typeof showSavedVerses === 'function') {
+            showSavedVerses(true);
         }
         showToast('Account deleted');
     };
@@ -6289,20 +6845,37 @@ function updateUserUI() {
 var isPremiumUser = false;
 var rcPackages = [];
 var selectedPlanType = 'annual'; // 'monthly' or 'annual'
+var isPurchasingInProgress = false;
 
 async function initRevenueCat() {
     try {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) {
-            const { Purchases } = window.Capacitor.Plugins;
+        const Purchases = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) || window.Purchases;
+        if (Purchases) {
             await Purchases.configure({ apiKey: 'goog_oaXBzDwHBvBaJzSuIZbFuuvwkLM' });
             
-            const customerInfo = await Purchases.getCustomerInfo();
-            const hasActiveEntitlement = customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && Object.keys(customerInfo.entitlements.active).length > 0;
-            isPremiumUser = Boolean(hasActiveEntitlement);
+            // Check existing customer info
+            try {
+                const customerInfo = await Purchases.getCustomerInfo();
+                const hasActive = customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && Object.keys(customerInfo.entitlements.active).length > 0;
+                if (hasActive) {
+                    isPremiumUser = true;
+                    localStorage.setItem('isPremiumUser', 'true');
+                }
+            } catch (custErr) {
+                console.warn("CustomerInfo check error:", custErr);
+            }
             
-            const offerings = await Purchases.getOfferings();
-            if (offerings.current && offerings.current.availablePackages) {
-                rcPackages = offerings.current.availablePackages;
+            // Fetch offerings in background
+            try {
+                const offerings = await Purchases.getOfferings();
+                if (offerings && offerings.current && offerings.current.availablePackages) {
+                    rcPackages = offerings.current.availablePackages;
+                    if (document.getElementById('premium-packages')) {
+                        renderPremiumPackages();
+                    }
+                }
+            } catch (offErr) {
+                console.warn("Offerings fetch error:", offErr);
             }
         }
     } catch (e) {
@@ -6319,25 +6892,50 @@ async function initAdMob() {
                 testingDevices: [],
                 initializeForTesting: false,
             });
-
         }
     } catch (e) {
         console.error("AdMob Init Error:", e);
     }
 }
 
-function openPremiumModal() {
+let _premiumModalLastOpened = 0;
+async function openPremiumModal() {
+    const activeProfile = getActiveProfileId();
+    const currentUid = getFirebaseCurrentUid();
+    if (!currentUid || activeProfile === 'guest') {
+        openEmailAuthModal('signin');
+        showToast("Please sign in or create an account to get Premium");
+        return;
+    }
+    const now = Date.now();
+    if (now - _premiumModalLastOpened < 1500) return; // Cooldown: prevent double-open
+    _premiumModalLastOpened = now;
     const modal = document.getElementById('premium-modal');
     if (modal) {
-        modal.classList.remove('hidden');
+        isPurchasingInProgress = false; // Reset stuck state
+        openModal(modal);
         renderPremiumPackages();
+        
+        // Fetch fresh offerings if empty
+        const Purchases = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) || window.Purchases;
+        if (Purchases && (!rcPackages || rcPackages.length === 0)) {
+            try {
+                const offerings = await Purchases.getOfferings();
+                if (offerings && offerings.current && offerings.current.availablePackages) {
+                    rcPackages = offerings.current.availablePackages;
+                    renderPremiumPackages();
+                }
+            } catch (e) {
+                console.warn("Modal offerings fetch notice:", e);
+            }
+        }
     }
 }
 
+
 function closePremiumModal(e) {
-    if (e && e.target !== e.currentTarget) return;
-    const modal = document.getElementById('premium-modal');
-    if (modal) modal.classList.add('hidden');
+    if (e && e.target && e.currentTarget && e.target !== e.currentTarget) return;
+    closeModal(document.getElementById('premium-modal'));
 }
 
 function selectPremiumPlan(planType) {
@@ -6349,41 +6947,28 @@ function renderPremiumPackages() {
     const container = document.getElementById('premium-packages');
     if (!container) return;
 
-    let monthlyPrice = "$2.99";
-    let annualPrice = "$29.99";
-    let annualPerMonth = "$2.50";
-
-    // If RevenueCat packages loaded from Google Play:
-    if (rcPackages && rcPackages.length > 0) {
-        const monthlyPkg = rcPackages.find(p => p.packageType === 'MONTHLY' || (p.identifier && p.identifier.toLowerCase().includes('monthly')));
-        const annualPkg = rcPackages.find(p => p.packageType === 'ANNUAL' || (p.identifier && (p.identifier.toLowerCase().includes('annual') || p.identifier.toLowerCase().includes('yearly'))));
-        if (monthlyPkg && monthlyPkg.product) monthlyPrice = monthlyPkg.product.priceString;
-        if (annualPkg && annualPkg.product) {
-            annualPrice = annualPkg.product.priceString;
-            if (annualPkg.product.price) {
-                annualPerMonth = '$' + (annualPkg.product.price / 12).toFixed(2);
-            }
-        }
-    }
+    const annualPrice = "$29.99";
+    const annualPerMonth = "$2.50";
+    const monthlyPrice = "$2.99";
 
     container.innerHTML = `
         <div class="premium-plans-grid">
-            <div class="premium-plan-card ${selectedPlanType === 'monthly' ? 'selected' : ''}" onclick="selectPremiumPlan('monthly')">
-                <span class="plan-name">Monthly</span>
-                <span class="plan-price">${monthlyPrice}</span>
-                <span class="plan-subtext">/ month</span>
-            </div>
             <div class="premium-plan-card ${selectedPlanType === 'annual' ? 'selected' : ''}" onclick="selectPremiumPlan('annual')">
                 <span class="plan-badge">Save 17%</span>
                 <span class="plan-name">Annual</span>
                 <span class="plan-price">${annualPrice}</span>
                 <span class="plan-subtext">${annualPerMonth}/mo billed yearly</span>
             </div>
+            <div class="premium-plan-card ${selectedPlanType === 'monthly' ? 'selected' : ''}" onclick="selectPremiumPlan('monthly')">
+                <span class="plan-name">Monthly</span>
+                <span class="plan-price">${monthlyPrice}</span>
+                <span class="plan-subtext">/ month</span>
+            </div>
         </div>
     `;
 
     const buyBtnText = document.querySelector('.premium-buy-pill-text');
-    if (buyBtnText) {
+    if (buyBtnText && !isPurchasingInProgress) {
         if (selectedPlanType === 'annual') {
             buyBtnText.innerText = `Get Annual — ${annualPrice}/yr`;
         } else {
@@ -6392,64 +6977,113 @@ function renderPremiumPackages() {
     }
 }
 
-async function handlePremiumSubscribeClick() {
-    showToast("Processing payment...");
+async function handlePremiumSubscribeClick(e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (e && e.preventDefault) e.preventDefault();
+    const activeProfile = getActiveProfileId();
+    const currentUid = getFirebaseCurrentUid();
+    if (!currentUid || activeProfile === 'guest') {
+        closePremiumModal();
+        openEmailAuthModal('signin');
+        showToast("Please sign in or create an account to get Premium");
+        return;
+    }
+    if (isPurchasingInProgress) {
+        return;
+    }
+    isPurchasingInProgress = true;
+    
+    const buyBtnText = document.querySelector('.premium-buy-pill-text');
+    if (buyBtnText) buyBtnText.innerText = "Opening Google Play...";
+
     try {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases && rcPackages.length > 0) {
-            const { Purchases } = window.Capacitor.Plugins;
-            let targetPkg = null;
-            if (selectedPlanType === 'annual') {
-                targetPkg = rcPackages.find(p => p.packageType === 'ANNUAL' || (p.identifier && (p.identifier.toLowerCase().includes('annual') || p.identifier.toLowerCase().includes('yearly')))) || rcPackages[0];
-            } else {
-                targetPkg = rcPackages.find(p => p.packageType === 'MONTHLY' || (p.identifier && p.identifier.toLowerCase().includes('monthly'))) || rcPackages[0];
+        const Purchases = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) || window.Purchases;
+        if (Purchases) {
+            // Ensure configured
+            try {
+                await Purchases.configure({ apiKey: 'goog_oaXBzDwHBvBaJzSuIZbFuuvwkLM' });
+            } catch (cfgErr) {}
+
+            // Try fetching offerings if not yet cached
+            if (!rcPackages || rcPackages.length === 0) {
+                try {
+                    const offerings = await Purchases.getOfferings();
+                    if (offerings && offerings.current && offerings.current.availablePackages) {
+                        rcPackages = offerings.current.availablePackages;
+                    } else if (offerings && offerings.all) {
+                        const allKeys = Object.keys(offerings.all);
+                        if (allKeys.length > 0 && offerings.all[allKeys[0]].availablePackages) {
+                            rcPackages = offerings.all[allKeys[0]].availablePackages;
+                        }
+                    }
+                } catch (fetchErr) {
+                    console.warn("Offerings fetch on click warning:", fetchErr);
+                }
             }
 
-            if (targetPkg) {
-                const { customerInfo } = await Purchases.purchasePackage({ aPackage: targetPkg });
-                const hasActive = customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && Object.keys(customerInfo.entitlements.active).length > 0;
-                if (hasActive) {
-                    isPremiumUser = true;
-                    showToast("Premium unlocked! Thank you!");
-                    closePremiumModal();
-                    return;
+            if (rcPackages && rcPackages.length > 0) {
+                let targetPkg = null;
+                if (selectedPlanType === 'annual') {
+                    targetPkg = rcPackages.find(p => p.packageType === 'ANNUAL' || (p.identifier && (p.identifier.toLowerCase().includes('annual') || p.identifier.toLowerCase().includes('yearly')))) || rcPackages[0];
+                } else {
+                    targetPkg = rcPackages.find(p => p.packageType === 'MONTHLY' || (p.identifier && p.identifier.toLowerCase().includes('monthly'))) || rcPackages[0];
+                }
+
+                if (targetPkg) {
+                    const doPurchase = async () => {
+                        try {
+                            return await Purchases.purchasePackage({ aPackage: targetPkg });
+                        } catch (pkgErr) {
+                            console.warn("purchasePackage error, trying subscriptionOption:", pkgErr);
+                            const opt = (targetPkg.product && (targetPkg.product.defaultOption || (targetPkg.product.subscriptionOptions && targetPkg.product.subscriptionOptions[0]))) || targetPkg.subscriptionOption;
+                            if (opt) {
+                                return await Purchases.purchaseSubscriptionOption({ subscriptionOption: opt });
+                            }
+                            throw pkgErr;
+                        }
+                    };
+
+                    const result = await doPurchase();
+                    const customerInfo = result && (result.customerInfo || result);
+                    if (customerInfo) {
+                        isPremiumUser = true;
+                        localStorage.setItem('isPremiumUser', 'true');
+                        closePremiumModal();
+                        updateTogglesUI();
+                        buildSettings();
+                        return;
+                    }
                 }
             }
         }
-        // Fallback for Web/Dev simulation
-        setTimeout(() => {
-            isPremiumUser = true;
-            showToast("Premium unlocked! Thank you for subscribing.");
-            closePremiumModal();
-        }, 1200);
     } catch (e) {
-        if (!e.userCancelled) {
-            showToast("Purchase failed. Please try again.");
-            console.error(e);
+        if (e && (e.userCancelled || (e.message && e.message.toLowerCase().includes('cancel')))) {
+            // User cancelled — do nothing silently
+        } else {
+            console.error("Purchase error:", e);
         }
+    } finally {
+        isPurchasingInProgress = false;
+        renderPremiumPackages();
     }
 }
 
 async function restorePurchases() {
-    showToast("Restoring...");
     try {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) {
-            const { Purchases } = window.Capacitor.Plugins;
+        const Purchases = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) || window.Purchases;
+        if (Purchases) {
             const customerInfo = await Purchases.restorePurchases();
             const hasActiveEntitlement = customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && Object.keys(customerInfo.entitlements.active).length > 0;
             if (hasActiveEntitlement) {
                 isPremiumUser = true;
-                showToast("Premium restored! Welcome back.");
+                localStorage.setItem('isPremiumUser', 'true');
                 closePremiumModal();
-            } else {
-                showToast("No active subscription found.");
+                updateTogglesUI();
+                buildSettings();
             }
-        } else {
-            showToast("Restored (Web Test)");
-            isPremiumUser = true;
-            closePremiumModal();
         }
     } catch (e) {
-        showToast("Restore failed.");
+        console.error("Restore purchases error:", e);
     }
 }
 

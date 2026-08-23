@@ -2,9 +2,13 @@
   "appId": "com.verse.feed",
   "appName": "VerseFeed",
   "webDir": "www",
+  "backgroundColor": "#1F1D1B",
+  "android": {
+    "backgroundColor": "#1F1D1B"
+  },
   "plugins": {
     "FirebaseAuthentication": {
-      "skipNativeAuth": false,
+      "skipNativeAuth": true,
       "providers": ["google.com"]
     }
   }

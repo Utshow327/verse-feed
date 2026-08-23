@@ -77,7 +77,6 @@ html, body {
     overflow: hidden;
     background: var(--bg-grad-1);
     color: var(--text-color);
-    transition: background 0.4s ease, color 0.4s ease;
     overscroll-behavior-x: none;
 }
 
@@ -101,40 +100,30 @@ html, body {
     transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s ease;
 }
 
-.loading-dots {
+.versefeed-loader {
     display: flex;
-    gap: 12px;
     align-items: center;
     justify-content: center;
     transform: translate3d(0, 0, 0);
 }
 
-.loading-dots .dot {
-    width: 11px;
-    height: 11px;
-    border-radius: 50%;
-    background: var(--accent);
-    transform: translate3d(0, 0, 0);
-    will-change: transform, opacity;
-    animation: dot-breathe 1.2s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+.loader-word {
+    display: inline-block;
+    font-size: 2.2rem;
+    font-weight: 700;
+    font-family: var(--font-main) !important;
+    color: var(--text-color);
+    letter-spacing: 2px;
+    will-change: opacity;
+    animation: loaderBreathe 2s ease-in-out infinite;
 }
 
-.loading-dots .dot:nth-child(2) {
-    animation-delay: 0.16s;
-}
-
-.loading-dots .dot:nth-child(3) {
-    animation-delay: 0.32s;
-}
-
-@keyframes dot-breathe {
+@keyframes loaderBreathe {
     0%, 100% {
-        transform: scale3d(0.6, 0.6, 1);
-        opacity: 0.25;
+        opacity: 0.35;
     }
     50% {
-        transform: scale3d(1.15, 1.15, 1);
-        opacity: 0.95;
+        opacity: 1;
     }
 }
 
@@ -144,11 +133,9 @@ html, body {
     visibility: hidden;
     pointer-events: none !important;
 }
-#loading.loaded .loading-dots .dot {
-    animation: none;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-    transform: scale3d(0, 0, 1);
-    opacity: 0;
+
+#loading.loaded .loader-word {
+    animation: none !important;
 }
 
 #waveform-canvas {
@@ -169,7 +156,7 @@ html, body {
 /* --- Navigation --- */
 #top-nav-menu {
     position: fixed;
-    bottom: 20px;
+    bottom: max(20px, calc(10px + env(safe-area-inset-bottom, 0px)));
     top: auto;
     left: 50%;
     transform: translateX(-50%);
@@ -273,13 +260,7 @@ html, body {
 
 .app-section.active-section {
     display: block !important;
-    animation: sectionFadeIn 0.20s ease-out forwards;
     z-index: 2;
-}
-
-@keyframes sectionFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
 }
 
 #read-books {
@@ -327,7 +308,7 @@ html, body {
     flex-direction: column;
     justify-content: space-between;
     position: absolute;
-    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease, background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.35s ease;
     will-change: transform, opacity;
     opacity: 1;
 }
@@ -867,12 +848,62 @@ h2 {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
-/* --- Settings --- */
+/* Selected Folder Header & Inline Rename */
+.selected-folder-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 90%;
+    max-width: 600px;
+    margin: 16px auto 10px auto;
+    padding: 0 4px;
+}
+.selected-folder-title-wrap {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.selected-folder-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    font-family: var(--font-main);
+    color: var(--text-color);
+}
+.selected-folder-input {
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-family: var(--font-main);
+    color: var(--text-color);
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 4px 8px;
+    outline: none;
+}
+.delete-folder-btn-sleek {
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    opacity: 0.6;
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: opacity 0.2s ease, transform 0.1s ease;
+}
+.delete-folder-btn-sleek:active {
+    opacity: 1;
+    transform: scale(0.92);
+}
 
+/* --- Folder Buttons --- */
 .album-square-btn {
     width: 100px;
     height: 100px;
-    border-radius: 12px;
+    border-radius: 16px;
     background: var(--card-bg);
     border: 1px solid var(--glass-border);
     color: var(--text-color);
@@ -882,7 +913,7 @@ h2 {
     cursor: pointer;
     font-size: 1.1rem;
     font-weight: 500;
-    transition: all 0.2s ease;
+    transition: transform 0.1s ease;
     flex-shrink: 0;
     position: relative;
     padding: 8px;
@@ -2383,21 +2414,7 @@ h2 {
 
 
 
-#library-home:not(.hidden), 
-#book-list-view:not(.hidden), 
-#sub-book-list-view:not(.hidden), 
-#book-content-view:not(.hidden) {
-    animation: smoothViewFade 0.20s ease-out forwards;
-}
 
-@keyframes smoothViewFade {
-    0% {
-        opacity: 0;
-    }
-    100% {
-        opacity: 1;
-    }
-}
 
 
 /* --- Action Pill Loading Animation (Opacity Pulse) --- */

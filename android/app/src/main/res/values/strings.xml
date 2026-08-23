@@ -4,4 +4,5 @@
     <string name="title_activity_main">VerseFeed</string>
     <string name="package_name">com.verse.feed</string>
     <string name="custom_url_scheme">com.verse.feed</string>
+    <string name="default_web_client_id">131330287162-p1k2ar5u020tqb0n19i4jppk9oqarr2f.apps.googleusercontent.com</string>
 </resources>

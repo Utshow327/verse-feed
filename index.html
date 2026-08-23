@@ -3,9 +3,9 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Minimalistic Religion App</title>
-    <link rel="stylesheet" href="style_v5.css?v=81">
+    <link rel="stylesheet" href="style_v5.css?v=201">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -14,10 +14,8 @@
 <body>
     <!-- App Loading Screen -->
     <div id="loading">
-        <div class="loading-dots">
-            <span class="dot"></span>
-            <span class="dot"></span>
-            <span class="dot"></span>
+        <div class="versefeed-loader">
+            <span class="loader-word">VerseFeed</span>
         </div>
     </div>
 
@@ -343,10 +341,6 @@
             <span style="opacity: 0.35;">•</span>
             <span onclick="openCreditsModal()" style="color: var(--text-color); opacity: 0.75; text-decoration: underline; font-weight: 500; cursor: pointer;">Credits</span>
         </div>
-
-        <div class="disclaimer">
-            Disclaimer: Texts may vary in authenticity. Consult trusted scholars for verification.
-        </div>
         </div> <!-- Closes the 90% width container -->
     </div> <!-- Closes #settings-content -->
 </div> <!-- Closes #settings -->
@@ -566,7 +560,7 @@
     <div id="radial-overlay" class="radial-overlay"></div>
     <script src="libs/localforage.min.js"></script>
     <script src="libs/html2canvas.min.js"></script>
-    <script src="script_v14.js?v=128"></script>
+    <script src="script_v14.js?v=301"></script>
 
 
 
