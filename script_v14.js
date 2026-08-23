@@ -952,6 +952,41 @@ function getAudioContext() {
     return audioContext;
 }
 
+let voiceDownloadToastTimeout = null;
+function showDownloadProgressToast(msg, percent) {
+    const toast = document.getElementById('global-toast');
+    const msgEl = document.getElementById('toast-message');
+    const actionBtn = document.getElementById('toast-action-btn');
+    const progressEl = document.getElementById('toast-progress');
+    if (!toast || !msgEl) return;
+    
+    msgEl.textContent = msg;
+    if (actionBtn) actionBtn.style.display = 'none';
+    
+    if (progressEl) {
+        progressEl.style.transition = 'transform 0.15s ease-out';
+        const frac = Math.max(0, Math.min(1, percent / 100));
+        progressEl.style.transform = `scaleX(${frac})`;
+    }
+    
+    toast.classList.add('show');
+    clearTimeout(toastHideTimeout);
+    clearTimeout(voiceDownloadToastTimeout);
+    
+    if (percent >= 100) {
+        msgEl.textContent = "Voice ready";
+        voiceDownloadToastTimeout = setTimeout(() => {
+            toast.classList.remove('show');
+            if (progressEl) {
+                setTimeout(() => {
+                    progressEl.style.transition = 'none';
+                    progressEl.style.transform = 'scaleX(0)';
+                }, 200);
+            }
+        }, 1200);
+    }
+}
+
 let piperSessionsCache = {};
 
 async function initPiper(voiceId = "en_US-libritts_r-medium") {
@@ -969,12 +1004,19 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
                 tts.TtsSession._instance = null; // Force reload of ONNX model
             }
             console.log("Loading Piper TTS voice:", voiceId);
+            const wasmBase = new URL('libs/piper/', window.location.href).href;
             const newSession = await tts.TtsSession.create({
                 voiceId: voiceId,
                 wasmPaths: {
-                    onnxWasm: "/libs/piper/",
-                    piperData: "/libs/piper/piper_phonemize.data",
-                    piperWasm: "/libs/piper/piper_phonemize.wasm"
+                    onnxWasm: wasmBase,
+                    piperData: wasmBase + "piper_phonemize.data",
+                    piperWasm: wasmBase + "piper_phonemize.wasm"
+                },
+                progress: (p) => {
+                    if (p && p.total && p.loaded) {
+                        const pct = Math.round((p.loaded / p.total) * 100);
+                        showDownloadProgressToast(`Downloading voice (${pct}%)`, pct);
+                    }
                 }
             });
             newSession.voiceId = voiceId;
@@ -2746,6 +2788,7 @@ function _showSavedVersesImpl(rebuildFolders = true) {
         // Build in a fragment first, then swap atomically to avoid blank-frame flash
         const frag = document.createDocumentFragment();
         const grid = document.createElement('div');
+        grid.className = 'folders-grid-container';
         grid.style.display = 'flex';
         grid.style.flexWrap = 'wrap';
         grid.style.justifyContent = 'center';
@@ -2765,11 +2808,13 @@ function _showSavedVersesImpl(rebuildFolders = true) {
         addFolder.onclick = () => openCreateBookmarkModal();
         grid.appendChild(addFolder);
         
-        let folderIdx = 0;
-        for (const [albumName, verses] of Object.entries(albums)) {
+        const albumKeys = Object.keys(albums);
+        albumKeys.forEach((albumName, folderIdx) => {
             const folder = document.createElement('button');
             folder.className = 'album-square-btn album-folder-btn';
-            folder.id = 'album-folder-' + (folderIdx++);
+            folder.id = 'album-folder-' + folderIdx;
+            folder.dataset.albumName = albumName;
+            folder.dataset.albumIndex = folderIdx;
             folder.style.width = 'calc(33.333% - 8px)';
             folder.style.aspectRatio = '1';
             folder.style.height = 'auto';
@@ -2784,8 +2829,102 @@ function _showSavedVersesImpl(rebuildFolders = true) {
             if ((selectedVerse && selectedVerse.type === 'folder' && selectedVerse.name === albumName) || selectedSavedAlbum === albumName) {
                 folder.classList.add('active');
             }
+            
+            // --- Live Drag & Drop / Long-Press Reordering ---
+            let pressTimer = null;
+            let isDragging = false;
+            let startX = 0, startY = 0;
+            let currentDragAlbum = null;
+            
+            const startPress = (clientX, clientY) => {
+                startX = clientX;
+                startY = clientY;
+                isDragging = false;
+                clearTimeout(pressTimer);
+                pressTimer = setTimeout(() => {
+                    isDragging = true;
+                    currentDragAlbum = albumName;
+                    folder.classList.add('dragging-folder');
+                    if (navigator.vibrate) {
+                        try { navigator.vibrate(35); } catch(e){}
+                    }
+                }, 350);
+            };
+            
+            const movePress = (clientX, clientY, e) => {
+                if (!isDragging) {
+                    if (Math.hypot(clientX - startX, clientY - startY) > 10) {
+                        clearTimeout(pressTimer);
+                    }
+                    return;
+                }
+                if (e) {
+                    if (e.cancelable) e.preventDefault();
+                    e.stopPropagation();
+                }
+                
+                // Find element under current pointer
+                const elemBelow = document.elementFromPoint(clientX, clientY);
+                if (!elemBelow) return;
+                const targetFolder = elemBelow.closest('.album-folder-btn');
+                if (targetFolder && targetFolder !== folder) {
+                    const targetName = targetFolder.dataset.albumName;
+                    const fromIdx = createdAlbums.indexOf(currentDragAlbum);
+                    const toIdx = createdAlbums.indexOf(targetName);
+                    if (fromIdx > -1 && toIdx > -1 && fromIdx !== toIdx) {
+                        const [moved] = createdAlbums.splice(fromIdx, 1);
+                        createdAlbums.splice(toIdx, 0, moved);
+                        localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
+                        if (navigator.vibrate) {
+                            try { navigator.vibrate(15); } catch(e){}
+                        }
+                        showSavedVerses(true);
+                    }
+                }
+            };
+            
+            const endPress = () => {
+                clearTimeout(pressTimer);
+                if (isDragging) {
+                    isDragging = false;
+                    folder.classList.remove('dragging-folder');
+                    localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
+                    triggerCloudSync();
+                    showSavedVerses(true);
+                    return;
+                }
+            };
+            
+            folder.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    startPress(e.touches[0].clientX, e.touches[0].clientY);
+                }
+            }, { passive: true });
+            
+            folder.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1) {
+                    movePress(e.touches[0].clientX, e.touches[0].clientY, e);
+                }
+            }, { passive: false });
+            
+            folder.addEventListener('touchend', endPress, { passive: true });
+            folder.addEventListener('touchcancel', endPress, { passive: true });
+            
+            folder.addEventListener('mousedown', (e) => {
+                startPress(e.clientX, e.clientY);
+                const onMouseMove = (ev) => movePress(ev.clientX, ev.clientY, ev);
+                const onMouseUp = () => {
+                    endPress();
+                    window.removeEventListener('mousemove', onMouseMove);
+                    window.removeEventListener('mouseup', onMouseUp);
+                };
+                window.addEventListener('mousemove', onMouseMove);
+                window.addEventListener('mouseup', onMouseUp);
+            });
+            
             folder.onclick = (e) => {
                 if (e) e.stopPropagation();
+                if (isDragging) return;
                 if (selectedSavedAlbum === albumName) {
                     selectedSavedAlbum = null;
                     selectedVerse = { type: 'folder', name: albumName, elementId: folder.id };
@@ -2802,7 +2941,7 @@ function _showSavedVersesImpl(rebuildFolders = true) {
             };
             
             grid.appendChild(folder);
-        }
+        });
         frag.appendChild(grid);
         // Atomic swap: replaces all children at once, no blank frame
         foldersContainer.replaceChildren(frag);
@@ -2811,10 +2950,10 @@ function _showSavedVersesImpl(rebuildFolders = true) {
     // Rebuild verses list using a fragment for atomic swap
     const versesFrag = document.createDocumentFragment();
     
-    // If a folder is open/selected, show header with centered editable name and sleek delete button
+    // If a folder is open/selected, show header with centered editable name (delete button hidden until clicked)
     if (selectedSavedAlbum) {
         const header = document.createElement('div');
-        header.className = 'selected-folder-header';
+        header.className = 'selected-folder-header center-mode';
         
         const titleWrap = document.createElement('div');
         titleWrap.className = 'selected-folder-title-wrap';
@@ -2829,20 +2968,10 @@ function _showSavedVersesImpl(rebuildFolders = true) {
         
         titleWrap.onclick = (e) => {
             e.stopPropagation();
-            startFolderInlineRename(selectedSavedAlbum, titleWrap);
-        };
-        
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-folder-btn-sleek';
-        deleteBtn.title = 'Delete Folder';
-        deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
-        deleteBtn.onclick = (e) => {
-            e.stopPropagation();
-            handleFolderDelete(e, selectedSavedAlbum);
+            startFolderInlineRename(selectedSavedAlbum, header);
         };
         
         header.appendChild(titleWrap);
-        header.appendChild(deleteBtn);
         versesFrag.appendChild(header);
     }
     
@@ -2877,15 +3006,32 @@ function _showSavedVersesImpl(rebuildFolders = true) {
     }
 }
 
-function startFolderInlineRename(oldName, containerEl) {
-    if (!containerEl) return;
+function startFolderInlineRename(oldName, headerEl) {
+    if (!headerEl) return;
+    
+    headerEl.innerHTML = '';
+    headerEl.className = 'selected-folder-header editing-mode';
+    
     const input = document.createElement('input');
     input.type = 'text';
     input.maxLength = 10;
-    input.className = 'selected-folder-input';
+    input.className = 'selected-folder-input-underline';
     input.value = oldName;
     
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-folder-btn-sleek show';
+    deleteBtn.title = 'Delete Folder';
+    deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
+    
     let finished = false;
+    deleteBtn.onmousedown = (e) => e.stopPropagation();
+    deleteBtn.ontouchstart = (e) => e.stopPropagation();
+    deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        finished = true;
+        handleFolderDelete(e, oldName);
+    };
+    
     const finishRename = () => {
         if (finished) return;
         finished = true;
@@ -2929,8 +3075,8 @@ function startFolderInlineRename(oldName, containerEl) {
     
     input.onblur = finishRename;
     
-    containerEl.innerHTML = '';
-    containerEl.appendChild(input);
+    headerEl.appendChild(input);
+    headerEl.appendChild(deleteBtn);
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
 }
