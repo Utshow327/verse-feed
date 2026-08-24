@@ -2460,36 +2460,34 @@ function getVerseAtIndex(index) {
     return verseBatches.general[index];
 }
 
-// Interstitial ads removed in favor of in-feed AdSense ads
-
 const premiumFunnyLines = [
-    "The developer is broke. Fix him.",
-    "You've scrolled 15 verses. Buy Premium already.",
-    "Free users get ads. Premium users get inner peace.",
-    "Stop staring at this card and just get Premium.",
-    "Your wallet won't even notice. The developer will.",
-    "Tired of this card? Premium deletes it forever.",
-    "One dollar. Zero ads. Endless tranquility.",
-    "Still here? Just buy it, we both know you want to.",
-    "The developer skipped lunch for this app. Help him out.",
-    "Unlock all HD voices before the developer gives up.",
-    "Zero ads. Pure aesthetics. One single tap.",
-    "Upgrade to Premium or keep reading this awkward text.",
-    "Are you really gonna let an ad interrupt your peace?",
-    "Legend says Premium users sleep 2 hours better.",
-    "Cut the noise. Keep the verses. Go Premium.",
-    "Support indie software so robots don't win.",
-    "Less ads, more wisdom. Get Premium.",
-    "Your attention is too expensive to waste on ads.",
-    "Be honest: you've wasted money on worse things.",
-    "Instant upgrade, permanent peace of mind.",
-    "Keep your feed aesthetic. Upgrade now."
+    "Congratulations on reading 10 verses. You're practically enlightened now. Buy Premium.",
+    "We know you're seeking inner peace. Unfortunately, inner peace requires paying our server bills.",
+    "You have infinite patience for endless scrolling, but zero patience for a small upgrade. Fascinating.",
+    "Rumor has it that if you scroll 500 more verses without upgrading, absolutely nothing happens.",
+    "You spent $7 on iced coffee that gave you anxiety. Spend a couple bucks here to fix your feed.",
+    "Ah yes, another free user seeking eternal wisdom on a strict zero-dollar budget. We respect the hustle.",
+    "Look at you, resisting the upgrade button like it's a spiritual trial. It's not. Just tap it.",
+    "We could've shown you a 30-second casino ad with loud music, but we showed you this instead. You're welcome.",
+    "Is reading this ad card part of your daily meditation ritual? Get Premium and save some time.",
+    "The developer spent months perfecting typography just for you to squint at this ad. Truly poetic.",
+    "If avoiding app purchases was an Olympic sport, you'd be bringing home the gold medal.",
+    "You're one tap away from an ad-free universe, yet here you are, reading every single syllable of this.",
+    "Enlightenment is free. High-speed cloud servers, unfortunately, are billed monthly in USD.",
+    "Don't worry, this ad card isn't judging your spending habits. The developer, however, might be.",
+    "Every time you scroll past this, an indie developer sighs and drinks lukewarm tap water.",
+    "You've mastered mindfulness, breathing, and ad-skipping. Time to master upgrading to Premium.",
+    "Still reading? At this point, you're practically dating this ad card. Make it official with Premium.",
+    "Swipe up to ignore this ad. Swipe down to regret it. Tap below to finally get some peace.",
+    "Your attention span is worth millions. Don't waste it staring at this awkward placeholder.",
+    "Support human developers before AI replaces all of us and charges a subscription for breathing."
 ];
 
 let funnyLinesBag = [];
 function getNextFunnyLine() {
     if (funnyLinesBag.length === 0) {
         funnyLinesBag = [...premiumFunnyLines];
+        // Shuffle bag
         for (let i = funnyLinesBag.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [funnyLinesBag[i], funnyLinesBag[j]] = [funnyLinesBag[j], funnyLinesBag[i]];
@@ -2515,10 +2513,6 @@ function createFeedCardDOM(verse, extraClass) {
         if (!verse.funnyLine) {
             verse.funnyLine = getNextFunnyLine();
         }
-        
-        // 70% straight (0deg), 30% angled (-3deg or 3deg)
-        const isAngled = Math.random() > 0.70;
-        const angleDeg = isAngled ? (Math.random() > 0.5 ? 3 : -3) : 0;
 
         card.classList.add('premium-ad-card');
         textEl.innerHTML = `
@@ -2527,7 +2521,7 @@ function createFeedCardDOM(verse, extraClass) {
                 <div style="font-size: clamp(1.25rem, 4.5vw, 1.7rem); font-weight: 700; color: var(--text-color); font-family: var(--font-main); line-height: 1.45; max-width: 92%;">
                     ${verse.funnyLine}
                 </div>
-                <button onclick="openPremiumModal()" style="transform: rotate(${angleDeg}deg); background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 14px 40px; border-radius: 28px; font-size: 1.05rem; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 8px; box-shadow: var(--glass-shadow); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
+                <button onclick="openPremiumModal()" style="transform: none; background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 14px 40px; border-radius: 28px; font-size: 1.05rem; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 8px; box-shadow: var(--glass-shadow); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
                     Get Premium
                 </button>
             </div>
@@ -2579,10 +2573,6 @@ function renderFeedCard(index, direction = 'none') {
         card.classList.remove('animating');
         card.classList.add('card-center');
         stage.appendChild(card);
-    }
-
-    if (verse && verse.isAd) {
-        triggerInFeedInterstitial();
     }
 }
 
