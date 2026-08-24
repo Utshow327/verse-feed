@@ -1527,11 +1527,12 @@ function updateSpeakButton(buttonId) {
     if (isGenerating) {
         btn.classList.add('generating');
         btn.classList.add('loading');
-        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" class="speak-svg"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+        // During generation/buffering, show the Pause icon with breathing pulse animation so there is zero icon flipping
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" class="speak-svg"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
     } else {
         btn.classList.remove('generating');
         btn.classList.remove('loading');
-        btn.innerHTML = isSpeaking && !isPaused ? '<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" class="speak-svg"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>' : '<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" class="speak-svg"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+        btn.innerHTML = (isSpeaking && !isPaused) ? '<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" class="speak-svg"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>' : '<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" class="speak-svg"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
     }
 }
 // --- Unified Audio Control ---
@@ -1578,31 +1579,31 @@ function speakCurrent(type) {
     } else {
         if (isBookSection) {
             const info = globalVerseMap[bookVoiceCurrentVerse];
-            if (info && chapterStartIndices[info.chapter] === bookVoiceCurrentVerse) {
-                lastAnnouncedChapter = null;
+            if (info) {
+                playBookVerse(bookVoiceCurrentVerse);
+                autoNextBook = true;
             }
-            playBookVerse(bookVoiceCurrentVerse);
-            autoNextBook = true;
-        } else {
-            const verse = getVerseAtIndex(currentVerseIndex.general);
-            if (verse) {
-                let text = '';
-                if (verse.isAd) {
-                    if (!verse.funnyLine) {
-                        verse.funnyLine = getNextFunnyLine();
+        } else if (isFeedSection) {
+            const curVerse = getVerseAtIndex(currentVerseIndex.general);
+            if (curVerse) {
+                if (curVerse.isAd) {
+                    if (!curVerse.funnyLine) {
+                        curVerse.funnyLine = getNextFunnyLine();
                     }
-                    text = "VerseFeed Premium. " + verse.funnyLine;
+                    const adSpokenText = "VerseFeed Premium. " + curVerse.funnyLine;
+                    playText(adSpokenText, 'feed');
+                    autoMode = true;
                 } else {
-                    text = verse.spoken_text || verse.text;
-                    if (!text.endsWith('.')) text += '.';
-                    
-                    if (ttsAnnounceSource) {
-                        text += '. ' + verse.book + '.';
+                    let spokenText = curVerse.spoken_text || curVerse.text || '';
+                    if (spokenText) {
+                        if (!spokenText.endsWith('.')) spokenText += '.';
+                        if (ttsAnnounceSource && curVerse.book) {
+                            spokenText += '. ' + curVerse.book + '.';
+                        }
+                        playText(spokenText, 'feed');
+                        autoMode = true;
                     }
-                    text = text.replace(/`/g, '');
                 }
-                playText(text, 'feed');
-                autoMode = true;
             }
         }
     }
@@ -5642,6 +5643,11 @@ function handlePillPlay(e) {
         && !document.getElementById('book-content-view').classList.contains('hidden');
     const isFeedSection = document.getElementById('verse-feed').classList.contains('active-section');
 
+    if (isGenerating) {
+        console.log("Audio generating, ignoring extra clicks...");
+        return;
+    }
+
     if (isSpeaking) {
         const btn = document.getElementById('speak-general');
         if (btn) btn.classList.remove('loading');
@@ -5693,13 +5699,24 @@ function handlePillPlay(e) {
             if (isFeedSection) {
                 const currentVerseObj = getVerseAtIndex(currentVerseIndex.general);
                 if (currentVerseObj) {
-                    let spokenText = currentVerseObj.spoken_text || currentVerseObj.text;
-                    if (!spokenText.endsWith('.')) spokenText += '.';
-                    if (ttsAnnounceSource) {
-                        spokenText += '. ' + currentVerseObj.book + '.';
+                    if (currentVerseObj.isAd) {
+                        if (!currentVerseObj.funnyLine) {
+                            currentVerseObj.funnyLine = getNextFunnyLine();
+                        }
+                        const adSpokenText = "VerseFeed Premium. " + currentVerseObj.funnyLine;
+                        playText(adSpokenText, 'feed');
+                        autoMode = true;
+                    } else {
+                        let spokenText = currentVerseObj.spoken_text || currentVerseObj.text || '';
+                        if (spokenText) {
+                            if (!spokenText.endsWith('.')) spokenText += '.';
+                            if (ttsAnnounceSource && currentVerseObj.book) {
+                                spokenText += '. ' + currentVerseObj.book + '.';
+                            }
+                            playText(spokenText, 'feed');
+                            autoMode = true; // Auto advance to next verse
+                        }
                     }
-                    playText(spokenText, 'feed');
-                    autoMode = true; // Auto advance to next verse
                 }
             } else if (isBookSection) {
                 playBookVerse(bookVoiceCurrentVerse || 0);
