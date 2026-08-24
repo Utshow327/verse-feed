@@ -953,7 +953,7 @@ function getAudioContext() {
 }
 
 let voiceDownloadToastTimeout = null;
-function showVoiceLoadingToast(msg = "Loading voice...", percent = null) {
+function showVoiceInstallingToast(msg = "Installing voice...", percent = null) {
     const toast = document.getElementById('global-toast');
     const msgEl = document.getElementById('toast-message');
     const actionBtn = document.getElementById('toast-action-btn');
@@ -972,7 +972,7 @@ function showVoiceLoadingToast(msg = "Loading voice...", percent = null) {
             progressEl.style.transition = 'none';
             progressEl.style.transform = 'scaleX(0)';
             requestAnimationFrame(() => {
-                progressEl.style.transition = 'transform 3000ms cubic-bezier(0.1, 0.5, 0.1, 1)';
+                progressEl.style.transition = 'transform 2500ms cubic-bezier(0.1, 0.5, 0.1, 1)';
                 progressEl.style.transform = 'scaleX(0.9)';
             });
         }
@@ -995,8 +995,14 @@ function showVoiceLoadingToast(msg = "Loading voice...", percent = null) {
                     progressEl.style.transform = 'scaleX(0)';
                 }, 200);
             }
-        }, 800);
+        }, 500);
     }
+}
+
+function hideVoiceToast() {
+    const toast = document.getElementById('global-toast');
+    if (toast) toast.classList.remove('show');
+    clearTimeout(voiceDownloadToastTimeout);
 }
 
 let piperSessionsCache = {};
@@ -1016,7 +1022,7 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
                 tts.TtsSession._instance = null; // Force reload of ONNX model
             }
             console.log("Loading Piper TTS voice:", voiceId);
-            showVoiceLoadingToast("Loading voice...");
+            const isInstalled = localStorage.getItem('piper_voice_installed_' + voiceId);
             const wasmBase = new URL('libs/piper/', window.location.href).href;
             const newSession = await tts.TtsSession.create({
                 voiceId: voiceId,
@@ -1028,10 +1034,14 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
                 progress: (p) => {
                     if (p && p.total && p.loaded) {
                         const pct = Math.round((p.loaded / p.total) * 100);
-                        showVoiceLoadingToast("Loading voice...", pct);
+                        if (!isInstalled) {
+                            showVoiceInstallingToast("Installing voice...", pct);
+                        }
                     }
                 }
             });
+            localStorage.setItem('piper_voice_installed_' + voiceId, 'true');
+            hideVoiceToast();
             newSession.voiceId = voiceId;
             let savedSpeed = localStorage.getItem('voiceSpeed_' + voiceId);
             if (!savedSpeed) {
@@ -1193,14 +1203,12 @@ async function playText(text, context) {
                .replace(/\[l\d+\]/gi, '')
                .replace(/-/g, ' ');
 
-    // Immediately update UI with loading state while pre-generating audio
+    // Immediately enter generating state with opacity pulse animation on play button
+    isGenerating = true;
     isSpeaking = true;
     isPaused = false;
     currentAudioContextType = context;
     updateSpeakButton('speak-general');
-    
-    const btn = document.getElementById('speak-general');
-    if (btn) btn.classList.add('loading');
 
     // Load the right voice
     if (ttsRandomVoice) {
@@ -1220,7 +1228,7 @@ async function playText(text, context) {
     }
 
     if (!piperSession) {
-        if (btn) btn.classList.remove('loading');
+        isGenerating = false;
         isSpeaking = false;
         updateSpeakButton('speak-general');
         return;
@@ -1228,7 +1236,7 @@ async function playText(text, context) {
 
     // Check if still valid after async initPiper
     if (generationId !== currentGenerationId) {
-        if (btn) btn.classList.remove('loading');
+        isGenerating = false;
         return;
     }
 

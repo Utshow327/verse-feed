@@ -956,28 +956,6 @@ h2 {
     opacity: 0.92;
     cursor: grabbing !important;
 }
-
-/* Voice Generation Slow Opacity Breathing Pulse */
-@keyframes audioGenPulse {
-    0%, 100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.35;
-        transform: scale(0.95);
-    }
-}
-
-#speak-general.generating,
-#speak-general.loading,
-.speak-btn.generating,
-.speak-btn.loading,
-.main-play-btn.generating,
-.main-play-btn.loading {
-    animation: audioGenPulse 1.3s ease-in-out infinite !important;
-}
-
 .album-square-btn .album-name {
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -990,6 +968,7 @@ h2 {
     padding: 4px;
     width: 100%;
 }
+
 
 .toggle-icon-btn {
     background: var(--card-bg);
@@ -2476,8 +2455,13 @@ h2 {
 
 
 /* --- Action Pill Loading Animation (Opacity Pulse) --- */
-.main-play-btn.loading {
-    animation: pillLoadingPulse 1.8s infinite ease-in-out !important;
+#speak-general.generating,
+#speak-general.loading,
+.main-play-btn.generating,
+.main-play-btn.loading,
+.speak-btn.generating,
+.speak-btn.loading {
+    animation: pillLoadingPulse 1.4s ease-in-out infinite !important;
     will-change: opacity;
 }
 
@@ -2485,6 +2469,7 @@ h2 {
     0%, 100% {
         opacity: 1;
     }
+    50% {
         opacity: 0.35;
     }
 }
