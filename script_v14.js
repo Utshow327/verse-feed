@@ -953,7 +953,7 @@ function getAudioContext() {
 }
 
 let voiceDownloadToastTimeout = null;
-function showDownloadProgressToast(msg, percent) {
+function showVoiceLoadingToast(msg = "Loading voice...", percent = null) {
     const toast = document.getElementById('global-toast');
     const msgEl = document.getElementById('toast-message');
     const actionBtn = document.getElementById('toast-action-btn');
@@ -964,17 +964,29 @@ function showDownloadProgressToast(msg, percent) {
     if (actionBtn) actionBtn.style.display = 'none';
     
     if (progressEl) {
-        progressEl.style.transition = 'transform 0.15s ease-out';
-        const frac = Math.max(0, Math.min(1, percent / 100));
-        progressEl.style.transform = `scaleX(${frac})`;
+        if (typeof percent === 'number') {
+            progressEl.style.transition = 'transform 0.2s ease-out';
+            const frac = Math.max(0, Math.min(1, percent / 100));
+            progressEl.style.transform = `scaleX(${frac})`;
+        } else {
+            progressEl.style.transition = 'none';
+            progressEl.style.transform = 'scaleX(0)';
+            requestAnimationFrame(() => {
+                progressEl.style.transition = 'transform 3000ms cubic-bezier(0.1, 0.5, 0.1, 1)';
+                progressEl.style.transform = 'scaleX(0.9)';
+            });
+        }
     }
     
     toast.classList.add('show');
     clearTimeout(toastHideTimeout);
     clearTimeout(voiceDownloadToastTimeout);
     
-    if (percent >= 100) {
-        msgEl.textContent = "Voice ready";
+    if (percent !== null && percent >= 100) {
+        if (progressEl) {
+            progressEl.style.transition = 'transform 0.15s ease-out';
+            progressEl.style.transform = 'scaleX(1)';
+        }
         voiceDownloadToastTimeout = setTimeout(() => {
             toast.classList.remove('show');
             if (progressEl) {
@@ -983,7 +995,7 @@ function showDownloadProgressToast(msg, percent) {
                     progressEl.style.transform = 'scaleX(0)';
                 }, 200);
             }
-        }, 1200);
+        }, 800);
     }
 }
 
@@ -1004,6 +1016,7 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
                 tts.TtsSession._instance = null; // Force reload of ONNX model
             }
             console.log("Loading Piper TTS voice:", voiceId);
+            showVoiceLoadingToast("Loading voice...");
             const wasmBase = new URL('libs/piper/', window.location.href).href;
             const newSession = await tts.TtsSession.create({
                 voiceId: voiceId,
@@ -1015,7 +1028,7 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
                 progress: (p) => {
                     if (p && p.total && p.loaded) {
                         const pct = Math.round((p.loaded / p.total) * 100);
-                        showDownloadProgressToast(`Downloading voice (${pct}%)`, pct);
+                        showVoiceLoadingToast("Loading voice...", pct);
                     }
                 }
             });
@@ -1479,7 +1492,15 @@ function startAudioPlayback(offset, generationId) {
 function updateSpeakButton(buttonId) {
     const btn = document.getElementById(buttonId || 'speak-general');
     if (!btn) return;
-    btn.innerHTML = isSpeaking && !isPaused ? '<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" class="speak-svg"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>' : '<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" class="speak-svg"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+    if (isGenerating) {
+        btn.classList.add('generating');
+        btn.classList.add('loading');
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" class="speak-svg"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+    } else {
+        btn.classList.remove('generating');
+        btn.classList.remove('loading');
+        btn.innerHTML = isSpeaking && !isPaused ? '<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" class="speak-svg"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>' : '<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" class="speak-svg"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+    }
 }
 // --- Unified Audio Control ---
 function speakCurrent(type) {
@@ -2951,12 +2972,13 @@ function _showSavedVersesImpl(rebuildFolders = true) {
     const versesFrag = document.createDocumentFragment();
     
     // If a folder is open/selected, show header with centered editable name (delete button hidden until clicked)
+    // If a folder is open/selected, show header with centered editable name (delete button on right side, visible only in rename mode)
     if (selectedSavedAlbum) {
         const header = document.createElement('div');
-        header.className = 'selected-folder-header center-mode';
+        header.className = 'selected-folder-header-bar';
         
         const titleWrap = document.createElement('div');
-        titleWrap.className = 'selected-folder-title-wrap';
+        titleWrap.className = 'folder-title-center-wrap';
         titleWrap.title = 'Click to rename';
         
         const titleSpan = document.createElement('span');
@@ -2971,7 +2993,13 @@ function _showSavedVersesImpl(rebuildFolders = true) {
             startFolderInlineRename(selectedSavedAlbum, header);
         };
         
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-folder-btn-sleek';
+        deleteBtn.title = 'Delete Folder';
+        deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
+        
         header.appendChild(titleWrap);
+        header.appendChild(deleteBtn);
         versesFrag.appendChild(header);
     }
     
@@ -3010,27 +3038,38 @@ function startFolderInlineRename(oldName, headerEl) {
     if (!headerEl) return;
     
     headerEl.innerHTML = '';
-    headerEl.className = 'selected-folder-header editing-mode';
+    headerEl.className = 'selected-folder-header-bar editing-mode';
+    
+    const titleWrap = document.createElement('div');
+    titleWrap.className = 'folder-title-center-wrap';
     
     const input = document.createElement('input');
     input.type = 'text';
-    input.maxLength = 10;
+    input.maxLength = (typeof isPremiumUser !== 'undefined' && isPremiumUser) ? 30 : 10;
     input.className = 'selected-folder-input-underline';
     input.value = oldName;
+    titleWrap.appendChild(input);
     
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete-folder-btn-sleek show';
     deleteBtn.title = 'Delete Folder';
-    deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
+    deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
     
     let finished = false;
-    deleteBtn.onmousedown = (e) => e.stopPropagation();
-    deleteBtn.ontouchstart = (e) => e.stopPropagation();
-    deleteBtn.onclick = (e) => {
-        e.stopPropagation();
+    
+    const triggerDelete = (e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
         finished = true;
         handleFolderDelete(e, oldName);
     };
+    
+    deleteBtn.onpointerdown = triggerDelete;
+    deleteBtn.ontouchstart = triggerDelete;
+    deleteBtn.onmousedown = triggerDelete;
+    deleteBtn.onclick = triggerDelete;
     
     const finishRename = () => {
         if (finished) return;
@@ -3075,7 +3114,7 @@ function startFolderInlineRename(oldName, headerEl) {
     
     input.onblur = finishRename;
     
-    headerEl.appendChild(input);
+    headerEl.appendChild(titleWrap);
     headerEl.appendChild(deleteBtn);
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
@@ -5097,10 +5136,10 @@ function showDeleteToast(msg, undoCallback) {
     }, duration);
 }
 
-function toRomanNumeral(num) {
-    if (num < 1 || num > 20) return '';
-    const vals = [10, 9, 5, 4, 1];
-    const syms = ['X', 'IX', 'V', 'IV', 'I'];
+function toRomanNumeral(num, max = 20) {
+    if (num < 1 || num > max) return '';
+    const vals = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+    const syms = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
     let result = '';
     for (let i = 0; i < vals.length; i++) {
         while (num >= vals[i]) {
@@ -5112,15 +5151,17 @@ function toRomanNumeral(num) {
 }
 
 function sanitizeFolderName(raw) {
-    // Convert numbers to Roman numerals (reject numbers > 20)
+    const maxNum = (typeof isPremiumUser !== 'undefined' && isPremiumUser) ? 1000 : 20;
+    const maxChars = (typeof isPremiumUser !== 'undefined' && isPremiumUser) ? 30 : 10;
+    
+    // Convert numbers to Roman numerals (1-20 for free, 1-1000 for premium)
     let name = raw.replace(/\d+/g, (match) => {
         const num = parseInt(match, 10);
-        if (num > 20) return '';
-        if (num < 1) return '';
-        return toRomanNumeral(num);
+        if (num < 1 || num > maxNum) return '';
+        return toRomanNumeral(num, maxNum);
     });
-    // Trim and limit to 10 characters
-    name = name.trim().substring(0, 10);
+    // Trim and limit to max characters
+    name = name.trim().substring(0, maxChars);
     return name;
 }
 
@@ -5689,9 +5730,10 @@ function handlePillShare(e) {
 
 function formatVerseForShare(verseObj) {
     if (!verseObj) return '';
-    const text = (verseObj.text || '').trim();
-    const ref = formatVerseRef(verseObj);
-    return `${text}\n\n- ${ref}\n(VerseFeed)`;
+    const text = (verseObj.text || '').replace(/<[^>]*>?/gm, '').trim();
+    let ref = formatVerseRef(verseObj);
+    ref = ref.replace(/^[\[\(]/, '').replace(/[\]\)]$/, '').replace(/^- /, '').trim();
+    return `${text}\n\n${ref}\n\nVerseFeed`;
 }
 
 async function shareTextFallback(text) {
@@ -5744,7 +5786,7 @@ function drawVersePosterToCanvas(verseObj, isDark) {
     canvas.height = height;
     const ctx = canvas.getContext('2d');
     
-    // Background gradient
+    // Background gradient (clean borderless poster)
     const grad = ctx.createLinearGradient(0, 0, width, height);
     if (isDark) {
         grad.addColorStop(0, '#1F1D1B');
@@ -5756,15 +5798,10 @@ function drawVersePosterToCanvas(verseObj, isDark) {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, width, height);
     
-    // Subtle inner border
-    ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(30, 29, 27, 0.08)';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(50, 50, width - 100, height - 100);
-    
     // Verse Text
     let rawText = verseObj.text || '';
     rawText = rawText.replace(/<span class='author-attr'>.*?<\/span>/gm, '');
-    rawText = rawText.replace(/<[^>]*>?/gm, '');
+    rawText = rawText.replace(/<[^>]*>?/gm, '').trim();
     
     ctx.fillStyle = isDark ? '#f7e7ce' : '#1E1D1B';
     ctx.textAlign = 'center';
@@ -5791,22 +5828,23 @@ function drawVersePosterToCanvas(verseObj, isDark) {
     
     const lineHeight = fontSize * 1.48;
     const totalTextHeight = lines.length * lineHeight;
-    let startY = (height / 2) - (totalTextHeight / 2) - 25;
+    let startY = (height / 2) - (totalTextHeight / 2) - 40;
     
     lines.forEach((line, idx) => {
         ctx.fillText(line, width / 2, startY + (idx * lineHeight));
     });
     
-    // Source Reference
-    const ref = formatVerseRef(verseObj);
+    // Source Reference (No brackets)
+    let ref = formatVerseRef(verseObj);
+    ref = ref.replace(/^[\[\(]/, '').replace(/[\]\)]$/, '').replace(/^- /, '').trim();
     ctx.font = `400 32px "Times New Roman", serif`;
     ctx.fillStyle = isDark ? 'rgba(247, 231, 206, 0.85)' : 'rgba(30, 29, 27, 0.85)';
-    ctx.fillText(ref, width / 2, startY + totalTextHeight + 45);
+    ctx.fillText(ref, width / 2, startY + totalTextHeight + 50);
     
-    // Branding
-    ctx.font = `700 26px "Times New Roman", serif`;
-    ctx.fillStyle = isDark ? 'rgba(247, 231, 206, 0.35)' : 'rgba(30, 29, 27, 0.35)';
-    ctx.fillText('VERSEFEED', width / 2, height - 85);
+    // Branding with clean space
+    ctx.font = `500 24px "Times New Roman", serif`;
+    ctx.fillStyle = isDark ? 'rgba(247, 231, 206, 0.45)' : 'rgba(30, 29, 27, 0.45)';
+    ctx.fillText('VerseFeed', width / 2, startY + totalTextHeight + 110);
     
     return canvas;
 }

@@ -29,6 +29,7 @@ public class MainActivity extends BridgeActivity {
         window.setStatusBarColor(Color.TRANSPARENT);
         window.setNavigationBarColor(Color.TRANSPARENT);
         window.getDecorView().setBackgroundColor(Color.parseColor("#1F1D1B"));
+        window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.parseColor("#1F1D1B")));
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.setStatusBarContrastEnforced(false);

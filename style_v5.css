@@ -849,28 +849,28 @@ h2 {
 }
 
 /* Selected Folder Header & Inline Rename */
-.selected-folder-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.selected-folder-header-bar {
+    position: relative;
     width: 90%;
     max-width: 600px;
-    margin: 16px auto 12px auto;
-    position: relative;
-}
-.selected-folder-header.center-mode {
-    justify-content: center;
-}
-.selected-folder-header.editing-mode {
-    justify-content: center;
-    gap: 12px;
-}
-.selected-folder-title-wrap {
-    cursor: pointer;
+    height: 44px;
+    margin: 14px auto 14px auto;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+.folder-title-center-wrap {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    white-space: nowrap;
     text-align: center;
+    max-width: 75%;
 }
 .selected-folder-title {
     font-size: 1.25rem;
@@ -878,6 +878,9 @@ h2 {
     font-family: var(--font-main);
     color: var(--text-color);
     text-align: center;
+    line-height: 1.2;
+    border-bottom: 2px solid transparent;
+    padding: 2px 4px;
 }
 .selected-folder-input-underline {
     font-size: 1.25rem;
@@ -891,27 +894,36 @@ h2 {
     padding: 2px 4px;
     outline: none;
     text-align: center;
-    max-width: 220px;
+    width: auto;
+    min-width: 100px;
+    max-width: 280px;
+    line-height: 1.2;
 }
 .delete-folder-btn-sleek {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
     background: transparent;
     border: none;
     color: var(--text-color);
-    opacity: 0.65;
+    opacity: 0;
+    pointer-events: none;
     cursor: pointer;
-    padding: 6px;
-    display: none;
+    padding: 8px;
+    display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
     transition: opacity 0.2s ease, transform 0.1s ease;
 }
 .delete-folder-btn-sleek.show {
-    display: flex;
+    opacity: 0.65;
+    pointer-events: auto;
 }
-.delete-folder-btn-sleek:active {
+.delete-folder-btn-sleek.show:active {
     opacity: 1;
-    transform: scale(0.92);
+    transform: translateY(-50%) scale(0.92);
 }
 
 /* --- Folder Buttons & Drag Reordering --- */
@@ -949,17 +961,21 @@ h2 {
 @keyframes audioGenPulse {
     0%, 100% {
         opacity: 1;
+        transform: scale(1);
     }
     50% {
-        opacity: 0.4;
+        opacity: 0.35;
+        transform: scale(0.95);
     }
 }
 
-.speak-btn.loading,
+#speak-general.generating,
+#speak-general.loading,
 .speak-btn.generating,
-.main-play-btn.loading,
-.main-play-btn.generating {
-    animation: audioGenPulse 1.6s ease-in-out infinite !important;
+.speak-btn.loading,
+.main-play-btn.generating,
+.main-play-btn.loading {
+    animation: audioGenPulse 1.3s ease-in-out infinite !important;
 }
 
 .album-square-btn .album-name {
