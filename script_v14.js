@@ -546,11 +546,11 @@ let audioAnalyser = null;
 let waveformAnimFrame = null;
 let unlockTriggered = false;
 
-// Random Ad scheduling (every 6-8 verses)
+// Random Ad scheduling (every 4th to 6th verse)
 let adGapBag = [];
 function getNextAdGap() {
     if (adGapBag.length === 0) {
-        adGapBag = [5, 6, 7]; // 5=6th card, 6=7th card, 7=8th card
+        adGapBag = [3, 4, 5]; // 3=4th card, 4=5th card, 5=6th card
         for (let i = adGapBag.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [adGapBag[i], adGapBag[j]] = [adGapBag[j], adGapBag[i]];
@@ -2517,12 +2517,23 @@ function createFeedCardDOM(verse, extraClass) {
 
         card.classList.add('premium-ad-card');
         textEl.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 24px; padding: 32px 24px; box-sizing: border-box;">
-                <span style="font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 3px; opacity: 0.75; color: var(--text-color);">VerseFeed Premium</span>
-                <div style="font-size: clamp(1.25rem, 4.5vw, 1.7rem); font-weight: 700; color: var(--text-color); font-family: var(--font-main); line-height: 1.45; max-width: 92%;">
-                    ${verse.funnyLine}
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 16px; padding: 20px; box-sizing: border-box; width: 100%;">
+                <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 320px; opacity: 0.6; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-color);">
+                    <span>Sponsored</span>
+                    <span onclick="openPremiumModal()" style="cursor: pointer; text-decoration: underline;">Ad-Free</span>
                 </div>
-                <button onclick="openPremiumModal()" style="transform: none; background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 14px 40px; border-radius: 28px; font-size: 1.05rem; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 8px; box-shadow: var(--glass-shadow); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
+
+                <!-- In-Card Ad Banner Box -->
+                <div id="card-ad-slot" style="width: 100%; max-width: 320px; min-height: 120px; background: rgba(0,0,0,0.15); border: 1px dashed var(--glass-border); border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; gap: 8px;">
+                    <div style="font-size: 1.05rem; font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.35;">
+                        ${verse.funnyLine}
+                    </div>
+                    <div style="font-size: 0.72rem; opacity: 0.55; color: var(--text-color);">
+                        Google AdMob • Banner Unit
+                    </div>
+                </div>
+
+                <button onclick="openPremiumModal()" style="transform: none; background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 12px 32px; border-radius: 24px; font-size: 0.95rem; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 4px; box-shadow: var(--glass-shadow); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
                     Get Premium
                 </button>
             </div>
@@ -2574,6 +2585,13 @@ function renderFeedCard(index, direction = 'none') {
         card.classList.remove('animating');
         card.classList.add('card-center');
         stage.appendChild(card);
+    }
+
+    // Only show banner ad when viewing the Ad Card; hide on normal verses
+    if (verse && verse.isAd) {
+        showAdMobBanner();
+    } else {
+        hideAdMobBanner();
     }
 }
 
