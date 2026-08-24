@@ -2461,26 +2461,26 @@ function getVerseAtIndex(index) {
 // Interstitial ads removed in favor of in-feed AdSense ads
 
 const premiumFunnyLines = [
-    "Buy Premium before the developer is forced to get a boring 9-to-5 job.",
-    "Look, we both know you're gonna keep scrolling. Might as well do it without ads.",
+    "The developer is broke. Buy Premium to make him slightly less broke.",
+    "Buy Premium before the developer is forced to get a boring corporate job.",
     "The developer spent 400 hours coding this app. Show some mercy and get Premium.",
-    "Upgrade to Premium: 0% ads, 100% chance of making an indie developer smile.",
+    "If you buy Premium, the developer promises to eat something other than instant noodles tonight.",
+    "Look, we both know you're gonna keep scrolling. Might as well do it without ads.",
+    "Upgrade to Premium: 0% ads, 100% chance of making an indie developer do a happy dance.",
     "You spent $5 on a coffee that lasted 10 minutes. Premium lasts forever. Do the math.",
-    "Help an indie developer buy groceries so he doesn't have to live on instant noodles.",
+    "Help an indie developer buy groceries so he can keep coding at 3 AM.",
+    "Legend says every time someone buys Premium, a developer gets 8 hours of sleep.",
     "Buying Premium won't fix your sleep schedule, but at least your feed will look clean.",
-    "One tap to remove all ads and support independent software development.",
-    "Legend says every time someone buys Premium, an indie dev gets 8 hours of sleep.",
-    "Ad-free experience: Because popups in 2026 are just unnecessary drama.",
-    "Support human developers before AI completely takes over everything.",
-    "Treat yourself to Premium. It's cheaper than a sandwich and lasts forever.",
-    "Every time you upgrade, a developer somewhere does a little victory dance.",
+    "One tap to remove all ads and prevent the developer from having an existential crisis.",
+    "The developer's bank account is currently crying. Tap below to dry its tears.",
+    "Your attention is valuable. Don't sell it to ads when Premium is right here.",
+    "Support human developers before AI replaces all of us and charges double.",
+    "Treat yourself to Premium. It's cheaper than a pizza and doesn't give you heartburn.",
+    "Every time you upgrade, an indie developer celebrates with a fresh cup of coffee.",
+    "Ad-free reading: Because popups in 2026 are just unnecessary emotional damage.",
     "Clean aesthetics, zero interruptions, and maximum peace of mind. Get Premium.",
-    "Your attention is valuable. Protect it from ads with VerseFeed Premium.",
-    "Upgrade to Premium: The most elegant way to support indie app development.",
     "Unlock all HD voice narrations and unlimited folders in one single tap.",
-    "Say goodbye to interruptions and hello to pure, uninterrupted reading.",
-    "Keep your feed minimalistic, distraction-free, and pristine with Premium.",
-    "Zero ads, premium voices, and unlimited custom folders forever."
+    "Keep your feed minimalistic, distraction-free, and pristine with Premium."
 ];
 
 let funnyLinesBag = [];
@@ -4799,11 +4799,26 @@ function stopWaveformVisualizer(forceHide = false) {
     }
 }
 
+let sessionUserPremiumAngle = null;
+
 function applyRandomPremiumAngle() {
+    if (sessionUserPremiumAngle === null) {
+        // 60% straight (0deg), 40% angled randomly between -3deg and +3deg
+        const isAngled = Math.random() > 0.60;
+        if (isAngled) {
+            const sign = Math.random() > 0.5 ? 1 : -1;
+            const mag = (Math.random() * 1.8 + 1.2); // between 1.2deg and 3.0deg
+            sessionUserPremiumAngle = (sign * mag).toFixed(1);
+        } else {
+            sessionUserPremiumAngle = '0';
+        }
+    }
+
     const btn = document.getElementById('user-premium-btn');
     if (btn) {
-        btn.style.setProperty('--prem-angle', `0deg`);
-        btn.style.transform = `rotate(0deg)`;
+        btn.style.setProperty('--prem-angle', `${sessionUserPremiumAngle}deg`);
+        btn.style.transform = `rotate(${sessionUserPremiumAngle}deg)`;
+        btn.style.transition = 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
     }
 }
 
@@ -5166,10 +5181,10 @@ function toRomanNumeral(num, max = 20) {
 }
 
 function sanitizeFolderName(raw) {
-    const maxNum = (typeof isPremiumUser !== 'undefined' && isPremiumUser) ? 49 : 20;
+    const maxNum = (typeof isPremiumUser !== 'undefined' && isPremiumUser) ? 49 : 9;
     const maxChars = (typeof isPremiumUser !== 'undefined' && isPremiumUser) ? 30 : 10;
     
-    // Convert numbers to Roman numerals (1-20 for free, 1-49 for premium)
+    // Convert numbers to Roman numerals (1-9 for free, 1-49 for premium)
     let name = raw.replace(/\d+/g, (match) => {
         const num = parseInt(match, 10);
         if (num < 1 || num > maxNum) return '';
