@@ -1250,6 +1250,12 @@ async function playText(text, context) {
         .replace(/peace be upon him/gi, 'upon him')
         .replace(/ﷺ/g, 'upon him')
         .replace(/\(pbuh\)/gi, 'upon him');
+
+    // Convert all-caps words (like GOD, LORD, ALLAH, HEAVEN) to Titlecase so phonemizer reads them as words instead of spelling out acronym letters (e.g. G-O-D)
+    sanitizedText = sanitizedText.replace(/\b[A-Z]{2,}\b/g, (match) => {
+        return match.charAt(0) + match.slice(1).toLowerCase();
+    });
+
     sanitizedText = ", " + sanitizedText
         .replace(/\b[iI]\.[eE]\./g, 'that is')
         .replace(/\b[iI],[eE]\b/g, 'that is')
@@ -1333,15 +1339,17 @@ async function playText(text, context) {
         if (!piperSession) { fallbackTTS(); return; }
         isQueueGenerating = true;
         processAudioQueue(combinedChunks, generationId, fallbackTTS);
-    }, 30);
+    }, 20);
 }
 
 async function processAudioQueue(chunks, generationId, fallbackTTS) {
+    let hasStartedPlayback = false;
+
     for (let i = 0; i < chunks.length; i++) {
         if (generationId !== currentGenerationId) break;
         
         // Yield cleanly to browser animation frame loop to ensure 60fps rendering
-        await new Promise(r => requestAnimationFrame(() => setTimeout(r, 10)));
+        await new Promise(r => requestAnimationFrame(() => setTimeout(r, 8)));
         if (generationId !== currentGenerationId) break;
         
         try {
@@ -1379,6 +1387,17 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
 
             audioChunkQueue.push(paddedBuffer);
             
+            // Immediate Pipelined Playback: Start playing chunk 0 instantly while subsequent chunks synthesize in background
+            if (!hasStartedPlayback && audioChunkQueue.length > 0 && generationId === currentGenerationId) {
+                hasStartedPlayback = true;
+                isGenerating = false;
+                const btn = document.getElementById('speak-general');
+                if (btn) btn.classList.remove('loading');
+                updateSpeakButton('speak-general');
+                startWaveformVisualizer();
+                startAudioPlayback(0, generationId);
+            }
+            
         } catch (err) {
             console.error("Piper generation error on chunk " + i, err);
             if (i === 0 && generationId === currentGenerationId) fallbackTTS();
@@ -1387,17 +1406,14 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
     }
     
     isQueueGenerating = false;
-    if (generationId === currentGenerationId && audioChunkQueue.length > 0) {
+    if (generationId === currentGenerationId && !hasStartedPlayback && audioChunkQueue.length > 0) {
+        hasStartedPlayback = true;
+        isGenerating = false;
         const btn = document.getElementById('speak-general');
         if (btn) btn.classList.remove('loading');
-        isGenerating = false;
-        
-        setTimeout(() => {
-            if (generationId === currentGenerationId) {
-                startWaveformVisualizer();
-                startAudioPlayback(0, generationId);
-            }
-        }, 50);
+        updateSpeakButton('speak-general');
+        startWaveformVisualizer();
+        startAudioPlayback(0, generationId);
     }
 }
 
@@ -1405,6 +1421,11 @@ function startAudioPlayback(offset, generationId) {
     if (generationId !== currentGenerationId) return;
     const btn = document.getElementById('speak-general');
     if (btn) btn.classList.remove('loading');
+
+    const ctx = getAudioContext();
+    if (ctx.state === 'suspended') {
+        ctx.resume().catch(e => console.error("AudioContext resume failed:", e));
+    }
 
     if (playingQueueIndex >= audioChunkQueue.length) {
         if (isQueueGenerating) {
@@ -1462,7 +1483,6 @@ function startAudioPlayback(offset, generationId) {
     currentAudioBuffer = audioChunkQueue[playingQueueIndex];
     if (!currentAudioBuffer || isPaused) return;
 
-    const ctx = getAudioContext();
     if (ctx.state === 'suspended') ctx.resume();
 
     const source = ctx.createBufferSource();
@@ -2441,55 +2461,30 @@ const premiumFunnyLines = [
     "Buy premium to be blessed forever.",
     "If you buy VerseFeed Premium, you will gain +37 points of instant good luck.",
     "The developer of this app is broke. Buy premium to make him slightly less broke.",
-    "Buying premium is scientifically proven to make your soul 42% lighter.",
-    "Our AI voice narrator is working overtime. Feed him with a premium subscription.",
-    "Unlock premium: Your future self will look back and say, that was the best investment ever.",
-    "Guaranteed 100% halal, kosher, and spiritually certified premium vibes.",
-    "Buy premium today to unlock infinite good karma and zero interruptions.",
-    "They say money can't buy inner peace, but it can remove all ads from your feed.",
-    "Even angels recommend upgrading to premium. Please don't fact-check that.",
-    "Support indie developers before the robots replace all of us.",
-    "Legend says every time someone buys premium, a developer gets a full night of sleep.",
-    "Warning: VerseFeed Premium may cause sudden moments of profound enlightenment.",
-    "Buy premium or the developer might have to survive on instant noodles for another month.",
-    "Upgrade now. Your spiritual feed deserves first-class treatment.",
-    "Ad-free reading, HD natural voices, and an indie dev who will genuinely celebrate your support.",
-    "Invest in your soul and help an indie dev pay his electricity bill at the same time.",
-    "Zero ads, pure verses, and instant VIP status in the spiritual realm.",
-    "Do it for the inner peace. And maybe for the broke developer too.",
-    "Buying premium won't solve all your problems, but your daily verses will sound angelic.",
-    "Upgrade to Premium: No ads, just pure unfiltered wisdom directly to your consciousness.",
-    "Skip the ads, keep the blessings. Upgrade to VerseFeed Premium today.",
-    "You scrolled 8 verses. You've unlocked the secret privilege of buying premium.",
-    "Treat yourself to premium. It's cheaper than a single coffee latte.",
-    "The monks in the mountains didn't have ads. Why should you? Go premium.",
-    "Support human creativity over soulless corporate algorithms. Get Premium.",
-    "An ad-free experience is the highest form of daily self-care.",
-    "Unlock all HD voice narrators. Because Alan sounds like he has a PhD in wisdom.",
-    "Premium members are 73% more likely to find inner serenity during traffic jams.",
-    "One subscription, zero ads, unlimited wisdom. Even King Solomon would approve.",
-    "Don't let ads disrupt your meditation. Tap below and transcend to premium.",
-    "Your spiritual journey without ads is like a highway with no speed bumps.",
-    "Feed your mind with pristine verses, unbothered by commercial interruptions.",
-    "Upgrade to premium: It's good for your karma and great for your battery life.",
-    "Unlock the ultimate spiritual toolkit: all voices, custom topics, and zero ads.",
-    "Think of premium as a tiny donation to keep VerseFeed accessible and ad-free.",
-    "The path to enlightenment does not include pop-up ads. Upgrade now.",
-    "Every time you upgrade to premium, an angel gets a tiny harp upgrade.",
-    "No ads, all HD voices, custom selections. The developer will personally say a prayer for you.",
-    "Why settle for standard when you can read ancient philosophy in pristine HD audio?",
-    "Your daily dose of scripture, delivered with zero clutter. Get Premium.",
-    "Ad-free reading is a modern spiritual blessing. Claim yours now.",
-    "Give your soul the VIP treatment it deserves. VerseFeed Premium awaits.",
-    "Spiritual wisdom is priceless, but removing ads is only a couple bucks.",
-    "Level up your mindfulness. VerseFeed Premium gives you uninterrupted flow.",
-    "If you upgrade right now, you get zero ads and 100% bragging rights in heaven.",
-    "No more interruptions. Just pure timeless wisdom from all religions.",
-    "Your attention is sacred. Protect it from ads with VerseFeed Premium.",
-    "Upgrade to Premium: The fastest way to support independent developers and clean design.",
-    "Make your feed as peaceful as a quiet dawn in the Himalayas. Go Premium.",
-    "Join the premium circle: HD voice narrations, unlimited custom topics, no ads ever.",
-    "You have good taste in spiritual apps. Complete the vibe with VerseFeed Premium."
+    "The ancient prophets didn't have to watch ads between revelations. Why should you?",
+    "Buy Premium before the developer is forced to get a real corporate job.",
+    "You've scrolled 8 verses. Even Moses took a break after 10 commandments. Upgrade to Premium.",
+    "Legend says buying Premium adds +10 to your spiritual aura and +5 to your patience.",
+    "God gave you free will. Use it to remove these ads.",
+    "If you buy Premium, the developer promises to eat something other than instant noodles tonight.",
+    "Look, we both know you're gonna keep scrolling. Might as well do it without ads.",
+    "The developer spent 400 hours coding this app just so you could look at this ad card. Show some mercy.",
+    "Spiritual enlightenment is free. Server bills and pizza are unfortunately not. Get Premium.",
+    "Even King Solomon in all his wisdom would have bought the subscription.",
+    "Upgrade to Premium: 0% ads, 100% chance of making the developer smile at his phone screen.",
+    "You're seeking inner peace, and here I am asking for a couple bucks. The duality of mankind.",
+    "Buying Premium won't guarantee heaven, but at least your feed will look divine.",
+    "Do you really want an ad interrupting your spiritual transcendence? Didn't think so.",
+    "Buddha sat under the Bodhi tree without ads. Be like Buddha. Get Premium.",
+    "Scientists say upgrading to Premium makes your feed 42% more aesthetically pleasing.",
+    "Help an indie developer buy groceries so he can keep adding holy texts at 3 AM.",
+    "Ad-free scriptures: Because holy verses hit different without popups.",
+    "Every time someone buys Premium, the developer does a happy little dance in his room.",
+    "You spent $5 on a coffee that lasted 10 minutes. Premium lasts forever. Do the math.",
+    "No ads, all HD voices, custom folder names. Even angels would approve of this upgrade.",
+    "Don't let commercial breaks ruin your sacred flow. Go Premium.",
+    "Buy Premium and unlock bragging rights in this life and potentially the next.",
+    "Your attention is sacred. Don't sell it to ads when Premium is right here."
 ];
 
 let funnyLinesBag = [];
@@ -6653,7 +6648,6 @@ function getLocalState() {
         createdAlbums: JSON.parse(localStorage.getItem('createdAlbums') || '[]'),
         bookMarkedVerse: JSON.parse(localStorage.getItem('bookMarkedVerse') || '{}'),
         globalSelectedRels: JSON.parse(localStorage.getItem('globalSelectedRels') || 'null'),
-        darkModeEnabled: localStorage.getItem('darkModeEnabled') === 'true',
         selectedVoice: localStorage.getItem('selectedVoice') || 'en_GB-alan-medium',
         ttsAnnounceSource: localStorage.getItem('ttsAnnounceSource') === 'true',
         ttsRandomVoice: localStorage.getItem('ttsRandomVoice') === 'true',
@@ -6726,17 +6720,6 @@ function applyRemoteFirestoreData(remoteData) {
             }
         }
         
-        if (typeof remoteData.darkModeEnabled !== 'undefined') {
-            const newDark = remoteData.darkModeEnabled === true || remoteData.darkModeEnabled === 'true';
-            if (darkModeEnabled !== newDark) {
-                darkModeEnabled = newDark;
-                localStorage.setItem('darkModeEnabled', darkModeEnabled);
-                if (darkModeEnabled) document.body.setAttribute('data-theme', 'dark');
-                else document.body.removeAttribute('data-theme');
-                updateDarkModeIcon(darkModeEnabled);
-                updateVisualizerThemeCache();
-            }
-        }
         if (remoteData.selectedVoice && selectedVoice !== remoteData.selectedVoice) {
             selectedVoice = remoteData.selectedVoice;
             localStorage.setItem('selectedVoice', selectedVoice);
