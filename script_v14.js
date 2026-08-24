@@ -2517,24 +2517,15 @@ function createFeedCardDOM(verse, extraClass) {
 
         card.classList.add('premium-ad-card');
         textEl.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; text-align: center; padding: 24px 20px; box-sizing: border-box; width: 100%;">
-                <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 440px; opacity: 0.65; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--text-color);">
-                    <span>Featured Sponsor</span>
-                    <span onclick="openPremiumModal()" style="cursor: pointer; text-decoration: underline;">Go Ad-Free</span>
-                </div>
-
-                <!-- Rich In-Card Sponsor Box -->
-                <div id="card-ad-slot" style="width: 100%; max-width: 440px; flex: 1; margin: 16px 0; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box; gap: 14px; box-shadow: inset 0 1px 2px rgba(255,255,255,0.05);">
-                    <span style="font-size: 0.80rem; font-weight: 800; text-transform: uppercase; letter-spacing: 3px; opacity: 0.7; color: var(--text-color);">VerseFeed Ad System</span>
-                    <div style="font-size: clamp(1.15rem, 4vw, 1.45rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.4; max-width: 90%;">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; text-align: center; padding: 28px 20px; box-sizing: border-box; width: 100%;">
+                <!-- Clean In-Card Ad Box -->
+                <div id="card-ad-slot" style="width: 100%; max-width: 440px; flex: 1; margin: 8px 0 16px 0; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box; gap: 16px; box-shadow: inset 0 1px 2px rgba(255,255,255,0.05);">
+                    <div style="font-size: clamp(1.2rem, 4.2vw, 1.55rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.45; max-width: 92%;">
                         ${verse.funnyLine}
                     </div>
-                    <div style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; opacity: 0.5; color: var(--text-color); margin-top: 4px;">
-                        <span>Google AdMob • Unit #6965598630</span>
-                    </div>
                 </div>
 
-                <button onclick="openPremiumModal()" style="transform: none; background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 14px 38px; border-radius: 28px; font-size: 1.0rem; font-weight: 700; cursor: pointer; font-family: inherit; box-shadow: var(--glass-shadow); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
+                <button onclick="openPremiumModal()" style="transform: none; background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 14px 40px; border-radius: 28px; font-size: 1.0rem; font-weight: 700; cursor: pointer; font-family: inherit; box-shadow: var(--glass-shadow); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
                     Get Premium
                 </button>
             </div>
@@ -7118,6 +7109,7 @@ async function initRevenueCat() {
 
 const ADMOB_APP_ID = 'ca-app-pub-5829734517659644~7299200191';
 const ADMOB_BANNER_ID = 'ca-app-pub-5829734517659644/6965598630';
+const ADMOB_INTERSTITIAL_ID = 'ca-app-pub-5829734517659644/7316952427';
 
 let isAdMobReady = false;
 let isBannerShowing = false;
@@ -7130,9 +7122,9 @@ async function showAdMobBanner() {
             const { AdMob } = window.Capacitor.Plugins;
             await AdMob.showBanner({
                 adId: ADMOB_BANNER_ID,
-                adSize: 'ADAPTIVE_BANNER',
-                position: 'BOTTOM_CENTER',
-                margin: 70,
+                adSize: 'MEDIUM_RECTANGLE',
+                position: 'CENTER',
+                margin: 0,
                 isTesting: false
             });
             isBannerShowing = true;
