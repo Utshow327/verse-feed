@@ -2461,26 +2461,26 @@ function getVerseAtIndex(index) {
 }
 
 const premiumFunnyLines = [
-    "Congratulations on reading 10 verses. You're practically enlightened now. Buy Premium.",
-    "We know you're seeking inner peace. Unfortunately, inner peace requires paying our server bills.",
-    "You have infinite patience for endless scrolling, but zero patience for a small upgrade. Fascinating.",
-    "Rumor has it that if you scroll 500 more verses without upgrading, absolutely nothing happens.",
-    "You spent $7 on iced coffee that gave you anxiety. Spend a couple bucks here to fix your feed.",
-    "Ah yes, another free user seeking eternal wisdom on a strict zero-dollar budget. We respect the hustle.",
-    "Look at you, resisting the upgrade button like it's a spiritual trial. It's not. Just tap it.",
-    "We could've shown you a 30-second casino ad with loud music, but we showed you this instead. You're welcome.",
-    "Is reading this ad card part of your daily meditation ritual? Get Premium and save some time.",
-    "The developer spent months perfecting typography just for you to squint at this ad. Truly poetic.",
-    "If avoiding app purchases was an Olympic sport, you'd be bringing home the gold medal.",
-    "You're one tap away from an ad-free universe, yet here you are, reading every single syllable of this.",
-    "Enlightenment is free. High-speed cloud servers, unfortunately, are billed monthly in USD.",
-    "Don't worry, this ad card isn't judging your spending habits. The developer, however, might be.",
-    "Every time you scroll past this, an indie developer sighs and drinks lukewarm tap water.",
-    "You've mastered mindfulness, breathing, and ad-skipping. Time to master upgrading to Premium.",
-    "Still reading? At this point, you're practically dating this ad card. Make it official with Premium.",
-    "Swipe up to ignore this ad. Swipe down to regret it. Tap below to finally get some peace.",
-    "Your attention span is worth millions. Don't waste it staring at this awkward placeholder.",
-    "Support human developers before AI replaces all of us and charges a subscription for breathing."
+    "Buy Premium and the developer will literally do a happy dance.",
+    "Spiritual peace, but make it 100% ad-free.",
+    "Ads in your zen zone? Absolutely not. Go Premium.",
+    "One small tap for you, one giant leap for an indie developer.",
+    "Elevate your vibe to total ad-free tranquility.",
+    "Feed your soul, not the advertising algorithms.",
+    "Unlock all natural HD voices and relax forever.",
+    "Upgrade to Premium: Zero ads, maximum cozy vibes.",
+    "Your daily dose of wisdom, now with zero commercial breaks.",
+    "Give your eyes a vacation with clean, ad-free reading.",
+    "Treat yourself to Premium like you treat yourself to snacks.",
+    "Legend says Premium makes holy verses sound 10x more majestic.",
+    "Keep the spiritual flow going with zero interruptions.",
+    "Uninterrupted peace of mind is just one tap away.",
+    "Support indie apps and keep the good vibes flowing.",
+    "Less distraction, more reflection. Get Premium.",
+    "Keep your feed pure, clean, and beautifully minimal.",
+    "Your attention is sacred. Protect it with VerseFeed Premium.",
+    "All HD voices, unlimited folders, and pure tranquility.",
+    "A cozy, distraction-free sanctuary for your daily verses."
 ];
 
 let funnyLinesBag = [];
