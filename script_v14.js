@@ -38,6 +38,7 @@ try {
 let googleAccessToken = null;
 let cloudSyncTimeout = null;
 let isRestoringState = false;
+var sessionUserPremiumAngle = null;
 
 function getFirebaseCurrentUid() {
     try {
@@ -4798,8 +4799,6 @@ function stopWaveformVisualizer(forceHide = false) {
         }, 600);
     }
 }
-
-let sessionUserPremiumAngle = null;
 
 function applyRandomPremiumAngle() {
     if (sessionUserPremiumAngle === null) {
