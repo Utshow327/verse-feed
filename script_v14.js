@@ -1131,7 +1131,7 @@ let currentGenerationId = 0;
 let audioChunkQueue = [];
 let playingQueueIndex = 0;
 
-function stopAudio(preserveAutoMode = false, keepVisualizer = false) {
+function stopAudio(preserveAutoMode = false, keepVisualizer = false, isTransitioning = false) {
     currentGenerationId++;
     clearTimeout(playDebounceTimer);
     clearTimeout(autoNextTimeout);
@@ -1147,24 +1147,27 @@ function stopAudio(preserveAutoMode = false, keepVisualizer = false) {
         speechSynthesis.cancel();
         currentUtterance = null;
     }
-    isSpeaking = false;
-    isPaused = false;
-    isGenerating = false;
-    isQueueGenerating = false;
     audioChunkQueue = [];
     playingQueueIndex = 0;
     currentAudioBuffer = null;
     currentAudioPausedAt = 0;
-    if (!preserveAutoMode) {
-        autoMode = false;
-        autoNextBook = false;
+    
+    if (!isTransitioning) {
+        isSpeaking = false;
+        isPaused = false;
+        isGenerating = false;
+        isQueueGenerating = false;
+        if (!preserveAutoMode) {
+            autoMode = false;
+            autoNextBook = false;
+        }
+        if (!keepVisualizer && !preserveAutoMode && !autoMode && !autoNextBook) {
+            stopWaveformVisualizer(true);
+        }
+        updateSpeakIcons();
+        const btn = document.getElementById('speak-general');
+        if (btn) btn.classList.remove('loading');
     }
-    if (!keepVisualizer && !preserveAutoMode && !autoMode && !autoNextBook) {
-        stopWaveformVisualizer(true);
-    }
-    updateSpeakIcons();
-    const btn = document.getElementById('speak-general');
-    if (btn) btn.classList.remove('loading');
 }
 
 
@@ -1190,8 +1193,8 @@ let autoNextTimeout = null;
 let lastRandomVoiceId = null;
 
 async function playText(text, context) {
-    // Stop any current audio FIRST, which increments currentGenerationId and resets UI state
-    stopAudio(true, true);
+    // Stop any current audio with transition flag so UI remains in continuous generating/playing state
+    stopAudio(true, true, true);
     // NOW capture the new generationId (after stop bumped it)
     const generationId = currentGenerationId;
 
@@ -2458,33 +2461,26 @@ function getVerseAtIndex(index) {
 // Interstitial ads removed in favor of in-feed AdSense ads
 
 const premiumFunnyLines = [
-    "Buy premium to be blessed forever.",
-    "If you buy VerseFeed Premium, you will gain +37 points of instant good luck.",
-    "The developer of this app is broke. Buy premium to make him slightly less broke.",
-    "The ancient prophets didn't have to watch ads between revelations. Why should you?",
-    "Buy Premium before the developer is forced to get a real corporate job.",
-    "You've scrolled 8 verses. Even Moses took a break after 10 commandments. Upgrade to Premium.",
-    "Legend says buying Premium adds +10 to your spiritual aura and +5 to your patience.",
-    "God gave you free will. Use it to remove these ads.",
-    "If you buy Premium, the developer promises to eat something other than instant noodles tonight.",
+    "Buy Premium before the developer is forced to get a boring 9-to-5 job.",
     "Look, we both know you're gonna keep scrolling. Might as well do it without ads.",
-    "The developer spent 400 hours coding this app just so you could look at this ad card. Show some mercy.",
-    "Spiritual enlightenment is free. Server bills and pizza are unfortunately not. Get Premium.",
-    "Even King Solomon in all his wisdom would have bought the subscription.",
-    "Upgrade to Premium: 0% ads, 100% chance of making the developer smile at his phone screen.",
-    "You're seeking inner peace, and here I am asking for a couple bucks. The duality of mankind.",
-    "Buying Premium won't guarantee heaven, but at least your feed will look divine.",
-    "Do you really want an ad interrupting your spiritual transcendence? Didn't think so.",
-    "Buddha sat under the Bodhi tree without ads. Be like Buddha. Get Premium.",
-    "Scientists say upgrading to Premium makes your feed 42% more aesthetically pleasing.",
-    "Help an indie developer buy groceries so he can keep adding holy texts at 3 AM.",
-    "Ad-free scriptures: Because holy verses hit different without popups.",
-    "Every time someone buys Premium, the developer does a happy little dance in his room.",
+    "The developer spent 400 hours coding this app. Show some mercy and get Premium.",
+    "Upgrade to Premium: 0% ads, 100% chance of making an indie developer smile.",
     "You spent $5 on a coffee that lasted 10 minutes. Premium lasts forever. Do the math.",
-    "No ads, all HD voices, custom folder names. Even angels would approve of this upgrade.",
-    "Don't let commercial breaks ruin your sacred flow. Go Premium.",
-    "Buy Premium and unlock bragging rights in this life and potentially the next.",
-    "Your attention is sacred. Don't sell it to ads when Premium is right here."
+    "Help an indie developer buy groceries so he doesn't have to live on instant noodles.",
+    "Buying Premium won't fix your sleep schedule, but at least your feed will look clean.",
+    "One tap to remove all ads and support independent software development.",
+    "Legend says every time someone buys Premium, an indie dev gets 8 hours of sleep.",
+    "Ad-free experience: Because popups in 2026 are just unnecessary drama.",
+    "Support human developers before AI completely takes over everything.",
+    "Treat yourself to Premium. It's cheaper than a sandwich and lasts forever.",
+    "Every time you upgrade, a developer somewhere does a little victory dance.",
+    "Clean aesthetics, zero interruptions, and maximum peace of mind. Get Premium.",
+    "Your attention is valuable. Protect it from ads with VerseFeed Premium.",
+    "Upgrade to Premium: The most elegant way to support indie app development.",
+    "Unlock all HD voice narrations and unlimited folders in one single tap.",
+    "Say goodbye to interruptions and hello to pure, uninterrupted reading.",
+    "Keep your feed minimalistic, distraction-free, and pristine with Premium.",
+    "Zero ads, premium voices, and unlimited custom folders forever."
 ];
 
 let funnyLinesBag = [];
@@ -2584,8 +2580,16 @@ function renderFeedCard(index, direction = 'none') {
 }
 
 function nextCard(isAuto = false) {
-    const wasPlaying = isSpeaking && !isPaused;
-    stopAudio(wasPlaying || isAuto, wasPlaying || isAuto);
+    const wasPlaying = (isSpeaking && !isPaused) || isGenerating;
+    if (wasPlaying || isAuto) {
+        stopAudio(true, true, true);
+        isGenerating = true;
+        isSpeaking = true;
+        isPaused = false;
+        updateSpeakButton('speak-general');
+    } else {
+        stopAudio();
+    }
 
     currentVerseIndex.general++;
     renderFeedCard(currentVerseIndex.general, 'next');
@@ -2604,7 +2608,7 @@ function nextCard(isAuto = false) {
             setTimeout(() => {
                 playText(spokenText, 'feed');
                 autoMode = true;
-            }, 400); // Allow card animation to finish
+            }, 300); // Allow card animation to finish
         } else if (newVerse && newVerse.isAd) {
             if (!newVerse.funnyLine) {
                 newVerse.funnyLine = getNextFunnyLine();
@@ -2613,7 +2617,7 @@ function nextCard(isAuto = false) {
             setTimeout(() => {
                 playText(adSpokenText, 'feed');
                 autoMode = true;
-            }, 400);
+            }, 300);
         }
     } else {
         deselectVerse();
@@ -2621,8 +2625,16 @@ function nextCard(isAuto = false) {
 }
 
 function prevCard() {
-    const wasPlaying = isSpeaking && !isPaused;
-    stopAudio(wasPlaying, wasPlaying);
+    const wasPlaying = (isSpeaking && !isPaused) || isGenerating;
+    if (wasPlaying) {
+        stopAudio(true, true, true);
+        isGenerating = true;
+        isSpeaking = true;
+        isPaused = false;
+        updateSpeakButton('speak-general');
+    } else {
+        stopAudio();
+    }
 
     if (currentVerseIndex.general > 0) {
         currentVerseIndex.general--;
@@ -5154,10 +5166,10 @@ function toRomanNumeral(num, max = 20) {
 }
 
 function sanitizeFolderName(raw) {
-    const maxNum = (typeof isPremiumUser !== 'undefined' && isPremiumUser) ? 1000 : 20;
+    const maxNum = (typeof isPremiumUser !== 'undefined' && isPremiumUser) ? 49 : 20;
     const maxChars = (typeof isPremiumUser !== 'undefined' && isPremiumUser) ? 30 : 10;
     
-    // Convert numbers to Roman numerals (1-20 for free, 1-1000 for premium)
+    // Convert numbers to Roman numerals (1-20 for free, 1-49 for premium)
     let name = raw.replace(/\d+/g, (match) => {
         const num = parseInt(match, 10);
         if (num < 1 || num > maxNum) return '';
