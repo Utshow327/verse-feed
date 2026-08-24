@@ -19,6 +19,9 @@ if (typeof firebase !== 'undefined') {
         }
         if (typeof firebase.firestore === 'function') {
             db = firebase.firestore();
+            try {
+                db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+            } catch(err) {}
         }
     } catch(e) {
         console.warn("Early Firebase init notice:", e);
