@@ -795,16 +795,30 @@ async function initApp() {
             setupGestures();
             setupWheelListeners();
 
+            function dismissLoadingAndShowApp() {
+                const loadingScreen = document.getElementById('loading');
+                if (!loadingScreen || loadingScreen.style.display === 'none') {
+                    document.body.classList.add('app-ready');
+                    appLoaded = true;
+                    return;
+                }
+                // Step 1: Smoothly fade out loading screen completely
+                loadingScreen.classList.add('loaded');
+                
+                // Step 2: ONLY after loading screen fade-out has completely finished (400ms), hide it and fade in the app
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                    document.body.classList.add('app-ready');
+                    appLoaded = true;
+                }, 420);
+            }
+
             // Safety Watchdog: Guarantee loading overlay is dismissed even on slowest devices
             setTimeout(() => {
                 const loadingScreen = document.getElementById('loading');
                 if (loadingScreen && loadingScreen.style.display !== 'none') {
                     console.log('Safety watchdog dismissing loading overlay');
-                    loadingScreen.classList.add('loaded');
-                    setTimeout(() => {
-                        loadingScreen.style.display = 'none';
-                    }, 650);
-                    appLoaded = true;
+                    dismissLoadingAndShowApp();
                 }
             }, 3000);
 
@@ -814,29 +828,13 @@ async function initApp() {
                 goTo('verse-feed');
                 // Ensure browser finishes layout and initial DOM painting
                 await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-                appLoaded = true;
-
-                const loadingScreen = document.getElementById('loading');
-                if (loadingScreen) {
-                    loadingScreen.classList.add('loaded');
-                    setTimeout(() => {
-                        loadingScreen.style.display = 'none';
-                    }, 650);
-                }
+                dismissLoadingAndShowApp();
             }).catch(async err => {
                 console.error("Data load error:", err);
                 initializeVerseFeed();
                 goTo('verse-feed');
                 await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-                appLoaded = true;
-
-                const loadingScreen = document.getElementById('loading');
-                if (loadingScreen) {
-                    loadingScreen.classList.add('loaded');
-                    setTimeout(() => {
-                        loadingScreen.style.display = 'none';
-                    }, 650);
-                }
+                dismissLoadingAndShowApp();
             });
         }, 10);
 

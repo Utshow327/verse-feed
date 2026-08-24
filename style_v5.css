@@ -100,6 +100,17 @@ html, body {
     transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s ease;
 }
 
+/* Sequential App Fade-In: Keep app content hidden until loading screen has fully faded out */
+body:not(.app-ready) > *:not(#loading):not(#developer-error-panel):not(script) {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+body.app-ready > *:not(#loading):not(#developer-error-panel):not(script) {
+    opacity: 1;
+    transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .versefeed-loader {
     display: flex;
     align-items: center;
