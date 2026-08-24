@@ -2463,26 +2463,27 @@ function getVerseAtIndex(index) {
 // Interstitial ads removed in favor of in-feed AdSense ads
 
 const premiumFunnyLines = [
-    "The developer is broke. Buy Premium to make him slightly less broke.",
-    "Buy Premium before the developer is forced to get a boring corporate job.",
-    "The developer spent 400 hours coding this app. Show some mercy and get Premium.",
-    "If you buy Premium, the developer promises to eat something other than instant noodles tonight.",
-    "Look, we both know you're gonna keep scrolling. Might as well do it without ads.",
-    "Upgrade to Premium: 0% ads, 100% chance of making an indie developer do a happy dance.",
-    "You spent $5 on a coffee that lasted 10 minutes. Premium lasts forever. Do the math.",
-    "Help an indie developer buy groceries so he can keep coding at 3 AM.",
-    "Legend says every time someone buys Premium, a developer gets 8 hours of sleep.",
-    "Buying Premium won't fix your sleep schedule, but at least your feed will look clean.",
-    "One tap to remove all ads and prevent the developer from having an existential crisis.",
-    "The developer's bank account is currently crying. Tap below to dry its tears.",
-    "Your attention is valuable. Don't sell it to ads when Premium is right here.",
-    "Support human developers before AI replaces all of us and charges double.",
-    "Treat yourself to Premium. It's cheaper than a pizza and doesn't give you heartburn.",
-    "Every time you upgrade, an indie developer celebrates with a fresh cup of coffee.",
-    "Ad-free reading: Because popups in 2026 are just unnecessary emotional damage.",
-    "Clean aesthetics, zero interruptions, and maximum peace of mind. Get Premium.",
-    "Unlock all HD voice narrations and unlimited folders in one single tap.",
-    "Keep your feed minimalistic, distraction-free, and pristine with Premium."
+    "The developer is broke. Fix him.",
+    "You've scrolled 15 verses. Buy Premium already.",
+    "Free users get ads. Premium users get inner peace.",
+    "Stop staring at this card and just get Premium.",
+    "Your wallet won't even notice. The developer will.",
+    "Tired of this card? Premium deletes it forever.",
+    "One dollar. Zero ads. Endless tranquility.",
+    "Still here? Just buy it, we both know you want to.",
+    "The developer skipped lunch for this app. Help him out.",
+    "Unlock all HD voices before the developer gives up.",
+    "Zero ads. Pure aesthetics. One single tap.",
+    "Upgrade to Premium or keep reading this awkward text.",
+    "Are you really gonna let an ad interrupt your peace?",
+    "Legend says Premium users sleep 2 hours better.",
+    "Cut the noise. Keep the verses. Go Premium.",
+    "Support indie software so robots don't win.",
+    "Less ads, more wisdom. Get Premium.",
+    "Your attention is too expensive to waste on ads.",
+    "Be honest: you've wasted money on worse things.",
+    "Instant upgrade, permanent peace of mind.",
+    "Keep your feed aesthetic. Upgrade now."
 ];
 
 let funnyLinesBag = [];
@@ -2578,6 +2579,10 @@ function renderFeedCard(index, direction = 'none') {
         card.classList.remove('animating');
         card.classList.add('card-center');
         stage.appendChild(card);
+    }
+
+    if (verse && verse.isAd) {
+        triggerInFeedInterstitial();
     }
 }
 
@@ -7101,6 +7106,46 @@ async function initRevenueCat() {
     }
 }
 
+let isAdMobReady = false;
+let lastInterstitialShownAt = 0;
+
+async function prepareNextInterstitial() {
+    if (typeof isPremiumUser !== 'undefined' && isPremiumUser) return;
+    try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
+            const { AdMob } = window.Capacitor.Plugins;
+            await AdMob.prepareInterstitial({
+                adId: 'ca-app-pub-3940256099942544/1033173712', // Safe fallback test ID
+                isTesting: false
+            });
+            isAdMobReady = true;
+        }
+    } catch (e) {
+        console.warn("AdMob prepare notice:", e);
+    }
+}
+
+async function triggerInFeedInterstitial() {
+    if (typeof isPremiumUser !== 'undefined' && isPremiumUser) return;
+    const now = Date.now();
+    if (now - lastInterstitialShownAt < 60000) return; // 60s cooldown to protect reading flow
+    lastInterstitialShownAt = now;
+
+    try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
+            const { AdMob } = window.Capacitor.Plugins;
+            if (isSpeaking && !isPaused) {
+                stopAudio(true);
+            }
+            await AdMob.showInterstitial();
+            prepareNextInterstitial();
+        }
+    } catch (e) {
+        console.warn("AdMob show notice:", e);
+        prepareNextInterstitial();
+    }
+}
+
 async function initAdMob() {
     try {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
@@ -7110,6 +7155,7 @@ async function initAdMob() {
                 testingDevices: [],
                 initializeForTesting: false,
             });
+            prepareNextInterstitial();
         }
     } catch (e) {
         console.error("AdMob Init Error:", e);
