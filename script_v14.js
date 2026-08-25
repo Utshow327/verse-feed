@@ -7130,9 +7130,8 @@ async function showAdMobBanner() {
             const { AdMob } = window.Capacitor.Plugins;
             await AdMob.showBanner({
                 adId: ADMOB_BANNER_ID,
-                adSize: 'ADAPTIVE_BANNER',
-                position: 'BOTTOM_CENTER',
-                margin: 75,
+                adSize: 'MEDIUM_RECTANGLE',
+                position: 'CENTER',
                 isTesting: false
             });
             isBannerShowing = true;
@@ -7165,6 +7164,15 @@ async function initAdMob() {
                 initializeForTesting: false,
             });
             isAdMobReady = true;
+
+            try {
+                AdMob.addListener('bannerAdLoaded', () => {
+                    console.log("AdMob: Banner Loaded successfully.");
+                });
+                AdMob.addListener('bannerAdFailedToLoad', (err) => {
+                    console.warn("AdMob: Banner Failed to Load:", err);
+                });
+            } catch(evErr) {}
         }
     } catch (e) {
         console.error("AdMob Init Error:", e);
