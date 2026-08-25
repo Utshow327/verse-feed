@@ -6463,7 +6463,6 @@ function switchAuthTab(mode) {
     const btnSignup = document.getElementById('auth-tab-signup');
     const nameContainer = document.getElementById('auth-name-container');
     const confirmContainer = document.getElementById('auth-confirm-container');
-    const googleContainer = document.getElementById('auth-google-container');
     const submitBtn = document.getElementById('auth-submit-btn');
     const forgotContainer = document.getElementById('auth-forgot-password-container');
 
@@ -6472,7 +6471,6 @@ function switchAuthTab(mode) {
         if (btnSignup) btnSignup.classList.remove('active');
         if (nameContainer) nameContainer.style.display = 'none';
         if (confirmContainer) confirmContainer.style.display = 'none';
-        if (googleContainer) googleContainer.style.display = 'flex';
         if (forgotContainer) forgotContainer.style.display = 'block';
         if (submitBtn) submitBtn.innerText = 'Sign In';
     } else {
@@ -6480,7 +6478,6 @@ function switchAuthTab(mode) {
         if (btnSignin) btnSignin.classList.remove('active');
         if (nameContainer) nameContainer.style.display = 'flex';
         if (confirmContainer) confirmContainer.style.display = 'flex';
-        if (googleContainer) googleContainer.style.display = 'none';
         if (forgotContainer) forgotContainer.style.display = 'none';
         if (submitBtn) submitBtn.innerText = 'Sign Up';
     }
