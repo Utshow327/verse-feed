@@ -2580,11 +2580,9 @@ function renderFeedCard(index, direction = 'none') {
         stage.appendChild(card);
     }
 
-    // Only show banner ad when viewing the Ad Card; hide on normal verses
+    // Trigger pre-cached in-feed ad when landing on Ad Card
     if (verse && verse.isAd) {
-        showAdMobBanner();
-    } else {
-        hideAdMobBanner();
+        showInFeedAd();
     }
 }
 
@@ -7113,38 +7111,45 @@ const ADMOB_BANNER_ID = 'ca-app-pub-5829734517659644/6965598630';
 const ADMOB_INTERSTITIAL_ID = 'ca-app-pub-5829734517659644/7316952427';
 
 let isAdMobReady = false;
-let isBannerShowing = false;
+let isInterstitialPreloaded = false;
+let lastInFeedAdShownAt = 0;
 
-async function showAdMobBanner() {
+async function prepareNextInterstitial() {
     if (typeof isPremiumUser !== 'undefined' && isPremiumUser) return;
-    if (isBannerShowing) return;
     try {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
             const { AdMob } = window.Capacitor.Plugins;
-            await AdMob.showBanner({
-                adId: ADMOB_BANNER_ID,
-                adSize: 'MEDIUM_RECTANGLE',
-                position: 'CENTER',
-                margin: 0,
+            await AdMob.prepareInterstitial({
+                adId: ADMOB_INTERSTITIAL_ID,
                 isTesting: false
             });
-            isBannerShowing = true;
+            isInterstitialPreloaded = true;
         }
     } catch(e) {
-        console.warn("AdMob Banner Show Notice:", e);
+        console.warn("AdMob Preload Notice:", e);
     }
 }
 
-async function hideAdMobBanner() {
-    if (!isBannerShowing) return;
+async function showInFeedAd() {
+    if (typeof isPremiumUser !== 'undefined' && isPremiumUser) return;
+    const now = Date.now();
+    if (now - lastInFeedAdShownAt < 30000) return; // Cooldown protection
+    lastInFeedAdShownAt = now;
+
     try {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
             const { AdMob } = window.Capacitor.Plugins;
-            await AdMob.hideBanner();
-            isBannerShowing = false;
+            if (isSpeaking && !isPaused) {
+                stopAudio(true);
+            }
+            await AdMob.showInterstitial();
+            isInterstitialPreloaded = false;
+            // Pre-cache next ad in background for future cards
+            setTimeout(() => prepareNextInterstitial(), 2000);
         }
     } catch(e) {
-        console.warn("AdMob Banner Hide Notice:", e);
+        console.warn("AdMob Show Notice:", e);
+        prepareNextInterstitial();
     }
 }
 
@@ -7158,6 +7163,7 @@ async function initAdMob() {
                 initializeForTesting: false,
             });
             isAdMobReady = true;
+            prepareNextInterstitial();
         }
     } catch (e) {
         console.error("AdMob Init Error:", e);
