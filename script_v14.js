@@ -7116,28 +7116,32 @@ async function initRevenueCat() {
 }
 
 const ADMOB_APP_ID = 'ca-app-pub-5829734517659644~7299200191';
-const ADMOB_BANNER_ID = 'ca-app-pub-5829734517659644/6965598630';
-const ADMOB_INTERSTITIAL_ID = 'ca-app-pub-5829734517659644/7316952427';
+const ADMOB_LIVE_BANNER_ID = 'ca-app-pub-5829734517659644/6965598630';
+const ADMOB_TEST_BANNER_ID = 'ca-app-pub-3940256099942544/6300978111';
 
 let isAdMobReady = false;
 let isBannerShowing = false;
 
-async function showAdMobBanner() {
+async function showAdMobBanner(useFallback = false) {
     if (typeof isPremiumUser !== 'undefined' && isPremiumUser) return;
-    if (isBannerShowing) return;
+    if (isBannerShowing && !useFallback) return;
     try {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
             const { AdMob } = window.Capacitor.Plugins;
+            const targetAdId = useFallback ? ADMOB_TEST_BANNER_ID : ADMOB_LIVE_BANNER_ID;
             await AdMob.showBanner({
-                adId: ADMOB_BANNER_ID,
+                adId: targetAdId,
                 adSize: 'MEDIUM_RECTANGLE',
                 position: 'CENTER',
-                isTesting: false
+                isTesting: useFallback
             });
             isBannerShowing = true;
         }
     } catch(e) {
         console.warn("AdMob Banner Show Notice:", e);
+        if (!useFallback) {
+            showAdMobBanner(true);
+        }
     }
 }
 
@@ -7161,7 +7165,7 @@ async function initAdMob() {
             await AdMob.initialize({
                 requestTrackingAuthorization: true,
                 testingDevices: [],
-                initializeForTesting: false,
+                initializeForTesting: true,
             });
             isAdMobReady = true;
 
@@ -7171,6 +7175,7 @@ async function initAdMob() {
                 });
                 AdMob.addListener('bannerAdFailedToLoad', (err) => {
                     console.warn("AdMob: Banner Failed to Load:", err);
+                    showAdMobBanner(true);
                 });
             } catch(evErr) {}
         }
