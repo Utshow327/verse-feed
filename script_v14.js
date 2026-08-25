@@ -2518,8 +2518,8 @@ function createFeedCardDOM(verse, extraClass) {
         card.classList.add('premium-ad-card');
         textEl.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; text-align: center; padding: 20px 16px 20px 16px; box-sizing: border-box; width: 100%;">
-                <!-- Sponsored Header (Outside Inner Rectangle) -->
-                <div style="width: 100%; text-align: left; padding: 0 4px 6px 4px; opacity: 0.6; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--text-color);">
+                <!-- Sponsored Header (Outside Inner Rectangle, Top Left) -->
+                <div style="width: 100%; text-align: left; padding: 0 8px 8px 8px; opacity: 0.6; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--text-color);">
                     Sponsored
                 </div>
 
@@ -2530,10 +2530,12 @@ function createFeedCardDOM(verse, extraClass) {
                     </div>
                 </div>
 
-                <!-- Bottom Centered Remove Ads Button -->
-                <button onclick="openPremiumModal()" style="transform: none; background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 12px 36px; border-radius: 24px; font-size: 0.95rem; font-weight: 600; cursor: pointer; font-family: inherit; box-shadow: var(--glass-shadow); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); letter-spacing: 0.3px;">
-                    Remove Ads
-                </button>
+                <!-- Bottom Middle Remove Ads Button -->
+                <div style="width: 100%; display: flex; justify-content: center;">
+                    <button onclick="openPremiumModal()" style="transform: none; background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 12px 36px; border-radius: 24px; font-size: 0.95rem; font-weight: 600; cursor: pointer; font-family: inherit; box-shadow: var(--glass-shadow); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); letter-spacing: 0.3px;">
+                        Remove Ads
+                    </button>
+                </div>
             </div>
         `;
         refEl.innerText = '';
