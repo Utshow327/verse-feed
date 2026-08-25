@@ -2518,9 +2518,9 @@ function createFeedCardDOM(verse, extraClass) {
         card.classList.add('premium-ad-card');
         textEl.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; text-align: center; padding: 24px 16px 20px 16px; box-sizing: border-box; width: 100%;">
-                <!-- 80% In-Card Ad Box -->
-                <div id="card-ad-slot" style="width: 100%; max-width: 480px; flex: 1; margin-bottom: 16px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px 20px; box-sizing: border-box; gap: 16px; box-shadow: inset 0 1px 2px rgba(255,255,255,0.05);">
-                    <div style="font-size: clamp(1.25rem, 4.5vw, 1.65rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.45; max-width: 92%;">
+                <!-- 80% In-Card Ad Box (Responsive across all screens) -->
+                <div id="card-ad-slot" style="width: 100%; flex: 1; margin-bottom: 16px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px 24px; box-sizing: border-box; gap: 16px; box-shadow: inset 0 1px 2px rgba(255,255,255,0.05);">
+                    <div style="font-size: clamp(1.25rem, 4.5vw, 1.75rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.45; max-width: 90%;">
                         ${verse.funnyLine}
                     </div>
                 </div>
