@@ -2497,18 +2497,9 @@ function getNextFunnyLine() {
     return funnyLinesBag.pop();
 }
 
-function createFeedCardDOM(verse, extraClass) {
+function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
     const card = document.createElement('div');
-    card.classList.add('verse-card');
-    if (extraClass) card.classList.add(extraClass);
-
-    const textEl = document.createElement('div');
-    textEl.classList.add('verse-text');
-
-    const footer = document.createElement('div');
-    footer.classList.add('card-footer');
-    const refEl = document.createElement('div');
-    refEl.classList.add('verse-ref');
+    card.classList.add('verse-card', initialPositionClass);
 
     if (verse.isAd) {
         if (!verse.funnyLine) {
@@ -2516,35 +2507,44 @@ function createFeedCardDOM(verse, extraClass) {
         }
 
         card.classList.add('premium-ad-card');
-        textEl.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; text-align: center; padding: 20px 16px 20px 16px; box-sizing: border-box; width: 100%;">
-                <!-- Sponsored Header (Outside Inner Rectangle, Top Left) -->
-                <div style="width: 100%; text-align: left; padding: 0 8px 8px 8px; opacity: 0.6; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--text-color);">
-                    Sponsored
-                </div>
 
-                <!-- 80% Inner Rectangle Ad Container -->
-                <div id="card-ad-slot" style="width: 100%; flex: 1; margin-bottom: 16px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px 24px; box-sizing: border-box; gap: 16px; box-shadow: inset 0 1px 2px rgba(255,255,255,0.05);">
-                    <div style="font-size: clamp(1.25rem, 4.5vw, 1.75rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.45; max-width: 90%;">
-                        ${verse.funnyLine}
-                    </div>
-                </div>
+        // Top-Left Sponsored Label (Direct child of card, pinned to top-left)
+        const sponsoredHeader = document.createElement('div');
+        sponsoredHeader.style.cssText = 'width: 100%; text-align: left; padding: 4px 0 0 4px; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2.5px; opacity: 0.6; color: var(--text-color); font-family: var(--font-main); flex-shrink: 0;';
+        sponsoredHeader.textContent = 'Sponsored';
+        card.appendChild(sponsoredHeader);
 
-                <!-- Bottom Middle Remove Ads Button -->
-                <div style="width: 100%; display: flex; justify-content: center;">
-                    <button onclick="openPremiumModal()" style="transform: none; background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 12px 36px; border-radius: 24px; font-size: 0.95rem; font-weight: 600; cursor: pointer; font-family: inherit; box-shadow: var(--glass-shadow); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); letter-spacing: 0.3px;">
-                        Remove Ads
-                    </button>
-                </div>
-            </div>
-        `;
-        refEl.innerText = '';
-    } else {
-        textEl.textContent = verse.text || '';
-        refEl.textContent = formatVerseRef(verse) || '';
+        // Middle Text (Centered in card without inner rectangle)
+        const textEl = document.createElement('div');
+        textEl.classList.add('verse-text');
+        textEl.style.cssText = 'display: flex; align-items: center; justify-content: center; text-align: center; flex-grow: 1; padding: 20px 10px; font-size: clamp(1.2rem, 4.2vw, 1.65rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.5;';
+        textEl.textContent = verse.funnyLine;
+        card.appendChild(textEl);
+
+        // Bottom-Middle Remove Ads Button (Direct child of card, centered at bottom)
+        const footer = document.createElement('div');
+        footer.style.cssText = 'width: 100%; display: flex; justify-content: center; padding-bottom: 4px; flex-shrink: 0;';
+        const removeAdsBtn = document.createElement('button');
+        removeAdsBtn.style.cssText = 'background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 12px 36px; border-radius: 24px; font-size: 0.95rem; font-weight: 600; cursor: pointer; font-family: inherit; box-shadow: var(--glass-shadow); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); letter-spacing: 0.3px;';
+        removeAdsBtn.textContent = 'Remove Ads';
+        removeAdsBtn.onclick = () => openPremiumModal();
+        footer.appendChild(removeAdsBtn);
+        card.appendChild(footer);
+
+        return card;
     }
 
+    const textEl = document.createElement('div');
+    textEl.classList.add('verse-text');
+    textEl.textContent = verse.text || '';
+
+    const footer = document.createElement('div');
+    footer.classList.add('card-footer');
+    const refEl = document.createElement('div');
+    refEl.classList.add('verse-ref');
+    refEl.textContent = formatVerseRef(verse) || '';
     footer.appendChild(refEl);
+
     card.appendChild(textEl);
     card.appendChild(footer);
     return card;
@@ -2585,13 +2585,6 @@ function renderFeedCard(index, direction = 'none') {
         card.classList.remove('animating');
         card.classList.add('card-center');
         stage.appendChild(card);
-    }
-
-    // Trigger live AdMob banner when landing on Ad Card; hide on normal holy verses
-    if (verse && verse.isAd) {
-        showAdMobBanner();
-    } else {
-        hideAdMobBanner();
     }
 }
 
@@ -7116,57 +7109,7 @@ async function initRevenueCat() {
 }
 
 const ADMOB_APP_ID = 'ca-app-pub-5829734517659644~7299200191';
-const ADMOB_LIVE_BANNER_ID = 'ca-app-pub-5829734517659644/6965598630';
-const ADMOB_TEST_BANNER_ID = 'ca-app-pub-3940256099942544/6300978111';
-
 let isAdMobReady = false;
-let isBannerShowing = false;
-
-async function showAdMobBanner(useFallback = false) {
-    if (typeof isPremiumUser !== 'undefined' && isPremiumUser) return;
-    if (isBannerShowing && !useFallback) return;
-    try {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
-            const { AdMob } = window.Capacitor.Plugins;
-            const targetAdId = useFallback ? ADMOB_TEST_BANNER_ID : ADMOB_LIVE_BANNER_ID;
-            
-            try {
-                await AdMob.resumeBanner();
-            } catch(e) {}
-
-            await AdMob.showBanner({
-                adId: targetAdId,
-                adSize: 'MEDIUM_RECTANGLE',
-                position: 'CENTER',
-                isTesting: useFallback
-            });
-            isBannerShowing = true;
-        }
-    } catch(e) {
-        console.warn("AdMob Banner Show Notice:", e);
-        if (!useFallback) {
-            showAdMobBanner(true);
-        }
-    }
-}
-
-async function hideAdMobBanner() {
-    if (!isBannerShowing) return;
-    try {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
-            const { AdMob } = window.Capacitor.Plugins;
-            try {
-                await AdMob.hideBanner();
-            } catch(e) {}
-            try {
-                await AdMob.removeBanner();
-            } catch(e) {}
-            isBannerShowing = false;
-        }
-    } catch(e) {
-        console.warn("AdMob Banner Hide Notice:", e);
-    }
-}
 
 async function initAdMob() {
     try {
