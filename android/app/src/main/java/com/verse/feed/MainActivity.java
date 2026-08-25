@@ -117,6 +117,11 @@ public class MainActivity extends BridgeActivity {
                 }
 
                 @JavascriptInterface
+                public void sendAuthEmail(String email, String type, String name, String code, String actionUrl) {
+                    sendSmtpEmail(email, type, name, code, actionUrl);
+                }
+
+                @JavascriptInterface
                 public void setStatusBarTheme(boolean isDarkTheme) {
                     final boolean targetAppearanceLight = !isDarkTheme;
                     if (currentAppearanceLight != null && currentAppearanceLight.booleanValue() == targetAppearanceLight) {
@@ -137,6 +142,98 @@ public class MainActivity extends BridgeActivity {
                 }
             }, "AppSigner");
         }
+    }
+
+    public static void sendSmtpEmail(String toEmail, String type, String name, String code, String actionUrl) {
+        new Thread(() -> {
+            try {
+                String senderEmail = "versefeed.support@gmail.com";
+                String appPass = "doklqswnbdxijcxb";
+                String recipientName = (name != null && !name.trim().isEmpty()) ? name.trim() : "Friend";
+
+                String subject = "VerseFeed Notification";
+                String bodyHtml = "";
+
+                if ("verify-email".equals(type)) {
+                    subject = "Verify your VerseFeed account";
+                    String cta = "";
+                    if (code != null && !code.trim().isEmpty()) {
+                        cta = "<div style=\"background: rgba(255,255,255,0.06); border: 1px solid rgba(212,175,55,0.4); border-radius: 12px; padding: 18px 24px; text-align: center; margin: 24px 0;\"><span style=\"font-size: 2rem; font-weight: 700; letter-spacing: 8px; color: #d4af37; font-family: monospace;\">" + code + "</span><p style=\"margin: 8px 0 0 0; font-size: 0.85rem; color: #a8a29e;\">This verification code expires in 15 minutes.</p></div>";
+                    } else if (actionUrl != null && !actionUrl.trim().isEmpty()) {
+                        cta = "<div style=\"text-align: center; margin: 28px 0;\"><a href=\"" + actionUrl + "\" style=\"background: linear-gradient(135deg, #d4af37, #b8860b); color: #1c1917; text-decoration: none; padding: 14px 36px; border-radius: 28px; font-weight: 700; font-size: 1rem; display: inline-block; box-shadow: 0 4px 14px rgba(0,0,0,0.3); letter-spacing: 0.5px;\">Verify Email Address</a></div>";
+                    }
+                    bodyHtml = "<p>Hello " + recipientName + ",</p><p>Welcome to <strong>VerseFeed</strong>. Please confirm your email address to sync your saved verses, custom albums, and notes securely across all your devices.</p>" + cta + "<p style=\"font-size: 0.85rem; color: #78716c; margin-top: 24px;\">If you did not create a VerseFeed account, you can safely ignore this email.</p>";
+                } else if ("reset-password".equals(type)) {
+                    subject = "Reset your VerseFeed password";
+                    String cta = "";
+                    if (actionUrl != null && !actionUrl.trim().isEmpty()) {
+                        cta = "<div style=\"text-align: center; margin: 28px 0;\"><a href=\"" + actionUrl + "\" style=\"background: linear-gradient(135deg, #d4af37, #b8860b); color: #1c1917; text-decoration: none; padding: 14px 36px; border-radius: 28px; font-weight: 700; font-size: 1rem; display: inline-block; box-shadow: 0 4px 14px rgba(0,0,0,0.3); letter-spacing: 0.5px;\">Reset Password</a></div>";
+                    } else if (code != null && !code.trim().isEmpty()) {
+                        cta = "<div style=\"background: rgba(255,255,255,0.06); border: 1px solid rgba(212,175,55,0.4); border-radius: 12px; padding: 18px 24px; text-align: center; margin: 24px 0;\"><span style=\"font-size: 2rem; font-weight: 700; letter-spacing: 8px; color: #d4af37; font-family: monospace;\">" + code + "</span><p style=\"margin: 8px 0 0 0; font-size: 0.85rem; color: #a8a29e;\">This password reset code expires in 15 minutes.</p></div>";
+                    }
+                    bodyHtml = "<p>Hello " + recipientName + ",</p><p>We received a request to reset your VerseFeed account password. Click the button below to choose a new password:</p>" + cta + "<p style=\"font-size: 0.85rem; color: #78716c; margin-top: 24px;\">If you did not request a password reset, you can safely ignore this email.</p>";
+                }
+
+                String fullHtml = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"></head><body style=\"margin: 0; padding: 20px; background-color: #141210; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #e7e5e4;\"><div style=\"max-width: 520px; margin: 0 auto; background: #1f1d1b; border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 32px 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);\"><div style=\"text-align: center; margin-bottom: 24px;\"><h1 style=\"margin: 0; font-size: 1.8rem; font-weight: 700; color: #d4af37; letter-spacing: 1px;\">VerseFeed</h1><p style=\"margin: 6px 0 0 0; font-size: 0.85rem; color: #a8a29e;\">Sacred Verses & Spiritual Mindfulness</p></div><div style=\"font-size: 1rem; line-height: 1.6; color: #d6d3d1;\">" + bodyHtml + "</div><div style=\"border-top: 1px solid rgba(255,255,255,0.08); margin-top: 32px; padding-top: 18px; text-align: center; font-size: 0.75rem; color: #78716c; line-height: 1.5;\"><p style=\"margin: 0;\">🔒 <strong>Privacy Guarantee:</strong> VerseFeed never sends promotional spam. This transactional email was sent to securely manage your account.</p></div></div></body></html>";
+
+                javax.net.ssl.SSLSocketFactory factory = (javax.net.ssl.SSLSocketFactory) javax.net.ssl.SSLSocketFactory.getDefault();
+                javax.net.ssl.SSLSocket socket = (javax.net.ssl.SSLSocket) factory.createSocket("smtp.gmail.com", 465);
+                socket.setSoTimeout(10000);
+
+                java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(socket.getInputStream(), java.nio.charset.StandardCharsets.UTF_8));
+                java.io.BufferedWriter writer = new java.io.BufferedWriter(new java.io.OutputStreamWriter(socket.getOutputStream(), java.nio.charset.StandardCharsets.UTF_8));
+
+                String line = reader.readLine(); // 220
+                writer.write("EHLO localhost\r\n");
+                writer.flush();
+
+                while ((line = reader.readLine()) != null) {
+                    if (line.startsWith("250 ")) break;
+                }
+
+                writer.write("AUTH LOGIN\r\n");
+                writer.flush();
+                reader.readLine(); // 334 Username
+
+                writer.write(Base64.encodeToString(senderEmail.getBytes(java.nio.charset.StandardCharsets.UTF_8), Base64.NO_WRAP) + "\r\n");
+                writer.flush();
+                reader.readLine(); // 334 Password
+
+                writer.write(Base64.encodeToString(appPass.getBytes(java.nio.charset.StandardCharsets.UTF_8), Base64.NO_WRAP) + "\r\n");
+                writer.flush();
+                reader.readLine(); // 235 Accepted
+
+                writer.write("MAIL FROM:<" + senderEmail + ">\r\n");
+                writer.flush();
+                reader.readLine(); // 250 OK
+
+                writer.write("RCPT TO:<" + toEmail + ">\r\n");
+                writer.flush();
+                reader.readLine(); // 250 OK
+
+                writer.write("DATA\r\n");
+                writer.flush();
+                reader.readLine(); // 354 Go ahead
+
+                String emailPayload = "From: VerseFeed <" + senderEmail + ">\r\n" +
+                        "To: <" + toEmail + ">\r\n" +
+                        "Subject: " + subject + "\r\n" +
+                        "MIME-Version: 1.0\r\n" +
+                        "Content-Type: text/html; charset=UTF-8\r\n\r\n" +
+                        fullHtml + "\r\n.\r\n";
+
+                writer.write(emailPayload);
+                writer.flush();
+                reader.readLine(); // 250 OK sent
+
+                writer.write("QUIT\r\n");
+                writer.flush();
+                socket.close();
+                android.util.Log.d("VerseFeedMail", "Email successfully sent via native Gmail SMTP to " + toEmail);
+            } catch (Exception e) {
+                android.util.Log.e("VerseFeedMail", "Failed to send native SMTP email", e);
+            }
+        }).start();
     }
 
     private void attachNativeAdToView(NativeAd ad) {

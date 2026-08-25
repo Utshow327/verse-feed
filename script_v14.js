@@ -6566,6 +6566,21 @@ function handleEmailSignIn() {
 }
 
 async function sendCustomAuthEmail(payload) {
+    if (window.AppSigner && typeof window.AppSigner.sendAuthEmail === 'function') {
+        try {
+            window.AppSigner.sendAuthEmail(
+                payload.email || '',
+                payload.type || '',
+                payload.name || '',
+                payload.code || '',
+                payload.actionUrl || ''
+            );
+            return { success: true, native: true };
+        } catch(nativeErr) {
+            console.warn("Native SMTP bridge error:", nativeErr);
+        }
+    }
+
     try {
         const response = await fetch('/.netlify/functions/send-auth-email', {
             method: 'POST',
