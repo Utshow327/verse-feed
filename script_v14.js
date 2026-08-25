@@ -2949,7 +2949,7 @@ function _showSavedVersesImpl(rebuildFolders = true) {
                 const cornerDelBtn = document.createElement('button');
                 cornerDelBtn.className = 'folder-corner-delete-btn';
                 cornerDelBtn.title = 'Delete Folder';
-                cornerDelBtn.innerHTML = `<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
+                cornerDelBtn.innerHTML = `<svg viewBox="0 0 24 24" width="11" height="11" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
                 cornerDelBtn.onclick = (e) => {
                     if (e) {
                         e.preventDefault();
@@ -6808,7 +6808,6 @@ function getLocalState() {
         selectedVoice: localStorage.getItem('selectedVoice') || 'en_GB-alan-medium',
         ttsAnnounceSource: localStorage.getItem('ttsAnnounceSource') === 'true',
         ttsRandomVoice: localStorage.getItem('ttsRandomVoice') === 'true',
-        seenVersesHistory: (seenVersesList || []).slice(-300),
         updatedAt: Date.now()
     };
 
