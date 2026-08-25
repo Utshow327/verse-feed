@@ -3195,8 +3195,6 @@ function startFolderInlineRename(oldName, headerEl) {
     
     input.onblur = finishRename;
     
-    headerEl.appendChild(titleWrap);
-    headerEl.appendChild(deleteBtn);
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
 }
