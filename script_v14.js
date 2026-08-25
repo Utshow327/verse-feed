@@ -3059,14 +3059,11 @@ function _showSavedVersesImpl(rebuildFolders = true) {
                     selectedSavedAlbum = null;
                     selectedVerse = { type: 'folder', name: albumName, elementId: folder.id };
                     deselectVerse();
-                    folder.classList.remove('active');
-                    showSavedVerses(false);
+                    showSavedVerses(true);
                 } else {
                     selectedSavedAlbum = albumName;
                     selectVerse({ name: albumName }, 'folder', folder.id, true);
-                    document.querySelectorAll('.album-folder-btn').forEach(f => f.classList.remove('active'));
-                    folder.classList.add('active');
-                    showSavedVerses(false);
+                    showSavedVerses(true);
                 }
             };
             
@@ -3080,8 +3077,7 @@ function _showSavedVersesImpl(rebuildFolders = true) {
     // Rebuild verses list using a fragment for atomic swap
     const versesFrag = document.createDocumentFragment();
     
-    // If a folder is open/selected, show header with centered editable name (delete button hidden until clicked)
-    // If a folder is open/selected, show header with centered editable name (delete button on right side, visible only in rename mode)
+    // If a folder is open/selected, show header with centered editable name
     if (selectedSavedAlbum) {
         const header = document.createElement('div');
         header.className = 'selected-folder-header-bar';
@@ -3102,13 +3098,7 @@ function _showSavedVersesImpl(rebuildFolders = true) {
             startFolderInlineRename(selectedSavedAlbum, header);
         };
         
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-folder-btn-sleek';
-        deleteBtn.title = 'Delete Folder';
-        deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
-        
         header.appendChild(titleWrap);
-        header.appendChild(deleteBtn);
         versesFrag.appendChild(header);
     }
     
@@ -3158,27 +3148,9 @@ function startFolderInlineRename(oldName, headerEl) {
     input.className = 'selected-folder-input-underline';
     input.value = oldName;
     titleWrap.appendChild(input);
-    
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'delete-folder-btn-sleek show';
-    deleteBtn.title = 'Delete Folder';
-    deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
+    headerEl.appendChild(titleWrap);
     
     let finished = false;
-    
-    const triggerDelete = (e) => {
-        if (e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        finished = true;
-        handleFolderDelete(e, oldName);
-    };
-    
-    deleteBtn.onpointerdown = triggerDelete;
-    deleteBtn.ontouchstart = triggerDelete;
-    deleteBtn.onmousedown = triggerDelete;
-    deleteBtn.onclick = triggerDelete;
     
     const finishRename = () => {
         if (finished) return;
@@ -6835,16 +6807,21 @@ function getLocalState() {
         savedVerses: compactSaved,
         createdAlbums: JSON.parse(localStorage.getItem('createdAlbums') || '[]'),
         bookMarkedVerse: JSON.parse(localStorage.getItem('bookMarkedVerse') || '{}'),
-        globalSelectedRels: JSON.parse(localStorage.getItem('globalSelectedRels') || 'null'),
         selectedVoice: localStorage.getItem('selectedVoice') || 'en_GB-alan-medium',
         ttsAnnounceSource: localStorage.getItem('ttsAnnounceSource') === 'true',
         ttsRandomVoice: localStorage.getItem('ttsRandomVoice') === 'true',
-        musicVolume: localStorage.getItem('musicVolume') || '0.4',
-        musicEnabled: localStorage.getItem('musicEnabled') !== 'false',
-        currentMusicTrack: localStorage.getItem('currentMusicTrack') || '0',
-        seenVersesHistory: (seenVersesList || []).slice(-500),
         updatedAt: Date.now()
     };
+
+    // Only save custom topic selection if user is premium
+    if (typeof isPremiumUser !== 'undefined' && isPremiumUser) {
+        const customRels = localStorage.getItem('globalSelectedRels');
+        if (customRels) {
+            try {
+                state.globalSelectedRels = JSON.parse(customRels);
+            } catch(e){}
+        }
+    }
 
     return sanitizeForFirestore(state);
 }
