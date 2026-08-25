@@ -1005,8 +1005,8 @@ h2 {
     height: 18px;
     background: transparent !important;
     border: none !important;
-    color: var(--text-color);
-    opacity: 0.55;
+    color: var(--bg-grad-1) !important;
+    opacity: 0.9;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1018,14 +1018,18 @@ h2 {
     z-index: 10;
 }
 .folder-corner-delete-btn svg {
-    width: 13px;
-    height: 13px;
+    width: 14px;
+    height: 14px;
     display: block;
+    fill: var(--bg-grad-1) !important;
 }
 .folder-corner-delete-btn:active {
     opacity: 1;
     transform: scale(0.85);
-    color: #ff4757;
+    color: #ff4757 !important;
+}
+.folder-corner-delete-btn:active svg {
+    fill: #ff4757 !important;
 }
 
 

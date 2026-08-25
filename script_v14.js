@@ -6808,6 +6808,7 @@ function getLocalState() {
         selectedVoice: localStorage.getItem('selectedVoice') || 'en_GB-alan-medium',
         ttsAnnounceSource: localStorage.getItem('ttsAnnounceSource') === 'true',
         ttsRandomVoice: localStorage.getItem('ttsRandomVoice') === 'true',
+        seenVersesHistory: (seenVersesList || []).slice(-300),
         updatedAt: Date.now()
     };
 
