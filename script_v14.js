@@ -2502,31 +2502,37 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
     card.classList.add('verse-card', initialPositionClass);
 
     if (verse.isAd) {
-        let nativeAdData = null;
-        try {
-            if (window.AppSigner && typeof window.AppSigner.getNextNativeAd === 'function') {
-                const res = window.AppSigner.getNextNativeAd();
-                if (res) {
-                    const parsed = JSON.parse(res);
-                    if (parsed && parsed.hasAd) {
-                        nativeAdData = parsed;
+        // Persist ad data on this specific verse object so scrolling back retains the same ad!
+        if (!verse.nativeAdData && !verse.funnyLine) {
+            let nativeAdData = null;
+            try {
+                if (window.AppSigner && typeof window.AppSigner.getNextNativeAd === 'function') {
+                    const res = window.AppSigner.getNextNativeAd();
+                    if (res) {
+                        const parsed = JSON.parse(res);
+                        if (parsed && parsed.hasAd) {
+                            nativeAdData = parsed;
+                        }
                     }
                 }
-            }
-        } catch(e) {}
+            } catch(e) {}
 
-        if (!verse.funnyLine) {
-            verse.funnyLine = getNextFunnyLine();
+            if (nativeAdData) {
+                verse.nativeAdData = nativeAdData;
+            } else {
+                verse.funnyLine = getNextFunnyLine();
+            }
         }
 
         card.classList.add('premium-ad-card');
 
-        // Middle Text (Centered in card without inner rectangle and without SPONSORED text)
+        // Middle Content Container
         const textEl = document.createElement('div');
         textEl.classList.add('verse-text');
-        textEl.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; flex-grow: 1; padding: 20px 14px;';
+        textEl.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; flex-grow: 1; padding: 16px 12px; width: 100%; box-sizing: border-box;';
         
-        if (nativeAdData) {
+        if (verse.nativeAdData) {
+            const nativeAd = verse.nativeAdData;
             textEl.style.cursor = 'pointer';
             textEl.onclick = (e) => {
                 if (e) e.stopPropagation();
@@ -2534,14 +2540,47 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
                     window.AppSigner.performNativeAdClick();
                 }
             };
-            let html = '';
-            if (nativeAdData.headline) {
-                html += `<div style="font-size: clamp(1.2rem, 4.2vw, 1.6rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.45; margin-bottom: 10px;">${nativeAdData.headline}</div>`;
+
+            let iconHtml = '';
+            if (nativeAd.icon) {
+                iconHtml = `<img src="${nativeAd.icon}" alt="App Icon" style="width: 52px; height: 52px; border-radius: 14px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 1px solid var(--glass-border); flex-shrink: 0;" />`;
             }
-            if (nativeAdData.body) {
-                html += `<div style="font-size: clamp(0.95rem, 3.2vw, 1.15rem); font-weight: 400; color: var(--text-color); opacity: 0.85; font-family: var(--font-main); line-height: 1.5; max-width: 90%;">${nativeAdData.body}</div>`;
+
+            let ratingHtml = '';
+            if (nativeAd.rating) {
+                const rounded = Math.round(Number(nativeAd.rating) || 5);
+                const stars = '★'.repeat(Math.min(5, Math.max(1, rounded)));
+                ratingHtml = `<span style="font-size: 0.8rem; color: #f1c40f; letter-spacing: 1px; margin-right: 6px;">${stars}</span> <span style="font-size: 0.8rem; opacity: 0.65; color: var(--text-color);">${Number(nativeAd.rating).toFixed(1)}</span>`;
+            } else if (nativeAd.advertiser) {
+                ratingHtml = `<span style="font-size: 0.8rem; opacity: 0.65; color: var(--text-color);">${nativeAd.advertiser}</span>`;
             }
-            textEl.innerHTML = html;
+
+            const ctaText = nativeAd.callToAction || 'Learn More';
+
+            textEl.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; width: 100%; max-width: 90%;">
+                    <div style="display: flex; align-items: center; gap: 14px; text-align: left; width: 100%; justify-content: center;">
+                        ${iconHtml}
+                        <div style="display: flex; flex-direction: column; min-width: 0;">
+                            <div style="font-size: clamp(1.1rem, 3.8vw, 1.45rem); font-weight: 700; color: var(--text-color); font-family: var(--font-main); line-height: 1.3;">
+                                ${nativeAd.headline || ''}
+                            </div>
+                            ${ratingHtml ? `<div style="margin-top: 4px; display: flex; align-items: center;">${ratingHtml}</div>` : ''}
+                        </div>
+                    </div>
+                    ${nativeAd.body ? `
+                        <div style="font-size: clamp(0.95rem, 3.2vw, 1.12rem); font-weight: 400; color: var(--text-color); opacity: 0.88; font-family: var(--font-main); line-height: 1.55; text-align: center; margin-top: 2px;">
+                            ${nativeAd.body}
+                        </div>
+                    ` : ''}
+                    <div style="margin-top: 6px;">
+                        <div style="display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04)); color: var(--text-color); border: 1px solid var(--glass-border); padding: 9px 24px; border-radius: 20px; font-size: 0.88rem; font-weight: 700; letter-spacing: 0.5px; box-shadow: 0 4px 14px rgba(0,0,0,0.25); text-transform: uppercase;">
+                            <span>${ctaText}</span>
+                            <span style="font-size: 0.85rem; opacity: 0.8;">↗</span>
+                        </div>
+                    </div>
+                </div>
+            `;
         } else {
             textEl.innerHTML = `<div style="font-size: clamp(1.2rem, 4.2vw, 1.65rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.5;">${verse.funnyLine}</div>`;
         }

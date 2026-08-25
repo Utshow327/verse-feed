@@ -27,6 +27,13 @@ import android.view.ViewGroup;
 import org.json.JSONObject;
 import java.security.MessageDigest;
 
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.util.Base64;
+import java.io.ByteArrayOutputStream;
+
 public class MainActivity extends BridgeActivity {
     private Boolean currentAppearanceLight = null;
     private NativeAd currentNativeAd = null;
@@ -156,6 +163,46 @@ public class MainActivity extends BridgeActivity {
         });
     }
 
+    private JSONObject buildNativeAdJson(NativeAd nativeAd) {
+        JSONObject json = new JSONObject();
+        try {
+            json.put("hasAd", true);
+            json.put("headline", nativeAd.getHeadline() != null ? nativeAd.getHeadline() : "");
+            json.put("body", nativeAd.getBody() != null ? nativeAd.getBody() : "");
+            json.put("advertiser", nativeAd.getAdvertiser() != null ? nativeAd.getAdvertiser() : "");
+            json.put("callToAction", nativeAd.getCallToAction() != null ? nativeAd.getCallToAction() : "Learn More");
+            json.put("store", nativeAd.getStore() != null ? nativeAd.getStore() : "");
+            json.put("price", nativeAd.getPrice() != null ? nativeAd.getPrice() : "");
+            if (nativeAd.getStarRating() != null) {
+                json.put("rating", nativeAd.getStarRating());
+            }
+
+            if (nativeAd.getIcon() != null && nativeAd.getIcon().getDrawable() != null) {
+                Drawable drawable = nativeAd.getIcon().getDrawable();
+                Bitmap bitmap = null;
+                if (drawable instanceof BitmapDrawable) {
+                    bitmap = ((BitmapDrawable) drawable).getBitmap();
+                } else {
+                    int w = Math.max(1, drawable.getIntrinsicWidth());
+                    int h = Math.max(1, drawable.getIntrinsicHeight());
+                    bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+                    Canvas canvas = new Canvas(bitmap);
+                    drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+                    drawable.draw(canvas);
+                }
+                if (bitmap != null) {
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 90, baos);
+                    String base64 = Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP);
+                    json.put("icon", "data:image/png;base64," + base64);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return json;
+    }
+
     private void preloadNextNativeAd() {
         if (isAdLoading || cachedAdJsonString != null) return;
         isAdLoading = true;
@@ -167,17 +214,7 @@ public class MainActivity extends BridgeActivity {
             }
             currentNativeAd = nativeAd;
             attachNativeAdToView(nativeAd);
-            try {
-                JSONObject json = new JSONObject();
-                json.put("hasAd", true);
-                json.put("headline", nativeAd.getHeadline() != null ? nativeAd.getHeadline() : "");
-                json.put("body", nativeAd.getBody() != null ? nativeAd.getBody() : "");
-                json.put("advertiser", nativeAd.getAdvertiser() != null ? nativeAd.getAdvertiser() : "");
-                json.put("callToAction", nativeAd.getCallToAction() != null ? nativeAd.getCallToAction() : "Learn More");
-                cachedAdJsonString = json.toString();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            cachedAdJsonString = buildNativeAdJson(nativeAd).toString();
             isAdLoading = false;
         });
 
@@ -202,17 +239,7 @@ public class MainActivity extends BridgeActivity {
             }
             currentNativeAd = nativeAd;
             attachNativeAdToView(nativeAd);
-            try {
-                JSONObject json = new JSONObject();
-                json.put("hasAd", true);
-                json.put("headline", nativeAd.getHeadline() != null ? nativeAd.getHeadline() : "");
-                json.put("body", nativeAd.getBody() != null ? nativeAd.getBody() : "");
-                json.put("advertiser", nativeAd.getAdvertiser() != null ? nativeAd.getAdvertiser() : "");
-                json.put("callToAction", nativeAd.getCallToAction() != null ? nativeAd.getCallToAction() : "Learn More");
-                cachedAdJsonString = json.toString();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            cachedAdJsonString = buildNativeAdJson(nativeAd).toString();
             isAdLoading = false;
         });
 
