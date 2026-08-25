@@ -2502,28 +2502,47 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
     card.classList.add('verse-card', initialPositionClass);
 
     if (verse.isAd) {
+        let nativeAdData = null;
+        try {
+            if (window.AppSigner && typeof window.AppSigner.getNextNativeAd === 'function') {
+                const res = window.AppSigner.getNextNativeAd();
+                if (res) {
+                    const parsed = JSON.parse(res);
+                    if (parsed && parsed.hasAd) {
+                        nativeAdData = parsed;
+                    }
+                }
+            }
+        } catch(e) {}
+
         if (!verse.funnyLine) {
             verse.funnyLine = getNextFunnyLine();
         }
 
         card.classList.add('premium-ad-card');
 
-        // Top-Left Sponsored Label (Direct child of card, pinned to top-left)
-        const sponsoredHeader = document.createElement('div');
-        sponsoredHeader.style.cssText = 'width: 100%; text-align: left; padding: 4px 0 0 4px; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2.5px; opacity: 0.6; color: var(--text-color); font-family: var(--font-main); flex-shrink: 0;';
-        sponsoredHeader.textContent = 'Sponsored';
-        card.appendChild(sponsoredHeader);
-
-        // Middle Text (Centered in card without inner rectangle)
+        // Middle Text (Centered in card without inner rectangle and without SPONSORED text)
         const textEl = document.createElement('div');
         textEl.classList.add('verse-text');
-        textEl.style.cssText = 'display: flex; align-items: center; justify-content: center; text-align: center; flex-grow: 1; padding: 20px 10px; font-size: clamp(1.2rem, 4.2vw, 1.65rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.5;';
-        textEl.textContent = verse.funnyLine;
+        textEl.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; flex-grow: 1; padding: 20px 14px;';
+        
+        if (nativeAdData) {
+            let html = '';
+            if (nativeAdData.headline) {
+                html += `<div style="font-size: clamp(1.2rem, 4.2vw, 1.6rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.45; margin-bottom: 8px;">${nativeAdData.headline}</div>`;
+            }
+            if (nativeAdData.body) {
+                html += `<div style="font-size: clamp(0.95rem, 3.2vw, 1.15rem); font-weight: 400; color: var(--text-color); opacity: 0.85; font-family: var(--font-main); line-height: 1.5; max-width: 90%;">${nativeAdData.body}</div>`;
+            }
+            textEl.innerHTML = html;
+        } else {
+            textEl.innerHTML = `<div style="font-size: clamp(1.2rem, 4.2vw, 1.65rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.5;">${verse.funnyLine}</div>`;
+        }
         card.appendChild(textEl);
 
         // Bottom-Middle Remove Ads Button (Direct child of card, centered at bottom)
         const footer = document.createElement('div');
-        footer.style.cssText = 'width: 100%; display: flex; justify-content: center; padding-bottom: 4px; flex-shrink: 0;';
+        footer.style.cssText = 'width: 100%; display: flex; justify-content: center; padding-bottom: 8px; flex-shrink: 0;';
         const removeAdsBtn = document.createElement('button');
         removeAdsBtn.style.cssText = 'background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 12px 36px; border-radius: 24px; font-size: 0.95rem; font-weight: 600; cursor: pointer; font-family: inherit; box-shadow: var(--glass-shadow); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); letter-spacing: 0.3px;';
         removeAdsBtn.textContent = 'Remove Ads';

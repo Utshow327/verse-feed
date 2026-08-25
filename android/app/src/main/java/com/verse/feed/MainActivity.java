@@ -11,17 +11,40 @@ import android.view.Window;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import androidx.annotation.NonNull;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
+import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.AdLoader;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.MobileAds;
+import com.google.android.gms.ads.nativead.NativeAd;
+import com.google.android.gms.ads.nativead.NativeAdOptions;
+import org.json.JSONObject;
 import java.security.MessageDigest;
 
 public class MainActivity extends BridgeActivity {
     private Boolean currentAppearanceLight = null;
+    private NativeAd currentNativeAd = null;
+    private String cachedAdJsonString = null;
+    private static final String NATIVE_AD_TEST_UNIT_ID = "ca-app-pub-3940256099942544/2247696110";
+    private static final String NATIVE_AD_LIVE_UNIT_ID = "ca-app-pub-5829734517659644/6965598630";
+    private boolean isAdLoading = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Initialize Google Mobile Ads SDK
+        try {
+            MobileAds.initialize(this, initializationStatus -> {
+                preloadNextNativeAd();
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         // Enable edge-to-edge drawing — content extends behind status bar and navigation bar
         Window window = getWindow();
@@ -52,8 +75,20 @@ public class MainActivity extends BridgeActivity {
             WebSettings settings = webView.getSettings();
             settings.setTextZoom(100);
 
-            // Add JavaScript Interface so web code can synchronously query signing cert and adjust status bar theme
+            // Add JavaScript Interface so web code can query native ads and signing cert
             webView.addJavascriptInterface(new Object() {
+                @JavascriptInterface
+                public String getNextNativeAd() {
+                    if (cachedAdJsonString != null) {
+                        String result = cachedAdJsonString;
+                        cachedAdJsonString = null; // Consume ad
+                        MainActivity.this.runOnUiThread(() -> preloadNextNativeAd());
+                        return result;
+                    }
+                    MainActivity.this.runOnUiThread(() -> preloadNextNativeAd());
+                    return "{\"hasAd\":false}";
+                }
+
                 @JavascriptInterface
                 public String getSigningCertSHA1() {
                     return MainActivity.this.getSigningCertSHA1();
@@ -80,6 +115,75 @@ public class MainActivity extends BridgeActivity {
                 }
             }, "AppSigner");
         }
+    }
+
+    private void preloadNextNativeAd() {
+        if (isAdLoading || cachedAdJsonString != null) return;
+        isAdLoading = true;
+
+        AdLoader.Builder builder = new AdLoader.Builder(this, NATIVE_AD_LIVE_UNIT_ID);
+        builder.forNativeAd(nativeAd -> {
+            if (currentNativeAd != null) {
+                currentNativeAd.destroy();
+            }
+            currentNativeAd = nativeAd;
+            try {
+                JSONObject json = new JSONObject();
+                json.put("hasAd", true);
+                json.put("headline", nativeAd.getHeadline() != null ? nativeAd.getHeadline() : "");
+                json.put("body", nativeAd.getBody() != null ? nativeAd.getBody() : "");
+                json.put("advertiser", nativeAd.getAdvertiser() != null ? nativeAd.getAdvertiser() : "");
+                json.put("callToAction", nativeAd.getCallToAction() != null ? nativeAd.getCallToAction() : "Learn More");
+                cachedAdJsonString = json.toString();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            isAdLoading = false;
+        });
+
+        builder.withAdListener(new AdListener() {
+            @Override
+            public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                // Fallback to Google's official Native Test unit
+                loadFallbackTestNativeAd();
+            }
+        });
+
+        builder.withNativeAdOptions(new NativeAdOptions.Builder().build());
+        AdLoader adLoader = builder.build();
+        adLoader.loadAd(new AdRequest.Builder().build());
+    }
+
+    private void loadFallbackTestNativeAd() {
+        AdLoader.Builder builder = new AdLoader.Builder(this, NATIVE_AD_TEST_UNIT_ID);
+        builder.forNativeAd(nativeAd -> {
+            if (currentNativeAd != null) {
+                currentNativeAd.destroy();
+            }
+            currentNativeAd = nativeAd;
+            try {
+                JSONObject json = new JSONObject();
+                json.put("hasAd", true);
+                json.put("headline", nativeAd.getHeadline() != null ? nativeAd.getHeadline() : "");
+                json.put("body", nativeAd.getBody() != null ? nativeAd.getBody() : "");
+                json.put("advertiser", nativeAd.getAdvertiser() != null ? nativeAd.getAdvertiser() : "");
+                json.put("callToAction", nativeAd.getCallToAction() != null ? nativeAd.getCallToAction() : "Learn More");
+                cachedAdJsonString = json.toString();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            isAdLoading = false;
+        });
+
+        builder.withAdListener(new AdListener() {
+            @Override
+            public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                isAdLoading = false;
+            }
+        });
+
+        AdLoader adLoader = builder.build();
+        adLoader.loadAd(new AdRequest.Builder().build());
     }
 
     @Override
