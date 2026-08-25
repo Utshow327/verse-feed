@@ -2433,18 +2433,6 @@ function generateBatch(type, lastRels = []) {
         }
         
         const selectedVerse = availablePool[Math.floor(Math.random() * availablePool.length)];
-        
-        if (selectedVerse && selectedVerse.text) {
-            const sig = getVerseSig(selectedVerse);
-            seenVersesSet.add(sig);
-            seenVersesList.push(sig);
-            if (seenVersesList.length > 3000) {
-                const removed = seenVersesList.shift();
-                seenVersesSet.delete(removed);
-            }
-            saveSeenVerses();
-        }
-        
         return selectedVerse;
     }).filter(v => v !== null);
 }
@@ -2621,11 +2609,32 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
     return card;
 }
 
+let seenDwellTimeout = null;
+function trackVerseDwellTime(verse) {
+    clearTimeout(seenDwellTimeout);
+    if (!verse || verse.isAd || !verse.text) return;
+    const sig = getVerseSig(verse);
+    if (!sig) return;
+    seenDwellTimeout = setTimeout(() => {
+        if (!seenVersesSet.has(sig)) {
+            seenVersesSet.add(sig);
+            seenVersesList.push(sig);
+            if (seenVersesList.length > 3000) {
+                const removed = seenVersesList.shift();
+                seenVersesSet.delete(removed);
+            }
+            saveSeenVerses();
+        }
+    }, 2000);
+}
+
 function renderFeedCard(index, direction = 'none') {
     const stage = document.getElementById('feed-stage');
     if (!stage) return;
     const verse = getVerseAtIndex(index);
     if (!verse) return;
+
+    trackVerseDwellTime(verse);
 
     let card = null;
     if (direction === 'next') card = createFeedCardDOM(verse, 'card-right');
