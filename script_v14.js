@@ -2518,10 +2518,21 @@ function createFeedCardDOM(verse, extraClass) {
         card.classList.add('premium-ad-card');
         textEl.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; text-align: center; padding: 24px 16px 20px 16px; box-sizing: border-box; width: 100%;">
-                <!-- 80% In-Card Ad Box (Responsive across all screens) -->
-                <div id="card-ad-slot" style="width: 100%; flex: 1; margin-bottom: 16px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px 24px; box-sizing: border-box; gap: 16px; box-shadow: inset 0 1px 2px rgba(255,255,255,0.05);">
-                    <div style="font-size: clamp(1.25rem, 4.5vw, 1.75rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.45; max-width: 90%;">
+                <!-- Reddit-Style Native Sponsored Container -->
+                <div id="card-ad-slot" style="width: 100%; flex: 1; margin-bottom: 16px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 24px 20px; box-sizing: border-box; gap: 12px; box-shadow: inset 0 1px 2px rgba(255,255,255,0.05);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; opacity: 0.6; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--text-color);">
+                        <span>Sponsored</span>
+                        <span>Promoted</span>
+                    </div>
+
+                    <div style="font-size: clamp(1.2rem, 4.2vw, 1.65rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.45; max-width: 92%;">
                         ${verse.funnyLine}
+                    </div>
+
+                    <div style="width: 100%; display: flex; justify-content: center;">
+                        <button onclick="openPremiumModal()" style="background: transparent; border: 1px solid var(--glass-border); color: var(--text-color); padding: 8px 22px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer; font-family: inherit; opacity: 0.85; transition: opacity 0.2s ease;">
+                            Learn More ↗
+                        </button>
                     </div>
                 </div>
 
@@ -2578,11 +2589,6 @@ function renderFeedCard(index, direction = 'none') {
         card.classList.remove('animating');
         card.classList.add('card-center');
         stage.appendChild(card);
-    }
-
-    // Trigger pre-cached in-feed ad when landing on Ad Card
-    if (verse && verse.isAd) {
-        showInFeedAd();
     }
 }
 
@@ -7111,47 +7117,6 @@ const ADMOB_BANNER_ID = 'ca-app-pub-5829734517659644/6965598630';
 const ADMOB_INTERSTITIAL_ID = 'ca-app-pub-5829734517659644/7316952427';
 
 let isAdMobReady = false;
-let isInterstitialPreloaded = false;
-let lastInFeedAdShownAt = 0;
-
-async function prepareNextInterstitial() {
-    if (typeof isPremiumUser !== 'undefined' && isPremiumUser) return;
-    try {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
-            const { AdMob } = window.Capacitor.Plugins;
-            await AdMob.prepareInterstitial({
-                adId: ADMOB_INTERSTITIAL_ID,
-                isTesting: false
-            });
-            isInterstitialPreloaded = true;
-        }
-    } catch(e) {
-        console.warn("AdMob Preload Notice:", e);
-    }
-}
-
-async function showInFeedAd() {
-    if (typeof isPremiumUser !== 'undefined' && isPremiumUser) return;
-    const now = Date.now();
-    if (now - lastInFeedAdShownAt < 30000) return; // Cooldown protection
-    lastInFeedAdShownAt = now;
-
-    try {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
-            const { AdMob } = window.Capacitor.Plugins;
-            if (isSpeaking && !isPaused) {
-                stopAudio(true);
-            }
-            await AdMob.showInterstitial();
-            isInterstitialPreloaded = false;
-            // Pre-cache next ad in background for future cards
-            setTimeout(() => prepareNextInterstitial(), 2000);
-        }
-    } catch(e) {
-        console.warn("AdMob Show Notice:", e);
-        prepareNextInterstitial();
-    }
-}
 
 async function initAdMob() {
     try {
@@ -7163,7 +7128,6 @@ async function initAdMob() {
                 initializeForTesting: false,
             });
             isAdMobReady = true;
-            prepareNextInterstitial();
         }
     } catch (e) {
         console.error("AdMob Init Error:", e);
