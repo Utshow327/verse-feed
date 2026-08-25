@@ -7134,34 +7134,7 @@ async function initRevenueCat() {
     }
 }
 
-const ADMOB_APP_ID = 'ca-app-pub-5829734517659644~7299200191';
-let isAdMobReady = false;
 
-async function initAdMob() {
-    try {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
-            const { AdMob } = window.Capacitor.Plugins;
-            await AdMob.initialize({
-                requestTrackingAuthorization: true,
-                testingDevices: [],
-                initializeForTesting: true,
-            });
-            isAdMobReady = true;
-
-            try {
-                AdMob.addListener('bannerAdLoaded', () => {
-                    console.log("AdMob: Banner Loaded successfully.");
-                });
-                AdMob.addListener('bannerAdFailedToLoad', (err) => {
-                    console.warn("AdMob: Banner Failed to Load:", err);
-                    showAdMobBanner(true);
-                });
-            } catch(evErr) {}
-        }
-    } catch (e) {
-        console.error("AdMob Init Error:", e);
-    }
-}
 
 let _premiumModalLastOpened = 0;
 async function openPremiumModal() {
@@ -7354,7 +7327,6 @@ async function restorePurchases() {
 
 window.addEventListener('load', async () => {
     await initRevenueCat();
-    await initAdMob();
 });
 
 

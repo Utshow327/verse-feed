@@ -22,12 +22,16 @@ import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.nativead.NativeAd;
 import com.google.android.gms.ads.nativead.NativeAdOptions;
+import com.google.android.gms.ads.nativead.NativeAdView;
+import android.view.ViewGroup;
 import org.json.JSONObject;
 import java.security.MessageDigest;
 
 public class MainActivity extends BridgeActivity {
     private Boolean currentAppearanceLight = null;
     private NativeAd currentNativeAd = null;
+    private NativeAdView nativeAdViewContainer = null;
+    private View nativeAdClickTarget = null;
     private String cachedAdJsonString = null;
     private static final String NATIVE_AD_TEST_UNIT_ID = "ca-app-pub-3940256099942544/2247696110";
     private static final String NATIVE_AD_LIVE_UNIT_ID = "ca-app-pub-5829734517659644/6990835162";
@@ -92,7 +96,9 @@ public class MainActivity extends BridgeActivity {
                 @JavascriptInterface
                 public void performNativeAdClick() {
                     MainActivity.this.runOnUiThread(() -> {
-                        if (currentNativeAd != null) {
+                        if (nativeAdClickTarget != null) {
+                            nativeAdClickTarget.performClick();
+                        } else if (currentNativeAd != null) {
                             currentNativeAd.recordCustomClickGesture();
                         }
                     });
@@ -126,6 +132,30 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
+    private void attachNativeAdToView(NativeAd ad) {
+        runOnUiThread(() -> {
+            try {
+                if (nativeAdViewContainer == null) {
+                    nativeAdViewContainer = new NativeAdView(this);
+                    nativeAdViewContainer.setLayoutParams(new ViewGroup.LayoutParams(1, 1));
+                    nativeAdViewContainer.setVisibility(View.INVISIBLE);
+                    nativeAdClickTarget = new View(this);
+                    nativeAdClickTarget.setLayoutParams(new ViewGroup.LayoutParams(1, 1));
+                    nativeAdViewContainer.addView(nativeAdClickTarget);
+                    nativeAdViewContainer.setHeadlineView(nativeAdClickTarget);
+                    nativeAdViewContainer.setBodyView(nativeAdClickTarget);
+                    nativeAdViewContainer.setCallToActionView(nativeAdClickTarget);
+                    
+                    ViewGroup root = (ViewGroup) getWindow().getDecorView();
+                    root.addView(nativeAdViewContainer);
+                }
+                nativeAdViewContainer.setNativeAd(ad);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
     private void preloadNextNativeAd() {
         if (isAdLoading || cachedAdJsonString != null) return;
         isAdLoading = true;
@@ -136,6 +166,7 @@ public class MainActivity extends BridgeActivity {
                 currentNativeAd.destroy();
             }
             currentNativeAd = nativeAd;
+            attachNativeAdToView(nativeAd);
             try {
                 JSONObject json = new JSONObject();
                 json.put("hasAd", true);
@@ -170,6 +201,7 @@ public class MainActivity extends BridgeActivity {
                 currentNativeAd.destroy();
             }
             currentNativeAd = nativeAd;
+            attachNativeAdToView(nativeAd);
             try {
                 JSONObject json = new JSONObject();
                 json.put("hasAd", true);

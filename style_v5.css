@@ -116,6 +116,10 @@ body.app-ready > *:not(#loading):not(#developer-error-panel):not(script) {
     align-items: center;
     justify-content: center;
     transform: translate3d(0, 0, 0);
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
 }
 
 .loader-word {
@@ -127,6 +131,13 @@ body.app-ready > *:not(#loading):not(#developer-error-panel):not(script) {
     letter-spacing: 2px;
     will-change: opacity;
     animation: loaderBreathe 2s ease-in-out infinite;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 @keyframes loaderBreathe {
