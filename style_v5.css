@@ -2675,3 +2675,12 @@ h2 {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
 
+#email-auth-modal .modal-content {
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+
