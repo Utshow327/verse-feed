@@ -7129,6 +7129,11 @@ async function showAdMobBanner(useFallback = false) {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
             const { AdMob } = window.Capacitor.Plugins;
             const targetAdId = useFallback ? ADMOB_TEST_BANNER_ID : ADMOB_LIVE_BANNER_ID;
+            
+            try {
+                await AdMob.resumeBanner();
+            } catch(e) {}
+
             await AdMob.showBanner({
                 adId: targetAdId,
                 adSize: 'MEDIUM_RECTANGLE',
@@ -7150,7 +7155,12 @@ async function hideAdMobBanner() {
     try {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
             const { AdMob } = window.Capacitor.Plugins;
-            await AdMob.hideBanner();
+            try {
+                await AdMob.hideBanner();
+            } catch(e) {}
+            try {
+                await AdMob.removeBanner();
+            } catch(e) {}
             isBannerShowing = false;
         }
     } catch(e) {
