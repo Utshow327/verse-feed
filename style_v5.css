@@ -80,7 +80,7 @@ html, body {
     overscroll-behavior-x: none;
 }
 
-/* --- Loading Screen --- */
+/* --- Loading Screen (Upward Curtain Reveal) --- */
 #loading {
     position: fixed;
     top: 0;
@@ -97,18 +97,13 @@ html, body {
     user-select: none;
     -webkit-user-select: none;
     transform: translate3d(0, 0, 0);
-    transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s ease;
+    transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.55s ease;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
 }
 
-/* Sequential App Fade-In: Keep app content hidden until loading screen has fully faded out */
-body:not(.app-ready) > *:not(#loading):not(#developer-error-panel):not(script) {
-    opacity: 0 !important;
-    pointer-events: none !important;
-}
-
-body.app-ready > *:not(#loading):not(#developer-error-panel):not(script) {
+/* App content is immediately visible underneath with zero fade-in delay */
+body > *:not(#loading):not(#developer-error-panel):not(script) {
     opacity: 1;
-    transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .versefeed-loader {
@@ -149,9 +144,9 @@ body.app-ready > *:not(#loading):not(#developer-error-panel):not(script) {
     }
 }
 
-/* When loaded, gracefully fade out */
+/* When loaded, gracefully swipe upwards revealing the app underneath */
 #loading.loaded {
-    opacity: 0;
+    transform: translate3d(0, -100%, 0);
     visibility: hidden;
     pointer-events: none !important;
 }

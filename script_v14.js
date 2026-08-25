@@ -805,15 +805,16 @@ async function initApp() {
                     appLoaded = true;
                     return;
                 }
-                // Step 1: Smoothly fade out loading screen completely
+                // App is ready and static underneath immediately
+                document.body.classList.add('app-ready');
+                appLoaded = true;
+
+                // Smoothly swipe up the loading screen curtain
                 loadingScreen.classList.add('loaded');
                 
-                // Step 2: ONLY after loading screen fade-out has completely finished (400ms), hide it and fade in the app
                 setTimeout(() => {
                     loadingScreen.style.display = 'none';
-                    document.body.classList.add('app-ready');
-                    appLoaded = true;
-                }, 420);
+                }, 600);
             }
 
             // Safety Watchdog: Guarantee loading overlay is dismissed even on slowest devices
