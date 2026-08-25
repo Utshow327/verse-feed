@@ -30,7 +30,7 @@ public class MainActivity extends BridgeActivity {
     private NativeAd currentNativeAd = null;
     private String cachedAdJsonString = null;
     private static final String NATIVE_AD_TEST_UNIT_ID = "ca-app-pub-3940256099942544/2247696110";
-    private static final String NATIVE_AD_LIVE_UNIT_ID = "ca-app-pub-5829734517659644/6965598630";
+    private static final String NATIVE_AD_LIVE_UNIT_ID = "ca-app-pub-5829734517659644/6990835162";
     private boolean isAdLoading = false;
 
     @Override
@@ -87,6 +87,15 @@ public class MainActivity extends BridgeActivity {
                     }
                     MainActivity.this.runOnUiThread(() -> preloadNextNativeAd());
                     return "{\"hasAd\":false}";
+                }
+
+                @JavascriptInterface
+                public void performNativeAdClick() {
+                    MainActivity.this.runOnUiThread(() -> {
+                        if (currentNativeAd != null) {
+                            currentNativeAd.recordCustomClickGesture();
+                        }
+                    });
                 }
 
                 @JavascriptInterface

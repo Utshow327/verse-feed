@@ -2527,9 +2527,16 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
         textEl.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; flex-grow: 1; padding: 20px 14px;';
         
         if (nativeAdData) {
+            textEl.style.cursor = 'pointer';
+            textEl.onclick = (e) => {
+                if (e) e.stopPropagation();
+                if (window.AppSigner && typeof window.AppSigner.performNativeAdClick === 'function') {
+                    window.AppSigner.performNativeAdClick();
+                }
+            };
             let html = '';
             if (nativeAdData.headline) {
-                html += `<div style="font-size: clamp(1.2rem, 4.2vw, 1.6rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.45; margin-bottom: 8px;">${nativeAdData.headline}</div>`;
+                html += `<div style="font-size: clamp(1.2rem, 4.2vw, 1.6rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.45; margin-bottom: 10px;">${nativeAdData.headline}</div>`;
             }
             if (nativeAdData.body) {
                 html += `<div style="font-size: clamp(0.95rem, 3.2vw, 1.15rem); font-weight: 400; color: var(--text-color); opacity: 0.85; font-family: var(--font-main); line-height: 1.5; max-width: 90%;">${nativeAdData.body}</div>`;
