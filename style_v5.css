@@ -98,7 +98,7 @@ html, body {
     -webkit-user-select: none;
     transform: translate3d(0, 0, 0);
     transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.85s ease;
-    box-shadow: none !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 /* App content is immediately visible underneath with zero fade-in delay */
@@ -144,9 +144,9 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     }
 }
 
-/* When loaded, gracefully swipe upwards revealing the app underneath */
+/* When loaded, gracefully swipe upwards past viewport bounds so shadow is fully cleared */
 #loading.loaded {
-    transform: translate3d(0, -100%, 0);
+    transform: translate3d(0, calc(-100% - 80px), 0);
     visibility: hidden;
     pointer-events: none !important;
 }

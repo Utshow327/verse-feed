@@ -814,7 +814,7 @@ async function initApp() {
                 
                 setTimeout(() => {
                     loadingScreen.style.display = 'none';
-                }, 900);
+                }, 950);
             }
 
             // Safety Watchdog: Guarantee loading overlay is dismissed even on slowest devices
