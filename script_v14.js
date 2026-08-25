@@ -4918,7 +4918,7 @@ function openAlbumModal(verseObj) {
     if (!modal) return;
     const hasAlbums = populateAlbumWheel();
     if (!hasAlbums) {
-        showToast('No other folder available. Create a new folder first.');
+        showToast('No other folders available');
         openCreateBookmarkModal();
         return;
     }
@@ -5876,7 +5876,7 @@ async function shareTextFallback(text) {
             await navigator.share({ title: 'VerseFeed', text: text });
         } else if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(text);
-            showToast('Verse copied to clipboard!');
+            showToast('Verse copied');
         } else {
             const ta = document.createElement('textarea');
             ta.value = text;
@@ -5886,7 +5886,7 @@ async function shareTextFallback(text) {
             ta.select();
             document.execCommand('copy');
             document.body.removeChild(ta);
-            showToast('Verse copied to clipboard!');
+            showToast('Verse copied');
         }
     } catch (e) {
         const msg = (e && e.message) ? e.message.toLowerCase() : '';
@@ -5894,7 +5894,7 @@ async function shareTextFallback(text) {
         try {
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 await navigator.clipboard.writeText(text);
-                showToast('Verse copied to clipboard!');
+                showToast('Verse copied');
             }
         } catch (e2) {
             showToast('Could not share');
@@ -6189,7 +6189,7 @@ function initFirebaseAuth() {
                 email = window.prompt('Please confirm your email address for verification:');
             }
             if (email) {
-                showToast("Verifying email and completing account setup...");
+                showToast("Verifying email...");
                 firebase.auth().signInWithEmailLink(email, window.location.href)
                     .then((result) => {
                         window.localStorage.removeItem('emailForSignIn');
@@ -6210,13 +6210,13 @@ function initFirebaseAuth() {
                             if (window.history && window.history.replaceState) {
                                 window.history.replaceState({}, document.title, window.location.pathname);
                             }
-                            showToast("Email verified successfully! Welcome!");
+                            showToast("Email verified!");
                             applyUserAuthSuccess(result.user);
                         });
                     })
                     .catch((error) => {
                         console.error("Sign in with email link error:", error);
-                        showToast("Verification link expired or invalid. Please request a new link.");
+                        showToast("Link expired or invalid");
                     });
             }
         }
@@ -6319,25 +6319,25 @@ function checkEmailVerification() {
     if (errorEl) errorEl.innerText = "";
     
     if (!user) {
-        showToast("No active user session. Please sign in.");
+        showToast("Please sign in");
         closeEmailVerifyModal();
         return;
     }
     user.reload().then(() => {
         if (user.emailVerified) {
-            showToast("Email verified successfully! Welcome!");
+            showToast("Email verified!");
             applyUserAuthSuccess(user);
         } else {
             if (errorEl) {
-                errorEl.innerText = "Email is not verified yet. Please check your spam folder.";
+                errorEl.innerText = "Email not verified yet. Please check your inbox.";
             } else {
-                showToast("Email is not verified yet. Please check your spam folder.");
+                showToast("Email not verified yet");
             }
         }
     }).catch(err => {
         console.error("Reload user error:", err);
         if (errorEl) {
-            errorEl.innerText = "Failed to verify status. Please try again.";
+            errorEl.innerText = "Failed to verify. Please try again.";
         }
     });
 }
@@ -6352,7 +6352,7 @@ function resendVerificationEmail() {
     const btn = document.getElementById('resend-verify-btn');
     if (btn && btn.disabled) return;
     
-    showToast("Resending verification email...");
+    showToast("Sending email...");
     
     // Dispatch via zero-spam Gmail SMTP
     sendCustomAuthEmail({
@@ -6362,15 +6362,15 @@ function resendVerificationEmail() {
     }).catch(() => {});
 
     user.sendEmailVerification().then(() => {
-        showToast("Verification email resent! Check your inbox.");
-        if (errorEl) errorEl.innerText = "Email resent successfully! Check your inbox.";
+        showToast("Email sent! Check inbox");
+        if (errorEl) errorEl.innerText = "Email sent! Check your inbox.";
         localStorage.setItem('verification_resend_time', Date.now());
         updateResendTimerUI();
     }).catch(err => {
         console.error("Resend verification error:", err);
-        let msg = "Failed to resend email.";
+        let msg = "Failed to send email.";
         if (err && err.code === 'auth/too-many-requests') {
-            msg = "Too many requests. Please wait before resending.";
+            msg = "Too many requests. Please wait.";
             localStorage.setItem('verification_resend_time', Date.now());
             updateResendTimerUI();
         } else if (err && err.message) {
@@ -6403,7 +6403,7 @@ function enableNameEditMode() {
         let newName = inputEl.value.replace(/[^A-Za-z\s]/g, '').trim();
         if (!newName) {
             newName = currentName;
-            showToast("Name cannot be empty & accepts English letters only.");
+            showToast("Letters only (A-Z)");
         }
         
         nameEl.innerHTML = '';
@@ -6415,10 +6415,10 @@ function enableNameEditMode() {
                 showToast("Updating name...");
                 user.updateProfile({ displayName: newName }).then(() => {
                     applyUserAuthSuccess(user);
-                    showToast("Name updated successfully!");
+                    showToast("Name updated");
                 }).catch(err => {
                     console.error("Name update error:", err);
-                    showToast("Failed to update name.");
+                    showToast("Update failed");
                     nameEl.innerText = currentName;
                 });
             }
@@ -6552,10 +6552,10 @@ function handleEmailSignIn() {
                 if (!result.user.emailVerified) {
                     closeEmailAuthModal();
                     showEmailVerifyModal(result.user.email);
-                    showToast("Please verify your email to complete sign in.");
+                    showToast("Please verify email");
                 } else {
                     applyUserAuthSuccess(result.user);
-                    showToast("Signed in successfully!");
+                    showToast("Signed in");
                 }
             }
         })
@@ -7240,7 +7240,7 @@ async function openPremiumModal() {
     const currentUid = getFirebaseCurrentUid();
     if (!currentUid || activeProfile === 'guest') {
         openEmailAuthModal('signin');
-        showToast("Please sign in or create an account to get Premium");
+        showToast("Sign in for Premium");
         return;
     }
     const now = Date.now();
@@ -7321,7 +7321,7 @@ async function handlePremiumSubscribeClick(e) {
     if (!currentUid || activeProfile === 'guest') {
         closePremiumModal();
         openEmailAuthModal('signin');
-        showToast("Please sign in or create an account to get Premium");
+        showToast("Sign in for Premium");
         return;
     }
     if (isPurchasingInProgress) {
@@ -7437,7 +7437,7 @@ window.addEventListener('offline', () => {
         googleUser = null;
         loadStateFromProfile('guest');
         updateUserUI();
-        showToast('No internet connection: Switched to Guest mode');
+        showToast('Offline: Guest mode');
     }
 });
 
