@@ -2517,16 +2517,17 @@ function createFeedCardDOM(verse, extraClass) {
 
         card.classList.add('premium-ad-card');
         textEl.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; text-align: center; padding: 28px 20px; box-sizing: border-box; width: 100%;">
-                <!-- Clean In-Card Ad Box -->
-                <div id="card-ad-slot" style="width: 100%; max-width: 440px; flex: 1; margin: 8px 0 16px 0; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box; gap: 16px; box-shadow: inset 0 1px 2px rgba(255,255,255,0.05);">
-                    <div style="font-size: clamp(1.2rem, 4.2vw, 1.55rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.45; max-width: 92%;">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; text-align: center; padding: 24px 16px 20px 16px; box-sizing: border-box; width: 100%;">
+                <!-- 80% In-Card Ad Box -->
+                <div id="card-ad-slot" style="width: 100%; max-width: 480px; flex: 1; margin-bottom: 16px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px 20px; box-sizing: border-box; gap: 16px; box-shadow: inset 0 1px 2px rgba(255,255,255,0.05);">
+                    <div style="font-size: clamp(1.25rem, 4.5vw, 1.65rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.45; max-width: 92%;">
                         ${verse.funnyLine}
                     </div>
                 </div>
 
-                <button onclick="openPremiumModal()" style="transform: none; background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 14px 40px; border-radius: 28px; font-size: 1.0rem; font-weight: 700; cursor: pointer; font-family: inherit; box-shadow: var(--glass-shadow); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
-                    Get Premium
+                <!-- Bottom Centered Remove Ads Button -->
+                <button onclick="openPremiumModal()" style="transform: none; background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 12px 36px; border-radius: 24px; font-size: 0.95rem; font-weight: 600; cursor: pointer; font-family: inherit; box-shadow: var(--glass-shadow); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); letter-spacing: 0.3px;">
+                    Remove Ads
                 </button>
             </div>
         `;
