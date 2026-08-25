@@ -98,7 +98,7 @@ html, body {
     -webkit-user-select: none;
     transform: translate3d(0, 0, 0);
     transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.85s ease;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+    box-shadow: none !important;
 }
 
 /* App content is immediately visible underneath with zero fade-in delay */
