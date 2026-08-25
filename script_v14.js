@@ -2942,8 +2942,22 @@ function _showSavedVersesImpl(rebuildFolders = true) {
             nameSpan.textContent = albumName;
             folder.appendChild(nameSpan);
             
-            if ((selectedVerse && selectedVerse.type === 'folder' && selectedVerse.name === albumName) || selectedSavedAlbum === albumName) {
+            const isSelected = (selectedVerse && selectedVerse.type === 'folder' && selectedVerse.name === albumName) || selectedSavedAlbum === albumName;
+            if (isSelected) {
                 folder.classList.add('active');
+                
+                const cornerDelBtn = document.createElement('button');
+                cornerDelBtn.className = 'folder-corner-delete-btn';
+                cornerDelBtn.title = 'Delete Folder';
+                cornerDelBtn.innerHTML = `<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
+                cornerDelBtn.onclick = (e) => {
+                    if (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                    handleFolderDelete(e, albumName);
+                };
+                folder.appendChild(cornerDelBtn);
             }
             
             // --- Live Drag & Drop / Long-Press Reordering ---

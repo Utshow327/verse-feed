@@ -816,11 +816,13 @@ h2 {
 .book-verse {
     user-select: text;
     -webkit-user-select: text;
-    margin-bottom: 20px;
-    padding: 10px;
+    margin-bottom: 14px;
+    padding: 8px 12px;
     border-radius: 8px;
     transition: background 0.3s;
     cursor: pointer;
+    font-size: clamp(0.95rem, 3.0vw, 1.12rem);
+    line-height: 1.6;
 }
 
 /* --- Saved Verses --- */
@@ -832,7 +834,7 @@ h2 {
 
 .saved-verse-container {
     width: 90%;
-    margin: 15px auto;
+    margin: 12px auto;
     position: relative;
 }
 
@@ -844,9 +846,16 @@ h2 {
 .saved-verse {
     background: var(--card-bg);
     border-radius: 16px;
-    padding: 20px;
+    padding: 16px 18px;
     border: 1px solid var(--glass-border);
     transition: background 0.3s, border-left 0.3s;
+    font-size: clamp(0.92rem, 2.9vw, 1.08rem);
+    line-height: 1.55;
+}
+
+.saved-verse .verse-text {
+    font-size: clamp(0.95rem, 2.9vw, 1.12rem) !important;
+    line-height: 1.55;
 }
 
 .remove-btn {
@@ -987,6 +996,33 @@ h2 {
     padding: 4px;
     width: 100%;
 }
+
+.folder-corner-delete-btn {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glass-border);
+    color: var(--text-color);
+    opacity: 0.65;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: opacity 0.2s ease, transform 0.15s ease, background 0.2s ease;
+    z-index: 10;
+}
+.folder-corner-delete-btn:active {
+    opacity: 1;
+    transform: scale(0.88);
+    background: rgba(255, 71, 87, 0.25);
+    color: #ff4757;
+}
+
 
 
 .toggle-icon-btn {
