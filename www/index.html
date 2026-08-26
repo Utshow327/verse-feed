@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Minimalistic Religion App</title>
-    <link rel="stylesheet" href="style_v5.css?v=248">
+    <link rel="stylesheet" href="style_v5.css?v=250">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -383,8 +383,10 @@
 
     <!-- Album Selection Modal -->
     <div id="album-modal" class="modal-overlay hidden" onclick="closeAlbumModal(event)">
-        <div id="album-scroll-wheel-container" onclick="event.stopPropagation()">
-            <div id="album-scroll-wheel"></div>
+        <div class="modal-content" style="max-width:320px; padding: 24px; text-align: center; border-radius: 20px; background: var(--card-bg);" onclick="event.stopPropagation()">
+            <h3 style="margin-top:0; margin-bottom:16px; font-size:1.1rem; color: var(--text-color);">Bookmark Settings</h3>
+            <div id="album-grid" style="display:flex; flex-direction:column; gap:8px; max-height: 40vh; overflow-y: auto; margin-bottom: 16px;"></div>
+            <button class="album-create-btn" style="width: 100%; background: #ff4757; color: #fff; border-color: #ff4757;" onclick="removePendingBookmark()">Remove Bookmark</button>
         </div>
     </div>
     <!-- Add Folder Modal -->
@@ -562,7 +564,7 @@
     <div id="radial-overlay" class="radial-overlay"></div>
     <script src="libs/localforage.min.js"></script>
     <script src="libs/html2canvas.min.js"></script>
-    <script src="script_v14.js?v=348"></script>
+    <script src="script_v14.js?v=350"></script>
 
 
 

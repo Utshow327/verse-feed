@@ -19,7 +19,7 @@ button, input, select, textarea, div, svg, canvas, a {
     --bg-grad-1: #C8B8A6;
     --bg-grad-2: #A99684;
     --text-color: #1E1D1B;
-    --card-bg: rgba(224, 214, 202, 0.85);
+    --card-bg: #E0D6CA;
     --glass-border: rgba(60, 50, 40, 0.28);
     --nav-bg: rgba(180, 166, 152, 0.5);
     --nav-color: #1E1D1B;
@@ -178,8 +178,8 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     left: 50%;
     transform: translateX(-50%);
     background: var(--nav-bg) !important;
-    backdrop-filter: blur(10px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
+     saturate(180%) !important;
+    -webkit- saturate(180%) !important;
     border: 1px solid var(--glass-border) !important;
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
     border-radius: 25px;
@@ -328,7 +328,7 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     justify-content: space-between;
     position: absolute;
     transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.35s ease;
-    will-change: transform, opacity;
+    
     opacity: 1;
 }
 
@@ -1217,7 +1217,7 @@ h2 {
     opacity: 0.5;
     transform-style: preserve-3d;
     -webkit-font-smoothing: antialiased;
-    will-change: transform, opacity;
+    
 }
 
 .voice-wheel-item.active {
@@ -1317,8 +1317,8 @@ h2 {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
+    
+    -webkit-
     z-index: 10000;
     display: flex;
     flex-direction: column;
@@ -1343,8 +1343,8 @@ h2 {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    
+    -webkit-
     z-index: 10001;
     display: flex;
     justify-content: center;
@@ -1519,8 +1519,8 @@ h2 {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
+    
+    -webkit-
     z-index: 10000;
     display: flex;
     flex-direction: column;
@@ -1545,8 +1545,8 @@ h2 {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    
+    -webkit-
     z-index: 10001;
     display: flex;
     justify-content: center;
@@ -1635,7 +1635,7 @@ h2 {
     z-index: 10000;
     pointer-events: none;
     max-width: 250px;
-    backdrop-filter: blur(8px);
+    
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 24px rgba(0,0,0,0.5);
     transition: opacity 0.2s ease, transform 0.2s ease;
@@ -1662,8 +1662,8 @@ h2 {
     width: fit-content;
     max-width: 90vw;
     min-width: 0;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    
+    -webkit-
     border: 1px solid var(--glass-border);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     display: flex;
@@ -2017,7 +2017,7 @@ h2 {
     padding: 0 10px;
     transform-style: preserve-3d;
     backface-visibility: hidden;
-    will-change: transform, opacity;
+    
     opacity: 0;
     transform: scale(0.1) translateZ(0);
     transition: transform 0.2s ease, opacity 0.2s ease;
@@ -2034,7 +2034,7 @@ h2 {
     margin: 20px auto;
     text-align: center;
     box-shadow: var(--glass-shadow);
-    backdrop-filter: blur(8px);
+    
 }
 .donation-card h3 {
     margin-top: 0;
@@ -2341,8 +2341,8 @@ h2 {
     cursor: pointer;
     font-family: inherit;
     box-shadow: var(--glass-shadow);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    
+    -webkit-
     transition: transform 0.2s ease, background 0.2s ease, opacity 0.2s ease;
     display: flex;
     align-items: center;
@@ -2367,8 +2367,8 @@ h2 {
     cursor: pointer;
     font-family: inherit;
     box-shadow: var(--glass-shadow);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    
+    -webkit-
     transition: transform 0.2s ease, background 0.2s ease, opacity 0.2s ease;
     display: flex;
     align-items: center;

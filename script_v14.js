@@ -4964,91 +4964,13 @@ function saveToAlbum(albumName) {
     updatePillUI();
 }
 
-function getAlbumWheelItems() {
-    const wheel = document.getElementById('album-scroll-wheel');
-    return wheel ? Array.from(wheel.querySelectorAll('.album-wheel-item[data-val]')) : [];
-}
-
-function getActiveAlbumWheelItem() {
-    const wheel = document.getElementById('album-scroll-wheel');
-    if (!wheel || wheel.clientHeight === 0) return null;
-    const items = getAlbumWheelItems();
-    const containerCenter = wheel.scrollTop + wheel.clientHeight / 2;
-    let closest = null, closestDist = Infinity;
-    items.forEach(item => {
-        const itemCenter = item.offsetTop + item.offsetHeight / 2;
-        const dist = Math.abs(containerCenter - itemCenter);
-        if (dist < closestDist) { closestDist = dist; closest = item; }
-    });
-    return closest;
-}
-
-function setupAlbumWheelListeners() {
-    const wheel = document.getElementById('album-scroll-wheel');
-    if (!wheel || wheel.dataset.listened) return;
-    wheel.dataset.listened = "true";
-
-    wheel.addEventListener('scroll', () => {
-        updateAlbumWheelActiveStyle();
-        clearTimeout(albumScrollTimeout);
-        albumScrollTimeout = setTimeout(() => {
-            if (!isDraggingAlbumWheel) {
-                const active = getActiveAlbumWheelItem();
-                if (active) {
-                    isProgrammaticAlbumScroll = true;
-                    const targetScroll = active.offsetTop + active.offsetHeight / 2 - wheel.clientHeight / 2;
-                    wheel.scrollTo({ top: targetScroll, behavior: 'smooth' });
-                    clearTimeout(programmaticAlbumScrollTimeout);
-                    programmaticAlbumScrollTimeout = setTimeout(() => {
-                        isProgrammaticAlbumScroll = false;
-                    }, 500);
-                }
-            }
-        }, 150);
-    }, { passive: true });
-
-    wheel.addEventListener('wheel', e => {
-        if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-        e.preventDefault();
-        const items = getAlbumWheelItems();
-        let itemHeight = items[0] ? items[0].offsetHeight : 30;
-        if (items.length > 1) {
-            itemHeight = items[1].offsetTop - items[0].offsetTop;
-        }
-        const scrollAmount = e.deltaY * (itemHeight / 100);
-        wheel.scrollBy({ top: scrollAmount, behavior: 'smooth' });
-    }, { passive: false });
-}
-
-function syncAlbumWheelToCurrent(smooth = true) {
-    const wheel = document.getElementById('album-scroll-wheel');
-    if (!wheel) return;
-    const clientHeight = wheel.clientHeight || 120;
-    const items = getAlbumWheelItems();
-    if (items.length === 0) return;
-    
-    const targetAlbum = selectedSavedAlbum || items[0].dataset.val;
-    const idx = items.findIndex(i => i.dataset.val === targetAlbum);
-    const targetIdx = idx !== -1 ? idx : 0;
-    
-    const item = items[targetIdx];
-    if (item) {
-        const offsetHeight = item.offsetHeight || 30;
-        const targetScroll = item.offsetTop + offsetHeight / 2 - clientHeight / 2;
-        isProgrammaticAlbumScroll = true;
-        wheel.scrollTo({ top: targetScroll, behavior: smooth ? 'smooth' : 'auto' });
-        clearTimeout(programmaticAlbumScrollTimeout);
-        programmaticAlbumScrollTimeout = setTimeout(() => {
-            isProgrammaticAlbumScroll = false;
-            updateAlbumWheelActiveStyle();
-        }, smooth ? 500 : 50);
-        updateAlbumWheelActiveStyle();
-    }
-}
+function getAlbumWheelItems() { return []; }
+function getActiveAlbumWheelItem() { return null; }
+function setupAlbumWheelListeners() {}
 
 function populateAlbumWheel() {
-    const wheel = document.getElementById('album-scroll-wheel');
-    if (!wheel) return false;
+    const grid = document.getElementById('album-grid');
+    if (!grid) return false;
     
     // Determine current folder of pendingBookmarkVerse if saved
     let currentAlbum = null;
@@ -5082,95 +5004,44 @@ function populateAlbumWheel() {
         albumList = albumList.filter(name => name !== currentAlbum);
     }
     
-    if (albumList.length === 0) {
-        return false;
+    grid.innerHTML = '';
+    
+    if (currentAlbum !== 'All') {
+        const allBtn = document.createElement('button');
+        allBtn.className = 'album-create-btn';
+        allBtn.style.width = '100%';
+        allBtn.style.background = 'transparent';
+        allBtn.style.color = 'var(--text-color)';
+        allBtn.innerText = 'Move to All';
+        allBtn.onclick = () => saveToAlbum('All');
+        grid.appendChild(allBtn);
     }
-    
-    wheel.innerHTML = '';
-    
-    const beforeSpacer = document.createElement('div');
-    beforeSpacer.style.flexShrink = '0';
-    beforeSpacer.style.height = 'calc(50% - 15px)';
-    wheel.appendChild(beforeSpacer);
-    
-    albumList.forEach(album => {
-        const item = document.createElement('div');
-        item.className = 'album-wheel-item';
-        item.dataset.val = album;
-        item.innerText = album;
-        item.onclick = (e) => {
-            e.stopPropagation();
-            if (item.classList.contains('selected')) {
-                saveToAlbum(album);
-            } else {
-                const targetScroll = item.offsetTop + item.offsetHeight / 2 - wheel.clientHeight / 2;
-                wheel.scrollTo({ top: targetScroll, behavior: 'smooth' });
-            }
-        };
-        wheel.appendChild(item);
+
+    albumList.forEach(name => {
+        const btn = document.createElement('button');
+        btn.className = 'album-create-btn';
+        btn.style.width = '100%';
+        btn.style.background = 'transparent';
+        btn.style.color = 'var(--text-color)';
+        btn.innerText = 'Move to ' + name;
+        btn.onclick = () => saveToAlbum(name);
+        grid.appendChild(btn);
     });
     
-    const afterSpacer = document.createElement('div');
-    afterSpacer.style.flexShrink = '0';
-    afterSpacer.style.height = 'calc(50% - 15px)';
-    wheel.appendChild(afterSpacer);
+    const newFolderBtn = document.createElement('button');
+    newFolderBtn.className = 'album-create-btn';
+    newFolderBtn.style.width = '100%';
+    newFolderBtn.innerText = '+ New Folder';
+    newFolderBtn.onclick = () => {
+        closeAlbumModal();
+        openCreateBookmarkModal();
+    };
+    grid.appendChild(newFolderBtn);
     
-    setupAlbumWheelListeners();
-    syncAlbumWheelToCurrent(false);
-    
-    setTimeout(() => {
-        syncAlbumWheelToCurrent(false);
-    }, 50);
-
     return true;
 }
 
-function updateAlbumWheelActiveStyle() {
-    const wheel = document.getElementById('album-scroll-wheel');
-    if (!wheel) return;
-    const clientHeight = wheel.clientHeight || 120;
-    const items = wheel.querySelectorAll('.album-wheel-item');
-    const containerCenter = wheel.scrollTop + clientHeight / 2;
-    const itemHeight = 30;
-    
-    let closestIdx = 0, closestDist = Infinity;
-    
-    items.forEach((item, i) => {
-        const offsetHeight = item.offsetHeight || itemHeight;
-        const itemCenter = item.offsetTop + offsetHeight / 2;
-        const dist = itemCenter - containerCenter;
-        const normDist = dist / itemHeight;
-        const absNormDist = Math.abs(normDist);
-        
-        if (Math.abs(dist) < closestDist) {
-            closestDist = Math.abs(dist);
-            closestIdx = i;
-        }
-        
-        if (absNormDist < 2.5) {
-            const opacity = 1 - absNormDist * 0.4;
-            const scale = 1.0 - absNormDist * 0.15;
-            const angle = normDist * 40;
-            item.style.opacity = Math.max(0.1, opacity);
-            item.style.transform = `rotateX(${angle}deg) scale(${scale}) translateZ(0)`;
-            item.style.fontWeight = absNormDist < 0.5 ? '600' : '400';
-            item.style.pointerEvents = 'auto';
-            item.classList.toggle('selected', absNormDist < 0.5);
-        } else {
-            item.style.opacity = 0;
-            item.style.transform = 'scale(0.5) translateZ(0)';
-            item.style.pointerEvents = 'none';
-            item.classList.remove('selected');
-        }
-    });
-    
-    if (lastActiveAlbumIdx !== -1 && lastActiveAlbumIdx !== closestIdx) {
-        if (!isProgrammaticAlbumScroll && wheel.offsetParent !== null) {
-            playScrollSound();
-        }
-    }
-    lastActiveAlbumIdx = closestIdx;
-}
+function updateAlbumWheelActiveStyle() {}
 
 function updateSpeakIcons() {
     updateSpeakButton('speak-general');
@@ -5810,14 +5681,15 @@ function handlePillBookmark(e) {
     });
     
     if (index > -1) {
-        // Toggle/Remove bookmark
-        savedVerses.splice(index, 1);
-        localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
-        if (typeof showSavedVerses === 'function') showSavedVerses(false);
-        showToast('Bookmark removed');
-    } else {
-        // Open Album/Folder selection modal
+        // Already bookmarked -> Open modal to move or remove
         openAlbumModal(verseToBookmark);
+    } else {
+        // Direct save to "All" instead of opening modal
+        pendingBookmarkVerse = verseToBookmark;
+        saveToAlbum('All');
+        pendingBookmarkVerse = null;
+        if (typeof showSavedVerses === 'function') showSavedVerses(false);
+        showToast('Saved to All');
     }
 }
 
@@ -7482,3 +7354,18 @@ document.addEventListener('keydown', (e) => {
         }
     }
 });
+function removePendingBookmark() {
+    if (!pendingBookmarkVerse) return;
+    const index = savedVerses.findIndex(s => {
+        if (s.id && pendingBookmarkVerse.id) return s.id === pendingBookmarkVerse.id;
+        return s.book === pendingBookmarkVerse.book && String(s.chapter) === String(pendingBookmarkVerse.chapter) && String(s.verse) === String(pendingBookmarkVerse.verse);
+    });
+    if (index > -1) {
+        savedVerses.splice(index, 1);
+        localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+        if (typeof showSavedVerses === 'function') showSavedVerses(false);
+        showToast('Bookmark removed');
+    }
+    closeAlbumModal();
+    updatePillUI();
+}
