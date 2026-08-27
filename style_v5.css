@@ -19,7 +19,7 @@ button, input, select, textarea, div, svg, canvas, a {
     --bg-grad-1: #C8B8A6;
     --bg-grad-2: #A99684;
     --text-color: #1E1D1B;
-    --card-bg: #E0D6CA;
+    --card-bg: rgba(224, 214, 202, 0.85);
     --glass-border: rgba(60, 50, 40, 0.28);
     --nav-bg: rgba(180, 166, 152, 0.5);
     --nav-color: #1E1D1B;
@@ -178,6 +178,8 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     left: 50%;
     transform: translateX(-50%);
     background: var(--nav-bg) !important;
+    backdrop-filter: blur(10px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
     border: 1px solid var(--glass-border) !important;
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
     border-radius: 25px;
@@ -1656,7 +1658,8 @@ h2 {
     width: fit-content;
     max-width: 90vw;
     min-width: 0;
-    
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     display: flex;
