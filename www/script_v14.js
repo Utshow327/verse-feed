@@ -2867,11 +2867,13 @@ function toggleBookmark(v, btnElement) {
 function getAlbumsGrouped() {
     const albums = {};
     createdAlbums.forEach(name => {
-        if (!albums[name]) albums[name] = [];
+        if (name && name !== 'Default' && name !== 'All') {
+            if (!albums[name]) albums[name] = [];
+        }
     });
     savedVerses.forEach((v, i) => {
         if (!v) return;
-        if (v.album && v.album !== 'Default') {
+        if (v.album && v.album !== 'Default' && v.album !== 'All') {
             if (!albums[v.album]) albums[v.album] = [];
             albums[v.album].push({v, i});
         }
@@ -3085,34 +3087,35 @@ function _showSavedVersesImpl(rebuildFolders = true) {
     
     // Rebuild verses list using a fragment for atomic swap
     const versesFrag = document.createDocumentFragment();
+    // Show folder header bar: If a custom folder is open, show its name (editable); if viewing all, show "All" (static title)
+    const header = document.createElement('div');
+    header.className = 'selected-folder-header-bar';
     
-    // If a folder is open/selected, show header with centered editable name
-    if (selectedSavedAlbum) {
-        const header = document.createElement('div');
-        header.className = 'selected-folder-header-bar';
-        
-        const titleWrap = document.createElement('div');
-        titleWrap.className = 'folder-title-center-wrap';
+    const titleWrap = document.createElement('div');
+    titleWrap.className = 'folder-title-center-wrap';
+    
+    const titleSpan = document.createElement('span');
+    titleSpan.className = 'selected-folder-title';
+    titleSpan.id = 'selected-folder-title';
+    titleSpan.textContent = selectedSavedAlbum || 'All';
+    
+    titleWrap.appendChild(titleSpan);
+    
+    if (selectedSavedAlbum && selectedSavedAlbum !== 'All') {
         titleWrap.title = 'Click to rename';
-        
-        const titleSpan = document.createElement('span');
-        titleSpan.className = 'selected-folder-title';
-        titleSpan.id = 'selected-folder-title';
-        titleSpan.textContent = selectedSavedAlbum;
-        
-        titleWrap.appendChild(titleSpan);
-        
         titleWrap.onclick = (e) => {
             e.stopPropagation();
             startFolderInlineRename(selectedSavedAlbum, header);
         };
-        
-        header.appendChild(titleWrap);
-        versesFrag.appendChild(header);
+    } else {
+        titleWrap.style.cursor = 'default';
     }
     
+    header.appendChild(titleWrap);
+    versesFrag.appendChild(header);
+    
     let versesToRender = validVerses;
-    if (selectedSavedAlbum) {
+    if (selectedSavedAlbum && selectedSavedAlbum !== 'All') {
         versesToRender = albums[selectedSavedAlbum] || [];
     }
     
@@ -4909,12 +4912,7 @@ function openAlbumModal(verseObj) {
     pendingBookmarkVerse = verseObj;
     const modal = document.getElementById('album-modal');
     if (!modal) return;
-    const hasAlbums = populateAlbumWheel();
-    if (!hasAlbums) {
-        showToast('No other folders available');
-        openCreateBookmarkModal();
-        return;
-    }
+    populateAlbumWheel();
     openModal(modal);
 }
 
@@ -4982,19 +4980,19 @@ function populateAlbumWheel() {
                    String(s.chapter) === String(pendingBookmarkVerse.chapter) && 
                    String(s.verse) === String(pendingBookmarkVerse.verse);
         });
-        if (existing && existing.album) {
+        if (existing && existing.album && existing.album !== 'Default' && existing.album !== 'All') {
             currentAlbum = existing.album;
-        } else if (pendingBookmarkVerse.album) {
+        } else if (pendingBookmarkVerse.album && pendingBookmarkVerse.album !== 'Default' && pendingBookmarkVerse.album !== 'All') {
             currentAlbum = pendingBookmarkVerse.album;
         }
     }
 
     const albums = new Set();
     createdAlbums.forEach(name => {
-        if (name && name !== 'Default') albums.add(name);
+        if (name && name !== 'Default' && name !== 'All') albums.add(name);
     });
     savedVerses.forEach(v => {
-        if (v && v.album && v.album !== 'Default') albums.add(v.album);
+        if (v && v.album && v.album !== 'Default' && v.album !== 'All') albums.add(v.album);
     });
     
     let albumList = Array.from(albums);
@@ -5006,10 +5004,12 @@ function populateAlbumWheel() {
     
     grid.innerHTML = '';
     
-    if (currentAlbum !== 'All') {
+    // Show Move to All only if verse is currently in a custom folder
+    if (currentAlbum) {
         const allBtn = document.createElement('button');
         allBtn.className = 'album-create-btn';
         allBtn.style.width = '100%';
+        allBtn.style.marginBottom = '8px';
         allBtn.style.background = 'transparent';
         allBtn.style.color = 'var(--text-color)';
         allBtn.innerText = 'Move to All';
@@ -5021,6 +5021,7 @@ function populateAlbumWheel() {
         const btn = document.createElement('button');
         btn.className = 'album-create-btn';
         btn.style.width = '100%';
+        btn.style.marginBottom = '8px';
         btn.style.background = 'transparent';
         btn.style.color = 'var(--text-color)';
         btn.innerText = 'Move to ' + name;
@@ -5031,6 +5032,7 @@ function populateAlbumWheel() {
     const newFolderBtn = document.createElement('button');
     newFolderBtn.className = 'album-create-btn';
     newFolderBtn.style.width = '100%';
+    newFolderBtn.style.marginBottom = '8px';
     newFolderBtn.innerText = '+ New Folder';
     newFolderBtn.onclick = () => {
         closeAlbumModal();
@@ -7106,13 +7108,6 @@ async function initRevenueCat() {
 
 let _premiumModalLastOpened = 0;
 async function openPremiumModal() {
-    const activeProfile = getActiveProfileId();
-    const currentUid = getFirebaseCurrentUid();
-    if (!currentUid || activeProfile === 'guest') {
-        openEmailAuthModal('signin');
-        showToast("Sign in for Premium");
-        return;
-    }
     const now = Date.now();
     if (now - _premiumModalLastOpened < 1500) return; // Cooldown: prevent double-open
     _premiumModalLastOpened = now;

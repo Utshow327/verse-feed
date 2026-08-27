@@ -178,8 +178,6 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     left: 50%;
     transform: translateX(-50%);
     background: var(--nav-bg) !important;
-     saturate(180%) !important;
-    -webkit- saturate(180%) !important;
     border: 1px solid var(--glass-border) !important;
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
     border-radius: 25px;
@@ -1318,7 +1316,6 @@ h2 {
     height: 100%;
     background: rgba(0, 0, 0, 0.7);
     
-    -webkit-
     z-index: 10000;
     display: flex;
     flex-direction: column;
@@ -1344,7 +1341,6 @@ h2 {
     height: 100%;
     background: rgba(0, 0, 0, 0.6);
     
-    -webkit-
     z-index: 10001;
     display: flex;
     justify-content: center;
@@ -1520,7 +1516,6 @@ h2 {
     height: 100%;
     background: rgba(0, 0, 0, 0.7);
     
-    -webkit-
     z-index: 10000;
     display: flex;
     flex-direction: column;
@@ -1546,7 +1541,6 @@ h2 {
     height: 100%;
     background: rgba(0, 0, 0, 0.6);
     
-    -webkit-
     z-index: 10001;
     display: flex;
     justify-content: center;
@@ -1663,7 +1657,6 @@ h2 {
     max-width: 90vw;
     min-width: 0;
     
-    -webkit-
     border: 1px solid var(--glass-border);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     display: flex;
@@ -2342,7 +2335,6 @@ h2 {
     font-family: inherit;
     box-shadow: var(--glass-shadow);
     
-    -webkit-
     transition: transform 0.2s ease, background 0.2s ease, opacity 0.2s ease;
     display: flex;
     align-items: center;
@@ -2368,7 +2360,6 @@ h2 {
     font-family: inherit;
     box-shadow: var(--glass-shadow);
     
-    -webkit-
     transition: transform 0.2s ease, background 0.2s ease, opacity 0.2s ease;
     display: flex;
     align-items: center;
