@@ -3298,15 +3298,15 @@ function renderVersesList(versesArray, listElement) {
 
         const cleanupVerseDrag = () => {
             clearTimeout(versePressTimer);
-            if (dragPreviewEl) {
-                dragPreviewEl.remove();
-                dragPreviewEl = null;
-            }
+            document.querySelectorAll('.verse-drag-preview').forEach(el => el.remove());
+            dragPreviewEl = null;
             div.classList.remove('dragging-verse-source');
+            div.style.opacity = '1';
             document.querySelectorAll('.album-folder-btn').forEach(btn => {
                 btn.classList.remove('folder-drop-hover', 'folder-drop-dimmed');
             });
             isDraggingVerse = false;
+            currentHoveredFolder = null;
         };
 
         const activateVerseDrag = (clientX, clientY) => {
@@ -3317,6 +3317,9 @@ function renderVersesList(versesArray, listElement) {
             }
 
             div.classList.add('dragging-verse-source');
+
+            // Remove any old previews
+            document.querySelectorAll('.verse-drag-preview').forEach(el => el.remove());
 
             dragPreviewEl = document.createElement('div');
             dragPreviewEl.className = 'verse-drag-preview';
@@ -3340,106 +3343,174 @@ function renderVersesList(versesArray, listElement) {
             });
         };
 
-        const startVerseDrag = (clientX, clientY) => {
-            vStartX = clientX;
-            vStartY = clientY;
+        const onTouchStart = (e) => {
+            if (e.touches.length !== 1) return;
+            const touch = e.touches[0];
+            vStartX = touch.clientX;
+            vStartY = touch.clientY;
             isDraggingVerse = false;
             clearTimeout(versePressTimer);
 
             versePressTimer = setTimeout(() => {
-                activateVerseDrag(clientX, clientY);
-            }, 220);
-        };
+                activateVerseDrag(vStartX, vStartY);
+            }, 250);
 
-        const moveVerseDrag = (clientX, clientY, e) => {
-            if (!isDraggingVerse) {
-                if (Math.hypot(clientX - vStartX, clientY - vStartY) > 12) {
-                    clearTimeout(versePressTimer);
-                    activateVerseDrag(clientX, clientY);
-                }
-                return;
-            }
-            if (e) {
-                if (e.cancelable) e.preventDefault();
-                e.stopPropagation();
-            }
+            const onTouchMove = (ev) => {
+                if (ev.touches.length !== 1) return;
+                const curTouch = ev.touches[0];
+                const cx = curTouch.clientX;
+                const cy = curTouch.clientY;
 
-            if (dragPreviewEl) {
-                dragPreviewEl.style.left = `${clientX}px`;
-                dragPreviewEl.style.top = `${clientY}px`;
-            }
-
-            const elemBelow = document.elementFromPoint(clientX, clientY);
-            const targetFolder = elemBelow ? elemBelow.closest('.album-folder-btn') : null;
-            
-            if (targetFolder && !targetFolder.classList.contains('folder-drop-dimmed')) {
-                if (currentHoveredFolder !== targetFolder) {
-                    if (currentHoveredFolder) currentHoveredFolder.classList.remove('folder-drop-hover');
-                    currentHoveredFolder = targetFolder;
-                    currentHoveredFolder.classList.add('folder-drop-hover');
-                    if (navigator.vibrate) {
-                        try { navigator.vibrate(15); } catch(e){}
+                if (!isDraggingVerse) {
+                    // If moving before timer expires -> cancel timer and allow smooth page scroll
+                    if (Math.hypot(cx - vStartX, cy - vStartY) > 8) {
+                        clearTimeout(versePressTimer);
                     }
+                    return;
                 }
-            } else {
-                if (currentHoveredFolder) {
-                    currentHoveredFolder.classList.remove('folder-drop-hover');
-                    currentHoveredFolder = null;
-                }
-            }
-        };
 
-        const endVerseDrag = () => {
-            clearTimeout(versePressTimer);
-            if (isDraggingVerse) {
-                if (currentHoveredFolder && !currentHoveredFolder.classList.contains('folder-drop-dimmed')) {
-                    const targetFolderName = currentHoveredFolder.dataset.albumName;
-                    if (targetFolderName) {
-                        const verseIdx = savedVerses.findIndex(s => {
-                            if (s.id && v.id) return s.id === v.id;
-                            return s.book === v.book && String(s.chapter) === String(v.chapter) && String(s.verse) === String(v.verse);
-                        });
-                        if (verseIdx > -1) {
-                            savedVerses[verseIdx].album = targetFolderName;
-                            localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
-                            triggerCloudSync();
-                            showToast(`Moved to ${targetFolderName}`);
+                // If currently dragging, prevent page scroll and track folder
+                if (ev.cancelable) ev.preventDefault();
+
+                if (dragPreviewEl) {
+                    dragPreviewEl.style.left = `${cx}px`;
+                    dragPreviewEl.style.top = `${cy}px`;
+                }
+
+                const elemBelow = document.elementFromPoint(cx, cy);
+                const targetFolder = elemBelow ? elemBelow.closest('.album-folder-btn') : null;
+
+                if (targetFolder && !targetFolder.classList.contains('folder-drop-dimmed')) {
+                    if (currentHoveredFolder !== targetFolder) {
+                        if (currentHoveredFolder) currentHoveredFolder.classList.remove('folder-drop-hover');
+                        currentHoveredFolder = targetFolder;
+                        currentHoveredFolder.classList.add('folder-drop-hover');
+                        if (navigator.vibrate) {
+                            try { navigator.vibrate(15); } catch(err){}
                         }
                     }
+                } else {
+                    if (currentHoveredFolder) {
+                        currentHoveredFolder.classList.remove('folder-drop-hover');
+                        currentHoveredFolder = null;
+                    }
                 }
+            };
 
-                cleanupVerseDrag();
-                showSavedVerses(false);
-                return;
-            }
+            const onTouchEnd = () => {
+                clearTimeout(versePressTimer);
+                window.removeEventListener('touchmove', onTouchMove);
+                window.removeEventListener('touchend', onTouchEnd);
+                window.removeEventListener('touchcancel', onTouchEnd);
+
+                if (isDraggingVerse) {
+                    if (currentHoveredFolder && !currentHoveredFolder.classList.contains('folder-drop-dimmed')) {
+                        const targetFolderName = currentHoveredFolder.dataset.albumName;
+                        if (targetFolderName) {
+                            const verseIdx = savedVerses.findIndex(s => {
+                                if (s.id && v.id) return s.id === v.id;
+                                return s.book === v.book && String(s.chapter) === String(v.chapter) && String(s.verse) === String(v.verse);
+                            });
+                            if (verseIdx > -1) {
+                                savedVerses[verseIdx].album = targetFolderName;
+                                localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                                triggerCloudSync();
+                                showToast(`Moved to ${targetFolderName}`);
+                            }
+                        }
+                    }
+                    cleanupVerseDrag();
+                    showSavedVerses(false);
+                } else {
+                    cleanupVerseDrag();
+                }
+            };
+
+            window.addEventListener('touchmove', onTouchMove, { passive: false });
+            window.addEventListener('touchend', onTouchEnd, { passive: false });
+            window.addEventListener('touchcancel', onTouchEnd, { passive: false });
         };
 
-        div.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 1) {
-                startVerseDrag(e.touches[0].clientX, e.touches[0].clientY);
-            }
-        }, { passive: true });
+        const onMouseDown = (e) => {
+            vStartX = e.clientX;
+            vStartY = e.clientY;
+            isDraggingVerse = false;
+            clearTimeout(versePressTimer);
 
-        div.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 1) {
-                moveVerseDrag(e.touches[0].clientX, e.touches[0].clientY, e);
-            }
-        }, { passive: false });
+            versePressTimer = setTimeout(() => {
+                activateVerseDrag(vStartX, vStartY);
+            }, 250);
 
-        div.addEventListener('touchend', endVerseDrag, { passive: true });
-        div.addEventListener('touchcancel', cleanupVerseDrag, { passive: true });
+            const onMouseMove = (ev) => {
+                const cx = ev.clientX;
+                const cy = ev.clientY;
 
-        div.addEventListener('mousedown', (e) => {
-            startVerseDrag(e.clientX, e.clientY);
-            const onMouseMove = (ev) => moveVerseDrag(ev.clientX, ev.clientY, ev);
+                if (!isDraggingVerse) {
+                    if (Math.hypot(cx - vStartX, cy - vStartY) > 10) {
+                        clearTimeout(versePressTimer);
+                        activateVerseDrag(cx, cy);
+                    }
+                    return;
+                }
+
+                if (ev.cancelable) ev.preventDefault();
+
+                if (dragPreviewEl) {
+                    dragPreviewEl.style.left = `${cx}px`;
+                    dragPreviewEl.style.top = `${cy}px`;
+                }
+
+                const elemBelow = document.elementFromPoint(cx, cy);
+                const targetFolder = elemBelow ? elemBelow.closest('.album-folder-btn') : null;
+
+                if (targetFolder && !targetFolder.classList.contains('folder-drop-dimmed')) {
+                    if (currentHoveredFolder !== targetFolder) {
+                        if (currentHoveredFolder) currentHoveredFolder.classList.remove('folder-drop-hover');
+                        currentHoveredFolder = targetFolder;
+                        currentHoveredFolder.classList.add('folder-drop-hover');
+                    }
+                } else {
+                    if (currentHoveredFolder) {
+                        currentHoveredFolder.classList.remove('folder-drop-hover');
+                        currentHoveredFolder = null;
+                    }
+                }
+            };
+
             const onMouseUp = () => {
-                endVerseDrag();
+                clearTimeout(versePressTimer);
                 window.removeEventListener('mousemove', onMouseMove);
                 window.removeEventListener('mouseup', onMouseUp);
+
+                if (isDraggingVerse) {
+                    if (currentHoveredFolder && !currentHoveredFolder.classList.contains('folder-drop-dimmed')) {
+                        const targetFolderName = currentHoveredFolder.dataset.albumName;
+                        if (targetFolderName) {
+                            const verseIdx = savedVerses.findIndex(s => {
+                                if (s.id && v.id) return s.id === v.id;
+                                return s.book === v.book && String(s.chapter) === String(v.chapter) && String(s.verse) === String(v.verse);
+                            });
+                            if (verseIdx > -1) {
+                                savedVerses[verseIdx].album = targetFolderName;
+                                localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                                triggerCloudSync();
+                                showToast(`Moved to ${targetFolderName}`);
+                            }
+                        }
+                    }
+                    cleanupVerseDrag();
+                    showSavedVerses(false);
+                } else {
+                    cleanupVerseDrag();
+                }
             };
+
             window.addEventListener('mousemove', onMouseMove);
             window.addEventListener('mouseup', onMouseUp);
-        });
+        };
+
+        div.addEventListener('touchstart', onTouchStart, { passive: true });
+        div.addEventListener('mousedown', onMouseDown);
 
         div.onclick = (e) => {
             if (isDraggingVerse) return;
@@ -5429,9 +5500,6 @@ function createActionIconsElement(verseObj, type) {
 
     if (type === 'saved') {
         container.innerHTML = `
-            <button class="va-btn" onclick="handlePillMoveFolder(event)" aria-label="Change Folder" title="Change Folder">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
-            </button>
             <button class="va-btn" onclick="handlePillShare(event)" aria-label="Share" title="Share">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
             </button>
