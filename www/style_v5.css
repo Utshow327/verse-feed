@@ -367,7 +367,7 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
 }
 
 .verse-text {
-    font-size: clamp(1.15rem, 3.8vw, 1.45rem);
+    font-size: clamp(1.22rem, 3.9vw, 1.48rem);
     line-height: 1.55;
     color: var(--text-color);
     flex-grow: 1;
@@ -396,12 +396,12 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
 }
 
 .verse-ref {
-    font-size: 0.64rem;
+    font-size: 0.78rem;
     color: var(--text-color);
-    opacity: 0.6;
+    opacity: 0.75;
     text-transform: uppercase;
-    letter-spacing: 0.7px;
-    font-weight: 500;
+    letter-spacing: 0.8px;
+    font-weight: 600;
     text-align: left;
     max-width: 70%;
     pointer-events: auto;
@@ -416,8 +416,8 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     border: none;
     padding: 0;
     cursor: pointer;
-    width: 15px;
-    height: 15px;
+    width: 18px;
+    height: 18px;
     flex-shrink: 0;
     pointer-events: auto;
 }
@@ -426,7 +426,7 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     width: 100%;
     height: 100%;
     stroke: var(--text-color);
-    stroke-width: 1.8;
+    stroke-width: 2;
     fill: none;
     transition: fill 0.2s, stroke 0.2s, transform 0.2s;
 }
@@ -854,7 +854,7 @@ h2 {
 }
 
 .saved-verse .verse-text {
-    font-size: clamp(0.95rem, 2.9vw, 1.12rem) !important;
+    font-size: clamp(1.05rem, 3.2vw, 1.22rem) !important;
     line-height: 1.55;
 }
 
@@ -1866,23 +1866,23 @@ h2 {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     background: transparent;
     border: none;
     color: inherit;
     cursor: pointer;
     padding: 0;
     margin: 0;
-    opacity: 0.85;
+    opacity: 0.9;
     line-height: 1;
     transform: none !important;
     transition: none !important;
 }
 
 .va-btn svg {
-    width: 13px;
-    height: 13px;
+    width: 15px;
+    height: 15px;
     display: block;
 }
 

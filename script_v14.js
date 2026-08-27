@@ -4997,22 +4997,20 @@ function populateAlbumWheel() {
     
     let albumList = Array.from(albums);
     
-    // Exclude currentAlbum if verse is already saved in a folder
+    // Exclude currentAlbum if verse is already in that folder
     if (currentAlbum) {
         albumList = albumList.filter(name => name !== currentAlbum);
     }
     
     grid.innerHTML = '';
     
-    // Show Move to All only if verse is currently in a custom folder
+    // Show 'All' option if currently in a custom folder
     if (currentAlbum) {
         const allBtn = document.createElement('button');
         allBtn.className = 'album-create-btn';
         allBtn.style.width = '100%';
-        allBtn.style.marginBottom = '8px';
-        allBtn.style.background = 'transparent';
-        allBtn.style.color = 'var(--text-color)';
-        allBtn.innerText = 'Move to All';
+        allBtn.style.fontSize = '0.95rem';
+        allBtn.innerText = 'All';
         allBtn.onclick = () => saveToAlbum('All');
         grid.appendChild(allBtn);
     }
@@ -5021,24 +5019,11 @@ function populateAlbumWheel() {
         const btn = document.createElement('button');
         btn.className = 'album-create-btn';
         btn.style.width = '100%';
-        btn.style.marginBottom = '8px';
-        btn.style.background = 'transparent';
-        btn.style.color = 'var(--text-color)';
-        btn.innerText = 'Move to ' + name;
+        btn.style.fontSize = '0.95rem';
+        btn.innerText = name;
         btn.onclick = () => saveToAlbum(name);
         grid.appendChild(btn);
     });
-    
-    const newFolderBtn = document.createElement('button');
-    newFolderBtn.className = 'album-create-btn';
-    newFolderBtn.style.width = '100%';
-    newFolderBtn.style.marginBottom = '8px';
-    newFolderBtn.innerText = '+ New Folder';
-    newFolderBtn.onclick = () => {
-        closeAlbumModal();
-        openCreateBookmarkModal();
-    };
-    grid.appendChild(newFolderBtn);
     
     return true;
 }
