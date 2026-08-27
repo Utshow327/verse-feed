@@ -2881,6 +2881,13 @@ function recordFolderUsage(folderName) {
         stats[folderName].count = (stats[folderName].count || 0) + 1;
         stats[folderName].lastViewed = Date.now();
         localStorage.setItem('folder_usage_stats', JSON.stringify(stats));
+
+        const idx = createdAlbums.indexOf(folderName);
+        if (idx > -1) {
+            createdAlbums.splice(idx, 1);
+            createdAlbums.unshift(folderName);
+            localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
+        }
     } catch(e) {}
 }
 
@@ -3261,6 +3268,7 @@ function renderVersesList(versesArray, listElement) {
 
         const onTouchStart = (e) => {
             if (e.touches.length !== 1) return;
+            if (e.target.closest('.verse-actions')) return;
             const touch = e.touches[0];
             vStartX = touch.clientX;
             vStartY = touch.clientY;
@@ -3349,6 +3357,7 @@ function renderVersesList(versesArray, listElement) {
         };
 
         const onMouseDown = (e) => {
+            if (e.target.closest(".verse-actions")) return;
             vStartX = e.clientX;
             vStartY = e.clientY;
             isDraggingVerse = false;

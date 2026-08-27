@@ -1045,7 +1045,7 @@ h2 {
     box-sizing: border-box;
     will-change: transform;
     transition: transform 0.04s linear;
-    transform: translate3d(-50%, -50%, 0) scale(1.04) rotate(1.5deg);
+    transform: translate3d(-50%, -50%, 0) scale(1.02);
 }
 
 .verse-drag-preview .preview-ref {
