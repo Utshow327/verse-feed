@@ -2864,13 +2864,45 @@ function toggleBookmark(v, btnElement) {
     localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
 }
 
+function getFolderUsageStats() {
+    try {
+        const raw = localStorage.getItem('folder_usage_stats');
+        return raw ? JSON.parse(raw) : {};
+    } catch(e) {
+        return {};
+    }
+}
+
+function recordFolderUsage(folderName) {
+    if (!folderName || folderName === 'All' || folderName === 'Default') return;
+    try {
+        const stats = getFolderUsageStats();
+        if (!stats[folderName]) stats[folderName] = { count: 0, lastViewed: 0 };
+        stats[folderName].count = (stats[folderName].count || 0) + 1;
+        stats[folderName].lastViewed = Date.now();
+        localStorage.setItem('folder_usage_stats', JSON.stringify(stats));
+    } catch(e) {}
+}
+
 function getAlbumsGrouped() {
     const albums = {};
-    createdAlbums.forEach(name => {
-        if (name && name !== 'Default' && name !== 'All') {
-            if (!albums[name]) albums[name] = [];
+    const stats = getFolderUsageStats();
+    
+    // Sort custom folders automatically by usage (frequency & recency)
+    const sortedAlbumNames = [...createdAlbums].filter(name => name && name !== 'Default' && name !== 'All');
+    sortedAlbumNames.sort((a, b) => {
+        const statA = stats[a] || { count: 0, lastViewed: 0 };
+        const statB = stats[b] || { count: 0, lastViewed: 0 };
+        if ((statB.count || 0) !== (statA.count || 0)) {
+            return (statB.count || 0) - (statA.count || 0);
         }
+        return (statB.lastViewed || 0) - (statA.lastViewed || 0);
     });
+
+    sortedAlbumNames.forEach(name => {
+        if (!albums[name]) albums[name] = [];
+    });
+    
     savedVerses.forEach((v, i) => {
         if (!v) return;
         if (v.album && v.album !== 'Default' && v.album !== 'All') {
@@ -2970,126 +3002,10 @@ function _showSavedVersesImpl(rebuildFolders = true) {
                 };
                 folder.appendChild(cornerDelBtn);
             }
-                  // --- Live Drag & Drop / Long-Press Reordering with Floating Preview ---
-            let pressTimer = null;
-            let isDragging = false;
-            let startX = 0, startY = 0;
-            let currentDragAlbum = null;
-            let folderDragPreviewEl = null;
-            
-            const cleanupFolderDrag = () => {
-                clearTimeout(pressTimer);
-                if (folderDragPreviewEl) {
-                    folderDragPreviewEl.remove();
-                    folderDragPreviewEl = null;
-                }
-                folder.classList.remove('dragging-folder');
-                folder.style.opacity = '1';
-                isDragging = false;
-            };
-            
-            const startPress = (clientX, clientY) => {
-                startX = clientX;
-                startY = clientY;
-                isDragging = false;
-                clearTimeout(pressTimer);
-                pressTimer = setTimeout(() => {
-                    isDragging = true;
-                    currentDragAlbum = albumName;
-                    folder.classList.add('dragging-folder');
-                    folder.style.opacity = '0.35';
-                    
-                    folderDragPreviewEl = document.createElement('div');
-                    folderDragPreviewEl.className = 'folder-drag-preview';
-                    folderDragPreviewEl.textContent = albumName;
-                    document.body.appendChild(folderDragPreviewEl);
-                    folderDragPreviewEl.style.left = `${clientX}px`;
-                    folderDragPreviewEl.style.top = `${clientY}px`;
-                    
-                    if (navigator.vibrate) {
-                        try { navigator.vibrate(35); } catch(e){}
-                    }
-                }, 300);
-            };
-            
-            const movePress = (clientX, clientY, e) => {
-                if (!isDragging) {
-                    if (Math.hypot(clientX - startX, clientY - startY) > 10) {
-                        clearTimeout(pressTimer);
-                    }
-                    return;
-                }
-                if (e) {
-                    if (e.cancelable) e.preventDefault();
-                    e.stopPropagation();
-                }
-                
-                if (folderDragPreviewEl) {
-                    folderDragPreviewEl.style.left = `${clientX}px`;
-                    folderDragPreviewEl.style.top = `${clientY}px`;
-                }
-                
-                // Find element under current pointer
-                const elemBelow = document.elementFromPoint(clientX, clientY);
-                if (!elemBelow) return;
-                const targetFolder = elemBelow.closest('.album-folder-btn');
-                if (targetFolder && targetFolder !== folder) {
-                    const targetName = targetFolder.dataset.albumName;
-                    const fromIdx = createdAlbums.indexOf(currentDragAlbum);
-                    const toIdx = createdAlbums.indexOf(targetName);
-                    if (fromIdx > -1 && toIdx > -1 && fromIdx !== toIdx) {
-                        const [moved] = createdAlbums.splice(fromIdx, 1);
-                        createdAlbums.splice(toIdx, 0, moved);
-                        localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
-                        if (navigator.vibrate) {
-                            try { navigator.vibrate(15); } catch(e){}
-                        }
-                        showSavedVerses(true);
-                    }
-                }
-            };
-            
-            const endPress = () => {
-                clearTimeout(pressTimer);
-                if (isDragging) {
-                    cleanupFolderDrag();
-                    localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
-                    triggerCloudSync();
-                    showSavedVerses(true);
-                    return;
-                }
-            };
-            
-            folder.addEventListener('touchstart', (e) => {
-                if (e.touches.length === 1) {
-                    startPress(e.touches[0].clientX, e.touches[0].clientY);
-                }
-            }, { passive: true });
-            
-            folder.addEventListener('touchmove', (e) => {
-                if (e.touches.length === 1) {
-                    movePress(e.touches[0].clientX, e.touches[0].clientY, e);
-                }
-            }, { passive: false });
-            
-            folder.addEventListener('touchend', endPress, { passive: true });
-            folder.addEventListener('touchcancel', cleanupFolderDrag, { passive: true });
-            
-            folder.addEventListener('mousedown', (e) => {
-                startPress(e.clientX, e.clientY);
-                const onMouseMove = (ev) => movePress(ev.clientX, ev.clientY, ev);
-                const onMouseUp = () => {
-                    endPress();
-                    window.removeEventListener('mousemove', onMouseMove);
-                    window.removeEventListener('mouseup', onMouseUp);
-                };
-                window.addEventListener('mousemove', onMouseMove);
-                window.addEventListener('mouseup', onMouseUp);
-            });     
             
             folder.onclick = (e) => {
                 if (e) e.stopPropagation();
-                if (isDragging) return;
+                recordFolderUsage(albumName);
                 if (selectedSavedAlbum === albumName) {
                     selectedSavedAlbum = null;
                     selectedVerse = { type: 'folder', name: albumName, elementId: folder.id };
@@ -3407,6 +3323,7 @@ function renderVersesList(versesArray, listElement) {
                     if (currentHoveredFolder && !currentHoveredFolder.classList.contains('folder-drop-dimmed')) {
                         const targetFolderName = currentHoveredFolder.dataset.albumName;
                         if (targetFolderName) {
+                            recordFolderUsage(targetFolderName);
                             const verseIdx = savedVerses.findIndex(s => {
                                 if (s.id && v.id) return s.id === v.id;
                                 return s.book === v.book && String(s.chapter) === String(v.chapter) && String(s.verse) === String(v.verse);
