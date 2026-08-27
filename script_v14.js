@@ -3309,6 +3309,37 @@ function renderVersesList(versesArray, listElement) {
             isDraggingVerse = false;
         };
 
+        const activateVerseDrag = (clientX, clientY) => {
+            if (isDraggingVerse) return;
+            isDraggingVerse = true;
+            if (navigator.vibrate) {
+                try { navigator.vibrate(40); } catch(e){}
+            }
+
+            div.classList.add('dragging-verse-source');
+
+            dragPreviewEl = document.createElement('div');
+            dragPreviewEl.className = 'verse-drag-preview';
+            
+            let snippet = displayVerse.length > 90 ? displayVerse.substring(0, 90) + '...' : displayVerse;
+            dragPreviewEl.innerHTML = `
+                <div style="font-style: italic; font-size: 0.85rem;">"${snippet}"</div>
+                <div class="preview-ref">${v.book} ${v.chapter}:${v.verse}</div>
+            `;
+            document.body.appendChild(dragPreviewEl);
+            dragPreviewEl.style.left = `${clientX}px`;
+            dragPreviewEl.style.top = `${clientY}px`;
+
+            // Dim / grey out the folder where the verse already lives
+            const currentVerseFolder = v.album || null;
+            document.querySelectorAll('.album-folder-btn').forEach(btn => {
+                const fName = btn.dataset.albumName;
+                if (currentVerseFolder && fName === currentVerseFolder) {
+                    btn.classList.add('folder-drop-dimmed');
+                }
+            });
+        };
+
         const startVerseDrag = (clientX, clientY) => {
             vStartX = clientX;
             vStartY = clientY;
@@ -3316,40 +3347,15 @@ function renderVersesList(versesArray, listElement) {
             clearTimeout(versePressTimer);
 
             versePressTimer = setTimeout(() => {
-                isDraggingVerse = true;
-                if (navigator.vibrate) {
-                    try { navigator.vibrate(40); } catch(e){}
-                }
-
-                div.classList.add('dragging-verse-source');
-
-                dragPreviewEl = document.createElement('div');
-                dragPreviewEl.className = 'verse-drag-preview';
-                
-                let snippet = displayVerse.length > 90 ? displayVerse.substring(0, 90) + '...' : displayVerse;
-                dragPreviewEl.innerHTML = `
-                    <div style="font-style: italic; font-size: 0.85rem;">"${snippet}"</div>
-                    <div class="preview-ref">${v.book} ${v.chapter}:${v.verse}</div>
-                `;
-                document.body.appendChild(dragPreviewEl);
-                dragPreviewEl.style.left = `${clientX}px`;
-                dragPreviewEl.style.top = `${clientY}px`;
-
-                // Dim / grey out the folder where the verse already lives
-                const currentVerseFolder = v.album || null;
-                document.querySelectorAll('.album-folder-btn').forEach(btn => {
-                    const fName = btn.dataset.albumName;
-                    if (currentVerseFolder && fName === currentVerseFolder) {
-                        btn.classList.add('folder-drop-dimmed');
-                    }
-                });
-            }, 300);
+                activateVerseDrag(clientX, clientY);
+            }, 220);
         };
 
         const moveVerseDrag = (clientX, clientY, e) => {
             if (!isDraggingVerse) {
-                if (Math.hypot(clientX - vStartX, clientY - vStartY) > 10) {
+                if (Math.hypot(clientX - vStartX, clientY - vStartY) > 12) {
                     clearTimeout(versePressTimer);
+                    activateVerseDrag(clientX, clientY);
                 }
                 return;
             }
