@@ -396,17 +396,17 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
 }
 
 .verse-ref {
-    font-size: 0.7rem;
+    font-size: 0.64rem;
     color: var(--text-color);
-    opacity: 0.7;
+    opacity: 0.6;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 600;
+    letter-spacing: 0.7px;
+    font-weight: 500;
     text-align: left;
     max-width: 70%;
     pointer-events: auto;
     margin-right: 10px;
-    line-height: 1;
+    line-height: 1.2;
     display: flex;
     align-items: center;
 }
@@ -416,8 +416,8 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     border: none;
     padding: 0;
     cursor: pointer;
-    width: 20px;
-    height: 20px;
+    width: 15px;
+    height: 15px;
     flex-shrink: 0;
     pointer-events: auto;
 }
@@ -426,7 +426,7 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     width: 100%;
     height: 100%;
     stroke: var(--text-color);
-    stroke-width: 2;
+    stroke-width: 1.8;
     fill: none;
     transition: fill 0.2s, stroke 0.2s, transform 0.2s;
 }
@@ -1360,8 +1360,8 @@ h2 {
 }
 
 .modal-content {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
+    background: #E0D6CA !important;
+    border: 1px solid var(--glass-border) !important;
     border-radius: 20px;
     width: 85%;
     max-width: 400px;
@@ -1370,6 +1370,27 @@ h2 {
     transform: translateY(0) scale(1);
     opacity: 1;
     transition: transform 0.20s ease, opacity 0.20s ease;
+}
+
+[data-theme="dark"] .modal-content {
+    background: #1F1D1B !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+.modal-content input[type="text"],
+.modal-content input[type="email"],
+.modal-content input[type="password"] {
+    background: #ECE5DC !important;
+    color: var(--text-color) !important;
+    border: 1px solid var(--glass-border) !important;
+}
+
+[data-theme="dark"] .modal-content input[type="text"],
+[data-theme="dark"] .modal-content input[type="email"],
+[data-theme="dark"] .modal-content input[type="password"] {
+    background: #2C2926 !important;
+    color: var(--text-color) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
 }
 
 .modal-overlay.hidden .modal-content {
@@ -1845,23 +1866,23 @@ h2 {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     background: transparent;
     border: none;
     color: inherit;
     cursor: pointer;
     padding: 0;
     margin: 0;
-    opacity: 0.9;
+    opacity: 0.85;
     line-height: 1;
     transform: none !important;
     transition: none !important;
 }
 
 .va-btn svg {
-    width: 17px;
-    height: 17px;
+    width: 13px;
+    height: 13px;
     display: block;
 }
 
