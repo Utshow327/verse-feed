@@ -3221,6 +3221,232 @@ function renderVersesList(versesArray, listElement) {
         listElement.appendChild(container);
     });
 }
+
+const topicAudiobooks = {
+    'Philosophy': [
+        {
+            title: "The Daily Stoic",
+            author: "Ryan Holiday & Stephen Hanselman",
+            desc: "366 Meditations on Wisdom, Perseverance, and the Art of Living."
+        },
+        {
+            title: "Atomic Habits",
+            author: "James Clear",
+            desc: "An Easy & Proven Way to Build Good Habits & Break Bad Ones."
+        },
+        {
+            title: "Man's Search for Meaning",
+            author: "Viktor E. Frankl",
+            desc: "The classic tribute to hope and finding purpose in any circumstance."
+        },
+        {
+            title: "The Obstacle Is the Way",
+            author: "Ryan Holiday",
+            desc: "The Timeless Art of Turning Trials into Triumph."
+        },
+        {
+            title: "Letters from a Stoic",
+            author: "Seneca",
+            desc: "Timeless moral essays and ethical reflections on virtue."
+        },
+        {
+            title: "The Courage to Be Disliked",
+            author: "Ichiro Kishimi & Fumitake Koga",
+            desc: "How to free yourself, change your life and achieve real happiness."
+        },
+        {
+            title: "Ego Is the Enemy",
+            author: "Ryan Holiday",
+            desc: "The Fight to Master Our Greatest Opponent."
+        }
+    ],
+    'Buddhism': [
+        {
+            title: "The Power of Now",
+            author: "Eckhart Tolle",
+            desc: "A Guide to Spiritual Enlightenment and living in the present moment."
+        },
+        {
+            title: "The Miracle of Mindfulness",
+            author: "Thich Nhat Hanh",
+            desc: "An Introduction to the Practice of Meditation and Inner Calm."
+        },
+        {
+            title: "Zen Mind, Beginner's Mind",
+            author: "Shunryu Suzuki",
+            desc: "Informal talks on Zen meditation and practice."
+        },
+        {
+            title: "Radical Acceptance",
+            author: "Tara Brach",
+            desc: "Embracing Your Life With the Heart of a Buddha."
+        },
+        {
+            title: "Wherever You Go, There You Are",
+            author: "Jon Kabat-Zinn",
+            desc: "Mindfulness meditation in everyday life."
+        },
+        {
+            title: "No Mud, No Lotus",
+            author: "Thich Nhat Hanh",
+            desc: "The Art of Transforming Suffering into Peace and Joy."
+        }
+    ],
+    'Islam': [
+        {
+            title: "Secrets of Divine Love",
+            author: "A. Helwa",
+            desc: "A Spiritual Journey into the Heart of Islam."
+        },
+        {
+            title: "Reclaim Your Heart",
+            author: "Yasmin Mogahed",
+            desc: "Personal insights on breaking free from life's emotional shackles."
+        },
+        {
+            title: "Revive Your Heart",
+            author: "Nouman Ali Khan",
+            desc: "Putting Faith into Practice in the Modern World."
+        },
+        {
+            title: "Don't Be Sad",
+            author: "Dr. Aid al-Qarni",
+            desc: "An inspiring guide to overcoming sadness, anxiety, and grief."
+        },
+        {
+            title: "In the Footsteps of the Prophet",
+            author: "Tariq Ramadan",
+            desc: "Lessons from the Life of Muhammad (pbuh)."
+        },
+        {
+            title: "Healing and Peace in Islam",
+            author: "A. Helwa",
+            desc: "Meditations and reflections on spiritual tranquility."
+        }
+    ],
+    'Christianity': [
+        {
+            title: "Mere Christianity",
+            author: "C.S. Lewis",
+            desc: "A classic theological exploration of faith, hope, and love."
+        },
+        {
+            title: "The Purpose Driven Life",
+            author: "Rick Warren",
+            desc: "What on Earth Am I Here For? A transformative spiritual guide."
+        },
+        {
+            title: "The Practice of the Presence of God",
+            author: "Brother Lawrence",
+            desc: "Conversations and letters on constant peace and connection."
+        },
+        {
+            title: "The Screwtape Letters",
+            author: "C.S. Lewis",
+            desc: "Masterpiece of moral satire and spiritual clarity."
+        },
+        {
+            title: "Celebration of Discipline",
+            author: "Richard J. Foster",
+            desc: "The Path to Spiritual Growth and Inward Serenity."
+        },
+        {
+            title: "The Great Divorce",
+            author: "C.S. Lewis",
+            desc: "A profound allegorical vision on choice and grace."
+        }
+    ],
+    'Hinduism': [
+        {
+            title: "Autobiography of a Yogi",
+            author: "Paramahansa Yogananda",
+            desc: "The life story of a master and introduction to Kriya Yoga."
+        },
+        {
+            title: "Inner Engineering: A Yogi's Guide to Joy",
+            author: "Sadhguru",
+            desc: "Transformative yogic technology for joy, clarity, and vitality."
+        },
+        {
+            title: "The Journey Home",
+            author: "Radhanath Swami",
+            desc: "Autobiography of an American Swami and search for meaning."
+        },
+        {
+            title: "Karma: A Yogi's Guide to Crafting Your Destiny",
+            author: "Sadhguru",
+            desc: "Demystifying karma as a dimension of ultimate freedom."
+        },
+        {
+            title: "Living with the Himalayan Masters",
+            author: "Swami Rama",
+            desc: "Spiritual experiences with sages of the high Himalayas."
+        }
+    ],
+    'Judaism': [
+        {
+            title: "When Bad Things Happen to Good People",
+            author: "Harold S. Kushner",
+            desc: "A compassionate, wise classic on coping with grief and suffering."
+        },
+        {
+            title: "The Sabbath",
+            author: "Abraham Joshua Heschel",
+            desc: "The profound meaning and sanctuary of sacred rest."
+        },
+        {
+            title: "To Pray as a Jew",
+            author: "Hayim Halevy Donin",
+            desc: "A Guide to the Prayer Book and the Synagogue Service."
+        },
+        {
+            title: "Man's Search for Meaning",
+            author: "Viktor E. Frankl",
+            desc: "Finding life's purpose in the depths of adversity."
+        }
+    ],
+    'Sikhism': [
+        {
+            title: "The Singing Guru",
+            author: "Kamla K. Kapur",
+            desc: "Legends and tales of Guru Nanak's travels and teachings."
+        },
+        {
+            title: "The Sikhs",
+            author: "Patwant Singh",
+            desc: "The comprehensive history, philosophy, and courage of Sikh traditions."
+        },
+        {
+            title: "Sikhism: A Very Short Introduction",
+            author: "Eleanor Nesbitt",
+            desc: "An authoritative overview of Sikh thought and values."
+        }
+    ]
+};
+
+function getDailyAudiobook(rel) {
+    const list = topicAudiobooks[rel] || topicAudiobooks['Philosophy'];
+    if (!list || list.length === 0) return null;
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 0);
+    const diff = now - startOfYear;
+    const oneDay = 1000 * 60 * 60 * 24;
+    const dayOfYear = Math.floor(diff / oneDay);
+    const index = dayOfYear % list.length;
+    return list[index];
+}
+
+function openAudibleAudiobook(title, author) {
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
+    const query = encodeURIComponent(`${title} ${author} audiobook`);
+    const affiliateUrl = `https://www.amazon.com/s?k=${query}&tag=versefeed-20`;
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+        window.open(affiliateUrl, '_system');
+    } else {
+        window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
+    }
+}
+
 function showReligions() {
     const list = document.getElementById('rel-list');
     list.innerHTML = '';
@@ -3471,6 +3697,27 @@ function showBooks(rel) {
         btn.onclick = () => showBookContent(rel, book);
         list.appendChild(btn);
     });
+
+    // Render Daily Curated Audiobook Recommendation
+    const dailyBook = getDailyAudiobook(rel);
+    if (dailyBook) {
+        const adCard = document.createElement('div');
+        adCard.className = 'audiobook-recommend-card';
+        adCard.innerHTML = `
+            <div class="audiobook-recommend-badge">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                <span>Audiobook of the Day</span>
+            </div>
+            <h3 class="audiobook-recommend-title">${dailyBook.title}</h3>
+            <p class="audiobook-recommend-author">by ${dailyBook.author}</p>
+            <p class="audiobook-recommend-desc">${dailyBook.desc}</p>
+            <button class="audiobook-listen-btn" onclick="openAudibleAudiobook('${dailyBook.title.replace(/'/g, "\\'")}', '${dailyBook.author.replace(/'/g, "\\'")}')">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 3C6.48 3 2 7.48 2 13v4c0 1.66 1.34 3 3 3h2v-8H4v-2c0-4.41 3.59-8 8-8s8 3.59 8 8v2h-3v8h2c1.66 0 3-1.34 3-3v-4c0-5.52-4.48-10-10-10z"/></svg>
+                <span>Listen on Audible (30-Day Free Trial)</span>
+            </button>
+        `;
+        list.appendChild(adCard);
+    }
 }
 
 let currentBookObj = null;
