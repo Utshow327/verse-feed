@@ -644,49 +644,54 @@ h2 {
 .audiobook-recommend-card {
     width: 90%;
     max-width: 800px;
-    margin: 15px auto 10px auto;
-    padding: 22px 24px;
+    margin: 5px auto 12px auto;
+    padding: 16px 20px;
     background: var(--card-bg);
     border: 1px solid var(--glass-border);
-    border-radius: 18px;
+    border-radius: 16px;
     box-sizing: border-box;
     text-align: left;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.audiobook-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .audiobook-recommend-badge {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    font-size: 0.76rem;
+    gap: 5px;
+    font-size: 0.72rem;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    opacity: 0.7;
+    letter-spacing: 0.8px;
+    opacity: 0.65;
     color: var(--accent);
     font-weight: 600;
 }
 
+.audiobook-info-row {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
 .audiobook-recommend-title {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     font-weight: 600;
     color: var(--text-color);
     margin: 0;
-    line-height: 1.35;
+    line-height: 1.3;
 }
 
 .audiobook-recommend-author {
-    font-size: 0.92rem;
-    opacity: 0.75;
-    margin: 0;
-}
-
-.audiobook-recommend-desc {
     font-size: 0.88rem;
-    opacity: 0.8;
-    line-height: 1.5;
+    opacity: 0.7;
     margin: 0;
 }
 
@@ -696,13 +701,13 @@ h2 {
     justify-content: center;
     gap: 8px;
     width: 100%;
-    padding: 13px 18px;
-    margin-top: 6px;
-    border-radius: 12px;
+    padding: 11px 16px;
+    margin-top: 4px;
+    border-radius: 10px;
     background: var(--card-bg);
     border: 1px solid var(--glass-border);
     color: var(--text-color);
-    font-size: 0.95rem;
+    font-size: 0.90rem;
     font-weight: 500;
     font-family: inherit;
     cursor: pointer;

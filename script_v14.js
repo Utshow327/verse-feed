@@ -3438,8 +3438,7 @@ function getDailyAudiobook(rel) {
 
 function openAudibleAudiobook(title, author) {
     if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
-    const query = encodeURIComponent(`${title} ${author} audiobook`);
-    const affiliateUrl = `https://www.amazon.com/s?k=${query}&tag=versefeed-20`;
+    const affiliateUrl = `https://www.amazon.com/hz/audible/mlp/membership/plus?tag=versefeed-20`;
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
         window.open(affiliateUrl, '_system');
     } else {
@@ -3691,33 +3690,34 @@ function showBooks(rel) {
 
     const list = document.getElementById('book-list');
     list.innerHTML = '<h2>' + rel + '</h2>';
+
+    // Render Daily Curated Audiobook Recommendation at Top
+    const dailyBook = getDailyAudiobook(rel);
+    if (dailyBook) {
+        const adCard = document.createElement('div');
+        adCard.className = 'audiobook-recommend-card';
+        adCard.innerHTML = `
+            <div class="audiobook-header-row">
+                <span class="audiobook-recommend-badge">Audiobook of the Day</span>
+            </div>
+            <div class="audiobook-info-row">
+                <div class="audiobook-recommend-title">${dailyBook.title}</div>
+                <div class="audiobook-recommend-author">by ${dailyBook.author}</div>
+            </div>
+            <button class="audiobook-listen-btn" onclick="openAudibleAudiobook('${dailyBook.title.replace(/'/g, "\\'")}', '${dailyBook.author.replace(/'/g, "\\'")}')">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 3C6.48 3 2 7.48 2 13v4c0 1.66 1.34 3 3 3h2v-8H4v-2c0-4.41 3.59-8 8-8s8 3.59 8 8v2h-3v8h2c1.66 0 3-1.34 3-3v-4c0-5.52-4.48-10-10-10z"/></svg>
+                <span>Listen Free on Audible</span>
+            </button>
+        `;
+        list.appendChild(adCard);
+    }
+
     religionBooks[rel].books.forEach(book => {
         const btn = document.createElement('button');
         btn.innerText = book.name;
         btn.onclick = () => showBookContent(rel, book);
         list.appendChild(btn);
     });
-
-    // Render Daily Curated Audiobook Recommendation
-    const dailyBook = getDailyAudiobook(rel);
-    if (dailyBook) {
-        const adCard = document.createElement('div');
-        adCard.className = 'audiobook-recommend-card';
-        adCard.innerHTML = `
-            <div class="audiobook-recommend-badge">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
-                <span>Audiobook of the Day</span>
-            </div>
-            <h3 class="audiobook-recommend-title">${dailyBook.title}</h3>
-            <p class="audiobook-recommend-author">by ${dailyBook.author}</p>
-            <p class="audiobook-recommend-desc">${dailyBook.desc}</p>
-            <button class="audiobook-listen-btn" onclick="openAudibleAudiobook('${dailyBook.title.replace(/'/g, "\\'")}', '${dailyBook.author.replace(/'/g, "\\'")}')">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 3C6.48 3 2 7.48 2 13v4c0 1.66 1.34 3 3 3h2v-8H4v-2c0-4.41 3.59-8 8-8s8 3.59 8 8v2h-3v8h2c1.66 0 3-1.34 3-3v-4c0-5.52-4.48-10-10-10z"/></svg>
-                <span>Listen on Audible (30-Day Free Trial)</span>
-            </button>
-        `;
-        list.appendChild(adCard);
-    }
 }
 
 let currentBookObj = null;
