@@ -1954,6 +1954,26 @@ h2 {
     transition: none !important;
 }
 
+.va-cycle-btn {
+    min-width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.folder-cycle-badge {
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1;
+    font-family: var(--font-main);
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-transform: uppercase;
+}
+
 .va-btn svg {
     width: 15px;
     height: 15px;

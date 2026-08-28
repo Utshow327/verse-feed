@@ -1705,18 +1705,27 @@ async function loadUnselectedDataInBackground() {
 }
 function formatVerseRef(v) {
     if (!v) return '';
-    let book = v.book || '';
+    let book = (v.book || '').trim();
     
-    // Standardize source format
-    if (book.toLowerCase().includes('quran')) {
+    // Remove redundant Part/Chapter strings from book name
+    book = book.replace(/\s+(part|chapter|section)\s+\d+$/i, '').trim();
+
+    // Standardize & shorten source format
+    const bLower = book.toLowerCase();
+    if (bLower.includes('quran')) {
         book = 'Quran';
-    } else if (book.toLowerCase().includes('dhammapada')) {
+    } else if (bLower.includes('dhammapada')) {
         book = 'Dhammapada';
-    } else if (book.toLowerCase().includes('granth')) {
-        book = 'Guru Granth Sahib';
-    } else if (book.toLowerCase().includes('bhagavad gita') || book.toLowerCase().includes('gita')) {
+    } else if (bLower.includes('guru granth') || bLower.includes('granth sahib')) {
+        book = 'Granth Sahib';
+    } else if (bLower.includes('bhagavad gita') || bLower.includes('gita')) {
         book = 'Bhagavad Gita';
+    } else if (bLower.includes('philosophical')) {
+        book = book.replace(/philosophical/i, 'Phil.');
+    } else if (bLower.includes('psychological')) {
+        book = book.replace(/psychological/i, 'Psych.');
     }
+    
     let chap = '';
     if (v.chapterNum !== undefined && v.chapterNum !== null && v.chapterNum !== '') {
         chap = v.chapterNum;
@@ -1727,7 +1736,9 @@ function formatVerseRef(v) {
     } else if (typeof v.chapter === 'string') {
         const match = v.chapter.match(/\d+/);
         if (match) {
-            chap = parseInt(match[0]);
+            chap = parseInt(match[0], 10);
+        } else {
+            chap = v.chapter.replace(/^(part|chapter|sec|section)\s*/i, '').trim();
         }
     }
     
@@ -1741,7 +1752,7 @@ function formatVerseRef(v) {
     } else if (typeof v.verse === 'string') {
         const match = v.verse.match(/\d+/);
         if (match) {
-            verse = parseInt(match[0]);
+            verse = parseInt(match[0], 10);
         } else {
             verse = v.verse;
         }
@@ -3312,7 +3323,7 @@ function renderVersesList(versesArray, listElement) {
         
         const ref = document.createElement('div');
         ref.classList.add('verse-ref');
-        ref.innerText = `${v.book} ${v.chapter}:${v.verse}`;
+        ref.innerText = formatVerseRef(v);
         
         footer.appendChild(ref);
         div.appendChild(text);
@@ -3339,231 +3350,11 @@ function renderVersesList(versesArray, listElement) {
             div.style.borderColor = 'var(--text-color)';
             text.style.color = 'var(--bg-grad-1)';
             ref.style.color = 'var(--bg-grad-1)';
+            const actions = createActionIconsElement(selectedVerse, 'saved');
+            if (actions) footer.appendChild(actions);
         }
 
-        // --- Drag and Drop Verse into Folder ---
-        let versePressTimer = null;
-        let isDraggingVerse = false;
-        let vStartX = 0, vStartY = 0;
-        let dragPreviewEl = null;
-        let currentHoveredFolder = null;
-
-        const cleanupVerseDrag = () => {
-            clearTimeout(versePressTimer);
-            document.querySelectorAll('.verse-drag-preview').forEach(el => el.remove());
-            dragPreviewEl = null;
-            div.classList.remove('dragging-verse-source');
-            div.style.opacity = '1';
-            document.querySelectorAll('.album-folder-btn').forEach(btn => {
-                btn.classList.remove('folder-drop-hover', 'folder-drop-dimmed');
-            });
-            isDraggingVerse = false;
-            currentHoveredFolder = null;
-        };
-
-        const activateVerseDrag = (clientX, clientY) => {
-            if (isDraggingVerse) return;
-            isDraggingVerse = true;
-            if (navigator.vibrate) {
-                try { navigator.vibrate(40); } catch(e){}
-            }
-
-            div.classList.add('dragging-verse-source');
-
-            // Remove any old previews
-            document.querySelectorAll('.verse-drag-preview').forEach(el => el.remove());
-
-            dragPreviewEl = document.createElement('div');
-            dragPreviewEl.className = 'verse-drag-preview';
-            
-            let snippet = displayVerse.length > 90 ? displayVerse.substring(0, 90) + '...' : displayVerse;
-            dragPreviewEl.innerHTML = `
-                <div style="font-style: italic; font-size: 0.85rem;">"${snippet}"</div>
-                <div class="preview-ref">${v.book} ${v.chapter}:${v.verse}</div>
-            `;
-            dragPreviewEl.style.transform = `translate3d(${clientX}px, ${clientY}px, 0) translate3d(-50%, -50%, 0) scale(1.02)`;
-            document.body.appendChild(dragPreviewEl);
-
-            // Dim / grey out the folder where the verse already lives
-            const currentVerseFolder = v.album || null;
-            document.querySelectorAll('.album-folder-btn').forEach(btn => {
-                const fName = btn.dataset.albumName;
-                if (currentVerseFolder && fName === currentVerseFolder) {
-                    btn.classList.add('folder-drop-dimmed');
-                }
-            });
-        };
-
-        const onTouchStart = (e) => {
-            if (e.touches.length !== 1) return;
-            if (e.target.closest('.verse-actions')) return;
-            const touch = e.touches[0];
-            vStartX = touch.clientX;
-            vStartY = touch.clientY;
-            isDraggingVerse = false;
-            clearTimeout(versePressTimer);
-
-            versePressTimer = setTimeout(() => {
-                activateVerseDrag(vStartX, vStartY);
-            }, 180);
-
-            const onTouchMove = (ev) => {
-                if (ev.touches.length !== 1) return;
-                const curTouch = ev.touches[0];
-                const cx = curTouch.clientX;
-                const cy = curTouch.clientY;
-
-                if (!isDraggingVerse) {
-                    if (Math.hypot(cx - vStartX, cy - vStartY) > 10) {
-                        activateVerseDrag(cx, cy);
-                    }
-                }
-
-                if (isDraggingVerse) {
-                    if (ev.cancelable) ev.preventDefault();
-
-                    if (dragPreviewEl) {
-                        dragPreviewEl.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate3d(-50%, -50%, 0) scale(1.02)`;
-                    }
-
-                    const elemBelow = document.elementFromPoint(cx, cy);
-                    const targetFolder = elemBelow ? elemBelow.closest('.album-folder-btn') : null;
-
-                    if (targetFolder && !targetFolder.classList.contains('folder-drop-dimmed')) {
-                        if (currentHoveredFolder !== targetFolder) {
-                            if (currentHoveredFolder) currentHoveredFolder.classList.remove('folder-drop-hover');
-                            currentHoveredFolder = targetFolder;
-                            currentHoveredFolder.classList.add('folder-drop-hover');
-                            if (navigator.vibrate) {
-                                try { navigator.vibrate(15); } catch(err){}
-                            }
-                        }
-                    } else {
-                        if (currentHoveredFolder) {
-                            currentHoveredFolder.classList.remove('folder-drop-hover');
-                            currentHoveredFolder = null;
-                        }
-                    }
-                }
-            };
-
-            const onTouchEnd = () => {
-                clearTimeout(versePressTimer);
-                window.removeEventListener('touchmove', onTouchMove);
-                window.removeEventListener('touchend', onTouchEnd);
-                window.removeEventListener('touchcancel', onTouchEnd);
-
-                if (isDraggingVerse) {
-                    if (currentHoveredFolder && !currentHoveredFolder.classList.contains('folder-drop-dimmed')) {
-                        const targetFolderName = currentHoveredFolder.dataset.albumName;
-                        if (targetFolderName) {
-                            const verseIdx = savedVerses.findIndex(s => {
-                                if (s.id && v.id) return s.id === v.id;
-                                return s.book === v.book && String(s.chapter) === String(v.chapter) && String(s.verse) === String(v.verse);
-                            });
-                            if (verseIdx > -1) {
-                                savedVerses[verseIdx].album = targetFolderName;
-                                localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
-                                triggerCloudSync();
-                                showToast(`Moved to ${targetFolderName}`);
-                            }
-                        }
-                    }
-                    cleanupVerseDrag();
-                    showSavedVerses(false);
-                } else {
-                    cleanupVerseDrag();
-                }
-            };
-
-            window.addEventListener('touchmove', onTouchMove, { passive: false });
-            window.addEventListener('touchend', onTouchEnd, { passive: false });
-            window.addEventListener('touchcancel', onTouchEnd, { passive: false });
-        };
-
-        const onMouseDown = (e) => {
-            if (e.target.closest(".verse-actions")) return;
-            vStartX = e.clientX;
-            vStartY = e.clientY;
-            isDraggingVerse = false;
-            clearTimeout(versePressTimer);
-
-            versePressTimer = setTimeout(() => {
-                activateVerseDrag(vStartX, vStartY);
-            }, 180);
-
-            const onMouseMove = (ev) => {
-                const cx = ev.clientX;
-                const cy = ev.clientY;
-
-                if (!isDraggingVerse) {
-                    if (Math.hypot(cx - vStartX, cy - vStartY) > 10) {
-                        activateVerseDrag(cx, cy);
-                    }
-                }
-
-                if (isDraggingVerse) {
-                    if (ev.cancelable) ev.preventDefault();
-
-                    if (dragPreviewEl) {
-                        dragPreviewEl.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate3d(-50%, -50%, 0) scale(1.02)`;
-                    }
-
-                    const elemBelow = document.elementFromPoint(cx, cy);
-                    const targetFolder = elemBelow ? elemBelow.closest('.album-folder-btn') : null;
-
-                    if (targetFolder && !targetFolder.classList.contains('folder-drop-dimmed')) {
-                        if (currentHoveredFolder !== targetFolder) {
-                            if (currentHoveredFolder) currentHoveredFolder.classList.remove('folder-drop-hover');
-                            currentHoveredFolder = targetFolder;
-                            currentHoveredFolder.classList.add('folder-drop-hover');
-                        }
-                    } else {
-                        if (currentHoveredFolder) {
-                            currentHoveredFolder.classList.remove('folder-drop-hover');
-                            currentHoveredFolder = null;
-                        }
-                    }
-                }
-            };
-
-            const onMouseUp = () => {
-                clearTimeout(versePressTimer);
-                window.removeEventListener('mousemove', onMouseMove);
-                window.removeEventListener('mouseup', onMouseUp);
-
-                if (isDraggingVerse) {
-                    if (currentHoveredFolder && !currentHoveredFolder.classList.contains('folder-drop-dimmed')) {
-                        const targetFolderName = currentHoveredFolder.dataset.albumName;
-                        if (targetFolderName) {
-                            const verseIdx = savedVerses.findIndex(s => {
-                                if (s.id && v.id) return s.id === v.id;
-                                return s.book === v.book && String(s.chapter) === String(v.chapter) && String(s.verse) === String(v.verse);
-                            });
-                            if (verseIdx > -1) {
-                                savedVerses[verseIdx].album = targetFolderName;
-                                localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
-                                triggerCloudSync();
-                                showToast(`Moved to ${targetFolderName}`);
-                            }
-                        }
-                    }
-                    cleanupVerseDrag();
-                    showSavedVerses(false);
-                } else {
-                    cleanupVerseDrag();
-                }
-            };
-
-            window.addEventListener('mousemove', onMouseMove);
-            window.addEventListener('mouseup', onMouseUp);
-        };
-
-        div.addEventListener('touchstart', onTouchStart, { passive: false });
-        div.addEventListener('mousedown', onMouseDown);
-
         div.onclick = (e) => {
-            if (isDraggingVerse) return;
             selectVerse(v, 'saved', div.id, false);
         };
 
@@ -5463,6 +5254,26 @@ function deselectVerse() {
     }
 }
 
+function getVerseFolderState(verseObj) {
+    if (!verseObj) return { isSaved: false, label: '', album: null };
+    const v = verseObj.v || verseObj;
+    const index = savedVerses.findIndex(s => {
+        if (s.id && v.id) return s.id === v.id;
+        return s.book === v.book && String(s.chapter) === String(v.chapter) && String(s.verse) === String(v.verse);
+    });
+    if (index === -1) {
+        return { isSaved: false, label: '', album: null };
+    }
+    const album = savedVerses[index].album || 'All';
+    if (album === 'All' || album === 'Default') {
+        return { isSaved: true, label: 'A', album: 'All' };
+    }
+    const customFolders = createdAlbums.filter(n => n && n !== 'Default' && n !== 'All');
+    const fIdx = customFolders.indexOf(album);
+    const roman = fIdx > -1 ? toRomanNumeral(fIdx + 1) : 'I';
+    return { isSaved: true, label: roman || 'I', album: album };
+}
+
 function createActionIconsElement(verseObj, type) {
     const isFolder = type === 'folder' || (verseObj && verseObj.type === 'folder');
     if (isFolder) return null;
@@ -5470,13 +5281,24 @@ function createActionIconsElement(verseObj, type) {
     const container = document.createElement('div');
     container.className = 'verse-actions';
 
+    const vState = getVerseFolderState(verseObj);
+    let cycleIconHtml = '';
+    if (!vState.isSaved) {
+        cycleIconHtml = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.5"/></svg>`;
+    } else {
+        cycleIconHtml = `<span class="folder-cycle-badge">${vState.label}</span>`;
+    }
+
     if (type === 'saved') {
         container.innerHTML = `
+            <button class="va-btn va-cycle-btn" onclick="cycleVerseFolder(selectedVerse, event)" aria-label="Change Folder" title="Change Folder">
+                ${cycleIconHtml}
+            </button>
             <button class="va-btn" onclick="handlePillShare(event)" aria-label="Share" title="Share">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
             </button>
             <button class="va-btn" onclick="handlePillDeleteVerse(event)" aria-label="Delete Bookmark" title="Delete Bookmark">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
             </button>
         `;
         return container;
@@ -5484,11 +5306,11 @@ function createActionIconsElement(verseObj, type) {
 
     // Default for Feed, Book, Search
     container.innerHTML = `
-        <button class="va-btn" onclick="handlePillBookmark(event)" aria-label="Bookmark" title="Bookmark">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        <button class="va-btn va-cycle-btn" onclick="cycleVerseFolder(selectedVerse, event)" aria-label="Save or Change Folder" title="Save / Change Folder">
+            ${cycleIconHtml}
         </button>
         <button class="va-btn" onclick="handlePillShare(event)" aria-label="Share" title="Share">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
         </button>
     `;
     return container;
@@ -5876,43 +5698,102 @@ function handlePillPlay(e) {
     }
 }
 
-function handlePillBookmark(e) {
+function cycleVerseFolder(verseObj, e) {
     if (e) e.stopPropagation();
-    const verseToBookmark = selectedVerse || getCurrentActiveVerse() || getVerseAtIndex(currentVerseIndex.general);
-    if (!verseToBookmark) return;
-    
-    // Check if already bookmarked
+    const v = verseObj ? (verseObj.v || verseObj) : (selectedVerse ? (selectedVerse.v || selectedVerse) : getCurrentActiveVerse() || getVerseAtIndex(currentVerseIndex.general));
+    if (!v) return;
+
+    if (typeof playScrollSound === 'function') {
+        try { playScrollSound(); } catch(err){}
+    } else if (typeof playTapSound === 'function') {
+        try { playTapSound(); } catch(err){}
+    }
+
+    const customFolders = createdAlbums.filter(n => n && n !== 'Default' && n !== 'All');
     const index = savedVerses.findIndex(s => {
-        if (s.id && verseToBookmark.id) return s.id === verseToBookmark.id;
-        return s.book === verseToBookmark.book && String(s.chapter) === String(verseToBookmark.chapter) && String(s.verse) === String(verseToBookmark.verse);
+        if (s.id && v.id) return s.id === v.id;
+        return s.book === v.book && String(s.chapter) === String(v.chapter) && String(s.verse) === String(v.verse);
     });
-    
-    if (index > -1) {
-        // Already bookmarked -> Remove with undo toast
-        const deletedVerse = { ...savedVerses[index] };
-        const deletedIndex = index;
-        savedVerses.splice(index, 1);
+
+    if (index === -1) {
+        // Currently unsaved -> Save to 'All'
+        const newSaved = {
+            book: v.book,
+            chapter: v.chapter,
+            verse: v.verse,
+            text: v.text,
+            translation: v.translation || '',
+            album: 'All',
+            timestamp: Date.now(),
+            id: v.id || `${v.book}_${v.chapter}_${v.verse}_${Date.now()}`
+        };
+        savedVerses.unshift(newSaved);
         localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
         triggerCloudSync();
-        if (typeof showSavedVerses === 'function') showSavedVerses(false);
-        updatePillUI();
-        showDeleteToast('Bookmark removed', () => {
-            savedVerses.splice(deletedIndex, 0, deletedVerse);
-            localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
-            triggerCloudSync();
-            if (typeof showSavedVerses === 'function') showSavedVerses(false);
-            updatePillUI();
-            showToast('Bookmark restored');
-        });
+        showToast('Saved to Bookmarks (All)');
     } else {
-        // Direct save to "All"
-        pendingBookmarkVerse = verseToBookmark;
-        saveToAlbum('All');
-        pendingBookmarkVerse = null;
-        if (typeof showSavedVerses === 'function') showSavedVerses(false);
-        updatePillUI();
-        showToast('Saved to Bookmarks');
+        const currentAlbum = savedVerses[index].album || 'All';
+        if (currentAlbum === 'All' || currentAlbum === 'Default') {
+            if (customFolders.length > 0) {
+                // Move to 1st custom folder (Roman I)
+                const nextFolder = customFolders[0];
+                savedVerses[index].album = nextFolder;
+                localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                triggerCloudSync();
+                showToast(`Moved to ${nextFolder} (I)`);
+            } else {
+                // No custom folders -> Remove bookmark with undo
+                const deletedVerse = { ...savedVerses[index] };
+                const deletedIndex = index;
+                savedVerses.splice(index, 1);
+                localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                triggerCloudSync();
+                showDeleteToast('Bookmark removed', () => {
+                    savedVerses.splice(deletedIndex, 0, deletedVerse);
+                    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                    triggerCloudSync();
+                    if (typeof showSavedVerses === 'function') showSavedVerses(false);
+                    updatePillUI();
+                    if (selectedVerse) highlightSelectedVerseElement(true);
+                    showToast('Bookmark restored');
+                });
+            }
+        } else {
+            const curFolderIdx = customFolders.indexOf(currentAlbum);
+            if (curFolderIdx > -1 && curFolderIdx + 1 < customFolders.length) {
+                // Move to next custom folder (II, III...)
+                const nextFolder = customFolders[curFolderIdx + 1];
+                savedVerses[index].album = nextFolder;
+                localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                triggerCloudSync();
+                showToast(`Moved to ${nextFolder} (${toRomanNumeral(curFolderIdx + 2)})`);
+            } else {
+                // Reached end of custom folders -> Remove bookmark with undo
+                const deletedVerse = { ...savedVerses[index] };
+                const deletedIndex = index;
+                savedVerses.splice(index, 1);
+                localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                triggerCloudSync();
+                showDeleteToast('Bookmark removed', () => {
+                    savedVerses.splice(deletedIndex, 0, deletedVerse);
+                    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                    triggerCloudSync();
+                    if (typeof showSavedVerses === 'function') showSavedVerses(false);
+                    updatePillUI();
+                    if (selectedVerse) highlightSelectedVerseElement(true);
+                    showToast('Bookmark restored');
+                });
+            }
+        }
     }
+
+    if (typeof showSavedVerses === 'function') showSavedVerses(false);
+    updatePillUI();
+    if (selectedVerse) highlightSelectedVerseElement(true);
+}
+
+function handlePillBookmark(e) {
+    cycleVerseFolder(selectedVerse, e);
 }
 
 function handlePillShare(e) {
@@ -7569,18 +7450,3 @@ document.addEventListener('keydown', (e) => {
         }
     }
 });
-function removePendingBookmark() {
-    if (!pendingBookmarkVerse) return;
-    const index = savedVerses.findIndex(s => {
-        if (s.id && pendingBookmarkVerse.id) return s.id === pendingBookmarkVerse.id;
-        return s.book === pendingBookmarkVerse.book && String(s.chapter) === String(pendingBookmarkVerse.chapter) && String(s.verse) === String(pendingBookmarkVerse.verse);
-    });
-    if (index > -1) {
-        savedVerses.splice(index, 1);
-        localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
-        if (typeof showSavedVerses === 'function') showSavedVerses(false);
-        showToast('Bookmark removed');
-    }
-    closeAlbumModal();
-    updatePillUI();
-}
