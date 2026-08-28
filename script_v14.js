@@ -2982,188 +2982,35 @@ function _showSavedVersesImpl(rebuildFolders = true) {
             folder.style.width = 'calc(33.333% - 8px)';
             folder.style.aspectRatio = '1';
             folder.style.height = 'auto';
-            folder.style.fontSize = '1.2rem';
             folder.style.position = 'relative';
             
             const nameSpan = document.createElement('span');
             nameSpan.className = 'album-name';
             nameSpan.textContent = albumName;
             folder.appendChild(nameSpan);
+
+            // Minus Delete Button on top-right of folder
+            if (albumName !== 'Default' && albumName !== 'All') {
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'folder-delete-btn';
+                deleteBtn.setAttribute('aria-label', `Delete folder ${albumName}`);
+                deleteBtn.setAttribute('title', 'Delete Folder');
+                deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(err){}
+                    handleFolderDelete(e, albumName);
+                };
+                folder.appendChild(deleteBtn);
+            }
             
             const isSelected = (selectedVerse && selectedVerse.type === 'folder' && selectedVerse.name === albumName) || selectedSavedAlbum === albumName;
             if (isSelected) {
                 folder.classList.add('active');
             }
             
-            let fStartX = 0, fStartY = 0;
-            let isDraggingFolder = false;
-            let folderPressTimer = null;
-            let folderDragPreviewEl = null;
-
-            const activateFolderDrag = (cx, cy) => {
-                if (isDraggingFolder) return;
-                isDraggingFolder = true;
-                folder.style.opacity = '0.35';
-                if (navigator.vibrate) try { navigator.vibrate(35); } catch(err){}
-                transformAddBtnToDustbin(true);
-
-                if (folderDragPreviewEl && folderDragPreviewEl.parentNode) {
-                    folderDragPreviewEl.parentNode.removeChild(folderDragPreviewEl);
-                }
-                folderDragPreviewEl = document.createElement('div');
-                folderDragPreviewEl.className = 'folder-drag-preview';
-                folderDragPreviewEl.textContent = albumName;
-                folderDragPreviewEl.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate3d(-50%, -50%, 0) scale(1.04)`;
-                document.body.appendChild(folderDragPreviewEl);
-            };
-
-            const cleanupFolderDrag = () => {
-                clearTimeout(folderPressTimer);
-                isDraggingFolder = false;
-                folder.style.opacity = '1';
-                transformAddBtnToDustbin(false);
-                if (folderDragPreviewEl && folderDragPreviewEl.parentNode) {
-                    folderDragPreviewEl.parentNode.removeChild(folderDragPreviewEl);
-                }
-                folderDragPreviewEl = null;
-            };
-
-            const onTouchStart = (e) => {
-                const touch = e.touches[0];
-                fStartX = touch.clientX;
-                fStartY = touch.clientY;
-                isDraggingFolder = false;
-                clearTimeout(folderPressTimer);
-
-                folderPressTimer = setTimeout(() => {
-                    activateFolderDrag(fStartX, fStartY);
-                }, 180);
-
-                const onTouchMove = (ev) => {
-                    const t = ev.touches[0];
-                    const cx = t.clientX;
-                    const cy = t.clientY;
-
-                    if (!isDraggingFolder) {
-                        if (Math.hypot(cx - fStartX, cy - fStartY) > 10) {
-                            activateFolderDrag(cx, cy);
-                        }
-                    }
-
-                    if (isDraggingFolder) {
-                        if (ev.cancelable) ev.preventDefault();
-
-                        if (folderDragPreviewEl) {
-                            folderDragPreviewEl.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate3d(-50%, -50%, 0) scale(1.04)`;
-                        }
-
-                        const elemBelow = document.elementFromPoint(cx, cy);
-                        const addBtn = elemBelow ? elemBelow.closest('#add-folder-btn') : null;
-                        const targetAddBtn = document.getElementById('add-folder-btn');
-
-                        if (addBtn && targetAddBtn) {
-                            if (!targetAddBtn.classList.contains('dustbin-hover')) {
-                                targetAddBtn.classList.add('dustbin-hover');
-                                if (navigator.vibrate) try { navigator.vibrate(20); } catch(e){}
-                            }
-                        } else if (targetAddBtn) {
-                            targetAddBtn.classList.remove('dustbin-hover');
-                        }
-                    }
-                };
-
-                const onTouchEnd = () => {
-                    clearTimeout(folderPressTimer);
-                    window.removeEventListener('touchmove', onTouchMove);
-                    window.removeEventListener('touchend', onTouchEnd);
-                    window.removeEventListener('touchcancel', onTouchEnd);
-
-                    if (isDraggingFolder) {
-                        const targetAddBtn = document.getElementById('add-folder-btn');
-                        const isDustbinHover = targetAddBtn && targetAddBtn.classList.contains('dustbin-hover');
-                        cleanupFolderDrag();
-                        if (isDustbinHover) {
-                            handleFolderDelete(null, albumName);
-                        }
-                    } else {
-                        cleanupFolderDrag();
-                    }
-                };
-
-                window.addEventListener('touchmove', onTouchMove, { passive: false });
-                window.addEventListener('touchend', onTouchEnd, { passive: false });
-                window.addEventListener('touchcancel', onTouchEnd, { passive: false });
-            };
-
-            const onMouseDown = (e) => {
-                fStartX = e.clientX;
-                fStartY = e.clientY;
-                isDraggingFolder = false;
-                clearTimeout(folderPressTimer);
-
-                folderPressTimer = setTimeout(() => {
-                    activateFolderDrag(fStartX, fStartY);
-                }, 180);
-
-                const onMouseMove = (ev) => {
-                    const cx = ev.clientX;
-                    const cy = ev.clientY;
-
-                    if (!isDraggingFolder) {
-                        if (Math.hypot(cx - fStartX, cy - fStartY) > 10) {
-                            activateFolderDrag(cx, cy);
-                        }
-                    }
-
-                    if (isDraggingFolder) {
-                        if (ev.cancelable) ev.preventDefault();
-
-                        if (folderDragPreviewEl) {
-                            folderDragPreviewEl.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate3d(-50%, -50%, 0) scale(1.04)`;
-                        }
-
-                        const elemBelow = document.elementFromPoint(cx, cy);
-                        const addBtn = elemBelow ? elemBelow.closest('#add-folder-btn') : null;
-                        const targetAddBtn = document.getElementById('add-folder-btn');
-
-                        if (addBtn && targetAddBtn) {
-                            if (!targetAddBtn.classList.contains('dustbin-hover')) {
-                                targetAddBtn.classList.add('dustbin-hover');
-                                if (navigator.vibrate) try { navigator.vibrate(20); } catch(e){}
-                            }
-                        } else if (targetAddBtn) {
-                            targetAddBtn.classList.remove('dustbin-hover');
-                        }
-                    }
-                };
-
-                const onMouseUp = () => {
-                    clearTimeout(folderPressTimer);
-                    window.removeEventListener('mousemove', onMouseMove);
-                    window.removeEventListener('mouseup', onMouseUp);
-
-                    if (isDraggingFolder) {
-                        const targetAddBtn = document.getElementById('add-folder-btn');
-                        const isDustbinHover = targetAddBtn && targetAddBtn.classList.contains('dustbin-hover');
-                        cleanupFolderDrag();
-                        if (isDustbinHover) {
-                            handleFolderDelete(null, albumName);
-                        }
-                    } else {
-                        cleanupFolderDrag();
-                    }
-                };
-
-                window.addEventListener('mousemove', onMouseMove);
-                window.addEventListener('mouseup', onMouseUp);
-            };
-
-            folder.addEventListener('touchstart', onTouchStart, { passive: false });
-            folder.addEventListener('mousedown', onMouseDown);
-            
             folder.onclick = (e) => {
                 if (e) e.stopPropagation();
-                if (isDraggingFolder) return;
                 if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(err){}
                 if (selectedSavedAlbum === albumName) {
                     selectedSavedAlbum = null;
