@@ -3691,25 +3691,17 @@ function showBooks(rel) {
     const list = document.getElementById('book-list');
     list.innerHTML = '<h2>' + rel + '</h2>';
 
-    // Render Daily Curated Audiobook Recommendation at Top
+    // Render Daily Curated Audiobook at Top (Ultra-minimal: Title + Author only)
     const dailyBook = getDailyAudiobook(rel);
     if (dailyBook) {
-        const adCard = document.createElement('div');
-        adCard.className = 'audiobook-recommend-card';
-        adCard.innerHTML = `
-            <div class="audiobook-header-row">
-                <span class="audiobook-recommend-badge">Audiobook of the Day</span>
-            </div>
-            <div class="audiobook-info-row">
-                <div class="audiobook-recommend-title">${dailyBook.title}</div>
-                <div class="audiobook-recommend-author">by ${dailyBook.author}</div>
-            </div>
-            <button class="audiobook-listen-btn" onclick="openAudibleAudiobook('${dailyBook.title.replace(/'/g, "\\'")}', '${dailyBook.author.replace(/'/g, "\\'")}')">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 3C6.48 3 2 7.48 2 13v4c0 1.66 1.34 3 3 3h2v-8H4v-2c0-4.41 3.59-8 8-8s8 3.59 8 8v2h-3v8h2c1.66 0 3-1.34 3-3v-4c0-5.52-4.48-10-10-10z"/></svg>
-                <span>Listen Free on Audible</span>
-            </button>
+        const adBtn = document.createElement('button');
+        adBtn.className = 'audiobook-minimal-btn';
+        adBtn.innerHTML = `
+            <span class="audiobook-min-title">${dailyBook.title}</span>
+            <span class="audiobook-min-author">by ${dailyBook.author}</span>
         `;
-        list.appendChild(adCard);
+        adBtn.onclick = () => openAudibleAudiobook(dailyBook.title, dailyBook.author);
+        list.appendChild(adBtn);
     }
 
     religionBooks[rel].books.forEach(book => {
