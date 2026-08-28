@@ -897,6 +897,7 @@ h2 {
     white-space: nowrap;
     text-align: left;
     max-width: 80%;
+    padding-left: 14px;
 }
 .selected-folder-title {
     font-size: 1.25rem;
