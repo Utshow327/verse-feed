@@ -411,6 +411,8 @@ let visualizerWorkerReady = false;
 let visualizerLogicalWidth = typeof window !== 'undefined' ? window.innerWidth : 300;
 let visualizerLogicalHeight = 380;
 let visualizerAudioInterval = null;
+let waveformCanvasCtx = null;
+let visualizerSmoothedVol = 0;
 let currentAppSessionPremiumAngle = null;
 let isSpeaking = false;
 let isPaused = false;
@@ -4794,8 +4796,6 @@ function advanceSavedVerse() {
 }
 
 /* --- Audio Waveform Visualizer --- */
-let waveformCanvasCtx = null;
-let visualizerSmoothedVol = 0;
 
 function initVisualizerWorker() {
     resizeWaveformCanvas();
