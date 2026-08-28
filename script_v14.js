@@ -3228,90 +3228,90 @@ function renderVersesList(versesArray, listElement) {
 
 const topicAudiobooks = {
     'Philosophy': [
-        { title: "The Daily Stoic", author: "Ryan Holiday" },
-        { title: "Atomic Habits", author: "James Clear" },
-        { title: "Man's Search for Meaning", author: "Viktor E. Frankl" },
-        { title: "The Obstacle Is the Way", author: "Ryan Holiday" },
-        { title: "Letters from a Stoic", author: "Seneca" },
-        { title: "The Courage to Be Disliked", author: "Ichiro Kishimi" },
-        { title: "Ego Is the Enemy", author: "Ryan Holiday" },
-        { title: "Meditations", author: "Marcus Aurelius" },
-        { title: "Discourses and Selected Writings", author: "Epictetus" },
-        { title: "Deep Work", author: "Cal Newport" },
-        { title: "The 48 Laws of Power", author: "Robert Greene" },
-        { title: "Thinking, Fast and Slow", author: "Daniel Kahneman" },
-        { title: "The Antidote: Happiness for People Who Can't Stand Positive Thinking", author: "Oliver Burkeman" },
-        { title: "A Guide to the Good Life: The Ancient Art of Stoic Joy", author: "William B. Irvine" }
+        { title: "The Daily Stoic", author: "Ryan Holiday", asin: "0735211736" },
+        { title: "Atomic Habits", author: "James Clear", asin: "0735211299" },
+        { title: "Man's Search for Meaning", author: "Viktor E. Frankl", asin: "0807014273" },
+        { title: "The Obstacle Is the Way", author: "Ryan Holiday", asin: "1591846358" },
+        { title: "Letters from a Stoic", author: "Seneca", asin: "0140442103" },
+        { title: "The Courage to Be Disliked", author: "Ichiro Kishimi", asin: "1501197274" },
+        { title: "Ego Is the Enemy", author: "Ryan Holiday", asin: "1591847818" },
+        { title: "Meditations", author: "Marcus Aurelius", asin: "0140449336" },
+        { title: "Discourses and Selected Writings", author: "Epictetus", asin: "0140449468" },
+        { title: "Deep Work", author: "Cal Newport", asin: "1455586692" },
+        { title: "The 48 Laws of Power", author: "Robert Greene", asin: "0140280197" },
+        { title: "Thinking, Fast and Slow", author: "Daniel Kahneman", asin: "0374533555" },
+        { title: "The Antidote", author: "Oliver Burkeman", asin: "0865478015" },
+        { title: "A Guide to the Good Life", author: "William B. Irvine", asin: "0195374617" }
     ],
     'Buddhism': [
-        { title: "The Power of Now", author: "Eckhart Tolle" },
-        { title: "The Miracle of Mindfulness", author: "Thich Nhat Hanh" },
-        { title: "Zen Mind, Beginner's Mind", author: "Shunryu Suzuki" },
-        { title: "Radical Acceptance", author: "Tara Brach" },
-        { title: "Wherever You Go, There You Are", author: "Jon Kabat-Zinn" },
-        { title: "No Mud, No Lotus", author: "Thich Nhat Hanh" },
-        { title: "Peace Is Every Step", author: "Thich Nhat Hanh" },
-        { title: "When Things Fall Apart", author: "Pema Chodron" },
-        { title: "The Art of Happiness", author: "Dalai Lama" },
-        { title: "The Heart of the Buddha's Teaching", author: "Thich Nhat Hanh" },
-        { title: "Eight Mindful Steps to Happiness", author: "Bhante Henepola Gunaratana" },
-        { title: "Start Where You Are", author: "Pema Chodron" }
+        { title: "The Power of Now", author: "Eckhart Tolle", asin: "1577314808" },
+        { title: "The Miracle of Mindfulness", author: "Thich Nhat Hanh", asin: "0807012394" },
+        { title: "Zen Mind, Beginner's Mind", author: "Shunryu Suzuki", asin: "1590308492" },
+        { title: "Radical Acceptance", author: "Tara Brach", asin: "0553380990" },
+        { title: "Wherever You Go, There You Are", author: "Jon Kabat-Zinn", asin: "1401307787" },
+        { title: "No Mud, No Lotus", author: "Thich Nhat Hanh", asin: "1937006859" },
+        { title: "Peace Is Every Step", author: "Thich Nhat Hanh", asin: "0553351397" },
+        { title: "When Things Fall Apart", author: "Pema Chodron", asin: "1611803438" },
+        { title: "The Art of Happiness", author: "Dalai Lama", asin: "1573221112" },
+        { title: "The Heart of the Buddha's Teaching", author: "Thich Nhat Hanh", asin: "0767903692" },
+        { title: "Eight Mindful Steps to Happiness", author: "Bhante Henepola Gunaratana", asin: "0861711769" },
+        { title: "Start Where You Are", author: "Pema Chodron", asin: "1570628394" }
     ],
     'Islam': [
-        { title: "Secrets of Divine Love", author: "A. Helwa" },
-        { title: "Reclaim Your Heart", author: "Yasmin Mogahed" },
-        { title: "Revive Your Heart", author: "Nouman Ali Khan" },
-        { title: "Don't Be Sad", author: "Dr. Aid al-Qarni" },
-        { title: "In the Footsteps of the Prophet", author: "Tariq Ramadan" },
-        { title: "Healing and Peace in Islam", author: "A. Helwa" },
-        { title: "Muhammad: His Life Based on the Earliest Sources", author: "Martin Lings" },
-        { title: "Purification of the Heart", author: "Hamza Yusuf" },
-        { title: "The Sealed Nectar", author: "Safiur Rahman Mubarakpuri" },
-        { title: "Timeless Seeds of Advice", author: "B.B. Abdulla" },
-        { title: "Prayers of the Pious", author: "Omar Suleiman" }
+        { title: "Secrets of Divine Love", author: "A. Helwa", asin: "1734231203" },
+        { title: "Reclaim Your Heart", author: "Yasmin Mogahed", asin: "0990387682" },
+        { title: "Revive Your Heart", author: "Nouman Ali Khan", asin: "1847741014" },
+        { title: "Don't Be Sad", author: "Dr. Aid al-Qarni", asin: "9960850447" },
+        { title: "In the Footsteps of the Prophet", author: "Tariq Ramadan", asin: "0195374765" },
+        { title: "Healing and Peace in Islam", author: "A. Helwa", asin: "173423122X" },
+        { title: "Muhammad: His Life Based on the Earliest Sources", author: "Martin Lings", asin: "1594771537" },
+        { title: "Purification of the Heart", author: "Hamza Yusuf", asin: "193334315X" },
+        { title: "The Sealed Nectar", author: "Safiur Rahman Mubarakpuri", asin: "B094459MSS" },
+        { title: "Timeless Seeds of Advice", author: "B.B. Abdulla", asin: "1916186205" },
+        { title: "Prayers of the Pious", author: "Omar Suleiman", asin: "1847741294" }
     ],
     'Christianity': [
-        { title: "Mere Christianity", author: "C.S. Lewis" },
-        { title: "The Purpose Driven Life", author: "Rick Warren" },
-        { title: "The Practice of the Presence of God", author: "Brother Lawrence" },
-        { title: "The Screwtape Letters", author: "C.S. Lewis" },
-        { title: "Celebration of Discipline", author: "Richard J. Foster" },
-        { title: "The Great Divorce", author: "C.S. Lewis" },
-        { title: "The Cost of Discipleship", author: "Dietrich Bonhoeffer" },
-        { title: "Orthodoxy", author: "G.K. Chesterton" },
-        { title: "The Imitation of Christ", author: "Thomas a Kempis" },
-        { title: "Life Together", author: "Dietrich Bonhoeffer" },
-        { title: "Crazy Love", author: "Francis Chan" }
+        { title: "Mere Christianity", author: "C.S. Lewis", asin: "0060652926" },
+        { title: "The Purpose Driven Life", author: "Rick Warren", asin: "031033750X" },
+        { title: "The Practice of the Presence of God", author: "Brother Lawrence", asin: "1603865610" },
+        { title: "The Screwtape Letters", author: "C.S. Lewis", asin: "0060652934" },
+        { title: "Celebration of Discipline", author: "Richard J. Foster", asin: "0062803883" },
+        { title: "The Great Divorce", author: "C.S. Lewis", asin: "0060652950" },
+        { title: "The Cost of Discipleship", author: "Dietrich Bonhoeffer", asin: "0684815001" },
+        { title: "Orthodoxy", author: "G.K. Chesterton", asin: "0801032547" },
+        { title: "The Imitation of Christ", author: "Thomas a Kempis", asin: "0486431851" },
+        { title: "Life Together", author: "Dietrich Bonhoeffer", asin: "0060608528" },
+        { title: "Crazy Love", author: "Francis Chan", asin: "1434705943" }
     ],
     'Hinduism': [
-        { title: "Autobiography of a Yogi", author: "Paramahansa Yogananda" },
-        { title: "Inner Engineering: A Yogi's Guide to Joy", author: "Sadhguru" },
-        { title: "The Journey Home", author: "Radhanath Swami" },
-        { title: "Karma: A Yogi's Guide to Crafting Your Destiny", author: "Sadhguru" },
-        { title: "Living with the Himalayan Masters", author: "Swami Rama" },
-        { title: "Apprenticed to a Himalayan Master", author: "Sri M" },
-        { title: "Death: An Inside Story", author: "Sadhguru" },
-        { title: "Raja Yoga", author: "Swami Vivekananda" },
-        { title: "Jnana Yoga", author: "Swami Vivekananda" },
-        { title: "The Gospel of Sri Ramakrishna", author: "Mahendranath Gupta" }
+        { title: "Autobiography of a Yogi", author: "Paramahansa Yogananda", asin: "0876120834" },
+        { title: "Inner Engineering: A Yogi's Guide to Joy", author: "Sadhguru", asin: "0143428845" },
+        { title: "The Journey Home", author: "Radhanath Swami", asin: "1601090565" },
+        { title: "Karma: A Yogi's Guide to Crafting Your Destiny", author: "Sadhguru", asin: "0593232014" },
+        { title: "Living with the Himalayan Masters", author: "Swami Rama", asin: "0893891568" },
+        { title: "Apprenticed to a Himalayan Master", author: "Sri M", asin: "8186219934" },
+        { title: "Death: An Inside Story", author: "Sadhguru", asin: "0143450832" },
+        { title: "Raja Yoga", author: "Swami Vivekananda", asin: "091120623X" },
+        { title: "Jnana Yoga", author: "Swami Vivekananda", asin: "0911206213" },
+        { title: "The Gospel of Sri Ramakrishna", author: "Mahendranath Gupta", asin: "0911206019" }
     ],
     'Judaism': [
-        { title: "When Bad Things Happen to Good People", author: "Harold S. Kushner" },
-        { title: "The Sabbath", author: "Abraham Joshua Heschel" },
-        { title: "To Pray as a Jew", author: "Hayim Halevy Donin" },
-        { title: "Man's Search for Meaning", author: "Viktor E. Frankl" },
-        { title: "God in Search of Man", author: "Abraham Joshua Heschel" },
-        { title: "Man Is Not Alone", author: "Abraham Joshua Heschel" },
-        { title: "The Lonely Man of Faith", author: "Joseph B. Soloveitchik" },
-        { title: "This Is My God", author: "Herman Wouk" }
+        { title: "When Bad Things Happen to Good People", author: "Harold S. Kushner", asin: "1400034728" },
+        { title: "The Sabbath", author: "Abraham Joshua Heschel", asin: "0374529752" },
+        { title: "To Pray as a Jew", author: "Hayim Halevy Donin", asin: "0465086330" },
+        { title: "Man's Search for Meaning", author: "Viktor E. Frankl", asin: "0807014273" },
+        { title: "God in Search of Man", author: "Abraham Joshua Heschel", asin: "0374513317" },
+        { title: "Man Is Not Alone", author: "Abraham Joshua Heschel", asin: "0374513929" },
+        { title: "The Lonely Man of Faith", author: "Joseph B. Soloveitchik", asin: "0385483147" },
+        { title: "This Is My God", author: "Herman Wouk", asin: "0316955140" }
     ],
     'Sikhism': [
-        { title: "The Singing Guru", author: "Kamla K. Kapur" },
-        { title: "The Sikhs", author: "Patwant Singh" },
-        { title: "Sikhism: A Very Short Introduction", author: "Eleanor Nesbitt" },
-        { title: "A History of the Sikhs", author: "Khushwant Singh" },
-        { title: "The Japji: The Sikh Morning Prayer", author: "Khushwant Singh" },
-        { title: "Guru Nanak and the Sikh Religion", author: "W.H. McLeod" }
+        { title: "The Singing Guru", author: "Kamla K. Kapur", asin: "8184006126" },
+        { title: "The Sikhs", author: "Patwant Singh", asin: "0385502060" },
+        { title: "Sikhism: A Very Short Introduction", author: "Eleanor Nesbitt", asin: "0198745578" },
+        { title: "A History of the Sikhs", author: "Khushwant Singh", asin: "0195673085" },
+        { title: "The Japji: The Sikh Morning Prayer", author: "Khushwant Singh", asin: "0140292438" },
+        { title: "Guru Nanak and the Sikh Religion", author: "W.H. McLeod", asin: "0195637356" }
     ]
 };
 
@@ -3327,10 +3327,15 @@ function getDailyAudiobook(rel) {
     return list[index];
 }
 
-function openAudibleAudiobook(title, author) {
+function openAudibleAudiobook(title, author, asin) {
     if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
-    const query = encodeURIComponent(`${title} ${author}`);
-    const affiliateUrl = `https://www.amazon.com/s?k=${query}&tag=versefeed-20`;
+    let affiliateUrl;
+    if (asin) {
+        affiliateUrl = `https://www.amazon.com/dp/${asin}?tag=versefeed-20`;
+    } else {
+        const query = encodeURIComponent(`${title} ${author}`);
+        affiliateUrl = `https://www.amazon.com/s?k=${query}&tag=versefeed-20`;
+    }
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
         window.open(affiliateUrl, '_system');
     } else {
@@ -3594,7 +3599,7 @@ function showBooks(rel) {
             <span class="audiobook-min-title">${dailyBook.title}</span>
             <span class="audiobook-min-author">by ${dailyBook.author}</span>
         `;
-        adBtn.onclick = () => openAudibleAudiobook(dailyBook.title, dailyBook.author);
+        adBtn.onclick = () => openAudibleAudiobook(dailyBook.title, dailyBook.author, dailyBook.asin);
         list.appendChild(adBtn);
     }
 
