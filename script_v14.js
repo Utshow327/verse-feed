@@ -3325,8 +3325,7 @@ function getDailyAudiobook(rel) {
 
 function openAudibleAudiobook(title, author) {
     if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
-    const query = encodeURIComponent(`${title} ${author}`);
-    const affiliateUrl = `https://www.amazon.com/s?k=${query}&i=audible&tag=versefeed-20`;
+    const affiliateUrl = `https://www.amazon.com/hz/audible/mlp/membership/premiumplus?tag=versefeed-20`;
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
         window.open(affiliateUrl, '_system');
     } else {
