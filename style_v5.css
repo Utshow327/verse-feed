@@ -1000,20 +1000,26 @@ h2 {
 }
 
 .add-folder-btn {
-    transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1), background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease !important;
+    transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1), background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, color 0.22s ease !important;
 }
 
 .add-folder-btn.is-dustbin-target {
-    border-color: rgba(239, 68, 68, 0.45) !important;
-    background: rgba(239, 68, 68, 0.08) !important;
+    border-color: var(--accent) !important;
+    background: rgba(200, 155, 109, 0.12) !important;
+    color: var(--accent) !important;
     transform: scale(1.02) !important;
 }
 
 .add-folder-btn.dustbin-hover {
-    border-color: #ef4444 !important;
-    background: rgba(239, 68, 68, 0.22) !important;
-    box-shadow: 0 0 24px rgba(239, 68, 68, 0.45), 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+    border-color: var(--accent) !important;
+    background: var(--text-color) !important;
+    color: var(--bg-grad-1) !important;
+    box-shadow: 0 0 20px var(--accent), 0 8px 24px rgba(0, 0, 0, 0.3) !important;
     transform: scale(1.12) !important;
+}
+
+.add-folder-btn.dustbin-hover svg {
+    stroke: var(--bg-grad-1) !important;
 }
 
 /* Drag and Drop Animations & Previews */
@@ -1023,23 +1029,30 @@ h2 {
     transition: opacity 0.2s ease, transform 0.2s ease !important;
 }
 
-.verse-drag-preview {
+.verse-drag-preview,
+.folder-drag-preview {
     position: fixed;
+    top: 0;
+    left: 0;
     pointer-events: none;
     z-index: 100000;
+    margin: 0;
+    will-change: transform;
+    transition: none;
+}
+
+.verse-drag-preview {
     width: 280px;
     max-width: 80vw;
     background: var(--card-bg);
     border: 1.5px solid var(--accent);
     border-radius: 16px;
     padding: 12px 16px;
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
     font-size: 0.88rem;
     line-height: 1.4;
     color: var(--text-color);
     box-sizing: border-box;
-    will-change: transform;
-    transition: transform 0.04s linear;
     transform: translate3d(-50%, -50%, 0) scale(1.02);
 }
 
@@ -1052,15 +1065,12 @@ h2 {
 }
 
 .folder-drag-preview {
-    position: fixed;
-    pointer-events: none;
-    z-index: 100000;
     width: 85px;
     height: 85px;
     border-radius: 16px;
     background: var(--card-bg);
     border: 1.5px solid var(--accent);
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1069,9 +1079,7 @@ h2 {
     font-weight: 600;
     color: var(--text-color);
     box-sizing: border-box;
-    will-change: transform;
-    transform: translate3d(-50%, -50%, 0) scale(1.02);
-    transition: transform 0.04s linear;
+    transform: translate3d(-50%, -50%, 0) scale(1.04);
 }
 
 .folder-drop-hover {
