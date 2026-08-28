@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Minimalistic Religion App</title>
-    <link rel="stylesheet" href="style_v5.css?v=293">
+    <link rel="stylesheet" href="style_v5.css?v=294">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -19,131 +19,7 @@
         </div>
     </div>
 
-    <!-- High-Fidelity Developer Error Logger Box -->
-    <div id="developer-error-panel" style="position: fixed; z-index: 999999; bottom: 20px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 500px; background: rgba(30, 15, 15, 0.98); border: 2px solid #ff4757; border-radius: 16px; padding: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); box-sizing: border-box; font-family: monospace; display: none; font-size: 0.85rem; color: #ff6b6b;">
-        <div style="font-weight: bold; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-            <span style="display: flex; align-items: center; gap: 6px;">⚠️ App Diagnostics Log</span>
-            <button onclick="document.getElementById('developer-error-panel').style.display='none'" style="background:none; border:none; color:#aaa; cursor:pointer; font-size:1.2rem; padding:0 5px;">✕</button>
-        </div>
-        <div id="error-list-content" onclick="selectDiagnosticsText()" title="Click to select all text for copying" style="max-height: 180px; overflow-y: auto; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 8px; margin-bottom: 12px; white-space: pre-wrap; color: #fff; line-height: 1.4; border: 1px solid rgba(255,255,255,0.05); cursor: pointer;"></div>
-        <div style="display: flex; gap: 8px;">
-            <button id="copy-log-btn" onclick="copyErrorLogsToClipboard()" style="flex: 1; height: 38px; border-radius: 8px; border: none; background: #ff4757; color: white; font-weight: bold; cursor: pointer; font-family: inherit; font-size: 0.85rem;">📋 Copy Logs</button>
-            <button onclick="if(confirm('Clear all settings and cache to reset app?')){localStorage.clear(); location.reload();}" style="height: 38px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: transparent; color: white; cursor: pointer; font-family: inherit; font-size: 0.85rem;">🔄 Reset App</button>
-        </div>
-    </div>
 
-    <script>
-        const diagnosticsLogs = [];
-
-        function selectDiagnosticsText() {
-            const el = document.getElementById('error-list-content');
-            if (!el) return;
-            if (window.getSelection && document.createRange) {
-                const range = document.createRange();
-                range.selectNodeContents(el);
-                const sel = window.getSelection();
-                sel.removeAllRanges();
-                sel.addRange(range);
-            } else if (document.body.createTextRange) {
-                const range = document.body.createTextRange();
-                range.moveToElementText(el);
-                range.select();
-            }
-        }
-
-        function addDiagnosticLog(type, msg, stack = '') {
-            const time = new Date().toLocaleTimeString();
-            diagnosticsLogs.push({ time, type, msg, stack });
-            
-            // Format log preview
-            const panel = document.getElementById('developer-error-panel');
-            const content = document.getElementById('error-list-content');
-            if (panel && content) {
-                panel.style.display = 'block';
-                content.innerText += `[${time}] [${type}] ${msg}\n${stack ? 'STACK: ' + stack + '\n' : ''}-------------------\n`;
-                content.scrollTop = content.scrollHeight; // Scroll to bottom
-            }
-            
-            // Network fallback log
-            fetch('/log', {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain' },
-                body: `[${time}] [${type}] ${msg}\n${stack}`
-            }).catch(e => {});
-        }
-
-        window.onerror = function(msg, src, line, col, err) {
-            const stack = err ? err.stack : '';
-            addDiagnosticLog('JS_ERROR', `${msg} (${src}:${line}:${col})`, stack);
-        };
-
-        window.addEventListener("unhandledrejection", function(e) {
-            const reason = e.reason ? (e.reason.stack || e.reason.message || e.reason) : "Unknown";
-            addDiagnosticLog('PROMISE_ERROR', e.reason && e.reason.message ? e.reason.message : String(e.reason), String(reason));
-        });
-        
-        // Override console.log
-        const oldLog = console.log;
-        console.log = function() {
-            const msg = Array.from(arguments).map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
-            oldLog.apply(console, arguments);
-        };
-
-        // Override console.error
-        const oldErr = console.error;
-        console.error = function() {
-            const msg = Array.from(arguments).map(a => {
-                if (a instanceof Error) return a.stack || a.message;
-                return typeof a === 'object' ? JSON.stringify(a) : a;
-            }).join(' ');
-            
-            // Ignore normal offline network retry notices from Firestore SDK
-            const isFirestoreOfflineNotice = msg.includes('@firebase/firestore') || 
-                                           msg.includes('Could not reach Cloud Firestore backend') ||
-                                           msg.includes('code=unavailable');
-
-            // Capture actual app crashes/errors
-            if (!isFirestoreOfflineNotice && (msg.toLowerCase().includes('failed') || msg.toLowerCase().includes('error'))) {
-                addDiagnosticLog('CONSOLE_ERROR', msg);
-            }
-            oldErr.apply(console, arguments);
-        };
-
-        function copyErrorLogsToClipboard() {
-            const btn = document.getElementById('copy-log-btn');
-            const fullText = diagnosticsLogs.map(l => `[${l.time}] [${l.type}] ${l.msg}\n${l.stack ? l.stack + '\n' : ''}`).join('\n');
-            
-            const handleSuccess = () => {
-                if (btn) {
-                    btn.innerText = '✅ Copied!';
-                    setTimeout(() => btn.innerText = '📋 Copy Logs', 2000);
-                }
-            };
-
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(fullText).then(handleSuccess).catch(e => fallbackCopy(fullText));
-            } else {
-                fallbackCopy(fullText);
-            }
-
-            function fallbackCopy(text) {
-                const textArea = document.createElement('textarea');
-                textArea.value = text;
-                textArea.style.position = 'fixed';
-                textArea.style.left = '-999999px';
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    handleSuccess();
-                } catch (err) {
-                    if (btn) btn.innerText = '❌ Failed to copy';
-                }
-                document.body.removeChild(textArea);
-            }
-        }
-    </script>
 
     
     <!-- Waveform Canvas -->
@@ -562,7 +438,7 @@
     <div id="radial-overlay" class="radial-overlay"></div>
     <script src="libs/localforage.min.js"></script>
     <script src="libs/html2canvas.min.js"></script>
-    <script src="script_v14.js?v=393"></script>
+    <script src="script_v14.js?v=394"></script>
 
 
 
