@@ -5742,21 +5742,7 @@ function cycleVerseFolder(verseObj, e) {
                 triggerCloudSync();
                 showToast(`Moved to ${nextFolder} (I)`);
             } else {
-                // No custom folders -> Remove bookmark with undo
-                const deletedVerse = { ...savedVerses[index] };
-                const deletedIndex = index;
-                savedVerses.splice(index, 1);
-                localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
-                triggerCloudSync();
-                showDeleteToast('Bookmark removed', () => {
-                    savedVerses.splice(deletedIndex, 0, deletedVerse);
-                    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
-                    triggerCloudSync();
-                    if (typeof showSavedVerses === 'function') showSavedVerses(false);
-                    updatePillUI();
-                    if (selectedVerse) highlightSelectedVerseElement(true);
-                    showToast('Bookmark restored');
-                });
+                showToast('In Bookmarks (All)');
             }
         } else {
             const curFolderIdx = customFolders.indexOf(currentAlbum);
@@ -5768,21 +5754,11 @@ function cycleVerseFolder(verseObj, e) {
                 triggerCloudSync();
                 showToast(`Moved to ${nextFolder} (${toRomanNumeral(curFolderIdx + 2)})`);
             } else {
-                // Reached end of custom folders -> Remove bookmark with undo
-                const deletedVerse = { ...savedVerses[index] };
-                const deletedIndex = index;
-                savedVerses.splice(index, 1);
+                // Reached end of custom folders -> Loop back to 'All'
+                savedVerses[index].album = 'All';
                 localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
                 triggerCloudSync();
-                showDeleteToast('Bookmark removed', () => {
-                    savedVerses.splice(deletedIndex, 0, deletedVerse);
-                    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
-                    triggerCloudSync();
-                    if (typeof showSavedVerses === 'function') showSavedVerses(false);
-                    updatePillUI();
-                    if (selectedVerse) highlightSelectedVerseElement(true);
-                    showToast('Bookmark restored');
-                });
+                showToast('Moved to Bookmarks (All)');
             }
         }
     }
