@@ -641,40 +641,43 @@ h2 {
 }
 
 /* --- Ultra Minimal Audiobook Item --- */
+#book-list button.audiobook-minimal-btn,
 .audiobook-minimal-btn {
-    width: 90%;
-    max-width: 800px;
-    padding: 16px 24px;
-    background: linear-gradient(135deg, var(--p-gold), var(--p-sand), var(--bg-grad-1), var(--p-gold));
-    background-size: 300% 300%;
-    animation: premiumGradientShine 8s ease infinite;
+    width: 90% !important;
+    max-width: 800px !important;
+    padding: 16px 24px !important;
+    background: linear-gradient(135deg, var(--p-gold), var(--p-sand), var(--bg-grad-1), var(--p-gold)) !important;
+    background-size: 300% 300% !important;
+    animation: premiumGradientShine 8s ease infinite !important;
     border: none !important;
-    border-radius: 25px;
-    color: var(--text-color);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    text-align: center;
-    transition: transform 0.15s ease, box-shadow 0.2s ease;
-    font-family: inherit;
-    cursor: pointer;
-    margin: 5px auto 12px auto;
-    box-sizing: border-box;
-    position: relative;
-    box-shadow: var(--glass-shadow);
+    border-radius: 25px !important;
+    color: var(--text-color) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    text-align: center !important;
+    transition: transform 0.15s ease, box-shadow 0.2s ease !important;
+    font-family: inherit !important;
+    cursor: pointer !important;
+    margin: 5px auto 12px auto !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+    box-shadow: var(--glass-shadow) !important;
 }
 
+[data-theme="dark"] #book-list button.audiobook-minimal-btn,
 [data-theme="dark"] .audiobook-minimal-btn {
-    color: #f7e7ce;
+    color: #f7e7ce !important;
     border: none !important;
-    background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #3d352e);
-    background-size: 300% 300%;
+    background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #3d352e) !important;
+    background-size: 300% 300% !important;
 }
 
+#book-list button.audiobook-minimal-btn:active,
 .audiobook-minimal-btn:active {
-    transform: scale(0.98);
+    transform: scale(0.98) !important;
 }
 
 .audiobook-ad-tag {
@@ -2530,13 +2533,16 @@ h2 {
 }
 
 /* Feed Premium Card Background - Matches Premium Gradient Button Exactly */
+#feed-stage .verse-card.premium-ad-card,
 .verse-card.premium-ad-card {
     border: none !important;
     background: linear-gradient(135deg, var(--p-gold), var(--p-sand), var(--bg-grad-1), var(--p-gold)) !important;
     background-size: 300% 300% !important;
     animation: premiumGradientShine 8s ease infinite !important;
+    box-shadow: var(--glass-shadow) !important;
 }
 
+[data-theme="dark"] #feed-stage .verse-card.premium-ad-card,
 [data-theme="dark"] .verse-card.premium-ad-card {
     border: none !important;
     background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #3d352e) !important;
