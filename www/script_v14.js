@@ -3266,8 +3266,8 @@ const topicAudiobooks = {
         { title: "Healing and Peace in Islam", author: "A. Helwa", asin: "173423122X" },
         { title: "Muhammad: His Life Based on the Earliest Sources", author: "Martin Lings", asin: "1594771537" },
         { title: "Purification of the Heart", author: "Hamza Yusuf", asin: "193334315X" },
-        { title: "The Sealed Nectar", author: "Safiur Rahman Mubarakpuri", asin: "B094459MSS" },
-        { title: "Timeless Seeds of Advice", author: "B.B. Abdulla", asin: "1916186205" },
+        { title: "The Sealed Nectar", author: "Safiur Rahman Mubarakpuri", asin: "1591440718" },
+        { title: "Timeless Seeds of Advice", author: "B.B. Abdulla", asin: "1692930249" },
         { title: "Prayers of the Pious", author: "Omar Suleiman", asin: "1847741294" }
     ],
     'Christianity': [
@@ -3327,10 +3327,15 @@ function getDailyAudiobook(rel) {
     return list[index];
 }
 
-function openAudibleAudiobook(title, author) {
+function openAudibleAudiobook(title, author, asin) {
     if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
-    const query = encodeURIComponent(`${title} ${author}`);
-    const affiliateUrl = `https://www.amazon.com/s?k=${query}&tag=versefeed-20`;
+    let affiliateUrl;
+    if (asin) {
+        affiliateUrl = `https://www.amazon.com/dp/${asin}?tag=versefeed-20`;
+    } else {
+        const query = encodeURIComponent(`${title} ${author}`);
+        affiliateUrl = `https://www.amazon.com/s?k=${query}&tag=versefeed-20`;
+    }
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
         window.open(affiliateUrl, '_system');
     } else {
@@ -3594,7 +3599,7 @@ function showBooks(rel) {
             <span class="audiobook-min-title">${dailyBook.title}</span>
             <span class="audiobook-min-author">by ${dailyBook.author}</span>
         `;
-        adBtn.onclick = () => openAudibleAudiobook(dailyBook.title, dailyBook.author);
+        adBtn.onclick = () => openAudibleAudiobook(dailyBook.title, dailyBook.author, dailyBook.asin);
         list.appendChild(adBtn);
     }
 
