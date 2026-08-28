@@ -3578,13 +3578,16 @@ function showBooks(rel) {
     const list = document.getElementById('book-list');
     list.innerHTML = '<h2>' + rel + '</h2>';
 
-    // Render Daily Curated Audiobook at Top (Ultra-minimal: Title + Author only)
+    // Render Daily Curated Audiobook at Top (Ultra-minimal: Title + Author + Ad tag)
     const dailyBook = getDailyAudiobook(rel);
     if (dailyBook) {
         const adBtn = document.createElement('button');
         adBtn.className = 'audiobook-minimal-btn';
         adBtn.innerHTML = `
-            <span class="audiobook-min-title">${dailyBook.title}</span>
+            <div class="audiobook-min-top-row">
+                <span class="audiobook-min-title">${dailyBook.title}</span>
+                <span class="audiobook-ad-tag">Ad</span>
+            </div>
             <span class="audiobook-min-author">by ${dailyBook.author}</span>
         `;
         adBtn.onclick = () => openAudibleAudiobook(dailyBook.title, dailyBook.author);
