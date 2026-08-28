@@ -2864,52 +2864,13 @@ function toggleBookmark(v, btnElement) {
     localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
 }
 
-function getFolderUsageStats() {
-    try {
-        const raw = localStorage.getItem('folder_usage_stats');
-        return raw ? JSON.parse(raw) : {};
-    } catch(e) {
-        return {};
-    }
-}
-
-function recordFolderUsage(folderName) {
-    if (!folderName || folderName === 'All' || folderName === 'Default') return;
-    try {
-        const stats = getFolderUsageStats();
-        if (!stats[folderName]) stats[folderName] = { count: 0, lastViewed: 0 };
-        stats[folderName].count = (stats[folderName].count || 0) + 1;
-        stats[folderName].lastViewed = Date.now();
-        localStorage.setItem('folder_usage_stats', JSON.stringify(stats));
-
-        const idx = createdAlbums.indexOf(folderName);
-        if (idx > -1) {
-            createdAlbums.splice(idx, 1);
-            createdAlbums.unshift(folderName);
-            localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
-        }
-    } catch(e) {}
-}
-
 function getAlbumsGrouped() {
     const albums = {};
-    const stats = getFolderUsageStats();
-    
-    // Sort custom folders automatically by usage (frequency & recency)
-    const sortedAlbumNames = [...createdAlbums].filter(name => name && name !== 'Default' && name !== 'All');
-    sortedAlbumNames.sort((a, b) => {
-        const statA = stats[a] || { count: 0, lastViewed: 0 };
-        const statB = stats[b] || { count: 0, lastViewed: 0 };
-        if ((statB.count || 0) !== (statA.count || 0)) {
-            return (statB.count || 0) - (statA.count || 0);
+    createdAlbums.forEach(name => {
+        if (name && name !== 'Default' && name !== 'All') {
+            if (!albums[name]) albums[name] = [];
         }
-        return (statB.lastViewed || 0) - (statA.lastViewed || 0);
     });
-
-    sortedAlbumNames.forEach(name => {
-        if (!albums[name]) albums[name] = [];
-    });
-    
     savedVerses.forEach((v, i) => {
         if (!v) return;
         if (v.album && v.album !== 'Default' && v.album !== 'All') {
@@ -3012,7 +2973,6 @@ function _showSavedVersesImpl(rebuildFolders = true) {
             
             folder.onclick = (e) => {
                 if (e) e.stopPropagation();
-                recordFolderUsage(albumName);
                 if (selectedSavedAlbum === albumName) {
                     selectedSavedAlbum = null;
                     selectedVerse = { type: 'folder', name: albumName, elementId: folder.id };
@@ -3331,7 +3291,6 @@ function renderVersesList(versesArray, listElement) {
                     if (currentHoveredFolder && !currentHoveredFolder.classList.contains('folder-drop-dimmed')) {
                         const targetFolderName = currentHoveredFolder.dataset.albumName;
                         if (targetFolderName) {
-                            recordFolderUsage(targetFolderName);
                             const verseIdx = savedVerses.findIndex(s => {
                                 if (s.id && v.id) return s.id === v.id;
                                 return s.book === v.book && String(s.chapter) === String(v.chapter) && String(s.verse) === String(v.verse);
@@ -4834,56 +4793,15 @@ function advanceSavedVerse() {
     }
 }
 
-/* --- Audio Waveform Visualizer with OffscreenCanvas Worker --- */
+/* --- Audio Waveform Visualizer --- */
+let waveformCanvasCtx = null;
+let visualizerSmoothedVol = 0;
+
 function initVisualizerWorker() {
-    const canvas = document.getElementById('waveform-canvas');
-    if (!canvas) return;
-    
-    const isDark = document.body.getAttribute('data-theme') === 'dark';
-    const rootStyle = getComputedStyle(document.body);
-    const defaultRgb = isDark ? '238, 204, 180' : '48, 40, 34';
-    const rgbStr = (rootStyle && rootStyle.getPropertyValue('--visualizer-rgb').trim()) || defaultRgb;
-    const dpr = window.devicePixelRatio || 1;
-    visualizerLogicalWidth = window.innerWidth;
-    visualizerLogicalHeight = 380;
-    const targetWidth = Math.floor(visualizerLogicalWidth * dpr);
-    const targetHeight = Math.floor(visualizerLogicalHeight * dpr);
-    
-    if (typeof canvas.transferControlToOffscreen === 'function') {
-        try {
-            const offscreen = canvas.transferControlToOffscreen();
-            visualizerWorker = new Worker('visualizer-worker.js?v=9');
-            visualizerWorker.postMessage({
-                type: 'init',
-                canvas: offscreen,
-                width: visualizerLogicalWidth,
-                height: visualizerLogicalHeight,
-                targetWidth: targetWidth,
-                targetHeight: targetHeight,
-                dpr: dpr,
-                isDark: isDark,
-                rgbStr: rgbStr
-            }, [offscreen]);
-            visualizerWorkerReady = true;
-            return;
-        } catch (e) {
-            console.warn("OffscreenCanvas worker fallback:", e);
-        }
-    }
-    
     resizeWaveformCanvas();
-    updateVisualizerThemeCache();
 }
 
-function updateVisualizerThemeCache() {
-    const isDark = document.body.getAttribute('data-theme') === 'dark';
-    const rootStyle = getComputedStyle(document.body);
-    const defaultRgb = isDark ? '238, 204, 180' : '48, 40, 34';
-    const rgbStr = (rootStyle && rootStyle.getPropertyValue('--visualizer-rgb').trim()) || defaultRgb;
-    if (visualizerWorkerReady && visualizerWorker) {
-        visualizerWorker.postMessage({ type: 'theme', isDark: isDark, rgbStr: rgbStr });
-    }
-}
+function updateVisualizerThemeCache() {}
 
 function resizeWaveformCanvas() {
     const canvas = document.getElementById('waveform-canvas');
@@ -4894,99 +4812,71 @@ function resizeWaveformCanvas() {
     const targetWidth = Math.floor(visualizerLogicalWidth * dpr);
     const targetHeight = Math.floor(visualizerLogicalHeight * dpr);
 
-    if (visualizerWorkerReady && visualizerWorker) {
-        visualizerWorker.postMessage({
-            type: 'resize',
-            width: visualizerLogicalWidth,
-            height: visualizerLogicalHeight,
-            targetWidth: targetWidth,
-            targetHeight: targetHeight,
-            dpr: dpr
-        });
-    } else {
-        if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
-            canvas.width = targetWidth;
-            canvas.height = targetHeight;
-            canvas.style.width = visualizerLogicalWidth + 'px';
-            canvas.style.height = visualizerLogicalHeight + 'px';
-            const ctx = canvas.getContext('2d');
-            if (ctx) ctx.scale(dpr, dpr);
-        }
+    if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        canvas.style.width = visualizerLogicalWidth + 'px';
+        canvas.style.height = visualizerLogicalHeight + 'px';
+    }
+    waveformCanvasCtx = canvas.getContext('2d', { alpha: true });
+    if (waveformCanvasCtx) {
+        waveformCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
+        waveformCanvasCtx.scale(dpr, dpr);
     }
 }
 window.addEventListener('resize', resizeWaveformCanvas, { passive: true });
 
 function startWaveformVisualizer() {
     clearTimeout(visualizerFadeTimeout);
-    updateVisualizerThemeCache();
     const canvas = document.getElementById('waveform-canvas');
-    if (canvas) canvas.classList.add('active');
-    
-    if (visualizerWorkerReady && visualizerWorker) {
-        visualizerWorker.postMessage({ type: 'start' });
-        
-        clearInterval(visualizerAudioInterval);
-        const dataArray = new Uint8Array((audioAnalyser && audioAnalyser.frequencyBinCount) || 64);
-        visualizerAudioInterval = setInterval(() => {
-            const isActive = canvas.classList.contains('active') && !isPaused;
-            if (!isSpeaking || isPaused) {
-                visualizerWorker.postMessage({ type: 'volume', vol: 0, isSpeaking: isSpeaking, isPaused: isPaused, isActive: isActive });
-                return;
-            }
-            if (audioAnalyser) {
-                audioAnalyser.getByteFrequencyData(dataArray);
-                let sum = 0;
-                const len = dataArray.length;
-                for (let i = 0; i < len; i++) sum += dataArray[i];
-                const avgVolume = sum / len / 255.0;
-                visualizerWorker.postMessage({ type: 'volume', vol: avgVolume, isSpeaking: isSpeaking, isPaused: isPaused, isActive: true });
-            }
-        }, 16);
-        return;
-    }
+    if (!canvas) return;
+    resizeWaveformCanvas();
+    canvas.style.display = 'block';
+    canvas.classList.add('active');
 
     if (waveformAnimFrame) return;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = waveformCanvasCtx || canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
+    
     const bufferLength = (audioAnalyser && audioAnalyser.frequencyBinCount) || 64;
     const dataArray = new Uint8Array(bufferLength);
-    
+
     function draw() {
         if (!canvas) return;
-        const isFading = !canvas.classList.contains('active');
-        if (isFading && (!isSpeaking || isPaused)) {
+        const isActive = canvas.classList.contains('active');
+        if (!isActive && (!isSpeaking || isPaused)) {
             if (waveformAnimFrame) {
                 cancelAnimationFrame(waveformAnimFrame);
                 waveformAnimFrame = null;
             }
-            ctx.clearRect(0, 0, visualizerLogicalWidth, visualizerLogicalHeight);
+            if (ctx) ctx.clearRect(0, 0, visualizerLogicalWidth, visualizerLogicalHeight);
+            canvas.style.display = 'none';
             return;
         }
-        
+
         waveformAnimFrame = requestAnimationFrame(draw);
-        
+
         let sum = 0;
         if (audioAnalyser && isSpeaking && !isPaused) {
             audioAnalyser.getByteFrequencyData(dataArray);
             const len = dataArray.length;
             for (let i = 0; i < len; i++) sum += dataArray[i];
             const avgVolume = sum / len / 255.0;
-            if (window.smoothedVolume === undefined) window.smoothedVolume = 0;
-            window.smoothedVolume += (avgVolume - window.smoothedVolume) * 0.12; 
+            visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.14;
         } else {
-            if (window.smoothedVolume === undefined) window.smoothedVolume = 0;
-            window.smoothedVolume *= 0.92;
+            visualizerSmoothedVol *= 0.88;
         }
-        
+
         ctx.clearRect(0, 0, visualizerLogicalWidth, visualizerLogicalHeight);
-        
-        const time = Date.now() * 0.001;
-        const numPoints = Math.max(120, Math.floor(visualizerLogicalWidth / 4));
-        const sliceWidth = visualizerLogicalWidth / (numPoints - 1);
+
+        const isDark = document.body.getAttribute('data-theme') === 'dark';
         const rootStyle = getComputedStyle(document.body);
         const defaultRgb = isDark ? '238, 204, 180' : '48, 40, 34';
         const rgbStr = (rootStyle && rootStyle.getPropertyValue('--visualizer-rgb').trim()) || defaultRgb;
+
+        const time = Date.now() * 0.001;
+        const numPoints = Math.max(120, Math.floor(visualizerLogicalWidth / 4));
+        const sliceWidth = visualizerLogicalWidth / (numPoints - 1);
 
         const drawLayer = (speed, frequency, amplitudeBase, audioMult, alpha) => {
             ctx.beginPath();
@@ -4995,20 +4885,19 @@ function startWaveformVisualizer() {
                 const x = i * sliceWidth;
                 const wave1 = Math.sin(x * frequency + time * speed);
                 const wave2 = Math.sin(x * frequency * 1.5 - time * speed * 0.8);
-                
-                const height = amplitudeBase + (wave1 * 12) + (wave2 * 8) + (window.smoothedVolume * audioMult);
-                const y = visualizerLogicalHeight - Math.max(5, height);
+                const height = amplitudeBase + (wave1 * 12) + (wave2 * 8) + (visualizerSmoothedVol * audioMult);
+                const y = visualizerLogicalHeight - Math.max(4, height);
                 ctx.lineTo(x, y);
             }
             ctx.lineTo(visualizerLogicalWidth, visualizerLogicalHeight);
             ctx.closePath();
-            
+
             const grad = ctx.createLinearGradient(0, visualizerLogicalHeight, 0, visualizerLogicalHeight - 120);
             const layerAlpha = isDark ? Math.min(1.0, alpha * 1.35) : alpha;
             grad.addColorStop(0, `rgba(${rgbStr}, ${layerAlpha})`);
             grad.addColorStop(0.6, `rgba(${rgbStr}, ${layerAlpha * 0.4})`);
             grad.addColorStop(1, `rgba(${rgbStr}, 0.0)`);
-            
+
             ctx.fillStyle = grad;
             ctx.fill();
         };
@@ -5017,7 +4906,7 @@ function startWaveformVisualizer() {
         drawLayer(1.8, 0.007, 15, 80, 0.55);
         drawLayer(2.2, 0.009, 20, 110, 0.85);
     }
-    
+
     draw();
 }
 
@@ -5026,24 +4915,18 @@ function stopWaveformVisualizer(forceHide = false) {
     if (canvas) {
         canvas.classList.remove('active');
         clearTimeout(visualizerFadeTimeout);
-        // Graceful 600ms CSS fade-out before stopping worker
         visualizerFadeTimeout = setTimeout(() => {
             if (!canvas.classList.contains('active')) {
-                if (visualizerWorkerReady && visualizerWorker) {
-                    visualizerWorker.postMessage({ type: 'stop' });
-                    clearInterval(visualizerAudioInterval);
-                } else {
-                    if (waveformAnimFrame) {
-                        cancelAnimationFrame(waveformAnimFrame);
-                        waveformAnimFrame = null;
-                    }
-                    try {
-                        const ctx = canvas.getContext('2d');
-                        if (ctx) ctx.clearRect(0, 0, visualizerLogicalWidth, visualizerLogicalHeight);
-                    } catch (e) { }
+                if (waveformAnimFrame) {
+                    cancelAnimationFrame(waveformAnimFrame);
+                    waveformAnimFrame = null;
                 }
+                if (waveformCanvasCtx) {
+                    try { waveformCanvasCtx.clearRect(0, 0, visualizerLogicalWidth, visualizerLogicalHeight); } catch(e) {}
+                }
+                canvas.style.display = 'none';
             }
-        }, 600);
+        }, 500);
     }
 }
 
