@@ -2988,21 +2988,6 @@ function _showSavedVersesImpl(rebuildFolders = true) {
             nameSpan.className = 'album-name';
             nameSpan.textContent = albumName;
             folder.appendChild(nameSpan);
-
-            // Minus Delete Button on top-right of folder
-            if (albumName !== 'Default' && albumName !== 'All') {
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'folder-delete-btn';
-                deleteBtn.setAttribute('aria-label', `Delete folder ${albumName}`);
-                deleteBtn.setAttribute('title', 'Delete Folder');
-                deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
-                deleteBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(err){}
-                    handleFolderDelete(e, albumName);
-                };
-                folder.appendChild(deleteBtn);
-            }
             
             const isSelected = (selectedVerse && selectedVerse.type === 'folder' && selectedVerse.name === albumName) || selectedSavedAlbum === albumName;
             if (isSelected) {
@@ -3058,6 +3043,22 @@ function _showSavedVersesImpl(rebuildFolders = true) {
     }
     
     header.appendChild(titleWrap);
+
+    // Minus button on the right side of the section header under the divider
+    if (selectedSavedAlbum && selectedSavedAlbum !== 'All' && selectedSavedAlbum !== 'Default') {
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-folder-btn-sleek';
+        deleteBtn.setAttribute('aria-label', `Delete folder ${selectedSavedAlbum}`);
+        deleteBtn.setAttribute('title', 'Delete Folder');
+        deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(err){}
+            handleFolderDelete(e, selectedSavedAlbum);
+        };
+        header.appendChild(deleteBtn);
+    }
+
     versesFrag.appendChild(header);
     
     let versesToRender = validVerses;
