@@ -1098,6 +1098,7 @@ function toggleTTSSource() {
         openPremiumModal();
         return;
     }
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
     ttsAnnounceSource = !ttsAnnounceSource;
     localStorage.setItem('ttsAnnounceSource', ttsAnnounceSource);
     updateTogglesUI();
@@ -1108,6 +1109,7 @@ function toggleTTSRandom() {
         openPremiumModal();
         return;
     }
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
     ttsRandomVoice = !ttsRandomVoice;
     localStorage.setItem('ttsRandomVoice', ttsRandomVoice);
     updateTogglesUI();
@@ -2276,6 +2278,7 @@ async function toggleGlobalReligion(rel) {
         openPremiumModal();
         return;
     }
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
     if (!globalSelectedRels) globalSelectedRels = [];
     if (globalSelectedRels.includes(rel)) {
         if (globalSelectedRels.length === 1) return; // Prevent deselecting last topic
@@ -2694,6 +2697,7 @@ function nextCard(isAuto = false) {
     }
 
     currentVerseIndex.general++;
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
     renderFeedCard(currentVerseIndex.general, 'next');
 
     const newVerse = getVerseAtIndex(currentVerseIndex.general);
@@ -2740,6 +2744,7 @@ function prevCard() {
 
     if (currentVerseIndex.general > 0) {
         currentVerseIndex.general--;
+        if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
         renderFeedCard(currentVerseIndex.general, 'prev');
         const newVerse = getVerseAtIndex(currentVerseIndex.general);
         if (wasPlaying && newVerse && !newVerse.isAd) {
@@ -2769,6 +2774,9 @@ function goTo(section) {
     const targetEl = document.getElementById(section);
     if (!targetEl) return;
     const isAlreadyActive = targetEl.classList.contains('active-section');
+    if (!isAlreadyActive) {
+        if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
+    }
 
     if (selectedVerse && selectedVerse.type === 'book') {
         lastSelectedBookVerse = selectedVerse;
@@ -2958,7 +2966,10 @@ function _showSavedVersesImpl(rebuildFolders = true) {
         addFolder.style.aspectRatio = '1';
         addFolder.style.height = 'auto';
         addFolder.innerHTML = `<svg viewBox="0 0 24 24" stroke="currentColor" style="width: 32px; height: 32px; opacity: 0.5; margin: auto;" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
-        addFolder.onclick = () => openCreateBookmarkModal();
+        addFolder.onclick = () => {
+            if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
+            openCreateBookmarkModal();
+        };
         grid.appendChild(addFolder);
         
         const albumKeys = Object.keys(albums);
@@ -3153,6 +3164,7 @@ function _showSavedVersesImpl(rebuildFolders = true) {
             folder.onclick = (e) => {
                 if (e) e.stopPropagation();
                 if (isDraggingFolder) return;
+                if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(err){}
                 if (selectedSavedAlbum === albumName) {
                     selectedSavedAlbum = null;
                     selectedVerse = { type: 'folder', name: albumName, elementId: folder.id };
@@ -4080,6 +4092,7 @@ function markVerse() {
     localStorage.setItem('bookMarkedVerse', JSON.stringify(bookMarkedVerse));
 }
 function toggleMusic() {
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
     const btn = document.getElementById('music-toggle');
     if (audio.paused) {
         audio.play().catch(e => console.log(e));
@@ -4096,6 +4109,7 @@ function nextTrack() {
         openPremiumModal();
         return;
     }
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
     currentTrack = getRandomMusicTrackIndex(currentTrack);
     localStorage.setItem('currentMusicTrack', currentTrack);
     triggerCloudSync();
@@ -4110,6 +4124,7 @@ function prevTrack() {
         openPremiumModal();
         return;
     }
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
     currentTrack = (currentTrack - 1 + musicTracks.length) % musicTracks.length;
     localStorage.setItem('currentMusicTrack', currentTrack);
     triggerCloudSync();
@@ -5080,6 +5095,7 @@ function showDeleteToast(msg, undoCallback) {
         actionBtn.onclick = () => {
             clearTimeout(undoTimeout);
             toast.classList.remove('show');
+            if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
             if (undoCallback) undoCallback();
         };
     }
@@ -5202,6 +5218,7 @@ function handlePillMoveFolder(e) {
 function handlePillDeleteVerse(e) {
     if (e) e.stopPropagation();
     if (!selectedVerse) return;
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(err){}
     
     const index = savedVerses.findIndex(s => {
         if (s.id && selectedVerse.id) return s.id === selectedVerse.id;
@@ -5284,7 +5301,7 @@ function createActionIconsElement(verseObj, type) {
     const vState = getVerseFolderState(verseObj);
     let cycleIconHtml = '';
     if (!vState.isSaved) {
-        cycleIconHtml = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.5"/></svg>`;
+        cycleIconHtml = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>`;
     } else {
         cycleIconHtml = `<span class="folder-cycle-badge">${vState.label}</span>`;
     }
@@ -5452,6 +5469,7 @@ function selectVerse(verseObj, type, elementId, forceSelect = false) {
 
     highlightSelectedVerseElement(false);
     selectedVerse = { ...verseObj, type, elementId };
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
     highlightSelectedVerseElement(true);
 
     // Immediate play on selection ONLY if actively playing (isSpeaking is true AND isPaused is false)
@@ -5774,6 +5792,7 @@ function handlePillBookmark(e) {
 
 function handlePillShare(e) {
     if (e) e.stopPropagation();
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(err){}
     const verseToShare = selectedVerse || getCurrentActiveVerse() || getVerseAtIndex(currentVerseIndex.general);
     if (!verseToShare) return;
     
