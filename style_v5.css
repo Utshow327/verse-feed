@@ -644,12 +644,12 @@ h2 {
 .audiobook-minimal-btn {
     width: 90%;
     max-width: 800px;
-    padding: 16px 20px;
+    padding: 16px 24px;
     background: linear-gradient(135deg, var(--p-gold), var(--p-sand), var(--bg-grad-1), var(--p-gold));
     background-size: 300% 300%;
     animation: premiumGradientShine 8s ease infinite;
-    border: 1px solid var(--glass-border);
-    border-radius: 16px;
+    border: none !important;
+    border-radius: 25px;
     color: var(--text-color);
     display: flex;
     flex-direction: column;
@@ -668,6 +668,7 @@ h2 {
 
 [data-theme="dark"] .audiobook-minimal-btn {
     color: #f7e7ce;
+    border: none !important;
     background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #3d352e);
     background-size: 300% 300%;
 }
@@ -2531,16 +2532,16 @@ h2 {
 /* Feed Premium Card Background - Matches Premium Gradient Button Exactly */
 .verse-card.premium-ad-card {
     border: none !important;
-    background: linear-gradient(135deg, var(--p-gold), #f7e7ce, var(--bg-grad-1), var(--p-brown), var(--p-gold)) !important;
+    background: linear-gradient(135deg, var(--p-gold), var(--p-sand), var(--bg-grad-1), var(--p-gold)) !important;
     background-size: 300% 300% !important;
-    animation: premiumGradientShine 5s linear infinite !important;
+    animation: premiumGradientShine 8s ease infinite !important;
 }
 
 [data-theme="dark"] .verse-card.premium-ad-card {
     border: none !important;
-    background: linear-gradient(135deg, #2b231a, #574b42, #1b1611, #705844, #2b231a) !important;
+    background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #3d352e) !important;
     background-size: 300% 300% !important;
-    animation: premiumGradientShine 5s linear infinite !important;
+    animation: premiumGradientShine 8s ease infinite !important;
 }
 
 .book-verse.marked {

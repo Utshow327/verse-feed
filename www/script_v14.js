@@ -286,6 +286,10 @@ function switchProfile(targetProfileId) {
         showSavedVerses(true);
     }
 
+    if (typeof initializeVerseFeed === 'function') {
+        initializeVerseFeed(true);
+    }
+
     isRestoringState = false;
 }
 
@@ -6915,14 +6919,18 @@ function setupFirestoreRealtimeSync(uid) {
 }
 
 async function saveUserDataToFirestore(uid) {
-    if (!db || !uid) return;
+    if (!db || !uid || uid === 'guest') return;
     try {
+        if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0 && typeof firebase.auth === 'function') {
+            const curUser = firebase.auth().currentUser;
+            if (!curUser) return;
+        }
         isSavingToFirestore = true;
         markLocalBookmarkMutation();
         const payloadToSave = getLocalState();
         await db.collection('users').doc(uid).set(payloadToSave, { merge: true });
     } catch(err) {
-        console.error("Firestore Save Error:", err);
+        console.warn("Firestore sync paused (offline or unauthenticated):", err.message || err);
     } finally {
         setTimeout(() => {
             isSavingToFirestore = false;
@@ -6931,8 +6939,12 @@ async function saveUserDataToFirestore(uid) {
 }
 
 async function loadUserDataFromFirestore(uid) {
-    if (!db || !uid) return;
+    if (!db || !uid || uid === 'guest') return;
     try {
+        if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0 && typeof firebase.auth === 'function') {
+            const curUser = firebase.auth().currentUser;
+            if (!curUser) return;
+        }
         const docRef = db.collection('users').doc(uid);
         const doc = await docRef.get();
         
@@ -6944,7 +6956,7 @@ async function loadUserDataFromFirestore(uid) {
         }
         setupFirestoreRealtimeSync(uid);
     } catch(err) {
-        console.error("Firestore Load Error:", err);
+        console.warn("Firestore load note:", err.message || err);
     }
 }
 
