@@ -5301,7 +5301,7 @@ function createActionIconsElement(verseObj, type) {
     const vState = getVerseFolderState(verseObj);
     let cycleIconHtml = '';
     if (!vState.isSaved) {
-        cycleIconHtml = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>`;
+        cycleIconHtml = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="12" cy="12" r="7.5"/></svg>`;
     } else {
         cycleIconHtml = `<span class="folder-cycle-badge">${vState.label}</span>`;
     }
@@ -5727,6 +5727,8 @@ function cycleVerseFolder(verseObj, e) {
         try { playTapSound(); } catch(err){}
     }
 
+    const isSavedSection = (verseObj && verseObj.type === 'saved') || (selectedVerse && selectedVerse.type === 'saved') || (document.getElementById('saved-verses') && document.getElementById('saved-verses').classList.contains('active-section'));
+
     const customFolders = createdAlbums.filter(n => n && n !== 'Default' && n !== 'All');
     const index = savedVerses.findIndex(s => {
         if (s.id && v.id) return s.id === v.id;
@@ -5760,7 +5762,25 @@ function cycleVerseFolder(verseObj, e) {
                 triggerCloudSync();
                 showToast(`Moved to ${nextFolder} (I)`);
             } else {
-                showToast('In Bookmarks (All)');
+                if (isSavedSection) {
+                    showToast('In Bookmarks (All)');
+                } else {
+                    // Loop back to unsaved (disc) in Feed/Book/Search
+                    const deletedVerse = { ...savedVerses[index] };
+                    const deletedIndex = index;
+                    savedVerses.splice(index, 1);
+                    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                    triggerCloudSync();
+                    showDeleteToast('Bookmark removed', () => {
+                        savedVerses.splice(deletedIndex, 0, deletedVerse);
+                        localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                        triggerCloudSync();
+                        if (typeof showSavedVerses === 'function') showSavedVerses(false);
+                        updatePillUI();
+                        if (selectedVerse) highlightSelectedVerseElement(true);
+                        showToast('Bookmark restored');
+                    });
+                }
             }
         } else {
             const curFolderIdx = customFolders.indexOf(currentAlbum);
@@ -5772,11 +5792,29 @@ function cycleVerseFolder(verseObj, e) {
                 triggerCloudSync();
                 showToast(`Moved to ${nextFolder} (${toRomanNumeral(curFolderIdx + 2)})`);
             } else {
-                // Reached end of custom folders -> Loop back to 'All'
-                savedVerses[index].album = 'All';
-                localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
-                triggerCloudSync();
-                showToast('Moved to Bookmarks (All)');
+                if (isSavedSection) {
+                    // In Bookmark section: Loop back to 'All'
+                    savedVerses[index].album = 'All';
+                    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                    triggerCloudSync();
+                    showToast('Moved to Bookmarks (All)');
+                } else {
+                    // In Feed/Book/Search: Loop back to unsaved (disc)
+                    const deletedVerse = { ...savedVerses[index] };
+                    const deletedIndex = index;
+                    savedVerses.splice(index, 1);
+                    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                    triggerCloudSync();
+                    showDeleteToast('Bookmark removed', () => {
+                        savedVerses.splice(deletedIndex, 0, deletedVerse);
+                        localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                        triggerCloudSync();
+                        if (typeof showSavedVerses === 'function') showSavedVerses(false);
+                        updatePillUI();
+                        if (selectedVerse) highlightSelectedVerseElement(true);
+                        showToast('Bookmark restored');
+                    });
+                }
             }
         }
     }
