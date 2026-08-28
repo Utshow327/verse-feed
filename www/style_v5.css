@@ -646,9 +646,9 @@ h2 {
     width: 90% !important;
     max-width: 800px !important;
     padding: 16px 24px !important;
-    background: linear-gradient(135deg, var(--p-gold), var(--p-sand), var(--bg-grad-1), var(--p-gold)) !important;
-    background-size: 300% 300% !important;
-    animation: premiumGradientShine 8s ease infinite !important;
+    background: linear-gradient(135deg, var(--p-gold), var(--p-sand), var(--bg-grad-1), var(--p-sand), var(--p-gold)) !important;
+    background-size: 250% 250% !important;
+    animation: premiumGradientShine 4s ease infinite !important;
     border: none !important;
     border-radius: 25px !important;
     color: var(--text-color) !important;
@@ -671,8 +671,9 @@ h2 {
 [data-theme="dark"] .audiobook-minimal-btn {
     color: #f7e7ce !important;
     border: none !important;
-    background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #3d352e) !important;
-    background-size: 300% 300% !important;
+    background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #574b42, #3d352e) !important;
+    background-size: 250% 250% !important;
+    animation: premiumGradientShine 4s ease infinite !important;
 }
 
 #book-list button.audiobook-minimal-btn:active,
@@ -2450,9 +2451,9 @@ h2 {
     cursor: pointer;
     font-family: inherit;
     border: none !important;
-    background: linear-gradient(135deg, var(--p-gold), var(--p-sand), var(--bg-grad-1), var(--p-gold));
-    background-size: 300% 300%;
-    animation: premiumGradientShine 8s ease infinite;
+    background: linear-gradient(135deg, var(--p-gold), var(--p-sand), var(--bg-grad-1), var(--p-sand), var(--p-gold));
+    background-size: 250% 250%;
+    animation: premiumGradientShine 4s ease infinite;
     box-shadow: var(--glass-shadow);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
@@ -2466,8 +2467,9 @@ h2 {
     color: #f7e7ce;
     border: none !important;
     border-color: transparent !important;
-    background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #3d352e);
-    background-size: 300% 300%;
+    background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #574b42, #3d352e);
+    background-size: 250% 250%;
+    animation: premiumGradientShine 4s ease infinite;
 }
 
 .premium-gradient-btn:active {
@@ -2527,27 +2529,27 @@ h2 {
 }
 
 @keyframes premiumGradientShine {
-    0% { background-position: 0% 0%; }
-    50% { background-position: 100% 100%; }
-    100% { background-position: 0% 0%; }
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 /* Feed Premium Card Background - Matches Premium Gradient Button Exactly */
 #feed-stage .verse-card.premium-ad-card,
 .verse-card.premium-ad-card {
     border: none !important;
-    background: linear-gradient(135deg, var(--p-gold), var(--p-sand), var(--bg-grad-1), var(--p-gold)) !important;
-    background-size: 300% 300% !important;
-    animation: premiumGradientShine 8s ease infinite !important;
+    background: linear-gradient(135deg, var(--p-gold), var(--p-sand), var(--bg-grad-1), var(--p-sand), var(--p-gold)) !important;
+    background-size: 250% 250% !important;
+    animation: premiumGradientShine 4s ease infinite !important;
     box-shadow: var(--glass-shadow) !important;
 }
 
 [data-theme="dark"] #feed-stage .verse-card.premium-ad-card,
 [data-theme="dark"] .verse-card.premium-ad-card {
     border: none !important;
-    background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #3d352e) !important;
-    background-size: 300% 300% !important;
-    animation: premiumGradientShine 8s ease infinite !important;
+    background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #574b42, #3d352e) !important;
+    background-size: 250% 250% !important;
+    animation: premiumGradientShine 4s ease infinite !important;
 }
 
 .book-verse.marked {
