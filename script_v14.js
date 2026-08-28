@@ -2883,6 +2883,18 @@ function getAlbumsGrouped() {
     return albums;
 }
 
+function transformAddBtnToDustbin(isDustbin) {
+    const addBtn = document.getElementById('add-folder-btn');
+    if (!addBtn) return;
+    if (isDustbin) {
+        addBtn.classList.add('is-dustbin-target');
+        addBtn.innerHTML = `<svg class="dustbin-icon" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ef4444; margin: auto;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+    } else {
+        addBtn.classList.remove('is-dustbin-target', 'dustbin-hover');
+        addBtn.innerHTML = `<svg viewBox="0 0 24 24" stroke="currentColor" style="width: 32px; height: 32px; opacity: 0.5; margin: auto;" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+    }
+}
+
 function showSavedVerses(rebuildFolders = true) {
     suppressFlash(() => _showSavedVersesImpl(rebuildFolders));
 }
@@ -2930,6 +2942,7 @@ function _showSavedVersesImpl(rebuildFolders = true) {
         
         const addFolder = document.createElement('button');
         addFolder.className = 'album-square-btn add-folder-btn';
+        addFolder.id = 'add-folder-btn';
         addFolder.style.width = 'calc(33.333% - 8px)';
         addFolder.style.aspectRatio = '1';
         addFolder.style.height = 'auto';
@@ -2958,23 +2971,174 @@ function _showSavedVersesImpl(rebuildFolders = true) {
             const isSelected = (selectedVerse && selectedVerse.type === 'folder' && selectedVerse.name === albumName) || selectedSavedAlbum === albumName;
             if (isSelected) {
                 folder.classList.add('active');
-                
-                const cornerDelBtn = document.createElement('button');
-                cornerDelBtn.className = 'folder-corner-delete-btn';
-                cornerDelBtn.title = 'Delete Folder';
-                cornerDelBtn.innerHTML = `<svg viewBox="0 0 24 24" width="11" height="11" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
-                cornerDelBtn.onclick = (e) => {
-                    if (e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                    }
-                    handleFolderDelete(e, albumName);
-                };
-                folder.appendChild(cornerDelBtn);
             }
+
+            // Drag to Dustbin implementation
+            let fStartX = 0, fStartY = 0;
+            let isDraggingFolder = false;
+            let folderPressTimer = null;
+            let folderDragPreviewEl = null;
+
+            const activateFolderDrag = (cx, cy) => {
+                isDraggingFolder = true;
+                folder.style.opacity = '0.35';
+                if (navigator.vibrate) try { navigator.vibrate(35); } catch(err){}
+                transformAddBtnToDustbin(true);
+
+                folderDragPreviewEl = document.createElement('div');
+                folderDragPreviewEl.className = 'folder-drag-preview';
+                folderDragPreviewEl.textContent = albumName;
+                folderDragPreviewEl.style.left = `${cx}px`;
+                folderDragPreviewEl.style.top = `${cy}px`;
+                document.body.appendChild(folderDragPreviewEl);
+            };
+
+            const cleanupFolderDrag = () => {
+                isDraggingFolder = false;
+                folder.style.opacity = '1';
+                transformAddBtnToDustbin(false);
+                if (folderDragPreviewEl && folderDragPreviewEl.parentNode) {
+                    folderDragPreviewEl.parentNode.removeChild(folderDragPreviewEl);
+                }
+                folderDragPreviewEl = null;
+            };
+
+            const onTouchStart = (e) => {
+                const touch = e.touches[0];
+                fStartX = touch.clientX;
+                fStartY = touch.clientY;
+                isDraggingFolder = false;
+                clearTimeout(folderPressTimer);
+
+                folderPressTimer = setTimeout(() => {
+                    activateFolderDrag(fStartX, fStartY);
+                }, 250);
+
+                const onTouchMove = (ev) => {
+                    const t = ev.touches[0];
+                    const cx = t.clientX;
+                    const cy = t.clientY;
+
+                    if (!isDraggingFolder) {
+                        if (Math.hypot(cx - fStartX, cy - fStartY) > 8) {
+                            clearTimeout(folderPressTimer);
+                        }
+                        return;
+                    }
+
+                    if (ev.cancelable) ev.preventDefault();
+
+                    if (folderDragPreviewEl) {
+                        folderDragPreviewEl.style.left = `${cx}px`;
+                        folderDragPreviewEl.style.top = `${cy}px`;
+                    }
+
+                    const elemBelow = document.elementFromPoint(cx, cy);
+                    const addBtn = elemBelow ? elemBelow.closest('#add-folder-btn') : null;
+                    const targetAddBtn = document.getElementById('add-folder-btn');
+
+                    if (addBtn && targetAddBtn) {
+                        if (!targetAddBtn.classList.contains('dustbin-hover')) {
+                            targetAddBtn.classList.add('dustbin-hover');
+                            if (navigator.vibrate) try { navigator.vibrate(20); } catch(e){}
+                        }
+                    } else if (targetAddBtn) {
+                        targetAddBtn.classList.remove('dustbin-hover');
+                    }
+                };
+
+                const onTouchEnd = () => {
+                    clearTimeout(folderPressTimer);
+                    window.removeEventListener('touchmove', onTouchMove);
+                    window.removeEventListener('touchend', onTouchEnd);
+                    window.removeEventListener('touchcancel', onTouchEnd);
+
+                    if (isDraggingFolder) {
+                        const targetAddBtn = document.getElementById('add-folder-btn');
+                        const isDustbinHover = targetAddBtn && targetAddBtn.classList.contains('dustbin-hover');
+                        cleanupFolderDrag();
+                        if (isDustbinHover) {
+                            handleFolderDelete(null, albumName);
+                        }
+                    } else {
+                        cleanupFolderDrag();
+                    }
+                };
+
+                window.addEventListener('touchmove', onTouchMove, { passive: false });
+                window.addEventListener('touchend', onTouchEnd, { passive: false });
+                window.addEventListener('touchcancel', onTouchEnd, { passive: false });
+            };
+
+            const onMouseDown = (e) => {
+                fStartX = e.clientX;
+                fStartY = e.clientY;
+                isDraggingFolder = false;
+                clearTimeout(folderPressTimer);
+
+                folderPressTimer = setTimeout(() => {
+                    activateFolderDrag(fStartX, fStartY);
+                }, 250);
+
+                const onMouseMove = (ev) => {
+                    const cx = ev.clientX;
+                    const cy = ev.clientY;
+
+                    if (!isDraggingFolder) {
+                        if (Math.hypot(cx - fStartX, cy - fStartY) > 8) {
+                            clearTimeout(folderPressTimer);
+                        }
+                        return;
+                    }
+
+                    if (ev.cancelable) ev.preventDefault();
+
+                    if (folderDragPreviewEl) {
+                        folderDragPreviewEl.style.left = `${cx}px`;
+                        folderDragPreviewEl.style.top = `${cy}px`;
+                    }
+
+                    const elemBelow = document.elementFromPoint(cx, cy);
+                    const addBtn = elemBelow ? elemBelow.closest('#add-folder-btn') : null;
+                    const targetAddBtn = document.getElementById('add-folder-btn');
+
+                    if (addBtn && targetAddBtn) {
+                        if (!targetAddBtn.classList.contains('dustbin-hover')) {
+                            targetAddBtn.classList.add('dustbin-hover');
+                            if (navigator.vibrate) try { navigator.vibrate(20); } catch(e){}
+                        }
+                    } else if (targetAddBtn) {
+                        targetAddBtn.classList.remove('dustbin-hover');
+                    }
+                };
+
+                const onMouseUp = () => {
+                    clearTimeout(folderPressTimer);
+                    window.removeEventListener('mousemove', onMouseMove);
+                    window.removeEventListener('mouseup', onMouseUp);
+
+                    if (isDraggingFolder) {
+                        const targetAddBtn = document.getElementById('add-folder-btn');
+                        const isDustbinHover = targetAddBtn && targetAddBtn.classList.contains('dustbin-hover');
+                        cleanupFolderDrag();
+                        if (isDustbinHover) {
+                            handleFolderDelete(null, albumName);
+                        }
+                    } else {
+                        cleanupFolderDrag();
+                    }
+                };
+
+                window.addEventListener('mousemove', onMouseMove);
+                window.addEventListener('mouseup', onMouseUp);
+            };
+
+            folder.addEventListener('touchstart', onTouchStart, { passive: true });
+            folder.addEventListener('mousedown', onMouseDown);
             
             folder.onclick = (e) => {
                 if (e) e.stopPropagation();
+                if (isDraggingFolder) return;
                 if (selectedSavedAlbum === albumName) {
                     selectedSavedAlbum = null;
                     selectedVerse = { type: 'folder', name: albumName, elementId: folder.id };
