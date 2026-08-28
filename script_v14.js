@@ -3224,203 +3224,90 @@ function renderVersesList(versesArray, listElement) {
 
 const topicAudiobooks = {
     'Philosophy': [
-        {
-            title: "The Daily Stoic",
-            author: "Ryan Holiday & Stephen Hanselman",
-            desc: "366 Meditations on Wisdom, Perseverance, and the Art of Living."
-        },
-        {
-            title: "Atomic Habits",
-            author: "James Clear",
-            desc: "An Easy & Proven Way to Build Good Habits & Break Bad Ones."
-        },
-        {
-            title: "Man's Search for Meaning",
-            author: "Viktor E. Frankl",
-            desc: "The classic tribute to hope and finding purpose in any circumstance."
-        },
-        {
-            title: "The Obstacle Is the Way",
-            author: "Ryan Holiday",
-            desc: "The Timeless Art of Turning Trials into Triumph."
-        },
-        {
-            title: "Letters from a Stoic",
-            author: "Seneca",
-            desc: "Timeless moral essays and ethical reflections on virtue."
-        },
-        {
-            title: "The Courage to Be Disliked",
-            author: "Ichiro Kishimi & Fumitake Koga",
-            desc: "How to free yourself, change your life and achieve real happiness."
-        },
-        {
-            title: "Ego Is the Enemy",
-            author: "Ryan Holiday",
-            desc: "The Fight to Master Our Greatest Opponent."
-        }
+        { title: "The Daily Stoic", author: "Ryan Holiday" },
+        { title: "Atomic Habits", author: "James Clear" },
+        { title: "Man's Search for Meaning", author: "Viktor E. Frankl" },
+        { title: "The Obstacle Is the Way", author: "Ryan Holiday" },
+        { title: "Letters from a Stoic", author: "Seneca" },
+        { title: "The Courage to Be Disliked", author: "Ichiro Kishimi" },
+        { title: "Ego Is the Enemy", author: "Ryan Holiday" },
+        { title: "Meditations", author: "Marcus Aurelius" },
+        { title: "Discourses and Selected Writings", author: "Epictetus" },
+        { title: "Deep Work", author: "Cal Newport" },
+        { title: "The 48 Laws of Power", author: "Robert Greene" },
+        { title: "Thinking, Fast and Slow", author: "Daniel Kahneman" },
+        { title: "The Antidote: Happiness for People Who Can't Stand Positive Thinking", author: "Oliver Burkeman" },
+        { title: "A Guide to the Good Life: The Ancient Art of Stoic Joy", author: "William B. Irvine" }
     ],
     'Buddhism': [
-        {
-            title: "The Power of Now",
-            author: "Eckhart Tolle",
-            desc: "A Guide to Spiritual Enlightenment and living in the present moment."
-        },
-        {
-            title: "The Miracle of Mindfulness",
-            author: "Thich Nhat Hanh",
-            desc: "An Introduction to the Practice of Meditation and Inner Calm."
-        },
-        {
-            title: "Zen Mind, Beginner's Mind",
-            author: "Shunryu Suzuki",
-            desc: "Informal talks on Zen meditation and practice."
-        },
-        {
-            title: "Radical Acceptance",
-            author: "Tara Brach",
-            desc: "Embracing Your Life With the Heart of a Buddha."
-        },
-        {
-            title: "Wherever You Go, There You Are",
-            author: "Jon Kabat-Zinn",
-            desc: "Mindfulness meditation in everyday life."
-        },
-        {
-            title: "No Mud, No Lotus",
-            author: "Thich Nhat Hanh",
-            desc: "The Art of Transforming Suffering into Peace and Joy."
-        }
+        { title: "The Power of Now", author: "Eckhart Tolle" },
+        { title: "The Miracle of Mindfulness", author: "Thich Nhat Hanh" },
+        { title: "Zen Mind, Beginner's Mind", author: "Shunryu Suzuki" },
+        { title: "Radical Acceptance", author: "Tara Brach" },
+        { title: "Wherever You Go, There You Are", author: "Jon Kabat-Zinn" },
+        { title: "No Mud, No Lotus", author: "Thich Nhat Hanh" },
+        { title: "Peace Is Every Step", author: "Thich Nhat Hanh" },
+        { title: "When Things Fall Apart", author: "Pema Chodron" },
+        { title: "The Art of Happiness", author: "Dalai Lama" },
+        { title: "The Heart of the Buddha's Teaching", author: "Thich Nhat Hanh" },
+        { title: "Eight Mindful Steps to Happiness", author: "Bhante Henepola Gunaratana" },
+        { title: "Start Where You Are", author: "Pema Chodron" }
     ],
     'Islam': [
-        {
-            title: "Secrets of Divine Love",
-            author: "A. Helwa",
-            desc: "A Spiritual Journey into the Heart of Islam."
-        },
-        {
-            title: "Reclaim Your Heart",
-            author: "Yasmin Mogahed",
-            desc: "Personal insights on breaking free from life's emotional shackles."
-        },
-        {
-            title: "Revive Your Heart",
-            author: "Nouman Ali Khan",
-            desc: "Putting Faith into Practice in the Modern World."
-        },
-        {
-            title: "Don't Be Sad",
-            author: "Dr. Aid al-Qarni",
-            desc: "An inspiring guide to overcoming sadness, anxiety, and grief."
-        },
-        {
-            title: "In the Footsteps of the Prophet",
-            author: "Tariq Ramadan",
-            desc: "Lessons from the Life of Muhammad (pbuh)."
-        },
-        {
-            title: "Healing and Peace in Islam",
-            author: "A. Helwa",
-            desc: "Meditations and reflections on spiritual tranquility."
-        }
+        { title: "Secrets of Divine Love", author: "A. Helwa" },
+        { title: "Reclaim Your Heart", author: "Yasmin Mogahed" },
+        { title: "Revive Your Heart", author: "Nouman Ali Khan" },
+        { title: "Don't Be Sad", author: "Dr. Aid al-Qarni" },
+        { title: "In the Footsteps of the Prophet", author: "Tariq Ramadan" },
+        { title: "Healing and Peace in Islam", author: "A. Helwa" },
+        { title: "Muhammad: His Life Based on the Earliest Sources", author: "Martin Lings" },
+        { title: "Purification of the Heart", author: "Hamza Yusuf" },
+        { title: "The Sealed Nectar", author: "Safiur Rahman Mubarakpuri" },
+        { title: "Timeless Seeds of Advice", author: "B.B. Abdulla" },
+        { title: "Prayers of the Pious", author: "Omar Suleiman" }
     ],
     'Christianity': [
-        {
-            title: "Mere Christianity",
-            author: "C.S. Lewis",
-            desc: "A classic theological exploration of faith, hope, and love."
-        },
-        {
-            title: "The Purpose Driven Life",
-            author: "Rick Warren",
-            desc: "What on Earth Am I Here For? A transformative spiritual guide."
-        },
-        {
-            title: "The Practice of the Presence of God",
-            author: "Brother Lawrence",
-            desc: "Conversations and letters on constant peace and connection."
-        },
-        {
-            title: "The Screwtape Letters",
-            author: "C.S. Lewis",
-            desc: "Masterpiece of moral satire and spiritual clarity."
-        },
-        {
-            title: "Celebration of Discipline",
-            author: "Richard J. Foster",
-            desc: "The Path to Spiritual Growth and Inward Serenity."
-        },
-        {
-            title: "The Great Divorce",
-            author: "C.S. Lewis",
-            desc: "A profound allegorical vision on choice and grace."
-        }
+        { title: "Mere Christianity", author: "C.S. Lewis" },
+        { title: "The Purpose Driven Life", author: "Rick Warren" },
+        { title: "The Practice of the Presence of God", author: "Brother Lawrence" },
+        { title: "The Screwtape Letters", author: "C.S. Lewis" },
+        { title: "Celebration of Discipline", author: "Richard J. Foster" },
+        { title: "The Great Divorce", author: "C.S. Lewis" },
+        { title: "The Cost of Discipleship", author: "Dietrich Bonhoeffer" },
+        { title: "Orthodoxy", author: "G.K. Chesterton" },
+        { title: "The Imitation of Christ", author: "Thomas a Kempis" },
+        { title: "Life Together", author: "Dietrich Bonhoeffer" },
+        { title: "Crazy Love", author: "Francis Chan" }
     ],
     'Hinduism': [
-        {
-            title: "Autobiography of a Yogi",
-            author: "Paramahansa Yogananda",
-            desc: "The life story of a master and introduction to Kriya Yoga."
-        },
-        {
-            title: "Inner Engineering: A Yogi's Guide to Joy",
-            author: "Sadhguru",
-            desc: "Transformative yogic technology for joy, clarity, and vitality."
-        },
-        {
-            title: "The Journey Home",
-            author: "Radhanath Swami",
-            desc: "Autobiography of an American Swami and search for meaning."
-        },
-        {
-            title: "Karma: A Yogi's Guide to Crafting Your Destiny",
-            author: "Sadhguru",
-            desc: "Demystifying karma as a dimension of ultimate freedom."
-        },
-        {
-            title: "Living with the Himalayan Masters",
-            author: "Swami Rama",
-            desc: "Spiritual experiences with sages of the high Himalayas."
-        }
+        { title: "Autobiography of a Yogi", author: "Paramahansa Yogananda" },
+        { title: "Inner Engineering: A Yogi's Guide to Joy", author: "Sadhguru" },
+        { title: "The Journey Home", author: "Radhanath Swami" },
+        { title: "Karma: A Yogi's Guide to Crafting Your Destiny", author: "Sadhguru" },
+        { title: "Living with the Himalayan Masters", author: "Swami Rama" },
+        { title: "Apprenticed to a Himalayan Master", author: "Sri M" },
+        { title: "Death: An Inside Story", author: "Sadhguru" },
+        { title: "Raja Yoga", author: "Swami Vivekananda" },
+        { title: "Jnana Yoga", author: "Swami Vivekananda" },
+        { title: "The Gospel of Sri Ramakrishna", author: "Mahendranath Gupta" }
     ],
     'Judaism': [
-        {
-            title: "When Bad Things Happen to Good People",
-            author: "Harold S. Kushner",
-            desc: "A compassionate, wise classic on coping with grief and suffering."
-        },
-        {
-            title: "The Sabbath",
-            author: "Abraham Joshua Heschel",
-            desc: "The profound meaning and sanctuary of sacred rest."
-        },
-        {
-            title: "To Pray as a Jew",
-            author: "Hayim Halevy Donin",
-            desc: "A Guide to the Prayer Book and the Synagogue Service."
-        },
-        {
-            title: "Man's Search for Meaning",
-            author: "Viktor E. Frankl",
-            desc: "Finding life's purpose in the depths of adversity."
-        }
+        { title: "When Bad Things Happen to Good People", author: "Harold S. Kushner" },
+        { title: "The Sabbath", author: "Abraham Joshua Heschel" },
+        { title: "To Pray as a Jew", author: "Hayim Halevy Donin" },
+        { title: "Man's Search for Meaning", author: "Viktor E. Frankl" },
+        { title: "God in Search of Man", author: "Abraham Joshua Heschel" },
+        { title: "Man Is Not Alone", author: "Abraham Joshua Heschel" },
+        { title: "The Lonely Man of Faith", author: "Joseph B. Soloveitchik" },
+        { title: "This Is My God", author: "Herman Wouk" }
     ],
     'Sikhism': [
-        {
-            title: "The Singing Guru",
-            author: "Kamla K. Kapur",
-            desc: "Legends and tales of Guru Nanak's travels and teachings."
-        },
-        {
-            title: "The Sikhs",
-            author: "Patwant Singh",
-            desc: "The comprehensive history, philosophy, and courage of Sikh traditions."
-        },
-        {
-            title: "Sikhism: A Very Short Introduction",
-            author: "Eleanor Nesbitt",
-            desc: "An authoritative overview of Sikh thought and values."
-        }
+        { title: "The Singing Guru", author: "Kamla K. Kapur" },
+        { title: "The Sikhs", author: "Patwant Singh" },
+        { title: "Sikhism: A Very Short Introduction", author: "Eleanor Nesbitt" },
+        { title: "A History of the Sikhs", author: "Khushwant Singh" },
+        { title: "The Japji: The Sikh Morning Prayer", author: "Khushwant Singh" },
+        { title: "Guru Nanak and the Sikh Religion", author: "W.H. McLeod" }
     ]
 };
 
@@ -3438,7 +3325,8 @@ function getDailyAudiobook(rel) {
 
 function openAudibleAudiobook(title, author) {
     if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
-    const affiliateUrl = `https://www.amazon.com/hz/audible/subscription/confirmation?tag=versefeed-20`;
+    const query = encodeURIComponent(`${title} ${author}`);
+    const affiliateUrl = `https://www.amazon.com/s?k=${query}&i=audible&tag=versefeed-20`;
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
         window.open(affiliateUrl, '_system');
     } else {
