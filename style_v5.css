@@ -646,12 +646,12 @@ h2 {
     width: 90% !important;
     max-width: 800px !important;
     padding: 16px 24px !important;
-    background: linear-gradient(115deg, var(--p-gold) 0%, var(--p-sand) 20%, #fff5ea 40%, var(--p-sand) 60%, var(--p-gold) 80%, var(--bg-grad-1) 100%) !important;
-    background-size: 250% 250% !important;
-    animation: premiumGradientShine 3.5s ease-in-out infinite !important;
+    background: linear-gradient(135deg, #FFF8ED, #EFE3D3, #FFFFFF, #E5CEB4, #FFF8ED) !important;
+    background-size: 300% 300% !important;
+    animation: premiumGradientShine 8s ease infinite !important;
     border: none !important;
     border-radius: 25px !important;
-    color: var(--text-color) !important;
+    color: #1E1D1B !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
@@ -664,16 +664,15 @@ h2 {
     margin: 5px auto 12px auto !important;
     box-sizing: border-box !important;
     position: relative !important;
-    box-shadow: var(--glass-shadow) !important;
+    box-shadow: 0 8px 24px rgba(60, 45, 30, 0.16), inset 0 1px 2px rgba(255, 255, 255, 0.95) !important;
 }
 
 [data-theme="dark"] #book-list button.audiobook-minimal-btn,
 [data-theme="dark"] .audiobook-minimal-btn {
     color: #f7e7ce !important;
     border: none !important;
-    background: linear-gradient(115deg, #2b231a 0%, #574b42 20%, #7d6857 40%, #574b42 60%, #2b231a 80%, #1b1611 100%) !important;
-    background-size: 250% 250% !important;
-    animation: premiumGradientShine 3.5s ease-in-out infinite !important;
+    background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #3d352e) !important;
+    background-size: 300% 300% !important;
 }
 
 #book-list button.audiobook-minimal-btn:active,
@@ -2445,16 +2444,16 @@ h2 {
     flex: 1;
     height: 50px;
     border-radius: 25px;
-    color: var(--text-color);
+    color: #1E1D1B;
     font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
     font-family: inherit;
     border: none !important;
-    background: linear-gradient(115deg, var(--p-gold) 0%, var(--p-sand) 20%, #fff5ea 40%, var(--p-sand) 60%, var(--p-gold) 80%, var(--bg-grad-1) 100%);
-    background-size: 250% 250%;
-    animation: premiumGradientShine 3.5s ease-in-out infinite;
-    box-shadow: var(--glass-shadow);
+    background: linear-gradient(135deg, #FFF8ED, #EFE3D3, #FFFFFF, #E5CEB4, #FFF8ED);
+    background-size: 300% 300%;
+    animation: premiumGradientShine 8s ease infinite;
+    box-shadow: 0 8px 24px rgba(60, 45, 30, 0.16), inset 0 1px 2px rgba(255, 255, 255, 0.95);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     align-items: center;
@@ -2467,9 +2466,8 @@ h2 {
     color: #f7e7ce;
     border: none !important;
     border-color: transparent !important;
-    background: linear-gradient(115deg, #2b231a 0%, #574b42 20%, #7d6857 40%, #574b42 60%, #2b231a 80%, #1b1611 100%);
-    background-size: 250% 250%;
-    animation: premiumGradientShine 3.5s ease-in-out infinite;
+    background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #3d352e);
+    background-size: 300% 300%;
 }
 
 .premium-gradient-btn:active {
@@ -2529,27 +2527,27 @@ h2 {
 }
 
 @keyframes premiumGradientShine {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 0% 0%; }
 }
 
 /* Feed Premium Card Background - Matches Premium Gradient Button Exactly */
 #feed-stage .verse-card.premium-ad-card,
 .verse-card.premium-ad-card {
     border: none !important;
-    background: linear-gradient(115deg, var(--p-gold) 0%, var(--p-sand) 20%, #fff5ea 40%, var(--p-sand) 60%, var(--p-gold) 80%, var(--bg-grad-1) 100%) !important;
-    background-size: 250% 250% !important;
-    animation: premiumGradientShine 3.5s ease-in-out infinite !important;
-    box-shadow: var(--glass-shadow) !important;
+    background: linear-gradient(135deg, #FFF8ED, #EFE3D3, #FFFFFF, #E5CEB4, #FFF8ED) !important;
+    background-size: 300% 300% !important;
+    animation: premiumGradientShine 8s ease infinite !important;
+    box-shadow: 0 12px 35px rgba(60, 45, 30, 0.18), inset 0 1px 2px rgba(255, 255, 255, 0.95) !important;
 }
 
 [data-theme="dark"] #feed-stage .verse-card.premium-ad-card,
 [data-theme="dark"] .verse-card.premium-ad-card {
     border: none !important;
-    background: linear-gradient(115deg, #2b231a 0%, #574b42 20%, #7d6857 40%, #574b42 60%, #2b231a 80%, #1b1611 100%) !important;
-    background-size: 250% 250% !important;
-    animation: premiumGradientShine 3.5s ease-in-out infinite !important;
+    background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #3d352e) !important;
+    background-size: 300% 300% !important;
+    animation: premiumGradientShine 8s ease infinite !important;
 }
 
 .book-verse.marked {
