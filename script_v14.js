@@ -7278,9 +7278,9 @@ function renderPremiumPackages() {
     const buyBtnText = document.querySelector('.premium-buy-pill-text');
     if (buyBtnText && !isPurchasingInProgress) {
         if (selectedPlanType === 'annual') {
-            buyBtnText.innerHTML = `Get Annual &nbsp;&nbsp; ${annualPrice}/yr`;
+            buyBtnText.innerText = `${annualPrice} / yr`;
         } else {
-            buyBtnText.innerHTML = `Get Monthly &nbsp;&nbsp; ${monthlyPrice}/mo`;
+            buyBtnText.innerText = `${monthlyPrice} / mo`;
         }
     }
 }
