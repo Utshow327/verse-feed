@@ -3327,15 +3327,10 @@ function getDailyAudiobook(rel) {
     return list[index];
 }
 
-function openAudibleAudiobook(title, author, asin) {
+function openAudibleAudiobook(title, author) {
     if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
-    let affiliateUrl;
-    if (asin) {
-        affiliateUrl = `https://www.amazon.com/dp/${asin}?tag=versefeed-20`;
-    } else {
-        const query = encodeURIComponent(`${title} ${author}`);
-        affiliateUrl = `https://www.amazon.com/s?k=${query}&tag=versefeed-20`;
-    }
+    const query = encodeURIComponent(`${title} by ${author} book`);
+    const affiliateUrl = `https://www.amazon.com/s?k=${query}&tag=versefeed-20`;
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
         window.open(affiliateUrl, '_system');
     } else {
@@ -3599,7 +3594,7 @@ function showBooks(rel) {
             <span class="audiobook-min-title">${dailyBook.title}</span>
             <span class="audiobook-min-author">by ${dailyBook.author}</span>
         `;
-        adBtn.onclick = () => openAudibleAudiobook(dailyBook.title, dailyBook.author, dailyBook.asin);
+        adBtn.onclick = () => openAudibleAudiobook(dailyBook.title, dailyBook.author);
         list.appendChild(adBtn);
     }
 
