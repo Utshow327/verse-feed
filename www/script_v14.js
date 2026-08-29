@@ -2182,6 +2182,7 @@ function processBuddhismData(data) {
 function processGenericData(data, relName) {
     let verses = [];
     let books = [];
+    let seenVerseTexts = new Set();
     
     if (data && data.books) {
         for (const [bookName, chaptersMap] of Object.entries(data.books)) {
@@ -2195,7 +2196,11 @@ function processGenericData(data, relName) {
                 for (const [verseNum, verseText] of Object.entries(versesMap)) {
                     const text = cleanText(verseText);
                     chapterContent[chapterName][verseNum] = text;
-                    verses.push({ text: text, religion: relName, book: bookName, chapter: chapterName, verse: verseNum });
+                    const norm = text.trim().toLowerCase();
+                    if (!seenVerseTexts.has(norm)) {
+                        seenVerseTexts.add(norm);
+                        verses.push({ text: text, religion: relName, book: bookName, chapter: chapterName, verse: verseNum });
+                    }
                 }
             }
             
@@ -3475,6 +3480,7 @@ function performLibSearch() {
     const pool = (currentReligion && religionVerses[currentReligion]) ? religionVerses[currentReligion] : Object.values(religionVerses).flat();
     
     const matches = [];
+    const seenMatchTexts = new Set();
     for (let i = 0; i < pool.length; i++) {
         const v = pool[i];
         if (!v) continue;
@@ -3486,7 +3492,11 @@ function performLibSearch() {
         });
         
         if (matchesAll) {
-            matches.push(v);
+            const normText = (vText || vTrans).trim().replace(/\s+/g, ' ');
+            if (!seenMatchTexts.has(normText)) {
+                seenMatchTexts.add(normText);
+                matches.push(v);
+            }
         }
     }
     
