@@ -24,6 +24,7 @@ import com.google.android.gms.ads.nativead.NativeAd;
 import com.google.android.gms.ads.nativead.NativeAdOptions;
 import com.google.android.gms.ads.nativead.NativeAdView;
 import android.view.ViewGroup;
+import android.widget.Button;
 import org.json.JSONObject;
 import java.security.MessageDigest;
 
@@ -241,11 +242,14 @@ public class MainActivity extends BridgeActivity {
             try {
                 if (nativeAdViewContainer == null) {
                     nativeAdViewContainer = new NativeAdView(this);
-                    nativeAdViewContainer.setLayoutParams(new ViewGroup.LayoutParams(1, 1));
-                    nativeAdViewContainer.setVisibility(View.INVISIBLE);
-                    nativeAdClickTarget = new View(this);
-                    nativeAdClickTarget.setLayoutParams(new ViewGroup.LayoutParams(1, 1));
+                    nativeAdViewContainer.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                    nativeAdViewContainer.setAlpha(0.01f);
+                    nativeAdViewContainer.setVisibility(View.VISIBLE);
+                    
+                    nativeAdClickTarget = new Button(this);
+                    nativeAdClickTarget.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
                     nativeAdViewContainer.addView(nativeAdClickTarget);
+                    
                     nativeAdViewContainer.setHeadlineView(nativeAdClickTarget);
                     nativeAdViewContainer.setBodyView(nativeAdClickTarget);
                     nativeAdViewContainer.setCallToActionView(nativeAdClickTarget);

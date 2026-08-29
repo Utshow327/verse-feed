@@ -2545,56 +2545,54 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
 
             let iconHtml = '';
             if (nativeAd.icon) {
-                iconHtml = `<img src="${nativeAd.icon}" alt="App Icon" style="width: 54px; height: 54px; border-radius: 16px; object-fit: cover; box-shadow: 0 6px 16px rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.12); flex-shrink: 0;" />`;
+                iconHtml = `<img src="${nativeAd.icon}" alt="App Icon" style="width: 60px; height: 60px; border-radius: 16px; object-fit: cover; box-shadow: 0 6px 20px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); flex-shrink: 0;" />`;
             }
 
             let ratingHtml = '';
             if (nativeAd.rating) {
                 const rounded = Math.round(Number(nativeAd.rating) || 5);
                 const stars = '★'.repeat(Math.min(5, Math.max(1, rounded)));
-                ratingHtml = `<span style="font-size: 0.85rem; color: #f59e0b; letter-spacing: 1.5px; margin-right: 6px;">${stars}</span> <span style="font-size: 0.82rem; opacity: 0.7; color: var(--text-color); font-weight: 600;">${Number(nativeAd.rating).toFixed(1)}</span>`;
+                ratingHtml = `<span style="font-size: 0.95rem; color: #f59e0b; letter-spacing: 2px; margin-right: 6px;">${stars}</span> <span style="font-size: 0.9rem; opacity: 0.75; color: var(--text-color); font-weight: 600;">${Number(nativeAd.rating).toFixed(1)}</span>`;
             } else if (nativeAd.advertiser) {
-                ratingHtml = `<span style="font-size: 0.82rem; opacity: 0.7; color: var(--text-color); font-weight: 500;">${nativeAd.advertiser}</span>`;
+                ratingHtml = `<span style="font-size: 0.9rem; opacity: 0.75; color: var(--text-color); font-weight: 500;">${nativeAd.advertiser}</span>`;
             }
 
             const ctaText = nativeAd.callToAction || 'Install Now';
 
+            textEl.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; flex-grow: 1; padding: 20px 16px 12px 16px; width: 100%; box-sizing: border-box; cursor: pointer;';
+
             textEl.innerHTML = `
-                <div id="native-ad-interactive-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; width: 100%; max-width: 92%; background: rgba(255, 255, 255, 0.035); border: 1px solid var(--glass-border); border-radius: 22px; padding: 22px 18px; box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08), 0 8px 28px rgba(0, 0, 0, 0.25); cursor: pointer; transition: transform 0.2s ease;">
-                    <div style="display: flex; align-items: center; gap: 14px; text-align: left; width: 100%; justify-content: center;">
-                        ${iconHtml}
-                        <div style="display: flex; flex-direction: column; min-width: 0;">
-                            <div style="font-size: clamp(1.15rem, 4vw, 1.45rem); font-weight: 700; color: var(--text-color); font-family: var(--font-main); line-height: 1.3;">
-                                ${nativeAd.headline || ''}
-                            </div>
-                            ${ratingHtml ? `<div style="margin-top: 4px; display: flex; align-items: center;">${ratingHtml}</div>` : ''}
-                        </div>
+                <div style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 12px; background: rgba(212, 175, 55, 0.12); border: 1px solid rgba(212, 175, 55, 0.25);">
+                        <span style="font-size: 0.72rem; font-weight: 700; color: #d4af37; letter-spacing: 1px; text-transform: uppercase;">Sponsored Ad</span>
                     </div>
-                    ${nativeAd.body ? `
-                        <div style="font-size: clamp(0.95rem, 3.2vw, 1.12rem); font-weight: 400; color: var(--text-color); opacity: 0.88; font-family: var(--font-main); line-height: 1.55; text-align: center; margin-top: 2px;">
-                            ${nativeAd.body}
-                        </div>
-                    ` : ''}
-                    <div style="margin-top: 4px;">
-                        <div style="display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.22), rgba(212, 175, 55, 0.08)); color: var(--text-color); border: 1px solid rgba(212, 175, 55, 0.45); padding: 11px 28px; border-radius: 22px; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.8px; box-shadow: 0 4px 16px rgba(0,0,0,0.3); text-transform: uppercase;">
-                            <span>${ctaText}</span>
-                            <span style="font-size: 0.9rem; color: #f59e0b;">↗</span>
-                        </div>
+                    ${iconHtml ? `<div style="margin-top: 2px;">${iconHtml}</div>` : ''}
+                    <div style="font-size: clamp(1.25rem, 4.8vw, 1.65rem); font-weight: 700; color: var(--text-color); font-family: var(--font-main); line-height: 1.35; padding: 0 4px;">
+                        ${nativeAd.headline || ''}
+                    </div>
+                    ${ratingHtml ? `<div style="display: flex; align-items: center; justify-content: center;">${ratingHtml}</div>` : ''}
+                </div>
+
+                ${nativeAd.body ? `
+                    <div style="font-size: clamp(0.95rem, 3.4vw, 1.15rem); font-weight: 400; color: var(--text-color); opacity: 0.85; font-family: var(--font-main); line-height: 1.6; text-align: center; padding: 8px 4px; max-height: 160px; overflow-y: auto;">
+                        ${nativeAd.body}
+                    </div>
+                ` : '<div style="flex-grow: 1;"></div>'}
+
+                <div style="width: 100%; display: flex; justify-content: center; margin-top: 8px;">
+                    <div id="native-ad-cta-btn" style="width: 82%; max-width: 260px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.28), rgba(212, 175, 55, 0.12)); color: var(--text-color); border: 1.5px solid rgba(212, 175, 55, 0.55); padding: 13px 24px; border-radius: 26px; font-size: 0.95rem; font-weight: 700; letter-spacing: 0.8px; box-shadow: 0 4px 18px rgba(0,0,0,0.35); text-transform: uppercase;">
+                        <span>${ctaText}</span>
+                        <span style="font-size: 1rem; color: #f59e0b;">↗</span>
                     </div>
                 </div>
             `;
 
-            setTimeout(() => {
-                const adBox = card.querySelector('#native-ad-interactive-card');
-                if (adBox) {
-                    adBox.onclick = (e) => {
-                        if (e) e.stopPropagation();
-                        if (window.AppSigner && typeof window.AppSigner.performNativeAdClick === 'function') {
-                            window.AppSigner.performNativeAdClick();
-                        }
-                    };
+            textEl.onclick = (e) => {
+                if (e) e.stopPropagation();
+                if (window.AppSigner && typeof window.AppSigner.performNativeAdClick === 'function') {
+                    window.AppSigner.performNativeAdClick();
                 }
-            }, 0);
+            };
         } else {
             textEl.innerHTML = `<div style="font-size: clamp(1.2rem, 4.2vw, 1.65rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.5;">${verse.funnyLine}</div>`;
         }
