@@ -683,7 +683,7 @@ h2 {
 .audiobook-ad-tag {
     position: absolute;
     top: 8px;
-    right: 12px;
+    left: 14px;
     font-size: 0.60rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
