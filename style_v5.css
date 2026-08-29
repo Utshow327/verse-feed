@@ -2503,24 +2503,25 @@ h2 {
 
 .modal-action-danger-btn {
     width: 100%;
-    height: 46px;
-    border-radius: 23px;
-    border: 1px solid var(--glass-border);
-    background: var(--card-bg);
+    height: 42px;
+    border-radius: 21px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(128, 128, 128, 0.08);
     color: var(--text-color);
-    font-weight: 600;
-    font-size: 0.95rem;
+    opacity: 0.5;
+    font-weight: 500;
+    font-size: 0.88rem;
     cursor: pointer;
     font-family: inherit;
-    box-shadow: var(--glass-shadow);
-    
+    box-shadow: none;
     transition: transform 0.2s ease, background 0.2s ease, opacity 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 .modal-action-danger-btn:hover {
-    opacity: 0.9;
+    opacity: 0.75;
+    background: rgba(128, 128, 128, 0.15);
 }
 .modal-action-danger-btn:active {
     transform: scale(0.97);
