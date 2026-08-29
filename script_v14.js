@@ -235,8 +235,8 @@ function switchProfile(targetProfileId) {
         ttsRandomVoice = localStorage.getItem('ttsRandomVoice') === 'true';
     }
 
-    let curVol = parseFloat(localStorage.getItem('musicVolume') || '0.4');
-    if (isNaN(curVol)) curVol = 0.4;
+    let curVol = parseFloat(localStorage.getItem('musicVolume') || '0.5');
+    if (isNaN(curVol)) curVol = 0.5;
     if (typeof audio !== 'undefined' && audio) {
         audio.volume = curVol;
     }
@@ -538,6 +538,10 @@ function safePlayAudio(audioEl) {
     if (!audioEl) return Promise.resolve();
     try {
         setupMusicAudioProcessing();
+        const ctx = getAudioContext();
+        if (ctx && ctx.state === 'suspended') {
+            ctx.resume().catch(() => {});
+        }
         const p = audioEl.play();
         if (p && typeof p.then === 'function') {
             return p;
@@ -698,13 +702,13 @@ async function initApp() {
         }
 
         audio = document.getElementById('audio');
-        let initialVol = 0.4;
+        let initialVol = 0.5;
         let savedVol = localStorage.getItem('musicVolume');
-        if (savedVol !== null && savedVol !== '1' && savedVol !== '1.0' && savedVol !== '0.5' && savedVol !== '0.6') {
+        if (savedVol !== null && savedVol !== '1' && savedVol !== '1.0') {
             initialVol = parseFloat(savedVol);
-            if (isNaN(initialVol)) initialVol = 0.4;
+            if (isNaN(initialVol)) initialVol = 0.5;
         } else {
-            initialVol = 0.4;
+            initialVol = 0.5;
         }
         if (audio) {
             audio.volume = initialVol;
@@ -734,21 +738,29 @@ async function initApp() {
             safePlayAudio(audio).then(() => {
                 musicBtn.classList.add('active');
             }).catch(e => {
-                const playOnInteract = () => {
-                    if (localStorage.getItem('musicEnabled') !== 'false') {
-                        safePlayAudio(audio).then(() => {
-                            const btn = document.getElementById('music-toggle');
-                            if (btn) btn.classList.add('active');
-                            document.removeEventListener('click', playOnInteract);
-                            document.removeEventListener('pointerdown', playOnInteract);
-                            document.removeEventListener('touchstart', playOnInteract);
-                        }).catch(err => {});
-                    }
-                };
-                document.addEventListener('click', playOnInteract);
-                document.addEventListener('pointerdown', playOnInteract);
-                document.addEventListener('touchstart', playOnInteract, {passive: true});
+                // Autoplay blocked by WebView policy, will resume on first touch
             });
+
+            const playOnFirstInteraction = () => {
+                const ctx = getAudioContext();
+                if (ctx && ctx.state === 'suspended') {
+                    ctx.resume().catch(() => {});
+                }
+                if (localStorage.getItem('musicEnabled') !== 'false' && audio) {
+                    safePlayAudio(audio).then(() => {
+                        const btn = document.getElementById('music-toggle');
+                        if (btn) btn.classList.add('active');
+                    }).catch(err => {});
+                }
+                document.removeEventListener('click', playOnFirstInteraction);
+                document.removeEventListener('pointerdown', playOnFirstInteraction);
+                document.removeEventListener('touchstart', playOnFirstInteraction);
+                document.removeEventListener('scroll', playOnFirstInteraction);
+            };
+            document.addEventListener('click', playOnFirstInteraction, { passive: true });
+            document.addEventListener('pointerdown', playOnFirstInteraction, { passive: true });
+            document.addEventListener('touchstart', playOnFirstInteraction, { passive: true });
+            document.addEventListener('scroll', playOnFirstInteraction, { passive: true });
         }
 
         // Pause music when app is backgrounded / user switches apps, resume on return
