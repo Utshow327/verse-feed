@@ -242,12 +242,13 @@ public class MainActivity extends BridgeActivity {
             try {
                 if (nativeAdViewContainer == null) {
                     nativeAdViewContainer = new NativeAdView(this);
-                    nativeAdViewContainer.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-                    nativeAdViewContainer.setAlpha(0.01f);
+                    nativeAdViewContainer.setLayoutParams(new ViewGroup.LayoutParams(1, 1));
+                    nativeAdViewContainer.setTranslationX(-5000);
+                    nativeAdViewContainer.setTranslationY(-5000);
                     nativeAdViewContainer.setVisibility(View.VISIBLE);
                     
                     nativeAdClickTarget = new Button(this);
-                    nativeAdClickTarget.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                    nativeAdClickTarget.setLayoutParams(new ViewGroup.LayoutParams(1, 1));
                     nativeAdViewContainer.addView(nativeAdClickTarget);
                     
                     nativeAdViewContainer.setHeadlineView(nativeAdClickTarget);

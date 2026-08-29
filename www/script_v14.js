@@ -2580,19 +2580,24 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
                 ` : '<div style="flex-grow: 1;"></div>'}
 
                 <div style="width: 100%; display: flex; justify-content: center; margin-top: 8px;">
-                    <div id="native-ad-cta-btn" style="width: 82%; max-width: 260px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.28), rgba(212, 175, 55, 0.12)); color: var(--text-color); border: 1.5px solid rgba(212, 175, 55, 0.55); padding: 13px 24px; border-radius: 26px; font-size: 0.95rem; font-weight: 700; letter-spacing: 0.8px; box-shadow: 0 4px 18px rgba(0,0,0,0.35); text-transform: uppercase;">
+                    <div id="native-ad-cta-btn" style="width: 82%; max-width: 260px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.28), rgba(212, 175, 55, 0.12)); color: var(--text-color); border: 1.5px solid rgba(212, 175, 55, 0.55); padding: 13px 24px; border-radius: 26px; font-size: 0.95rem; font-weight: 700; letter-spacing: 0.8px; box-shadow: 0 4px 18px rgba(0,0,0,0.35); text-transform: uppercase; cursor: pointer;">
                         <span>${ctaText}</span>
                         <span style="font-size: 1rem; color: #f59e0b;">↗</span>
                     </div>
                 </div>
             `;
 
-            textEl.onclick = (e) => {
-                if (e) e.stopPropagation();
-                if (window.AppSigner && typeof window.AppSigner.performNativeAdClick === 'function') {
-                    window.AppSigner.performNativeAdClick();
+            setTimeout(() => {
+                const ctaBtn = card.querySelector('#native-ad-cta-btn');
+                if (ctaBtn) {
+                    ctaBtn.onclick = (e) => {
+                        if (e) e.stopPropagation();
+                        if (window.AppSigner && typeof window.AppSigner.performNativeAdClick === 'function') {
+                            window.AppSigner.performNativeAdClick();
+                        }
+                    };
                 }
-            };
+            }, 0);
         } else {
             textEl.innerHTML = `<div style="font-size: clamp(1.2rem, 4.2vw, 1.65rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.5;">${verse.funnyLine}</div>`;
         }
