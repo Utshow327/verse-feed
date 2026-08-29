@@ -7255,14 +7255,14 @@ function renderPremiumPackages() {
     const container = document.getElementById('premium-packages');
     if (!container) return;
 
-    const annualPrice = "$29.99";
-    const annualPerMonth = "$2.50";
-    const monthlyPrice = "$2.99";
+    const annualPrice = "$14.99";
+    const annualPerMonth = "$1.25";
+    const monthlyPrice = "$1.99";
 
     container.innerHTML = `
         <div class="premium-plans-grid">
             <div class="premium-plan-card ${selectedPlanType === 'annual' ? 'selected' : ''}" onclick="selectPremiumPlan('annual')">
-                <span class="plan-badge">Save 17%</span>
+                <span class="plan-badge">Save 37%</span>
                 <span class="plan-name">Annual</span>
                 <span class="plan-price">${annualPrice}</span>
                 <span class="plan-subtext">${annualPerMonth}/mo billed yearly</span>
