@@ -2594,9 +2594,9 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
                 ` : '<div style="flex-grow: 1;"></div>'}
 
                 <div style="width: 100%; display: flex; justify-content: center; margin-top: 6px;">
-                    <button id="native-ad-cta-btn" style="background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 12px 32px; border-radius: 24px; font-size: 0.95rem; font-weight: 600; cursor: pointer; font-family: inherit; box-shadow: var(--glass-shadow); display: inline-flex; align-items: center; gap: 8px; letter-spacing: 0.4px;">
+                    <button id="native-ad-cta-btn" style="background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 12px 36px; border-radius: 24px; font-size: 0.95rem; font-weight: 600; cursor: pointer; font-family: inherit; box-shadow: var(--glass-shadow); display: inline-flex; align-items: center; justify-content: center; gap: 8px; letter-spacing: 0.3px; transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
                         <span>${ctaText}</span>
-                        <span style="font-size: 0.95rem; color: var(--p-gold, #d4af37);">↗</span>
+                        <span style="font-size: 0.85rem; opacity: 0.7;">↗</span>
                     </button>
                 </div>
             `;
