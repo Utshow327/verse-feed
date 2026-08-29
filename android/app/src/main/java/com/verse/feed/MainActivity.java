@@ -251,15 +251,18 @@ public class MainActivity extends BridgeActivity {
         runOnUiThread(() -> {
             try {
                 if (nativeAdViewContainer == null) {
+                    float density = getResources().getDisplayMetrics().density;
+                    int minSize = (int) (100 * density); // 100dp >= 32dp required by AdMob
+                    
                     nativeAdViewContainer = new NativeAdView(this);
-                    nativeAdViewContainer.setLayoutParams(new ViewGroup.LayoutParams(1, 1));
+                    nativeAdViewContainer.setLayoutParams(new ViewGroup.LayoutParams(minSize, minSize));
                     nativeAdViewContainer.setAlpha(0.01f);
                     nativeAdViewContainer.setVisibility(View.VISIBLE);
                     nativeAdViewContainer.setClickable(false);
                     nativeAdViewContainer.setFocusable(false);
                     
                     nativeAdClickTarget = new Button(this);
-                    nativeAdClickTarget.setLayoutParams(new ViewGroup.LayoutParams(1, 1));
+                    nativeAdClickTarget.setLayoutParams(new ViewGroup.LayoutParams(minSize, minSize));
                     nativeAdViewContainer.addView(nativeAdClickTarget);
                     
                     nativeAdViewContainer.setHeadlineView(nativeAdClickTarget);
@@ -267,7 +270,7 @@ public class MainActivity extends BridgeActivity {
                     nativeAdViewContainer.setCallToActionView(nativeAdClickTarget);
                     
                     ViewGroup root = (ViewGroup) getWindow().getDecorView();
-                    root.addView(nativeAdViewContainer);
+                    root.addView(nativeAdViewContainer, 0); // Behind WebView so it never intercepts touches
                 }
                 nativeAdViewContainer.setNativeAd(ad);
             } catch (Exception e) {
@@ -363,6 +366,7 @@ public class MainActivity extends BridgeActivity {
             }
         });
 
+        builder.withNativeAdOptions(new NativeAdOptions.Builder().build());
         AdLoader adLoader = builder.build();
         adLoader.loadAd(new AdRequest.Builder().build());
     }
