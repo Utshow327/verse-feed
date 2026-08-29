@@ -2534,56 +2534,58 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
         }
 
         card.classList.add('premium-ad-card');
+        card.style.position = 'relative';
+
+        // Top-Left subtle "Sponsored" tag
+        const tagEl = document.createElement('span');
+        tagEl.style.cssText = 'position: absolute; top: 18px; left: 22px; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.45; font-weight: 600; color: var(--text-color); pointer-events: none;';
+        tagEl.textContent = 'Sponsored';
+        card.appendChild(tagEl);
 
         // Middle Content Container
         const textEl = document.createElement('div');
         textEl.classList.add('verse-text');
-        textEl.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; flex-grow: 1; padding: 12px 6px; width: 100%; box-sizing: border-box;';
+        textEl.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; flex-grow: 1; padding: 36px 18px 12px 18px; width: 100%; box-sizing: border-box;';
         
         if (verse.nativeAdData) {
             const nativeAd = verse.nativeAdData;
 
             let iconHtml = '';
             if (nativeAd.icon) {
-                iconHtml = `<img src="${nativeAd.icon}" alt="App Icon" style="width: 60px; height: 60px; border-radius: 16px; object-fit: cover; box-shadow: 0 6px 20px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); flex-shrink: 0;" />`;
+                iconHtml = `<img src="${nativeAd.icon}" alt="App Icon" style="width: 56px; height: 56px; border-radius: 16px; object-fit: cover; box-shadow: 0 4px 16px rgba(0,0,0,0.3); border: 1px solid var(--glass-border); flex-shrink: 0; margin-bottom: 6px;" />`;
             }
 
-            let ratingHtml = '';
-            if (nativeAd.rating) {
+            let authorHtml = '';
+            if (nativeAd.advertiser) {
+                authorHtml = `<span style="font-size: 0.88rem; opacity: 0.65; color: var(--text-color); font-weight: 500; font-family: var(--font-main);">by ${nativeAd.advertiser}</span>`;
+            } else if (nativeAd.rating) {
                 const rounded = Math.round(Number(nativeAd.rating) || 5);
                 const stars = '★'.repeat(Math.min(5, Math.max(1, rounded)));
-                ratingHtml = `<span style="font-size: 0.95rem; color: #f59e0b; letter-spacing: 2px; margin-right: 6px;">${stars}</span> <span style="font-size: 0.9rem; opacity: 0.75; color: var(--text-color); font-weight: 600;">${Number(nativeAd.rating).toFixed(1)}</span>`;
-            } else if (nativeAd.advertiser) {
-                ratingHtml = `<span style="font-size: 0.9rem; opacity: 0.75; color: var(--text-color); font-weight: 500;">${nativeAd.advertiser}</span>`;
+                authorHtml = `<span style="font-size: 0.9rem; color: #f59e0b; letter-spacing: 1.5px; margin-right: 4px;">${stars}</span> <span style="font-size: 0.85rem; opacity: 0.7; color: var(--text-color); font-weight: 600;">${Number(nativeAd.rating).toFixed(1)}</span>`;
             }
 
-            const ctaText = nativeAd.callToAction || 'Install Now';
-
-            textEl.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; flex-grow: 1; padding: 20px 16px 12px 16px; width: 100%; box-sizing: border-box; cursor: pointer;';
+            const ctaText = nativeAd.callToAction || 'Open';
 
             textEl.innerHTML = `
-                <div style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px;">
-                    <div style="display: flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 12px; background: rgba(212, 175, 55, 0.12); border: 1px solid rgba(212, 175, 55, 0.25);">
-                        <span style="font-size: 0.72rem; font-weight: 700; color: #d4af37; letter-spacing: 1px; text-transform: uppercase;">Sponsored Ad</span>
-                    </div>
-                    ${iconHtml ? `<div style="margin-top: 2px;">${iconHtml}</div>` : ''}
-                    <div style="font-size: clamp(1.25rem, 4.8vw, 1.65rem); font-weight: 700; color: var(--text-color); font-family: var(--font-main); line-height: 1.35; padding: 0 4px;">
+                <div style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                    ${iconHtml}
+                    <div style="font-size: clamp(1.25rem, 4.5vw, 1.6rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.35; padding: 0 4px;">
                         ${nativeAd.headline || ''}
                     </div>
-                    ${ratingHtml ? `<div style="display: flex; align-items: center; justify-content: center;">${ratingHtml}</div>` : ''}
+                    ${authorHtml ? `<div>${authorHtml}</div>` : ''}
                 </div>
 
                 ${nativeAd.body ? `
-                    <div style="font-size: clamp(0.95rem, 3.4vw, 1.15rem); font-weight: 400; color: var(--text-color); opacity: 0.85; font-family: var(--font-main); line-height: 1.6; text-align: center; padding: 8px 4px; max-height: 160px; overflow-y: auto;">
+                    <div style="font-size: clamp(0.95rem, 3.2vw, 1.1rem); font-weight: 400; color: var(--text-color); opacity: 0.82; font-family: var(--font-main); line-height: 1.6; text-align: center; padding: 8px 4px; max-height: 140px; overflow-y: auto;">
                         ${nativeAd.body}
                     </div>
                 ` : '<div style="flex-grow: 1;"></div>'}
 
-                <div style="width: 100%; display: flex; justify-content: center; margin-top: 8px;">
-                    <div id="native-ad-cta-btn" style="width: 82%; max-width: 260px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.28), rgba(212, 175, 55, 0.12)); color: var(--text-color); border: 1.5px solid rgba(212, 175, 55, 0.55); padding: 13px 24px; border-radius: 26px; font-size: 0.95rem; font-weight: 700; letter-spacing: 0.8px; box-shadow: 0 4px 18px rgba(0,0,0,0.35); text-transform: uppercase; cursor: pointer;">
+                <div style="width: 100%; display: flex; justify-content: center; margin-top: 6px;">
+                    <button id="native-ad-cta-btn" style="background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 12px 32px; border-radius: 24px; font-size: 0.95rem; font-weight: 600; cursor: pointer; font-family: inherit; box-shadow: var(--glass-shadow); display: inline-flex; align-items: center; gap: 8px; letter-spacing: 0.4px;">
                         <span>${ctaText}</span>
-                        <span style="font-size: 1rem; color: #f59e0b;">↗</span>
-                    </div>
+                        <span style="font-size: 0.95rem; color: var(--p-gold, #d4af37);">↗</span>
+                    </button>
                 </div>
             `;
 
