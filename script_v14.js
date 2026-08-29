@@ -3260,7 +3260,7 @@ const topicAudiobooks = {
     'Islam': [
         { title: "Secrets of Divine Love", author: "A. Helwa", asin: "1734231203" },
         { title: "Reclaim Your Heart", author: "Yasmin Mogahed", asin: "0990387682" },
-        { title: "Revive Your Heart", author: "Nouman Ali Khan", asin: "1847741014" },
+        { title: "The Holy Quran", author: "M.A.S. Abdel Haleem", asin: "0199535957" },
         { title: "Don't Be Sad", author: "Dr. Aid al-Qarni", asin: "9960850447" },
         { title: "In the Footsteps of the Prophet", author: "Tariq Ramadan", asin: "0195374765" },
         { title: "Healing and Peace in Islam", author: "A. Helwa", asin: "173423122X" },
@@ -3287,7 +3287,7 @@ const topicAudiobooks = {
         { title: "Autobiography of a Yogi", author: "Paramahansa Yogananda", asin: "0876120834" },
         { title: "Inner Engineering: A Yogi's Guide to Joy", author: "Sadhguru", asin: "0143428845" },
         { title: "The Journey Home", author: "Radhanath Swami", asin: "1601090565" },
-        { title: "Karma: A Yogi's Guide to Crafting Your Destiny", author: "Sadhguru", asin: "0593232014" },
+        { title: "The Bhagavad Gita", author: "Eknath Easwaran", asin: "1586380192" },
         { title: "Living with the Himalayan Masters", author: "Swami Rama", asin: "0893891568" },
         { title: "Apprenticed to a Himalayan Master", author: "Sri M", asin: "8186219934" },
         { title: "Death: An Inside Story", author: "Sadhguru", asin: "0143450832" },
