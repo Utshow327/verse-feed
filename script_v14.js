@@ -1371,13 +1371,11 @@ async function playText(text, context) {
 }
 
 async function processAudioQueue(chunks, generationId, fallbackTTS) {
-    let hasStartedPlayback = false;
-
     for (let i = 0; i < chunks.length; i++) {
         if (generationId !== currentGenerationId) break;
         
-        // Yield cleanly to browser animation frame loop to ensure 60fps rendering
-        await new Promise(r => requestAnimationFrame(() => setTimeout(r, 8)));
+        // Yield cleanly to browser animation frame loop
+        await new Promise(r => requestAnimationFrame(() => setTimeout(r, 10)));
         if (generationId !== currentGenerationId) break;
         
         try {
@@ -1415,17 +1413,6 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
 
             audioChunkQueue.push(paddedBuffer);
             
-            // Immediate Pipelined Playback: Start playing chunk 0 instantly while subsequent chunks synthesize in background
-            if (!hasStartedPlayback && audioChunkQueue.length > 0 && generationId === currentGenerationId) {
-                hasStartedPlayback = true;
-                isGenerating = false;
-                const btn = document.getElementById('speak-general');
-                if (btn) btn.classList.remove('loading');
-                updateSpeakButton('speak-general');
-                startWaveformVisualizer();
-                startAudioPlayback(0, generationId);
-            }
-            
         } catch (err) {
             console.error("Piper generation error on chunk " + i, err);
             if (i === 0 && generationId === currentGenerationId) fallbackTTS();
@@ -1434,14 +1421,17 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
     }
     
     isQueueGenerating = false;
-    if (generationId === currentGenerationId && !hasStartedPlayback && audioChunkQueue.length > 0) {
-        hasStartedPlayback = true;
-        isGenerating = false;
+    if (generationId === currentGenerationId && audioChunkQueue.length > 0) {
         const btn = document.getElementById('speak-general');
         if (btn) btn.classList.remove('loading');
-        updateSpeakButton('speak-general');
-        startWaveformVisualizer();
-        startAudioPlayback(0, generationId);
+        isGenerating = false;
+        
+        setTimeout(() => {
+            if (generationId === currentGenerationId) {
+                startWaveformVisualizer();
+                startAudioPlayback(0, generationId);
+            }
+        }, 50);
     }
 }
 
