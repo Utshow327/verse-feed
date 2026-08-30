@@ -417,6 +417,10 @@ let visualizerLogicalHeight = 380;
 let visualizerAudioInterval = null;
 let waveformCanvasCtx = null;
 let visualizerSmoothedVol = 0;
+var _vizRgb = '238, 204, 180';
+var _vizIsDark = true;
+var _vizGradients = null;
+var _vizGradientsDirty = true;
 let currentAppSessionPremiumAngle = null;
 let isSpeaking = false;
 let isPaused = false;
@@ -4773,12 +4777,6 @@ function advanceSavedVerse() {
 }
 
 /* --- Audio Waveform Visualizer --- */
-
-// Cached theme values (updated only on theme change, not every frame)
-let _vizRgb = '238, 204, 180';
-let _vizIsDark = true;
-let _vizGradients = null; // pre-built gradient cache
-let _vizGradientsDirty = true;
 
 function initVisualizerWorker() {
     resizeWaveformCanvas();
