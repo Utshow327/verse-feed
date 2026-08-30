@@ -1237,9 +1237,6 @@ async function playText(text, context) {
     isPaused = false;
     currentAudioContextType = context;
     updateSpeakButton('speak-general');
-    
-    // Start visualizer immediately so waves are already animating before any TTS blocking
-    startWaveformVisualizer();
 
     // Load the right voice
     if (ttsRandomVoice) {
@@ -1434,7 +1431,6 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
                 isGenerating = false;
                 const btn = document.getElementById('speak-general');
                 if (btn) btn.classList.remove('loading');
-                startWaveformVisualizer();
                 startAudioPlayback(0, generationId);
             }
             
@@ -1451,7 +1447,6 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
         isGenerating = false;
         const btn = document.getElementById('speak-general');
         if (btn) btn.classList.remove('loading');
-        startWaveformVisualizer();
         startAudioPlayback(0, generationId);
     }
 }
@@ -4897,14 +4892,19 @@ function startWaveformVisualizer() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.restore();
 
-        if (audioAnalyser && isSpeaking && !isPaused) {
+        if (audioAnalyser && isSpeaking && !isPaused && !isGenerating) {
             audioAnalyser.getByteFrequencyData(visualizerDataArray);
             let sum = 0;
             const len = visualizerDataArray.length;
             for (let i = 0; i < len; i++) sum += visualizerDataArray[i];
             const avgVolume = sum / len / 255.0;
             visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.14;
+        } else if (isSpeaking && isGenerating) {
+            // Interverse cached animation: maintain gentle idle amplitude
+            const idleTarget = 0.06;
+            visualizerSmoothedVol += (idleTarget - visualizerSmoothedVol) * 0.05;
         } else {
+            // Fade out gently
             visualizerSmoothedVol *= 0.88;
         }
 
