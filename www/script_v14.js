@@ -1768,7 +1768,7 @@ function formatVerseRef(v) {
         const match = v.chapter.match(/\d+/);
         if (match) {
             chap = parseInt(match[0], 10);
-        } else {
+        } else if (!bLower.includes('dhammapada')) {
             chap = v.chapter.replace(/^(part|chapter|sec|section)\s*/i, '').trim();
         }
     }
@@ -1874,13 +1874,11 @@ function processHadithData(allHadiths) {
     let islamVerses = religionVerses.Islam || [];
     let islamBooks = (religionBooks.Islam && religionBooks.Islam.books) ? religionBooks.Islam.books : [];
     let hadithCollections = {};
-    let counters = {};
 
     allHadiths.forEach(h => {
         const collection = h.source;
         if (!hadithCollections[collection]) {
-            hadithCollections[collection] = { chapters: {} };
-            counters[collection] = 1;
+            hadithCollections[collection] = { chapters: {}, chapterOrder: [] };
         }
 
         const text = h.text_en;
@@ -1906,14 +1904,12 @@ function processHadithData(allHadiths) {
             const hasMetaPhrase = metaPhrases.some(phrase => lowerText.includes(phrase));
             if (hasMetaPhrase) return; // Skip this hadith completely to keep feed clean
 
-            let verseNum = counters[collection]++;
-            // Group into chapters of 100 for better UI scroll
-            let chapter = Math.floor((verseNum - 1) / 100) + 1;
-            chapter = chapter.toString();
-            let verseStr = (((verseNum - 1) % 100) + 1).toString();
+            const chapter = (h.chapter_no || 1).toString();
+            const verseStr = (h.hadith_no || 1).toString();
 
             if (!hadithCollections[collection].chapters[chapter]) {
                 hadithCollections[collection].chapters[chapter] = {};
+                hadithCollections[collection].chapterOrder.push(chapter);
             }
 
             const cleanedText = cleanText(text);
@@ -1930,7 +1926,12 @@ function processHadithData(allHadiths) {
     });
 
     Object.keys(hadithCollections).forEach(collection => {
-        islamBooks.push({ name: collection, content: hadithCollections[collection].chapters });
+        islamBooks.push({ 
+            name: collection, 
+            content: hadithCollections[collection].chapters,
+            chapterOrder: hadithCollections[collection].chapterOrder,
+            isNested: false
+        });
     });
     religionVerses.Islam = islamVerses;
     religionBooks.Islam = { books: islamBooks };
