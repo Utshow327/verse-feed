@@ -2723,7 +2723,7 @@ function nextCard(isAuto = false) {
     }
 
     currentVerseIndex.general++;
-    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
+    if (!isAuto && typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
     renderFeedCard(currentVerseIndex.general, 'next');
 
     const newVerse = getVerseAtIndex(currentVerseIndex.general);
@@ -4847,9 +4847,8 @@ function startWaveformVisualizer() {
     
     updateVisualizerThemeCache();
     
-    const bufferLength = (audioAnalyser && audioAnalyser.frequencyBinCount) || 64;
-    const dataArray = new Uint8Array(bufferLength);
-    const numPoints = Math.max(80, Math.floor(visualizerLogicalWidth / 5));
+    let lastVisualizerFrameTime = 0;
+    const numPoints = Math.max(60, Math.floor(visualizerLogicalWidth / 6));
     const sliceWidth = (visualizerLogicalWidth + 20) / (numPoints - 1);
 
     function draw() {
@@ -4867,7 +4866,13 @@ function startWaveformVisualizer() {
 
         waveformAnimFrame = requestAnimationFrame(draw);
 
-        if (audioAnalyser && isSpeaking && !isPaused) {
+        const now = performance.now();
+        if (now - lastVisualizerFrameTime < 24) { // Cap at ~40 FPS to eliminate any CPU contention on mobile
+            return;
+        }
+        lastVisualizerFrameTime = now;
+
+        if (audioAnalyser && isSpeaking && !isPaused && !isGenerating) {
             audioAnalyser.getByteFrequencyData(dataArray);
             let sum = 0;
             const len = dataArray.length;
@@ -4881,17 +4886,14 @@ function startWaveformVisualizer() {
         ctx.clearRect(0, 0, visualizerLogicalWidth + 20, visualizerLogicalHeight);
 
         const time = Date.now() * 0.001;
-        const baseCycles = 2.2;
-        const baseFreq = (Math.PI * 2 * baseCycles) / Math.max(300, visualizerLogicalWidth);
 
-        const drawLayer = (speed, freqMult, amplitudeBase, audioMult, layerIdx) => {
-            const frequency = baseFreq * freqMult;
+        const drawLayer = (speed, frequency, amplitudeBase, audioMult, layerIdx) => {
             ctx.beginPath();
             ctx.moveTo(-10, visualizerLogicalHeight);
             for (let i = 0; i < numPoints; i++) {
                 const x = -10 + (i * sliceWidth);
                 const wave1 = Math.sin(x * frequency + time * speed);
-                const wave2 = Math.sin(x * frequency * 1.4 - time * speed * 0.8);
+                const wave2 = Math.sin(x * frequency * 1.5 - time * speed * 0.8);
                 const height = amplitudeBase + (wave1 * 12) + (wave2 * 8) + (visualizerSmoothedVol * audioMult);
                 const y = visualizerLogicalHeight - Math.max(4, height);
                 ctx.lineTo(x, y);
@@ -4903,9 +4905,9 @@ function startWaveformVisualizer() {
             ctx.fill();
         };
 
-        drawLayer(1.5, 1.0, 10, 60, 0);
-        drawLayer(1.8, 1.35, 15, 80, 1);
-        drawLayer(2.2, 1.7, 20, 110, 2);
+        drawLayer(1.5, 0.005, 10, 60, 0);
+        drawLayer(1.8, 0.007, 15, 80, 1);
+        drawLayer(2.2, 0.009, 20, 110, 2);
     }
 
     draw();
