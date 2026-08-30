@@ -1217,117 +1217,13 @@ let autoNextTimeout = null;
 
 let lastRandomVoiceId = null;
 
-const verseAudioCache = new Map();
-
-function getAudioCacheKey(voiceId, text) {
-    return (voiceId || selectedVoice || 'default') + '::' + (text || '').trim().replace(/\s+/g, ' ').substring(0, 120);
-}
-
-function sanitizeTextForTTS(rawText) {
-    let sanitizedText = (rawText || '')
-        .replace(/may peace be upon him/gi, 'upon him')
-        .replace(/peace be upon him/gi, 'upon him')
-        .replace(/ﷺ/g, 'upon him')
-        .replace(/\(pbuh\)/gi, 'upon him');
-
-    sanitizedText = sanitizedText.replace(/\b[A-Z]{2,}\b/g, (match) => {
-        if (match.toUpperCase() === 'PAUSE') return 'PAUSE';
-        return match.charAt(0) + match.slice(1).toLowerCase();
-    });
-
-    sanitizedText = ", " + sanitizedText
-        .replace(/\b[iI]\.[eE]\./g, 'that is')
-        .replace(/\b[iI],[eE]\b/g, 'that is')
-        .replace(/[:;]/g, '. ');
-
-    return sanitizedText;
-}
-
-function splitTextIntoTTSChunks(sanitizedText) {
-    let chunks = sanitizedText.split(/([.!?,;:]+[\s]+|\|PAUSE\|\s*)/i).filter(Boolean);
-    let combinedChunks = [];
-    let tempChunk = "";
-    for(let i = 0; i < chunks.length; i++) {
-        tempChunk += chunks[i];
-        if (chunks[i].match(/[.!?,;:]+[\s]+/i) || chunks[i].match(/\|PAUSE\|/i)) {
-            let ch = tempChunk.replace(/\|PAUSE\|/gi, '').trim();
-            if (ch) combinedChunks.push(ch);
-            if (chunks[i].match(/\|PAUSE\|/i)) combinedChunks.push("|PAUSE|");
-            tempChunk = "";
-        }
-    }
-    if (tempChunk.trim()) {
-        let ch = tempChunk.replace(/\|PAUSE\|/gi, '').trim();
-        if (ch) combinedChunks.push(ch);
-    }
-    if (combinedChunks.length === 0) combinedChunks = [sanitizedText.replace(/\|PAUSE\|/gi, '')];
-    return combinedChunks;
-}
-
-let preloadNextVerseTimeout = null;
-function scheduleNextVersePreload(context) {
-    clearTimeout(preloadNextVerseTimeout);
-    preloadNextVerseTimeout = setTimeout(async () => {
-        if (!isSpeaking || isPaused || !piperSession) return;
-        let nextText = '';
-        if (context === 'feed') {
-            const nextV = getVerseAtIndex(currentVerseIndex.general + 1);
-            if (nextV && !nextV.isAd) {
-                nextText = nextV.spoken_text || nextV.text;
-                if (!nextText.endsWith('.')) nextText += '.';
-                if (ttsAnnounceSource) nextText += '. ' + nextV.book + '.';
-            }
-        } else if (context === 'book') {
-            const nextIdx = (bookVoiceCurrentVerse + 1) % bookVoiceTotalVerses;
-            const nextInfo = globalVerseMap[nextIdx];
-            if (nextInfo) {
-                nextText = nextInfo.spoken_text || nextInfo.text;
-                if (!nextText.endsWith('.')) nextText += '.';
-            }
-        }
-
-        if (!nextText) return;
-        const sanitized = sanitizeTextForTTS(nextText);
-        const cacheKey = getAudioCacheKey(piperSession.voiceId, sanitized);
-        if (verseAudioCache.has(cacheKey)) return;
-
-        try {
-            const chunks = splitTextIntoTTSChunks(sanitized);
-            const ctx = getAudioContext();
-            const preloadedQueue = [];
-            for (let ch of chunks) {
-                if (!isSpeaking || isPaused) return;
-                if (ch === '|PAUSE|') {
-                    const sampleRate = ctx.sampleRate || 22050;
-                    preloadedQueue.push(ctx.createBuffer(1, Math.floor(sampleRate * 0.8), sampleRate));
-                    continue;
-                }
-                const wav = await piperSession.predict(ch);
-                const ab = await wav.arrayBuffer();
-                const decoded = await ctx.decodeAudioData(ab);
-                const sampleRate = decoded.sampleRate;
-                const paddingFrames = Math.floor(sampleRate * 0.2);
-                const padded = ctx.createBuffer(decoded.numberOfChannels, decoded.length + paddingFrames, sampleRate);
-                for (let c = 0; c < decoded.numberOfChannels; c++) {
-                    padded.getChannelData(c).set(decoded.getChannelData(c), paddingFrames);
-                }
-                preloadedQueue.push(padded);
-            }
-            if (preloadedQueue.length > 0) {
-                verseAudioCache.set(cacheKey, preloadedQueue);
-                if (verseAudioCache.size > 50) {
-                    const firstKey = verseAudioCache.keys().next().value;
-                    verseAudioCache.delete(firstKey);
-                }
-            }
-        } catch(e) {}
-    }, 1200);
-}
-
 async function playText(text, context) {
+    // Stop any current audio with transition flag so UI remains in continuous generating/playing state
     stopAudio(true, true, true);
+    // NOW capture the new generationId (after stop bumped it)
     const generationId = currentGenerationId;
 
+    // Clean text for TTS pronunciation
     text = text.replace(/son\(s\)/gi, 'sons')
                .replace(/god's/gi, 'gods')
                .replace(/god 's/gi, 'gods')
@@ -1335,6 +1231,7 @@ async function playText(text, context) {
                .replace(/\[l\d+\]/gi, '')
                .replace(/-/g, ' ');
 
+    // Immediately enter generating state with opacity pulse animation on play button
     isGenerating = true;
     isSpeaking = true;
     isPaused = false;
@@ -1342,6 +1239,7 @@ async function playText(text, context) {
     updateSpeakButton('speak-general');
     startWaveformVisualizer();
 
+    // Load the right voice
     if (ttsRandomVoice) {
         const available = voicesList.filter(v => v.value !== lastRandomVoiceId);
         const pool = available.length > 0 ? available : voicesList;
@@ -1365,32 +1263,33 @@ async function playText(text, context) {
         return;
     }
 
+    // Check if still valid after async initPiper
     if (generationId !== currentGenerationId) {
         isGenerating = false;
         return;
     }
 
+    // Strip HTML
     text = text.replace(/<span class='author-attr'>.*?<\/span>/gm, '');
     text = text.replace(/<[^>]*>?/gm, '');
 
-    const sanitizedText = sanitizeTextForTTS(text);
-    const cacheKey = getAudioCacheKey(piperSession.voiceId, sanitizedText);
+    isGenerating = true;
 
-    // Instant zero-latency playback if already cached
-    if (verseAudioCache.has(cacheKey)) {
-        const cachedQueue = verseAudioCache.get(cacheKey);
-        if (cachedQueue && cachedQueue.length > 0) {
-            audioChunkQueue = [...cachedQueue];
-            playingQueueIndex = 0;
-            isGenerating = false;
-            isQueueGenerating = false;
-            const btn = document.getElementById('speak-general');
-            if (btn) btn.classList.remove('loading');
-            startAudioPlayback(0, generationId);
-            scheduleNextVersePreload(context);
-            return;
-        }
-    }
+    let sanitizedText = text.replace(/may peace be upon him/gi, 'upon him')
+        .replace(/peace be upon him/gi, 'upon him')
+        .replace(/ﷺ/g, 'upon him')
+        .replace(/\(pbuh\)/gi, 'upon him');
+
+    // Convert all-caps words (like GOD, LORD, ALLAH, HEAVEN) to Titlecase so phonemizer reads them as words, but protect |PAUSE|
+    sanitizedText = sanitizedText.replace(/\b[A-Z]{2,}\b/g, (match) => {
+        if (match.toUpperCase() === 'PAUSE') return 'PAUSE';
+        return match.charAt(0) + match.slice(1).toLowerCase();
+    });
+
+    sanitizedText = ", " + sanitizedText
+        .replace(/\b[iI]\.[eE]\./g, 'that is')
+        .replace(/\b[iI],[eE]\b/g, 'that is')
+        .replace(/[:;]/g, '. ');
 
     const fallbackTTS = () => {
         if (generationId !== currentGenerationId) return;
@@ -1430,7 +1329,7 @@ async function playText(text, context) {
                 else {
                     if (!isSpeaking) stopWaveformVisualizer(true);
                 }
-            }, 80);
+            }, 300);
         };
         currentUtterance.onerror = () => {
             if (!isPaused) {
@@ -1441,7 +1340,25 @@ async function playText(text, context) {
         window.speechSynthesis.speak(currentUtterance);
     };
 
-    const combinedChunks = splitTextIntoTTSChunks(sanitizedText);
+    // Split text into sentence chunks and pause markers
+    let chunks = sanitizedText.split(/([.!?,;:]+[\s]+|\|PAUSE\|\s*)/i).filter(Boolean);
+    let combinedChunks = [];
+    let tempChunk = "";
+    for(let i = 0; i < chunks.length; i++) {
+        tempChunk += chunks[i];
+        if (chunks[i].match(/[.!?,;:]+[\s]+/i) || chunks[i].match(/\|PAUSE\|/i)) {
+            let ch = tempChunk.replace(/\|PAUSE\|/gi, '').trim();
+            if (ch) combinedChunks.push(ch);
+            if (chunks[i].match(/\|PAUSE\|/i)) combinedChunks.push("|PAUSE|");
+            tempChunk = "";
+        }
+    }
+    if (tempChunk.trim()) {
+        let ch = tempChunk.replace(/\|PAUSE\|/gi, '').trim();
+        if (ch) combinedChunks.push(ch);
+    }
+    if (combinedChunks.length === 0) combinedChunks = [sanitizedText.replace(/\|PAUSE\|/gi, '')];
+
     audioChunkQueue = [];
     playingQueueIndex = 0;
 
@@ -1454,15 +1371,18 @@ async function playText(text, context) {
         }
         if (!piperSession) { fallbackTTS(); return; }
         isQueueGenerating = true;
-        processAudioQueue(combinedChunks, generationId, fallbackTTS, cacheKey);
+        processAudioQueue(combinedChunks, generationId, fallbackTTS);
     }, 20);
 }
 
-async function processAudioQueue(chunks, generationId, fallbackTTS, cacheKey) {
+async function processAudioQueue(chunks, generationId, fallbackTTS) {
+    let hasStartedPlayback = false;
+
     for (let i = 0; i < chunks.length; i++) {
         if (generationId !== currentGenerationId) break;
         
-        await new Promise(r => setTimeout(r, 0));
+        // Yield cleanly to browser animation frame loop to ensure 60fps rendering
+        await new Promise(r => requestAnimationFrame(() => setTimeout(r, 8)));
         if (generationId !== currentGenerationId) break;
         
         try {
@@ -1500,11 +1420,13 @@ async function processAudioQueue(chunks, generationId, fallbackTTS, cacheKey) {
 
             audioChunkQueue.push(paddedBuffer);
 
-            // Stream playback immediately on chunk 0
-            if (i === 0 && !currentAudioNode && isSpeaking && !isPaused && generationId === currentGenerationId) {
+            // Immediate Pipelined Playback: Start playing chunk 0 instantly while subsequent chunks synthesize in background
+            if (i === 0 && !hasStartedPlayback && isSpeaking && !isPaused && generationId === currentGenerationId) {
+                hasStartedPlayback = true;
                 isGenerating = false;
                 const btn = document.getElementById('speak-general');
                 if (btn) btn.classList.remove('loading');
+                startWaveformVisualizer();
                 startAudioPlayback(0, generationId);
             }
             
@@ -1516,22 +1438,12 @@ async function processAudioQueue(chunks, generationId, fallbackTTS, cacheKey) {
     }
     
     isQueueGenerating = false;
-    if (generationId === currentGenerationId && audioChunkQueue.length > 0) {
-        if (cacheKey) {
-            verseAudioCache.set(cacheKey, [...audioChunkQueue]);
-            if (verseAudioCache.size > 50) {
-                const firstKey = verseAudioCache.keys().next().value;
-                verseAudioCache.delete(firstKey);
-            }
-        }
+    if (generationId === currentGenerationId && audioChunkQueue.length > 0 && !hasStartedPlayback) {
         const btn = document.getElementById('speak-general');
         if (btn) btn.classList.remove('loading');
         isGenerating = false;
-        
-        if (!currentAudioNode) {
-            startAudioPlayback(0, generationId);
-        }
-        scheduleNextVersePreload(currentAudioContextType);
+        startWaveformVisualizer();
+        startAudioPlayback(0, generationId);
     }
 }
 
@@ -2779,23 +2691,26 @@ function renderFeedCard(index, direction = 'none') {
 
     if (direction !== 'none') {
         const oldCard = stage.querySelector('.card-center');
+        card.classList.add('animating');
         stage.appendChild(card);
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                if (oldCard) {
-                    oldCard.classList.remove('card-center');
-                    if (direction === 'next') oldCard.classList.add('card-left');
-                    else oldCard.classList.add('card-right');
-                    setTimeout(() => {
-                        if (oldCard && oldCard.parentNode) oldCard.remove();
-                    }, 380);
-                }
-                card.classList.remove('card-right', 'card-left');
-                card.classList.add('card-center');
-            });
-        });
+        void card.offsetWidth;
+        if (oldCard) {
+            oldCard.classList.add('animating');
+            oldCard.classList.remove('card-center');
+            if (direction === 'next') oldCard.classList.add('card-left');
+            else oldCard.classList.add('card-right');
+            setTimeout(() => {
+                if (oldCard && oldCard.parentNode) oldCard.remove();
+            }, 380);
+        }
+        card.classList.remove('card-right', 'card-left');
+        card.classList.add('card-center');
+        setTimeout(() => {
+            if (card) card.classList.remove('animating');
+        }, 380);
     } else {
         stage.innerHTML = '';
+        card.classList.remove('animating');
         card.classList.add('card-center');
         stage.appendChild(card);
     }
@@ -2831,7 +2746,7 @@ function nextCard(isAuto = false) {
             setTimeout(() => {
                 playText(spokenText, 'feed');
                 autoMode = true;
-            }, 380);
+            }, 300);
         } else if (newVerse && newVerse.isAd) {
             if (!newVerse.funnyLine) {
                 newVerse.funnyLine = getNextFunnyLine();
@@ -2840,7 +2755,7 @@ function nextCard(isAuto = false) {
             setTimeout(() => {
                 playText(adSpokenText, 'feed');
                 autoMode = true;
-            }, 380);
+            }, 300);
         }
     } else {
         deselectVerse();
@@ -2875,7 +2790,7 @@ function prevCard() {
             setTimeout(() => {
                 playText(spokenText, 'feed');
                 autoMode = true;
-            }, 380);
+            }, 300);
         } else if (wasPlaying && newVerse && newVerse.isAd) {
             if (!newVerse.funnyLine) {
                 newVerse.funnyLine = getNextFunnyLine();
@@ -2884,7 +2799,7 @@ function prevCard() {
             setTimeout(() => {
                 playText(adSpokenText, 'feed');
                 autoMode = true;
-            }, 380);
+            }, 300);
         } else {
             deselectVerse();
         }
