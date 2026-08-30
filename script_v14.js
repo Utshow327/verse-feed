@@ -1279,8 +1279,9 @@ async function playText(text, context) {
         .replace(/ﷺ/g, 'upon him')
         .replace(/\(pbuh\)/gi, 'upon him');
 
-    // Convert all-caps words (like GOD, LORD, ALLAH, HEAVEN) to Titlecase so phonemizer reads them as words instead of spelling out acronym letters (e.g. G-O-D)
+    // Convert all-caps words (like GOD, LORD, ALLAH, HEAVEN) to Titlecase so phonemizer reads them as words, but protect |PAUSE|
     sanitizedText = sanitizedText.replace(/\b[A-Z]{2,}\b/g, (match) => {
+        if (match.toUpperCase() === 'PAUSE') return 'PAUSE';
         return match.charAt(0) + match.slice(1).toLowerCase();
     });
 
@@ -1299,7 +1300,8 @@ async function playText(text, context) {
         updateSpeakButton('speak-general');
         
         window.speechSynthesis.cancel();
-        currentUtterance = new SpeechSynthesisUtterance(sanitizedText);
+        const fallbackText = sanitizedText.replace(/\|PAUSE\|/gi, '... ');
+        currentUtterance = new SpeechSynthesisUtterance(fallbackText);
         const speedSlider = document.getElementById('voice-speed-slider');
         currentUtterance.rate = speedSlider ? parseFloat(speedSlider.value) : 0.5;
         currentUtterance.onend = () => {
@@ -1338,21 +1340,24 @@ async function playText(text, context) {
         window.speechSynthesis.speak(currentUtterance);
     };
 
-    // Split text into sentence chunks
-    let chunks = sanitizedText.split(/([.!?,;:]+[\s]+|\|PAUSE\|\s*)/).filter(Boolean);
+    // Split text into sentence chunks and pause markers
+    let chunks = sanitizedText.split(/([.!?,;:]+[\s]+|\|PAUSE\|\s*)/i).filter(Boolean);
     let combinedChunks = [];
     let tempChunk = "";
     for(let i = 0; i < chunks.length; i++) {
         tempChunk += chunks[i];
-        if (chunks[i].match(/[.!?,;:]+[\s]+/) || chunks[i].match(/\|PAUSE\|/)) {
-            let ch = tempChunk.replace(/\|PAUSE\|/g, '').trim();
+        if (chunks[i].match(/[.!?,;:]+[\s]+/i) || chunks[i].match(/\|PAUSE\|/i)) {
+            let ch = tempChunk.replace(/\|PAUSE\|/gi, '').trim();
             if (ch) combinedChunks.push(ch);
-            if (chunks[i].match(/\|PAUSE\|/)) combinedChunks.push("|PAUSE|");
+            if (chunks[i].match(/\|PAUSE\|/i)) combinedChunks.push("|PAUSE|");
             tempChunk = "";
         }
     }
-    if (tempChunk.trim()) combinedChunks.push(tempChunk.trim());
-    if (combinedChunks.length === 0) combinedChunks = [sanitizedText];
+    if (tempChunk.trim()) {
+        let ch = tempChunk.replace(/\|PAUSE\|/gi, '').trim();
+        if (ch) combinedChunks.push(ch);
+    }
+    if (combinedChunks.length === 0) combinedChunks = [sanitizedText.replace(/\|PAUSE\|/gi, '')];
 
     audioChunkQueue = [];
     playingQueueIndex = 0;
