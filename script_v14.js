@@ -1505,7 +1505,7 @@ function startAudioPlayback(offset, generationId) {
                 } else {
                     if (!isSpeaking) stopWaveformVisualizer(true);
                 }
-            }, 300);
+            }, 80);
             return;
         }
     }
@@ -1670,7 +1670,7 @@ function advanceBookVerse() {
     setTimeout(() => {
         playBookVerse(nextIndex);
         autoNextBook = true;
-    }, 400); // Wait for smooth scrolling to finish before blocking main thread
+    }, 120);
 }
 // --- Data Loading & Processing ---
 async function loadReligionData(rel) {
@@ -2743,7 +2743,7 @@ function nextCard(isAuto = false) {
             setTimeout(() => {
                 playText(spokenText, 'feed');
                 autoMode = true;
-            }, 360);
+            }, 120);
         } else if (newVerse && newVerse.isAd) {
             if (!newVerse.funnyLine) {
                 newVerse.funnyLine = getNextFunnyLine();
@@ -2752,7 +2752,7 @@ function nextCard(isAuto = false) {
             setTimeout(() => {
                 playText(adSpokenText, 'feed');
                 autoMode = true;
-            }, 360);
+            }, 120);
         }
     } else {
         deselectVerse();
@@ -2787,7 +2787,7 @@ function prevCard() {
             setTimeout(() => {
                 playText(spokenText, 'feed');
                 autoMode = true;
-            }, 360);
+            }, 120);
         } else if (wasPlaying && newVerse && newVerse.isAd) {
             if (!newVerse.funnyLine) {
                 newVerse.funnyLine = getNextFunnyLine();
@@ -2796,7 +2796,7 @@ function prevCard() {
             setTimeout(() => {
                 playText(adSpokenText, 'feed');
                 autoMode = true;
-            }, 360);
+            }, 120);
         } else {
             deselectVerse();
         }
