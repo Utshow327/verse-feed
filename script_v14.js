@@ -2176,7 +2176,7 @@ function processBuddhismData(data) {
                     
                     verses.push({
                         id: `buddhism_${bookName}_${chapNum}_${verseNum}`.toLowerCase().replace(/ /g, '_'),
-                        book: 'Dhammapada',
+                        book: bookName,
                         chapter: chapNum,
                         verse: verseNum,
                         text: cleanText(rawText),
@@ -5327,7 +5327,7 @@ function handlePillDeleteVerse(e) {
 
 function deselectVerse() {
     if (!isSpeaking || isPaused) {
-        stopWaveformVisualizer(true);
+        stopWaveformVisualizer(false);
     }
     if (!selectedVerse) return;
     const wasFolder = selectedVerse.type === 'folder';
