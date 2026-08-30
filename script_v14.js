@@ -499,17 +499,8 @@ let selectedSavedAlbum = null;
 let createdAlbums = JSON.parse(localStorage.getItem('createdAlbums') || '[]');
 if (!Array.isArray(createdAlbums)) createdAlbums = [];
 
-let audioCtx = null;
 function getAudioCtx() {
-    if (!audioCtx) {
-        try {
-            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-            if (AudioContextClass) {
-                audioCtx = new AudioContextClass();
-            }
-        } catch (e) {}
-    }
-    return audioCtx;
+    return getAudioContext();
 }
 
 let musicSourceNode = null;
@@ -1370,25 +1361,6 @@ async function playText(text, context) {
         window.speechSynthesis.speak(currentUtterance);
     };
 
-    // Split text into sentence chunks and pause markers
-    let chunks = sanitizedText.split(/([.!?,;:]+[\s]+|\|PAUSE\|\s*)/i).filter(Boolean);
-    let combinedChunks = [];
-    let tempChunk = "";
-    for(let i = 0; i < chunks.length; i++) {
-        tempChunk += chunks[i];
-        if (chunks[i].match(/[.!?,;:]+[\s]+/i) || chunks[i].match(/\|PAUSE\|/i)) {
-            let ch = tempChunk.replace(/\|PAUSE\|/gi, '').trim();
-            if (ch) combinedChunks.push(ch);
-            if (chunks[i].match(/\|PAUSE\|/i)) combinedChunks.push("|PAUSE|");
-            tempChunk = "";
-        }
-    }
-    if (tempChunk.trim()) {
-        let ch = tempChunk.replace(/\|PAUSE\|/gi, '').trim();
-        if (ch) combinedChunks.push(ch);
-    }
-    if (combinedChunks.length === 0) combinedChunks = [sanitizedText.replace(/\|PAUSE\|/gi, '')];
-
     audioChunkQueue = [];
     playingQueueIndex = 0;
 
@@ -1401,89 +1373,58 @@ async function playText(text, context) {
         }
         if (!piperSession) { fallbackTTS(); return; }
         isQueueGenerating = true;
-        processAudioQueue(combinedChunks, generationId, fallbackTTS, cacheKey);
-    }, 20);
-}
-
-async function processAudioQueue(chunks, generationId, fallbackTTS, cacheKey) {
-    let hasStartedPlayback = false;
-
-    for (let i = 0; i < chunks.length; i++) {
-        if (generationId !== currentGenerationId) break;
-        
-        // Yield cleanly to browser animation frame loop to ensure 60fps rendering
-        await new Promise(r => requestAnimationFrame(() => setTimeout(r, 8)));
-        if (generationId !== currentGenerationId) break;
         
         try {
             const ctx = getAudioContext();
             if (ctx.state === 'suspended') await ctx.resume();
 
-            if (chunks[i] === "|PAUSE|") {
-                const sampleRate = ctx.sampleRate || 22050;
-                const pauseFrames = Math.floor(sampleRate * 0.8);
-                const pauseBuffer = ctx.createBuffer(1, pauseFrames, sampleRate);
-                audioChunkQueue.push(pauseBuffer);
-                continue;
+            const parts = sanitizedText.split(/\|PAUSE\|/i);
+            const buffers = [];
+
+            for (let p = 0; p < parts.length; p++) {
+                if (generationId !== currentGenerationId) break;
+                const partText = parts[p].trim();
+                if (partText) {
+                    const wavBlob = await piperSession.predict(partText);
+                    if (generationId !== currentGenerationId) break;
+                    const arrayBuffer = await wavBlob.arrayBuffer();
+                    const decoded = await ctx.decodeAudioData(arrayBuffer);
+                    buffers.push(decoded);
+                }
+                if (p < parts.length - 1) {
+                    const sampleRate = ctx.sampleRate || 22050;
+                    const pauseFrames = Math.floor(sampleRate * 0.7);
+                    buffers.push(ctx.createBuffer(1, pauseFrames, sampleRate));
+                }
             }
 
-            const wavBlob = await piperSession.predict(chunks[i]);
-            if (generationId !== currentGenerationId) break;
-
-            const arrayBuffer = await wavBlob.arrayBuffer();
-            const decodedData = await ctx.decodeAudioData(arrayBuffer);
-            
-            if (generationId !== currentGenerationId) break;
-
-            const sampleRate = decodedData.sampleRate;
-            const paddingFrames = Math.floor(sampleRate * 0.2);
-            const paddedBuffer = ctx.createBuffer(
-                decodedData.numberOfChannels, 
-                decodedData.length + paddingFrames, 
-                sampleRate
-            );
-            
-            for (let channel = 0; channel < decodedData.numberOfChannels; channel++) {
-                const channelData = paddedBuffer.getChannelData(channel);
-                channelData.set(decodedData.getChannelData(channel), paddingFrames);
+            if (generationId !== currentGenerationId) {
+                isQueueGenerating = false;
+                return;
             }
 
-            audioChunkQueue.push(paddedBuffer);
-
-            // Immediate Pipelined Playback: Start playing chunk 0 instantly while subsequent chunks synthesize in background
-            if (i === 0 && !hasStartedPlayback && isSpeaking && !isPaused && generationId === currentGenerationId) {
-                hasStartedPlayback = true;
+            if (buffers.length > 0) {
+                audioChunkQueue = [...buffers];
+                verseAudioCache.set(cacheKey, [...buffers]);
+                if (verseAudioCache.size > 80) {
+                    const firstKey = verseAudioCache.keys().next().value;
+                    verseAudioCache.delete(firstKey);
+                }
                 isGenerating = false;
+                isQueueGenerating = false;
                 const btn = document.getElementById('speak-general');
                 if (btn) btn.classList.remove('loading');
                 startWaveformVisualizer();
                 startAudioPlayback(0, generationId);
+            } else {
+                fallbackTTS();
             }
-            
         } catch (err) {
-            console.error("Piper generation error on chunk " + i, err);
-            if (i === 0 && generationId === currentGenerationId) fallbackTTS();
-            break;
+            console.error("Piper TTS synthesis failed:", err);
+            isQueueGenerating = false;
+            if (generationId === currentGenerationId) fallbackTTS();
         }
-    }
-    
-    isQueueGenerating = false;
-    if (generationId === currentGenerationId && audioChunkQueue.length > 0) {
-        if (cacheKey) {
-            verseAudioCache.set(cacheKey, [...audioChunkQueue]);
-            if (verseAudioCache.size > 80) {
-                const first = verseAudioCache.keys().next().value;
-                verseAudioCache.delete(first);
-            }
-        }
-        if (!hasStartedPlayback) {
-            const btn = document.getElementById('speak-general');
-            if (btn) btn.classList.remove('loading');
-            isGenerating = false;
-            startWaveformVisualizer();
-            startAudioPlayback(0, generationId);
-        }
-    }
+    }, 20);
 }
 
 function startAudioPlayback(offset, generationId) {
