@@ -1187,7 +1187,7 @@ function stopAudio(preserveAutoMode = false, keepVisualizer = false, isTransitio
             autoNextBook = false;
         }
         if (!keepVisualizer && !preserveAutoMode && !autoMode && !autoNextBook) {
-            stopWaveformVisualizer(true);
+            stopWaveformVisualizer();
         }
         updateSpeakIcons();
         const btn = document.getElementById('speak-general');
@@ -1237,6 +1237,9 @@ async function playText(text, context) {
     isPaused = false;
     currentAudioContextType = context;
     updateSpeakButton('speak-general');
+    
+    // Start visualizer immediately so waves are already animating before any TTS blocking
+    startWaveformVisualizer();
 
     // Load the right voice
     if (ttsRandomVoice) {
@@ -1431,6 +1434,7 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
                 isGenerating = false;
                 const btn = document.getElementById('speak-general');
                 if (btn) btn.classList.remove('loading');
+                startWaveformVisualizer();
                 startAudioPlayback(0, generationId);
             }
             
@@ -1447,6 +1451,7 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
         isGenerating = false;
         const btn = document.getElementById('speak-general');
         if (btn) btn.classList.remove('loading');
+        startWaveformVisualizer();
         startAudioPlayback(0, generationId);
     }
 }
@@ -4791,6 +4796,9 @@ function updateVisualizerThemeCache() {
         const rootStyle = getComputedStyle(document.body);
         const defaultRgb = isDark ? '238, 204, 180' : '48, 40, 34';
         cachedVisualizerRgb = (rootStyle && rootStyle.getPropertyValue('--visualizer-rgb').trim()) || defaultRgb;
+        if (visualizerWorker) {
+            visualizerWorker.postMessage({ type: 'theme', rgb: cachedVisualizerRgb });
+        }
         rebuildVisualizerGradients();
     } catch(e) {}
 }
@@ -4811,9 +4819,196 @@ function rebuildVisualizerGradients() {
     } catch(e) {}
 }
 
+isVisualizerWorkerInitialized = false;
+let visualizerVolumeInterval = null;
+let visualizerDrawGeneration = 0;
+let visualizerDataArray = null;
+
 function initVisualizerWorker() {
+    if (isVisualizerWorkerInitialized) return;
+    const canvas = document.getElementById('waveform-canvas');
+    if (!canvas) return;
+
     updateVisualizerThemeCache();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    visualizerLogicalWidth = Math.max(window.innerWidth, canvas.clientWidth || 0);
+    visualizerLogicalHeight = 380;
+
+    // Check if OffscreenCanvas and Web Worker are supported
+    if (typeof HTMLCanvasElement.prototype.transferControlToOffscreen === 'function' && typeof Worker !== 'undefined') {
+        try {
+            const offscreen = canvas.transferControlToOffscreen();
+            const workerCode = `
+                let canvas = null;
+                let ctx = null;
+                let animFrame = null;
+                let isRunning = false;
+                let logicalWidth = 800;
+                let logicalHeight = 380;
+                let dpr = 1;
+                let visualizerSmoothedVol = 0;
+                let visualizerTargetVol = 0;
+                let cachedRgb = '238, 204, 180';
+                let cachedGradients = [];
+
+                function rebuildGradients() {
+                    if (!ctx) return;
+                    try {
+                        const alphas = [0.3, 0.55, 0.85];
+                        cachedGradients = alphas.map(alpha => {
+                            const grad = ctx.createLinearGradient(0, logicalHeight, 0, logicalHeight - 120);
+                            grad.addColorStop(0, 'rgba(' + cachedRgb + ', ' + alpha + ')');
+                            grad.addColorStop(0.6, 'rgba(' + cachedRgb + ', ' + (alpha * 0.4) + ')');
+                            grad.addColorStop(1, 'rgba(' + cachedRgb + ', 0.0)');
+                            return grad;
+                        });
+                    } catch(e) {}
+                }
+
+                function draw() {
+                    if (!isRunning) {
+                        if (animFrame) cancelAnimationFrame(animFrame);
+                        animFrame = null;
+                        if (ctx && canvas) {
+                            ctx.save();
+                            ctx.setTransform(1, 0, 0, 1, 0, 0);
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            ctx.restore();
+                        }
+                        return;
+                    }
+
+                    animFrame = requestAnimationFrame(draw);
+
+                    visualizerSmoothedVol += (visualizerTargetVol - visualizerSmoothedVol) * 0.18;
+                    visualizerTargetVol *= 0.88;
+
+                    if (!ctx || !canvas) return;
+
+                    ctx.save();
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.restore();
+
+                    const cw = logicalWidth;
+                    const ch = logicalHeight;
+                    const np = Math.max(60, Math.floor(cw / 6));
+                    const sw = (cw + 20) / (np - 1);
+                    const time = Date.now() * 0.001;
+
+                    for (let layerIdx = 0; layerIdx < 3; layerIdx++) {
+                        const speed = [1.5, 1.8, 2.2][layerIdx];
+                        const frequency = [0.005, 0.007, 0.009][layerIdx];
+                        const amplitudeBase = [10, 15, 20][layerIdx];
+                        const audioMult = [60, 80, 110][layerIdx];
+
+                        ctx.beginPath();
+                        ctx.moveTo(-10, ch);
+                        for (let i = 0; i < np; i++) {
+                            const x = -10 + (i * sw);
+                            const wave1 = Math.sin(x * frequency + time * speed);
+                            const wave2 = Math.sin((cw - x) * frequency + time * (speed * 0.85));
+                            const height = amplitudeBase + (wave1 * 8) + (wave2 * 8) + (visualizerSmoothedVol * audioMult);
+                            const y = ch - Math.max(4, height);
+                            ctx.lineTo(x, y);
+                        }
+                        ctx.lineTo(cw + 10, ch);
+                        ctx.closePath();
+                        ctx.fillStyle = (cachedGradients && cachedGradients[layerIdx]) || 'rgba(238, 204, 180, 0.3)';
+                        ctx.fill();
+                    }
+                }
+
+                self.onmessage = function(e) {
+                    const data = e.data;
+                    if (!data) return;
+                    if (data.type === 'init') {
+                        canvas = data.canvas;
+                        logicalWidth = data.width;
+                        logicalHeight = data.height;
+                        dpr = data.dpr;
+                        cachedRgb = data.rgb;
+                        ctx = canvas.getContext('2d', { alpha: true });
+                        if (ctx) {
+                            ctx.setTransform(1, 0, 0, 1, 0, 0);
+                            ctx.scale(dpr, dpr);
+                        }
+                        rebuildGradients();
+                    } else if (data.type === 'start') {
+                        isRunning = true;
+                        if (!animFrame) {
+                            animFrame = requestAnimationFrame(draw);
+                        }
+                    } else if (data.type === 'stop') {
+                        isRunning = false;
+                    } else if (data.type === 'resize') {
+                        logicalWidth = data.width;
+                        logicalHeight = data.height;
+                        dpr = data.dpr;
+                        if (canvas) {
+                            canvas.width = Math.round(logicalWidth * dpr);
+                            canvas.height = Math.round(logicalHeight * dpr);
+                        }
+                        if (ctx) {
+                            ctx.setTransform(1, 0, 0, 1, 0, 0);
+                            ctx.scale(dpr, dpr);
+                        }
+                        rebuildGradients();
+                    } else if (data.type === 'theme') {
+                        cachedRgb = data.rgb;
+                        rebuildGradients();
+                    } else if (data.type === 'volume') {
+                        visualizerTargetVol = data.vol;
+                    }
+                };
+            `;
+            const blob = new Blob([workerCode], { type: 'application/javascript' });
+            visualizerWorker = new Worker(URL.createObjectURL(blob));
+
+            offscreen.width = Math.round(visualizerLogicalWidth * dpr);
+            offscreen.height = Math.round(visualizerLogicalHeight * dpr);
+
+            visualizerWorker.postMessage({
+                type: 'init',
+                canvas: offscreen,
+                width: visualizerLogicalWidth,
+                height: visualizerLogicalHeight,
+                dpr: dpr,
+                rgb: cachedVisualizerRgb
+            }, [offscreen]);
+
+            isVisualizerWorkerInitialized = true;
+            return;
+        } catch(e) {
+            console.warn("OffscreenCanvas worker setup fell back to main-thread:", e);
+            visualizerWorker = null;
+        }
+    }
     resizeWaveformCanvas();
+    isVisualizerWorkerInitialized = true;
+}
+
+function startVisualizerVolumeFeed() {
+    if (visualizerVolumeInterval) clearInterval(visualizerVolumeInterval);
+    const bufferLength = (audioAnalyser && audioAnalyser.frequencyBinCount) || 64;
+    const dataArray = new Uint8Array(bufferLength);
+
+    visualizerVolumeInterval = setInterval(() => {
+        if (!isSpeaking || isPaused) {
+            if (visualizerWorker) visualizerWorker.postMessage({ type: 'volume', vol: 0 });
+            return;
+        }
+        if (audioAnalyser) {
+            audioAnalyser.getByteFrequencyData(dataArray);
+            let sum = 0;
+            const len = dataArray.length;
+            for (let i = 0; i < len; i++) sum += dataArray[i];
+            const avgVolume = sum / len / 255.0;
+            if (visualizerWorker) {
+                visualizerWorker.postMessage({ type: 'volume', vol: avgVolume });
+            }
+        }
+    }, 33);
 }
 
 function resizeWaveformCanvas() {
@@ -4822,6 +5017,17 @@ function resizeWaveformCanvas() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     visualizerLogicalWidth = Math.max(window.innerWidth, canvas.clientWidth || 0);
     visualizerLogicalHeight = 380;
+
+    if (visualizerWorker) {
+        visualizerWorker.postMessage({
+            type: 'resize',
+            width: visualizerLogicalWidth,
+            height: visualizerLogicalHeight,
+            dpr: dpr
+        });
+        return;
+    }
+
     const targetWidth = Math.round(visualizerLogicalWidth * dpr);
     const targetHeight = Math.round(visualizerLogicalHeight * dpr);
 
@@ -4840,18 +5046,25 @@ function resizeWaveformCanvas() {
 }
 window.addEventListener('resize', resizeWaveformCanvas, { passive: true });
 
-let visualizerDrawGeneration = 0;
-let visualizerDataArray = null;
-
 function startWaveformVisualizer() {
     clearTimeout(visualizerFadeTimeout);
     const canvas = document.getElementById('waveform-canvas');
     if (!canvas) return;
-    if (!waveformCanvasCtx) resizeWaveformCanvas();
+    
+    // Smooth Fade-In Animation
     canvas.style.display = 'block';
-    canvas.classList.add('active');
+    requestAnimationFrame(() => {
+        canvas.classList.add('active');
+    });
 
-    // Bump generation to kill any orphaned draw loops
+    if (visualizerWorker) {
+        visualizerWorker.postMessage({ type: 'start' });
+        startVisualizerVolumeFeed();
+        return;
+    }
+
+    // Main-thread fallback
+    if (!waveformCanvasCtx) resizeWaveformCanvas();
     visualizerDrawGeneration++;
     const myGeneration = visualizerDrawGeneration;
 
@@ -4862,7 +5075,6 @@ function startWaveformVisualizer() {
 
     const ctx = waveformCanvasCtx || canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
-
     updateVisualizerThemeCache();
 
     const bufferLength = (audioAnalyser && audioAnalyser.frequencyBinCount) || 64;
@@ -4871,40 +5083,28 @@ function startWaveformVisualizer() {
     }
 
     function draw() {
-        // Kill this loop if a newer generation started or canvas deactivated
         if (myGeneration !== visualizerDrawGeneration) return;
 
-        if (!canvas || !canvas.classList.contains('active')) {
+        if (!canvas || canvas.style.display === 'none') {
             waveformAnimFrame = null;
-            ctx.save();
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.restore();
-            canvas.style.display = 'none';
             return;
         }
 
         waveformAnimFrame = requestAnimationFrame(draw);
 
-        // Clear entire physical buffer
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.restore();
 
-        if (audioAnalyser && isSpeaking && !isPaused && !isGenerating) {
+        if (audioAnalyser && isSpeaking && !isPaused) {
             audioAnalyser.getByteFrequencyData(visualizerDataArray);
             let sum = 0;
             const len = visualizerDataArray.length;
             for (let i = 0; i < len; i++) sum += visualizerDataArray[i];
             const avgVolume = sum / len / 255.0;
             visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.14;
-        } else if (isSpeaking && isGenerating) {
-            // Interverse cached animation: maintain gentle idle amplitude
-            const idleTarget = 0.06;
-            visualizerSmoothedVol += (idleTarget - visualizerSmoothedVol) * 0.05;
         } else {
-            // Fade out gently
             visualizerSmoothedVol *= 0.88;
         }
 
@@ -4942,45 +5142,31 @@ function startWaveformVisualizer() {
 
 function stopWaveformVisualizer(forceHide = false) {
     const canvas = document.getElementById('waveform-canvas');
-    if (canvas) {
-        canvas.classList.remove('active');
-        if (forceHide) {
-            visualizerDrawGeneration++;
-            if (waveformAnimFrame) {
-                cancelAnimationFrame(waveformAnimFrame);
-                waveformAnimFrame = null;
-            }
-            if (waveformCanvasCtx) {
-                try {
-                    waveformCanvasCtx.save();
-                    waveformCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
-                    waveformCanvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-                    waveformCanvasCtx.restore();
-                } catch(e) {}
-            }
-            canvas.style.display = 'none';
-            return;
-        }
+    if (!canvas) return;
+
+    // Smooth Fade-Out Animation
+    canvas.classList.remove('active');
+
+    if (forceHide) {
         clearTimeout(visualizerFadeTimeout);
-        visualizerFadeTimeout = setTimeout(() => {
-            if (!canvas.classList.contains('active')) {
-                visualizerDrawGeneration++;
-                if (waveformAnimFrame) {
-                    cancelAnimationFrame(waveformAnimFrame);
-                    waveformAnimFrame = null;
-                }
-                if (waveformCanvasCtx) {
-                    try {
-                        waveformCanvasCtx.save();
-                        waveformCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
-                        waveformCanvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-                        waveformCanvasCtx.restore();
-                    } catch(e) {}
-                }
-                canvas.style.display = 'none';
-            }
-        }, 400);
+        if (visualizerWorker) visualizerWorker.postMessage({ type: 'stop' });
+        if (visualizerVolumeInterval) { clearInterval(visualizerVolumeInterval); visualizerVolumeInterval = null; }
+        visualizerDrawGeneration++;
+        if (waveformAnimFrame) { cancelAnimationFrame(waveformAnimFrame); waveformAnimFrame = null; }
+        canvas.style.display = 'none';
+        return;
     }
+
+    clearTimeout(visualizerFadeTimeout);
+    visualizerFadeTimeout = setTimeout(() => {
+        if (!canvas.classList.contains('active')) {
+            if (visualizerWorker) visualizerWorker.postMessage({ type: 'stop' });
+            if (visualizerVolumeInterval) { clearInterval(visualizerVolumeInterval); visualizerVolumeInterval = null; }
+            visualizerDrawGeneration++;
+            if (waveformAnimFrame) { cancelAnimationFrame(waveformAnimFrame); waveformAnimFrame = null; }
+            canvas.style.display = 'none';
+        }
+    }, 450);
 }
 
 function applyRandomPremiumAngle() {
@@ -5736,7 +5922,7 @@ function handlePillPlay(e) {
                     currentAudioNode.stop();
                 } catch (err) { }
             }
-            stopWaveformVisualizer(true);
+            stopWaveformVisualizer();
             updateSpeakIcons();
             updatePillUI();
         } else {
