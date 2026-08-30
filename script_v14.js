@@ -2785,15 +2785,19 @@ function prevCard() {
                 spokenText += '. ' + newVerse.book + '.';
             }
 
-            playText(spokenText, 'feed');
-            autoMode = true;
+            setTimeout(() => {
+                playText(spokenText, 'feed');
+                autoMode = true;
+            }, 350);
         } else if (wasPlaying && newVerse && newVerse.isAd) {
             if (!newVerse.funnyLine) {
                 newVerse.funnyLine = getNextFunnyLine();
             }
             const adSpokenText = "VerseFeed Premium. " + newVerse.funnyLine;
-            playText(adSpokenText, 'feed');
-            autoMode = true;
+            setTimeout(() => {
+                playText(adSpokenText, 'feed');
+                autoMode = true;
+            }, 350);
         } else {
             deselectVerse();
         }
@@ -4836,6 +4840,9 @@ function resizeWaveformCanvas() {
 }
 window.addEventListener('resize', resizeWaveformCanvas, { passive: true });
 
+const _vizFreqData = new Uint8Array(64);
+let _vizSmoothedVoiceEnergy = 0;
+
 function startWaveformVisualizer() {
     clearTimeout(visualizerFadeTimeout);
     const canvas = document.getElementById('waveform-canvas');
@@ -4847,20 +4854,6 @@ function startWaveformVisualizer() {
     if (waveformAnimFrame) return;
     const ctx = waveformCanvasCtx || canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
-    
-    const bufferLength = (audioAnalyser && audioAnalyser.frequencyBinCount) || 64;
-    const dataArray = new Uint8Array(bufferLength);
-
-    // Pre-compute layer configs (speed, frequency, amplitudeBase, audioMult)
-    const layers = [
-        { speed: 1.5, freq: 0.005, ampBase: 10, audioMult: 60 },
-        { speed: 1.8, freq: 0.007, ampBase: 15, audioMult: 80 },
-        { speed: 2.2, freq: 0.009, ampBase: 20, audioMult: 110 }
-    ];
-
-    // Throttle to ~30fps for smooth performance
-    let lastDrawTime = 0;
-    const frameInterval = 33; // ~30fps
 
     function draw(timestamp) {
         if (!canvas) return;
@@ -4877,53 +4870,81 @@ function startWaveformVisualizer() {
 
         waveformAnimFrame = requestAnimationFrame(draw);
 
-        // Throttle: skip frames to maintain ~30fps
-        if (timestamp - lastDrawTime < frameInterval) return;
-        lastDrawTime = timestamp;
-
-        // Audio volume sampling
+        // Sample real audio frequency spectrum
+        let speechEnergy = 0;
         if (audioAnalyser && isSpeaking && !isPaused) {
-            audioAnalyser.getByteFrequencyData(dataArray);
+            audioAnalyser.getByteFrequencyData(_vizFreqData);
             let sum = 0;
-            const len = dataArray.length;
-            for (let i = 0; i < len; i++) sum += dataArray[i];
-            const avgVolume = sum / len / 255.0;
-            visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.14;
+            // Focus on voice speech frequency range (bins 2 to 30)
+            const count = Math.min(_vizFreqData.length, 32);
+            for (let i = 2; i < count; i++) {
+                sum += _vizFreqData[i];
+            }
+            speechEnergy = (sum / (count - 2)) / 255.0;
+            // Dynamic attack (fast response to words) and smooth release (natural decay)
+            const attackRate = speechEnergy > _vizSmoothedVoiceEnergy ? 0.38 : 0.15;
+            _vizSmoothedVoiceEnergy += (speechEnergy - _vizSmoothedVoiceEnergy) * attackRate;
         } else {
-            visualizerSmoothedVol *= 0.88;
+            _vizSmoothedVoiceEnergy *= 0.88;
         }
 
         ctx.clearRect(0, 0, visualizerLogicalWidth, visualizerLogicalHeight);
 
-        // Rebuild gradients only when theme or canvas size changes
         if (_vizGradientsDirty || !_vizGradients) {
             _rebuildVizGradients(ctx);
         }
 
-        const time = performance.now() * 0.001;
-        // Reduced point count: ~60 points instead of 120+ (imperceptible visual difference)
-        const numPoints = Math.max(60, Math.floor(visualizerLogicalWidth / 8));
-        const sliceWidth = visualizerLogicalWidth / (numPoints - 1);
+        const time = timestamp * 0.001;
+        const w = visualizerLogicalWidth;
         const h = visualizerLogicalHeight;
-        const vol = visualizerSmoothedVol;
+        const voiceBoost = Math.pow(_vizSmoothedVoiceEnergy, 1.2) * 160; // Up to 160px voice peak
+
+        const numPoints = Math.max(48, Math.min(96, Math.floor(w / 8)));
+        const sliceWidth = w / (numPoints - 1);
+        const centerIdx = numPoints / 2;
+
+        // Layer configs: [speed, frequency, baseIdleHeight, voiceMultiplier, gradientIndex]
+        const layerParams = [
+            { speed: 1.6, freq: 0.006, idleH: 8, voiceMult: 0.55, grad: 0 },
+            { speed: 2.1, freq: 0.009, idleH: 14, voiceMult: 0.82, grad: 1 },
+            { speed: 2.7, freq: 0.013, idleH: 20, voiceMult: 1.15, grad: 2 }
+        ];
 
         for (let l = 0; l < 3; l++) {
-            const { speed, freq, ampBase, audioMult } = layers[l];
-            const tSpeed = time * speed;
-            const tSpeed2 = time * speed * 0.8;
-            const freq2 = freq * 1.5;
+            const lp = layerParams[l];
+            const tSpeed = time * lp.speed;
+            const freq = lp.freq;
+            const mult = lp.voiceMult;
 
             ctx.beginPath();
             ctx.moveTo(0, h);
+
             for (let i = 0; i < numPoints; i++) {
                 const x = i * sliceWidth;
-                const xf = x * freq;
-                const height = ampBase + (Math.sin(xf + tSpeed) * 12) + (Math.sin(x * freq2 - tSpeed2) * 8) + (vol * audioMult);
-                ctx.lineTo(x, h - Math.max(4, height));
+                
+                // Gaussian envelope to peak in the center where screen text sits
+                const distFromCenter = Math.abs(i - centerIdx) / centerIdx;
+                const bellCurve = Math.exp(-distFromCenter * distFromCenter * 2.2);
+
+                // Sample specific frequency bin for this horizontal position
+                const binIdx = Math.min(30, Math.floor((1 - distFromCenter) * 28) + 2);
+                const binVal = (_vizFreqData[binIdx] || 0) / 255.0;
+
+                // Idle ambient sine wave
+                const idleWave = Math.sin(x * freq + tSpeed) * (lp.idleH * 0.6) + Math.sin(x * freq * 1.6 - tSpeed * 0.7) * (lp.idleH * 0.4);
+
+                // Dynamic voice peak combining overall volume and localized frequency bin
+                const reactiveVoiceH = (voiceBoost * mult * bellCurve) * (0.4 + binVal * 0.6);
+
+                const totalHeight = lp.idleH + idleWave + reactiveVoiceH;
+                const y = h - Math.max(3, totalHeight);
+
+                ctx.lineTo(x, y);
             }
-            ctx.lineTo(visualizerLogicalWidth, h);
+
+            ctx.lineTo(w, h);
             ctx.closePath();
-            ctx.fillStyle = _vizGradients[l];
+            ctx.fillStyle = _vizGradients[lp.grad];
             ctx.fill();
         }
     }
