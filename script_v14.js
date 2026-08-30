@@ -417,6 +417,9 @@ let visualizerLogicalHeight = 380;
 let visualizerAudioInterval = null;
 let waveformCanvasCtx = null;
 let visualizerSmoothedVol = 0;
+let cachedVisualizerRgb = '238, 204, 180';
+let cachedIsDark = true;
+let cachedGradLayers = [];
 let currentAppSessionPremiumAngle = null;
 let isSpeaking = false;
 let isPaused = false;
@@ -655,9 +658,10 @@ let isProgrammaticScroll = false;
 // (System TTS fallback setup removed, purely using offline Piper TTS)
 
 async function checkForAppUpdates() {
-    if (!window.Capacitor || !Capacitor.isNative) return;
+    const isNative = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+    if (!isNative || !window.Capacitor.Plugins) return;
     try {
-        const AppUpdate = Capacitor.Plugins.AppUpdate;
+        const AppUpdate = window.Capacitor.Plugins.AppUpdate;
         if (AppUpdate) {
             const result = await AppUpdate.getAppUpdateInfo();
             // 2 = UPDATE_AVAILABLE
@@ -3037,9 +3041,13 @@ function _showSavedVersesImpl(rebuildFolders = true) {
             
             grid.appendChild(folder);
         });
-        frag.appendChild(grid);
         // Atomic swap: replaces all children at once, no blank frame
-        foldersContainer.replaceChildren(frag);
+        if (typeof foldersContainer.replaceChildren === 'function') {
+            foldersContainer.replaceChildren(frag);
+        } else {
+            foldersContainer.innerHTML = '';
+            foldersContainer.appendChild(frag);
+        }
     }
     
     // Rebuild verses list using a fragment for atomic swap
@@ -3111,7 +3119,12 @@ function _showSavedVersesImpl(rebuildFolders = true) {
     }
     
     // Atomic swap: replaces all children at once, no blank frame
-    versesContainer.replaceChildren(versesFrag);
+    if (typeof versesContainer.replaceChildren === 'function') {
+        versesContainer.replaceChildren(versesFrag);
+    } else {
+        versesContainer.innerHTML = '';
+        versesContainer.appendChild(versesFrag);
+    }
     
     if (selectedVerse) {
         highlightSelectedVerseElement(true);
@@ -3980,7 +3993,7 @@ function updateChapterWheelActiveStyle() {
 
 function getChapterWheelItems() {
     const wheel = document.getElementById('chapter-scroll-wheel');
-    return wheel ? Array.from(wheel.querySelectorAll('.chap-wheel-item[data-val]')) : [];
+    return (wheel && typeof wheel.querySelectorAll === 'function') ? Array.from(wheel.querySelectorAll('.chap-wheel-item[data-val]')) : [];
 }
 
 function getActiveChapterWheelItem() {
@@ -4193,7 +4206,7 @@ function renderVoiceSettings() {
 
 function getVoiceWheelItems() {
     const wheel = document.getElementById('voice-scroll-wheel');
-    return wheel ? Array.from(wheel.querySelectorAll('.voice-wheel-item[data-val]')) : [];
+    return (wheel && typeof wheel.querySelectorAll === 'function') ? Array.from(wheel.querySelectorAll('.voice-wheel-item[data-val]')) : [];
 }
 
 function voiceWheelSelect(val) {
@@ -4774,12 +4787,9 @@ function advanceSavedVerse() {
 
 /* --- Audio Waveform Visualizer (60fps Optimized) --- */
 
-let cachedVisualizerRgb = '238, 204, 180';
-let cachedIsDark = true;
-let cachedGradLayers = [];
-
 function updateVisualizerThemeCache() {
     try {
+        if (!document.body) return;
         cachedIsDark = document.body.getAttribute('data-theme') === 'dark';
         const rootStyle = getComputedStyle(document.body);
         const defaultRgb = cachedIsDark ? '238, 204, 180' : '48, 40, 34';
@@ -4790,44 +4800,47 @@ function updateVisualizerThemeCache() {
 
 function rebuildVisualizerGradients() {
     if (!waveformCanvasCtx) return;
-    const alphas = [0.3, 0.55, 0.85];
-    cachedGradLayers = alphas.map(alpha => {
-        const layerAlpha = cachedIsDark ? Math.min(1.0, alpha * 1.35) : alpha;
-        const grad = waveformCanvasCtx.createLinearGradient(0, visualizerLogicalHeight, 0, visualizerLogicalHeight - 120);
-        grad.addColorStop(0, `rgba(${cachedVisualizerRgb}, ${layerAlpha})`);
-        grad.addColorStop(0.6, `rgba(${cachedVisualizerRgb}, ${layerAlpha * 0.4})`);
-        grad.addColorStop(1, `rgba(${cachedVisualizerRgb}, 0.0)`);
-        return grad;
-    });
+    try {
+        const alphas = [0.3, 0.55, 0.85];
+        cachedGradLayers = alphas.map(alpha => {
+            const layerAlpha = cachedIsDark ? Math.min(1.0, alpha * 1.35) : alpha;
+            const grad = waveformCanvasCtx.createLinearGradient(0, visualizerLogicalHeight, 0, visualizerLogicalHeight - 120);
+            grad.addColorStop(0, `rgba(${cachedVisualizerRgb}, ${layerAlpha})`);
+            grad.addColorStop(0.6, `rgba(${cachedVisualizerRgb}, ${layerAlpha * 0.4})`);
+            grad.addColorStop(1, `rgba(${cachedVisualizerRgb}, 0.0)`);
+            return grad;
+        });
+    } catch(e) {}
 }
 
 function initVisualizerWorker() {
-    updateVisualizerThemeCache();
     resizeWaveformCanvas();
+    updateVisualizerThemeCache();
 }
 
 function resizeWaveformCanvas() {
     const canvas = document.getElementById('waveform-canvas');
     if (!canvas) return;
-    // Cap DPR at 1.5 for maximum GPU performance while maintaining crispness
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-    visualizerLogicalWidth = window.innerWidth;
-    visualizerLogicalHeight = 380;
-    const targetWidth = Math.floor(visualizerLogicalWidth * dpr);
-    const targetHeight = Math.floor(visualizerLogicalHeight * dpr);
+    try {
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+        visualizerLogicalWidth = window.innerWidth;
+        visualizerLogicalHeight = 380;
+        const targetWidth = Math.floor(visualizerLogicalWidth * dpr);
+        const targetHeight = Math.floor(visualizerLogicalHeight * dpr);
 
-    if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
-        canvas.width = targetWidth;
-        canvas.height = targetHeight;
-        canvas.style.width = visualizerLogicalWidth + 'px';
-        canvas.style.height = visualizerLogicalHeight + 'px';
-    }
-    waveformCanvasCtx = canvas.getContext('2d', { alpha: true, desynchronized: true });
-    if (waveformCanvasCtx) {
-        waveformCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
-        waveformCanvasCtx.scale(dpr, dpr);
-    }
-    rebuildVisualizerGradients();
+        if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            canvas.style.width = visualizerLogicalWidth + 'px';
+            canvas.style.height = visualizerLogicalHeight + 'px';
+        }
+        waveformCanvasCtx = canvas.getContext('2d', { alpha: true });
+        if (waveformCanvasCtx) {
+            waveformCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
+            waveformCanvasCtx.scale(dpr, dpr);
+        }
+        rebuildVisualizerGradients();
+    } catch(e) {}
 }
 window.addEventListener('resize', resizeWaveformCanvas, { passive: true });
 
@@ -4953,8 +4966,10 @@ function applyRandomPremiumAngle() {
     }
 
     const btn = document.getElementById('user-premium-btn');
-    if (btn) {
-        btn.style.setProperty('--prem-angle', `${sessionUserPremiumAngle}deg`);
+    if (btn && btn.style) {
+        if (typeof btn.style.setProperty === 'function') {
+            btn.style.setProperty('--prem-angle', `${sessionUserPremiumAngle}deg`);
+        }
         btn.style.transform = `rotate(${sessionUserPremiumAngle}deg)`;
         btn.style.transition = 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
     }

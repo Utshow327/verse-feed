@@ -169,7 +169,6 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     transition: opacity 0.35s ease;
     will-change: opacity, transform;
     transform: translateZ(0);
-    contain: strict;
 }
 #waveform-canvas.active {
     opacity: 1;
