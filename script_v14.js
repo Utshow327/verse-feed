@@ -2684,27 +2684,23 @@ function renderFeedCard(index, direction = 'none') {
 
     if (direction !== 'none') {
         const oldCard = stage.querySelector('.card-center');
-        card.classList.add('animating');
         stage.appendChild(card);
         requestAnimationFrame(() => {
-            if (oldCard) {
-                oldCard.classList.add('animating');
-                oldCard.classList.remove('card-center');
-                if (direction === 'next') oldCard.classList.add('card-left');
-                else oldCard.classList.add('card-right');
-                setTimeout(() => {
-                    if (oldCard && oldCard.parentNode) oldCard.remove();
-                }, 400);
-            }
-            card.classList.remove('card-right', 'card-left');
-            card.classList.add('card-center');
-            setTimeout(() => {
-                if (card) card.classList.remove('animating');
-            }, 400);
+            requestAnimationFrame(() => {
+                if (oldCard) {
+                    oldCard.classList.remove('card-center');
+                    if (direction === 'next') oldCard.classList.add('card-left');
+                    else oldCard.classList.add('card-right');
+                    setTimeout(() => {
+                        if (oldCard && oldCard.parentNode) oldCard.remove();
+                    }, 380);
+                }
+                card.classList.remove('card-right', 'card-left');
+                card.classList.add('card-center');
+            });
         });
     } else {
         stage.innerHTML = '';
-        card.classList.remove('animating');
         card.classList.add('card-center');
         stage.appendChild(card);
     }
