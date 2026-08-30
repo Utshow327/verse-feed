@@ -4774,11 +4774,40 @@ function advanceSavedVerse() {
 
 /* --- Audio Waveform Visualizer --- */
 
+// Cached theme values (updated only on theme change, not every frame)
+let _vizRgb = '238, 204, 180';
+let _vizIsDark = true;
+let _vizGradients = null; // pre-built gradient cache
+let _vizGradientsDirty = true;
+
 function initVisualizerWorker() {
     resizeWaveformCanvas();
+    updateVisualizerThemeCache();
 }
 
-function updateVisualizerThemeCache() {}
+function updateVisualizerThemeCache() {
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+    const rootStyle = getComputedStyle(document.body);
+    const defaultRgb = isDark ? '238, 204, 180' : '48, 40, 34';
+    _vizIsDark = isDark;
+    _vizRgb = (rootStyle && rootStyle.getPropertyValue('--visualizer-rgb').trim()) || defaultRgb;
+    _vizGradientsDirty = true;
+}
+
+function _rebuildVizGradients(ctx) {
+    if (!ctx) return;
+    const layerAlphas = [0.3, 0.55, 0.85];
+    _vizGradients = [];
+    for (let l = 0; l < 3; l++) {
+        const grad = ctx.createLinearGradient(0, visualizerLogicalHeight, 0, visualizerLogicalHeight - 120);
+        const a = _vizIsDark ? Math.min(1.0, layerAlphas[l] * 1.35) : layerAlphas[l];
+        grad.addColorStop(0, `rgba(${_vizRgb}, ${a})`);
+        grad.addColorStop(0.6, `rgba(${_vizRgb}, ${a * 0.4})`);
+        grad.addColorStop(1, `rgba(${_vizRgb}, 0.0)`);
+        _vizGradients.push(grad);
+    }
+    _vizGradientsDirty = false;
+}
 
 function resizeWaveformCanvas() {
     const canvas = document.getElementById('waveform-canvas');
@@ -4795,11 +4824,12 @@ function resizeWaveformCanvas() {
         canvas.style.width = visualizerLogicalWidth + 'px';
         canvas.style.height = visualizerLogicalHeight + 'px';
     }
-    waveformCanvasCtx = canvas.getContext('2d', { alpha: true });
+    waveformCanvasCtx = canvas.getContext('2d', { alpha: true, desynchronized: true });
     if (waveformCanvasCtx) {
         waveformCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
         waveformCanvasCtx.scale(dpr, dpr);
     }
+    _vizGradientsDirty = true;
 }
 window.addEventListener('resize', resizeWaveformCanvas, { passive: true });
 
@@ -4812,13 +4842,24 @@ function startWaveformVisualizer() {
     canvas.classList.add('active');
 
     if (waveformAnimFrame) return;
-    const ctx = waveformCanvasCtx || canvas.getContext('2d', { alpha: true });
+    const ctx = waveformCanvasCtx || canvas.getContext('2d', { alpha: true, desynchronized: true });
     if (!ctx) return;
     
     const bufferLength = (audioAnalyser && audioAnalyser.frequencyBinCount) || 64;
     const dataArray = new Uint8Array(bufferLength);
 
-    function draw() {
+    // Pre-compute layer configs (speed, frequency, amplitudeBase, audioMult)
+    const layers = [
+        { speed: 1.5, freq: 0.005, ampBase: 10, audioMult: 60 },
+        { speed: 1.8, freq: 0.007, ampBase: 15, audioMult: 80 },
+        { speed: 2.2, freq: 0.009, ampBase: 20, audioMult: 110 }
+    ];
+
+    // Throttle to ~30fps for smooth performance
+    let lastDrawTime = 0;
+    const frameInterval = 33; // ~30fps
+
+    function draw(timestamp) {
         if (!canvas) return;
         const isActive = canvas.classList.contains('active');
         if (!isActive && (!isSpeaking || isPaused)) {
@@ -4833,9 +4874,14 @@ function startWaveformVisualizer() {
 
         waveformAnimFrame = requestAnimationFrame(draw);
 
-        let sum = 0;
+        // Throttle: skip frames to maintain ~30fps
+        if (timestamp - lastDrawTime < frameInterval) return;
+        lastDrawTime = timestamp;
+
+        // Audio volume sampling
         if (audioAnalyser && isSpeaking && !isPaused) {
             audioAnalyser.getByteFrequencyData(dataArray);
+            let sum = 0;
             const len = dataArray.length;
             for (let i = 0; i < len; i++) sum += dataArray[i];
             const avgVolume = sum / len / 255.0;
@@ -4846,45 +4892,40 @@ function startWaveformVisualizer() {
 
         ctx.clearRect(0, 0, visualizerLogicalWidth, visualizerLogicalHeight);
 
-        const isDark = document.body.getAttribute('data-theme') === 'dark';
-        const rootStyle = getComputedStyle(document.body);
-        const defaultRgb = isDark ? '238, 204, 180' : '48, 40, 34';
-        const rgbStr = (rootStyle && rootStyle.getPropertyValue('--visualizer-rgb').trim()) || defaultRgb;
+        // Rebuild gradients only when theme or canvas size changes
+        if (_vizGradientsDirty || !_vizGradients) {
+            _rebuildVizGradients(ctx);
+        }
 
-        const time = Date.now() * 0.001;
-        const numPoints = Math.max(120, Math.floor(visualizerLogicalWidth / 4));
+        const time = performance.now() * 0.001;
+        // Reduced point count: ~60 points instead of 120+ (imperceptible visual difference)
+        const numPoints = Math.max(60, Math.floor(visualizerLogicalWidth / 8));
         const sliceWidth = visualizerLogicalWidth / (numPoints - 1);
+        const h = visualizerLogicalHeight;
+        const vol = visualizerSmoothedVol;
 
-        const drawLayer = (speed, frequency, amplitudeBase, audioMult, alpha) => {
+        for (let l = 0; l < 3; l++) {
+            const { speed, freq, ampBase, audioMult } = layers[l];
+            const tSpeed = time * speed;
+            const tSpeed2 = time * speed * 0.8;
+            const freq2 = freq * 1.5;
+
             ctx.beginPath();
-            ctx.moveTo(0, visualizerLogicalHeight);
+            ctx.moveTo(0, h);
             for (let i = 0; i < numPoints; i++) {
                 const x = i * sliceWidth;
-                const wave1 = Math.sin(x * frequency + time * speed);
-                const wave2 = Math.sin(x * frequency * 1.5 - time * speed * 0.8);
-                const height = amplitudeBase + (wave1 * 12) + (wave2 * 8) + (visualizerSmoothedVol * audioMult);
-                const y = visualizerLogicalHeight - Math.max(4, height);
-                ctx.lineTo(x, y);
+                const xf = x * freq;
+                const height = ampBase + (Math.sin(xf + tSpeed) * 12) + (Math.sin(x * freq2 - tSpeed2) * 8) + (vol * audioMult);
+                ctx.lineTo(x, h - Math.max(4, height));
             }
-            ctx.lineTo(visualizerLogicalWidth, visualizerLogicalHeight);
+            ctx.lineTo(visualizerLogicalWidth, h);
             ctx.closePath();
-
-            const grad = ctx.createLinearGradient(0, visualizerLogicalHeight, 0, visualizerLogicalHeight - 120);
-            const layerAlpha = isDark ? Math.min(1.0, alpha * 1.35) : alpha;
-            grad.addColorStop(0, `rgba(${rgbStr}, ${layerAlpha})`);
-            grad.addColorStop(0.6, `rgba(${rgbStr}, ${layerAlpha * 0.4})`);
-            grad.addColorStop(1, `rgba(${rgbStr}, 0.0)`);
-
-            ctx.fillStyle = grad;
+            ctx.fillStyle = _vizGradients[l];
             ctx.fill();
-        };
-
-        drawLayer(1.5, 0.005, 10, 60, 0.3);
-        drawLayer(1.8, 0.007, 15, 80, 0.55);
-        drawLayer(2.2, 0.009, 20, 110, 0.85);
+        }
     }
 
-    draw();
+    draw(performance.now());
 }
 
 function stopWaveformVisualizer(forceHide = false) {
