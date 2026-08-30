@@ -181,9 +181,7 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     bottom: max(20px, calc(10px + env(safe-area-inset-bottom, 0px)));
     top: auto;
     left: 50%;
-    transform: translateX(-50%) translateZ(0);
-    will-change: transform;
-    isolation: isolate;
+    transform: translateX(-50%);
     background: var(--nav-bg) !important;
     backdrop-filter: blur(10px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
@@ -281,7 +279,6 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     display: none !important;
     background: var(--bg-grad-1);
     z-index: 1;
-    contain: content;
 }
 
 .app-section.active-section {
@@ -2604,7 +2601,6 @@ h2 {
     height: 100vh;
     pointer-events: none;
     z-index: 9999;
-    contain: strict;
 }
 .radial-item {
     position: absolute;

@@ -1217,104 +1217,19 @@ let autoNextTimeout = null;
 
 let lastRandomVoiceId = null;
 
-const prefetchedAudioBuffers = new Map();
-
-function sanitizeTextForTTS(rawText) {
-    if (!rawText) return "";
-    let text = rawText.replace(/son\(s\)/gi, 'sons')
-                      .replace(/god's/gi, 'gods')
-                      .replace(/god 's/gi, 'gods')
-                      .replace(/\(l\d+\)/gi, '')
-                      .replace(/\[l\d+\]/gi, '')
-                      .replace(/-/g, ' ')
-                      .replace(/<span class='author-attr'>.*?<\/span>/gm, '')
-                      .replace(/<[^>]*>?/gm, '');
-
-    let sanitized = text.replace(/may peace be upon him/gi, 'upon him')
-                        .replace(/peace be upon him/gi, 'upon him')
-                        .replace(/ﷺ/g, 'upon him')
-                        .replace(/\(pbuh\)/gi, 'upon him');
-
-    sanitized = sanitized.replace(/\b[A-Z]{2,}\b/g, (match) => {
-        if (match.toUpperCase() === 'PAUSE') return 'PAUSE';
-        return match.charAt(0) + match.slice(1).toLowerCase();
-    });
-
-    return ", " + sanitized
-        .replace(/\b[iI]\.[eE]\./g, 'that is')
-        .replace(/\b[iI],[eE]\b/g, 'that is')
-        .replace(/[:;]/g, '. ');
-}
-
-async function prefetchVerseAudio(spokenText, voiceId) {
-    if (!spokenText || !piperSession || !voiceId) return;
-    const sanitized = sanitizeTextForTTS(spokenText);
-    const key = voiceId + ':' + sanitized;
-    if (prefetchedAudioBuffers.has(key)) return;
-
-    try {
-        const ctx = getAudioContext();
-        if (!ctx) return;
-        const wavBlob = await piperSession.predict(sanitized.replace(/\|PAUSE\|/gi, '').trim());
-        if (!wavBlob) return;
-        const arrayBuffer = await wavBlob.arrayBuffer();
-        const decodedData = await ctx.decodeAudioData(arrayBuffer);
-        if (!decodedData) return;
-
-        const sampleRate = decodedData.sampleRate;
-        const paddingFrames = Math.floor(sampleRate * 0.2);
-        const paddedBuffer = ctx.createBuffer(
-            decodedData.numberOfChannels,
-            decodedData.length + paddingFrames,
-            sampleRate
-        );
-        for (let ch = 0; ch < decodedData.numberOfChannels; ch++) {
-            paddedBuffer.getChannelData(ch).set(decodedData.getChannelData(ch), paddingFrames);
-        }
-
-        if (prefetchedAudioBuffers.size > 25) {
-            const firstKey = prefetchedAudioBuffers.keys().next().value;
-            prefetchedAudioBuffers.delete(firstKey);
-        }
-        prefetchedAudioBuffers.set(key, [paddedBuffer]);
-    } catch(e) {}
-}
-
-function triggerLookAheadPrefetch(context) {
-    setTimeout(async () => {
-        try {
-            if (!piperSession) return;
-            let nextText = null;
-            if (context === 'feed') {
-                const nextVerse = getVerseAtIndex(currentVerseIndex.general + 1);
-                if (nextVerse && !nextVerse.isAd) {
-                    nextText = nextVerse.spoken_text || nextVerse.text;
-                    if (!nextText.endsWith('.')) nextText += '.';
-                    if (ttsAnnounceSource) nextText += '. ' + nextVerse.book + '.';
-                }
-            } else if (context === 'book') {
-                const nextIdx = (bookVoiceCurrentVerse + 1) % bookVoiceTotalVerses;
-                const info = globalVerseMap[nextIdx];
-                if (info) {
-                    nextText = info.spoken_text || info.text;
-                    if (lastAnnouncedChapter !== info.chapter) {
-                        const chapStr = isNaN(info.chapter) ? info.chapter : 'Chapter ' + info.chapter;
-                        nextText = chapStr + '. ' + nextText;
-                    }
-                    if (!nextText.endsWith('.')) nextText += '.';
-                }
-            }
-            if (nextText) {
-                prefetchVerseAudio(nextText, selectedVoice);
-            }
-        } catch(e) {}
-    }, 400);
-}
-
 async function playText(text, context) {
     // Stop any current audio with transition flag so UI remains in continuous generating/playing state
     stopAudio(true, true, true);
+    // NOW capture the new generationId (after stop bumped it)
     const generationId = currentGenerationId;
+
+    // Clean text for TTS pronunciation
+    text = text.replace(/son\(s\)/gi, 'sons')
+               .replace(/god's/gi, 'gods')
+               .replace(/god 's/gi, 'gods')
+               .replace(/\(l\d+\)/gi, '')
+               .replace(/\[l\d+\]/gi, '')
+               .replace(/-/g, ' ');
 
     // Immediately enter generating state with opacity pulse animation on play button
     isGenerating = true;
@@ -1322,6 +1237,9 @@ async function playText(text, context) {
     isPaused = false;
     currentAudioContextType = context;
     updateSpeakButton('speak-general');
+    
+    // Start visualizer immediately so waves are already animating before any TTS blocking
+    startWaveformVisualizer();
 
     // Load the right voice
     if (ttsRandomVoice) {
@@ -1347,38 +1265,33 @@ async function playText(text, context) {
         return;
     }
 
+    // Check if still valid after async initPiper
     if (generationId !== currentGenerationId) {
         isGenerating = false;
         return;
     }
 
-    const sanitizedText = sanitizeTextForTTS(text);
-    const cacheKey = selectedVoice + ':' + sanitizedText;
+    // Strip HTML
+    text = text.replace(/<span class='author-attr'>.*?<\/span>/gm, '');
+    text = text.replace(/<[^>]*>?/gm, '');
 
-    // INSTANT PLAYBACK IF CACHED
-    if (prefetchedAudioBuffers.has(cacheKey)) {
-        const cachedQueue = prefetchedAudioBuffers.get(cacheKey);
-        if (cachedQueue && cachedQueue.length > 0) {
-            audioChunkQueue = [...cachedQueue];
-            playingQueueIndex = 0;
-            isGenerating = false;
-            isSpeaking = true;
-            isPaused = false;
-            updateSpeakButton('speak-general');
-            const btn = document.getElementById('speak-general');
-            if (btn) btn.classList.remove('loading');
-            startWaveformVisualizer();
-            startAudioPlayback(0, generationId);
-            triggerLookAheadPrefetch(context);
-            return;
-        }
-    }
+    isGenerating = true;
 
-    generateAndPlayPiperTTS(sanitizedText, generationId, context);
-}
+    let sanitizedText = text.replace(/may peace be upon him/gi, 'upon him')
+        .replace(/peace be upon him/gi, 'upon him')
+        .replace(/ﷺ/g, 'upon him')
+        .replace(/\(pbuh\)/gi, 'upon him');
 
-function generateAndPlayPiperTTS(sanitizedText, generationId, context) {
-    const btn = document.getElementById('speak-general');
+    // Convert all-caps words (like GOD, LORD, ALLAH, HEAVEN) to Titlecase so phonemizer reads them as words, but protect |PAUSE|
+    sanitizedText = sanitizedText.replace(/\b[A-Z]{2,}\b/g, (match) => {
+        if (match.toUpperCase() === 'PAUSE') return 'PAUSE';
+        return match.charAt(0) + match.slice(1).toLowerCase();
+    });
+
+    sanitizedText = ", " + sanitizedText
+        .replace(/\b[iI]\.[eE]\./g, 'that is')
+        .replace(/\b[iI],[eE]\b/g, 'that is')
+        .replace(/[:;]/g, '. ');
 
     const fallbackTTS = () => {
         console.log("Using browser TTS fallback");
@@ -1461,16 +1374,18 @@ function generateAndPlayPiperTTS(sanitizedText, generationId, context) {
         }
         if (!piperSession) { fallbackTTS(); return; }
         isQueueGenerating = true;
-        processAudioQueue(combinedChunks, generationId, fallbackTTS, sanitizedText, context);
+        processAudioQueue(combinedChunks, generationId, fallbackTTS);
     }, 20);
 }
 
-async function processAudioQueue(chunks, generationId, fallbackTTS, originalSanitizedText = "", context = "") {
+async function processAudioQueue(chunks, generationId, fallbackTTS) {
+    let playbackStarted = false;
+    
     for (let i = 0; i < chunks.length; i++) {
         if (generationId !== currentGenerationId) break;
         
-        // Yield cleanly to browser animation frame loop
-        await new Promise(r => requestAnimationFrame(() => setTimeout(r, 10)));
+        // Yield to let browser paint animation frames BEFORE heavy work
+        await new Promise(r => setTimeout(r, 1));
         if (generationId !== currentGenerationId) break;
         
         try {
@@ -1479,7 +1394,7 @@ async function processAudioQueue(chunks, generationId, fallbackTTS, originalSani
 
             if (chunks[i] === "|PAUSE|") {
                 const sampleRate = ctx.sampleRate || 22050;
-                const pauseFrames = Math.floor(sampleRate * 0.8); // 0.8 seconds pause
+                const pauseFrames = Math.floor(sampleRate * 0.8);
                 const pauseBuffer = ctx.createBuffer(1, pauseFrames, sampleRate);
                 audioChunkQueue.push(pauseBuffer);
                 continue;
@@ -1488,13 +1403,17 @@ async function processAudioQueue(chunks, generationId, fallbackTTS, originalSani
             const wavBlob = await piperSession.predict(chunks[i]);
             if (generationId !== currentGenerationId) break;
 
+            // Yield AFTER predict so browser can paint frames between heavy CPU blocks
+            await new Promise(r => setTimeout(r, 1));
+            if (generationId !== currentGenerationId) break;
+
             const arrayBuffer = await wavBlob.arrayBuffer();
             const decodedData = await ctx.decodeAudioData(arrayBuffer);
             
             if (generationId !== currentGenerationId) break;
 
             const sampleRate = decodedData.sampleRate;
-            const paddingFrames = Math.floor(sampleRate * 0.2); // 200ms pause
+            const paddingFrames = Math.floor(sampleRate * 0.2);
             const paddedBuffer = ctx.createBuffer(
                 decodedData.numberOfChannels, 
                 decodedData.length + paddingFrames, 
@@ -1507,15 +1426,16 @@ async function processAudioQueue(chunks, generationId, fallbackTTS, originalSani
             }
 
             audioChunkQueue.push(paddedBuffer);
-
-            // Stream playback immediately on the very first chunk while subsequent chunks synthesize in the background
-            if (i === 0 && !currentAudioNode && isSpeaking && !isPaused && generationId === currentGenerationId) {
+            
+            // START PLAYBACK IMMEDIATELY after the first chunk is ready
+            // Don't wait for all chunks — remaining chunks generate while audio plays
+            if (!playbackStarted && generationId === currentGenerationId) {
+                playbackStarted = true;
                 isGenerating = false;
                 const btn = document.getElementById('speak-general');
                 if (btn) btn.classList.remove('loading');
                 startWaveformVisualizer();
                 startAudioPlayback(0, generationId);
-                triggerLookAheadPrefetch(context);
             }
             
         } catch (err) {
@@ -1526,26 +1446,13 @@ async function processAudioQueue(chunks, generationId, fallbackTTS, originalSani
     }
     
     isQueueGenerating = false;
-    if (generationId === currentGenerationId && audioChunkQueue.length > 0) {
+    // If playback never started (e.g. single chunk edge case), start it now
+    if (!playbackStarted && generationId === currentGenerationId && audioChunkQueue.length > 0) {
+        isGenerating = false;
         const btn = document.getElementById('speak-general');
         if (btn) btn.classList.remove('loading');
-        isGenerating = false;
-
-        // Cache the fully synthesized chunks for instant re-play and lookahead
-        if (originalSanitizedText) {
-            const cacheKey = selectedVoice + ':' + originalSanitizedText;
-            if (prefetchedAudioBuffers.size > 25) {
-                const firstKey = prefetchedAudioBuffers.keys().next().value;
-                prefetchedAudioBuffers.delete(firstKey);
-            }
-            prefetchedAudioBuffers.set(cacheKey, [...audioChunkQueue]);
-        }
-        
-        if (!currentAudioNode) {
-            startWaveformVisualizer();
-            startAudioPlayback(0, generationId);
-            triggerLookAheadPrefetch(context);
-        }
+        startWaveformVisualizer();
+        startAudioPlayback(0, generationId);
     }
 }
 
@@ -1772,7 +1679,7 @@ function advanceBookVerse() {
     setTimeout(() => {
         playBookVerse(nextIndex);
         autoNextBook = true;
-    }, 400); // Wait for smooth scrolling to finish before blocking main thread
+    }, 50);
 }
 // --- Data Loading & Processing ---
 async function loadReligionData(rel) {
@@ -2845,7 +2752,7 @@ function nextCard(isAuto = false) {
             setTimeout(() => {
                 playText(spokenText, 'feed');
                 autoMode = true;
-            }, 360);
+            }, 100);
         } else if (newVerse && newVerse.isAd) {
             if (!newVerse.funnyLine) {
                 newVerse.funnyLine = getNextFunnyLine();
@@ -2854,7 +2761,7 @@ function nextCard(isAuto = false) {
             setTimeout(() => {
                 playText(adSpokenText, 'feed');
                 autoMode = true;
-            }, 360);
+            }, 100);
         }
     } else {
         deselectVerse();
@@ -2889,7 +2796,7 @@ function prevCard() {
             setTimeout(() => {
                 playText(spokenText, 'feed');
                 autoMode = true;
-            }, 360);
+            }, 100);
         } else if (wasPlaying && newVerse && newVerse.isAd) {
             if (!newVerse.funnyLine) {
                 newVerse.funnyLine = getNextFunnyLine();
@@ -2898,7 +2805,7 @@ function prevCard() {
             setTimeout(() => {
                 playText(adSpokenText, 'feed');
                 autoMode = true;
-            }, 360);
+            }, 100);
         } else {
             deselectVerse();
         }
@@ -4575,12 +4482,12 @@ document.addEventListener('DOMContentLoaded', () => {
             clearTimeout(tooltipTimeout);
             tooltipTimeout = setTimeout(() => showTooltip(target), 1000);
         }
-    }, { passive: true });
+    });
 
     document.addEventListener('mouseout', (e) => {
         const target = e.target.closest('[data-tooltip]');
         if (target) hideTooltip();
-    }, { passive: true });
+    });
 
     document.addEventListener('touchstart', (e) => {
         const target = e.target.closest('[data-tooltip]');
@@ -4590,12 +4497,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             hideTooltip();
         }
-    }, { passive: true });
+    }, {passive: true});
 
-    document.addEventListener('touchend', hideTooltip, { passive: true });
-    document.addEventListener('touchmove', hideTooltip, { passive: true });
-    document.addEventListener('mousedown', hideTooltip, { passive: true });
-    document.addEventListener('input', hideTooltip, { passive: true });
+    document.addEventListener('touchend', hideTooltip);
+    document.addEventListener('touchmove', hideTooltip, {passive: true});
+    document.addEventListener('mousedown', hideTooltip, {passive: true});
+    document.addEventListener('input', hideTooltip, {passive: true});
 });
 
 /* --- Pinterest-style Radial Menu --- */
@@ -4613,12 +4520,10 @@ const RADIAL_ACTIONS = {
     delete: { id: 'delete', icon: '???', color: '#f44336' }
 };
 
-function getContextVerseForRadial() {
-    const isFeed = document.getElementById('verse-feed').classList.contains('active-section');
-    if (isFeed && verseBatches.general && verseBatches.general[currentVerseIndex.general]) {
-        return verseBatches.general[currentVerseIndex.general];
-    }
-    const isBookSection = document.getElementById('read-books').classList.contains('active-section');
+function getCurrentActiveVerse() {
+    const isBookSection = document.getElementById('read-books').classList.contains('active-section') && !document.getElementById('book-content-view').classList.contains('hidden');
+    const isFeedSection = document.getElementById('verse-feed').classList.contains('active-section');
+    if (isFeedSection) return getVerseAtIndex(currentVerseIndex.general);
     if (isBookSection && globalVerseMap[bookVoiceCurrentVerse]) return globalVerseMap[bookVoiceCurrentVerse];
     return null;
 }
@@ -4642,7 +4547,6 @@ function bindRadialMenu(element, getVerseFn, actionIds, onClickFn) {
 }
 
 window.addEventListener('pointermove', (e) => {
-    if (!radialActive && !radialTimeout) return;
     if (!radialActive) {
         // Cancel hold if moved too far before timeout
         if (radialTimeout && currentRadialElement) {
@@ -4655,7 +4559,7 @@ window.addEventListener('pointermove', (e) => {
         return;
     }
     updateRadialMenu(e.clientX, e.clientY);
-}, { passive: true });
+});
 
 window.addEventListener('pointerup', (e) => {
     if (radialTimeout) {
@@ -4846,7 +4750,7 @@ function advanceSearchVerse() {
             let textToSpeak = nextMatch.spoken_text || nextMatch.text;
             playText(textToSpeak, 'search');
             autoMode = true;
-        }, 400);
+        }, 50);
     } else {
         stopAudio();
     }
@@ -4878,7 +4782,7 @@ function advanceSavedVerse() {
             let textToSpeak = nextItem.v.spoken_text || nextItem.v.text;
             playText(textToSpeak, 'saved');
             autoMode = true;
-        }, 400); // Allow card animation to finish
+        }, 50);
     } else {
         stopAudio();
     }
@@ -4960,6 +4864,8 @@ function startWaveformVisualizer() {
     
     const bufferLength = (audioAnalyser && audioAnalyser.frequencyBinCount) || 64;
     const dataArray = new Uint8Array(bufferLength);
+    const numPoints = Math.max(60, Math.floor(visualizerLogicalWidth / 6));
+    const sliceWidth = (visualizerLogicalWidth + 20) / (numPoints - 1);
 
     function draw() {
         if (!canvas || !canvas.classList.contains('active')) {
@@ -4974,7 +4880,13 @@ function startWaveformVisualizer() {
 
         waveformAnimFrame = requestAnimationFrame(draw);
 
-        if (audioAnalyser && isSpeaking && !isPaused && !isGenerating) {
+        // Pristine physical buffer clear before rendering every frame
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+
+        if (audioAnalyser && isSpeaking && !isPaused) {
             audioAnalyser.getByteFrequencyData(dataArray);
             let sum = 0;
             const len = dataArray.length;
@@ -4987,65 +4899,38 @@ function startWaveformVisualizer() {
 
         const currentWidth = visualizerLogicalWidth;
         const currentHeight = visualizerLogicalHeight;
-        const numPoints = Math.min(80, Math.max(45, Math.floor(currentWidth / 14)));
+        const numPoints = Math.max(60, Math.floor(currentWidth / 6));
         const sliceWidth = (currentWidth + 20) / (numPoints - 1);
-        const time = performance.now() * 0.001;
 
-        ctx.clearRect(-10, 0, currentWidth + 30, currentHeight);
+        const time = Date.now() * 0.001;
 
-        // Layer 1
-        ctx.beginPath();
-        ctx.moveTo(-10, currentHeight);
-        for (let i = 0; i < numPoints; i++) {
-            const x = -10 + (i * sliceWidth);
-            const wave1 = Math.sin(x * 0.005 + time * 1.5);
-            const wave2 = Math.sin((currentWidth - x) * 0.005 + time * 1.275);
-            const height = 10 + (wave1 * 8) + (wave2 * 8) + (visualizerSmoothedVol * 60);
-            ctx.lineTo(x, currentHeight - Math.max(4, height));
-        }
-        ctx.lineTo(currentWidth + 10, currentHeight);
-        ctx.closePath();
-        ctx.fillStyle = (cachedGradLayers && cachedGradLayers[0]) || 'rgba(238, 204, 180, 0.3)';
-        ctx.fill();
+        const drawLayer = (speed, frequency, amplitudeBase, audioMult, layerIdx) => {
+            ctx.beginPath();
+            ctx.moveTo(-10, currentHeight);
+            for (let i = 0; i < numPoints; i++) {
+                const x = -10 + (i * sliceWidth);
+                const wave1 = Math.sin(x * frequency + time * speed);
+                const wave2 = Math.sin((currentWidth - x) * frequency + time * (speed * 0.85));
+                const height = amplitudeBase + (wave1 * 8) + (wave2 * 8) + (visualizerSmoothedVol * audioMult);
+                const y = currentHeight - Math.max(4, height);
+                ctx.lineTo(x, y);
+            }
+            ctx.lineTo(currentWidth + 10, currentHeight);
+            ctx.closePath();
 
-        // Layer 2
-        ctx.beginPath();
-        ctx.moveTo(-10, currentHeight);
-        for (let i = 0; i < numPoints; i++) {
-            const x = -10 + (i * sliceWidth);
-            const wave1 = Math.sin(x * 0.007 + time * 1.8);
-            const wave2 = Math.sin((currentWidth - x) * 0.007 + time * 1.53);
-            const height = 15 + (wave1 * 8) + (wave2 * 8) + (visualizerSmoothedVol * 80);
-            ctx.lineTo(x, currentHeight - Math.max(4, height));
-        }
-        ctx.lineTo(currentWidth + 10, currentHeight);
-        ctx.closePath();
-        ctx.fillStyle = (cachedGradLayers && cachedGradLayers[1]) || 'rgba(238, 204, 180, 0.3)';
-        ctx.fill();
+            ctx.fillStyle = (cachedGradLayers && cachedGradLayers[layerIdx]) || 'rgba(238, 204, 180, 0.3)';
+            ctx.fill();
+        };
 
-        // Layer 3
-        ctx.beginPath();
-        ctx.moveTo(-10, currentHeight);
-        for (let i = 0; i < numPoints; i++) {
-            const x = -10 + (i * sliceWidth);
-            const wave1 = Math.sin(x * 0.009 + time * 2.2);
-            const wave2 = Math.sin((currentWidth - x) * 0.009 + time * 1.87);
-            const height = 20 + (wave1 * 8) + (wave2 * 8) + (visualizerSmoothedVol * 110);
-            ctx.lineTo(x, currentHeight - Math.max(4, height));
-        }
-        ctx.lineTo(currentWidth + 10, currentHeight);
-        ctx.closePath();
-        ctx.fillStyle = (cachedGradLayers && cachedGradLayers[2]) || 'rgba(238, 204, 180, 0.3)';
-        ctx.fill();
+        drawLayer(1.5, 0.005, 10, 60, 0);
+        drawLayer(1.8, 0.007, 15, 80, 1);
+        drawLayer(2.2, 0.009, 20, 110, 2);
     }
 
     waveformAnimFrame = requestAnimationFrame(draw);
 }
 
 function stopWaveformVisualizer(forceHide = false) {
-    if (!forceHide && (autoMode || autoNextBook || isSpeaking || isGenerating)) {
-        return;
-    }
     const canvas = document.getElementById('waveform-canvas');
     if (canvas) {
         canvas.classList.remove('active');
@@ -5062,7 +4947,7 @@ function stopWaveformVisualizer(forceHide = false) {
         }
         clearTimeout(visualizerFadeTimeout);
         visualizerFadeTimeout = setTimeout(() => {
-            if (!canvas.classList.contains('active') && !isSpeaking && !autoMode && !autoNextBook) {
+            if (!canvas.classList.contains('active')) {
                 if (waveformAnimFrame) {
                     cancelAnimationFrame(waveformAnimFrame);
                     waveformAnimFrame = null;
@@ -5613,24 +5498,19 @@ function updatePillUI() {
     updateVerseActions();
 }
 
-let activeSavedVerseElement = null;
-
 function selectVerse(verseObj, type, elementId, forceSelect = false) {
     if (verseObj && verseObj.isAd) return;
-    if (activeSavedVerseElement) {
-        activeSavedVerseElement.style.background = '';
-        activeSavedVerseElement.style.color = '';
-        activeSavedVerseElement.style.opacity = '';
-        activeSavedVerseElement.style.borderColor = '';
-        const t = activeSavedVerseElement.querySelector('.verse-text');
+    // Clear all existing saved verse element highlights to prevent multi-selection
+    document.querySelectorAll('.saved-verse').forEach(el => {
+        el.style.background = '';
+        el.style.color = '';
+        el.style.opacity = '';
+        el.style.borderColor = '';
+        const t = el.querySelector('.verse-text');
         if (t) t.style.color = '';
-        const r = activeSavedVerseElement.querySelector('.verse-ref');
+        const r = el.querySelector('.verse-ref');
         if (r) r.style.color = '';
-        activeSavedVerseElement = null;
-    }
-    if (elementId && type === 'saved') {
-        activeSavedVerseElement = document.getElementById(elementId);
-    }
+    });
     let isDifferentVerse = false;
     if (!selectedVerse) {
         isDifferentVerse = true;
