@@ -989,13 +989,8 @@ function showVoiceInstallingToast(msg = "Installing voice...", percent = null) {
     if (!toast || !msgEl) return;
     
     let displayMsg = msg;
-    if (typeof percent === 'number') {
-        if (percent >= 100) {
-            displayMsg = "Voice ready";
-        } else {
-            const clean = msg.replace(/\.\.\..*$/, '').replace(/\s*\d+%.*$/, '');
-            displayMsg = `${clean}... ${Math.round(percent)}%`;
-        }
+    if (typeof percent === 'number' && percent >= 100) {
+        displayMsg = "Voice ready";
     }
     
     msgEl.textContent = displayMsg;
