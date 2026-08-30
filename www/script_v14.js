@@ -1481,31 +1481,31 @@ function startAudioPlayback(offset, generationId) {
             isGenerating = false;
             currentAudioPausedAt = 0;
 
-            const isAutoContinuing = (currentAudioContextType === 'feed' && autoMode) ||
-                                     (currentAudioContextType === 'book' && autoNextBook) ||
-                                     (currentAudioContextType === 'saved' && autoMode) ||
-                                     (currentAudioContextType === 'search' && autoMode);
-
-            if (!isAutoContinuing) {
+            if (currentAudioContextType === 'feed' && autoMode) {
+                clearTimeout(autoNextTimeout);
+                autoNextTimeout = setTimeout(() => {
+                    nextCard(true);
+                }, 100);
+            } else if (currentAudioContextType === 'book' && autoNextBook) {
+                clearTimeout(autoNextTimeout);
+                autoNextTimeout = setTimeout(() => {
+                    advanceBookVerse();
+                }, 100);
+            } else if (currentAudioContextType === 'saved' && autoMode) {
+                clearTimeout(autoNextTimeout);
+                autoNextTimeout = setTimeout(() => {
+                    advanceSavedVerse();
+                }, 100);
+            } else if (currentAudioContextType === 'search' && autoMode) {
+                clearTimeout(autoNextTimeout);
+                autoNextTimeout = setTimeout(() => {
+                    advanceSearchVerse();
+                }, 100);
+            } else {
                 isSpeaking = false;
                 updateSpeakButton('speak-general');
                 stopWaveformVisualizer(true);
             }
-
-            clearTimeout(autoNextTimeout);
-            autoNextTimeout = setTimeout(() => {
-                if (currentAudioContextType === 'feed' && autoMode) {
-                    nextCard(true);
-                } else if (currentAudioContextType === 'book' && autoNextBook) {
-                    advanceBookVerse();
-                } else if (currentAudioContextType === 'saved' && autoMode) {
-                    advanceSavedVerse();
-                } else if (currentAudioContextType === 'search' && autoMode) {
-                    advanceSearchVerse();
-                } else {
-                    if (!isSpeaking) stopWaveformVisualizer(true);
-                }
-            }, 80);
             return;
         }
     }
