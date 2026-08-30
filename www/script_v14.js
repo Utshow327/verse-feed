@@ -4786,12 +4786,17 @@ function initVisualizerWorker() {
 }
 
 function updateVisualizerThemeCache() {
-    const isDark = document.body.getAttribute('data-theme') === 'dark';
-    const rootStyle = getComputedStyle(document.body);
-    const defaultRgb = isDark ? '238, 204, 180' : '48, 40, 34';
-    _vizIsDark = isDark;
-    _vizRgb = (rootStyle && rootStyle.getPropertyValue('--visualizer-rgb').trim()) || defaultRgb;
-    _vizGradientsDirty = true;
+    try {
+        if (!document.body) return;
+        const isDark = document.body.getAttribute('data-theme') === 'dark';
+        const rootStyle = getComputedStyle(document.body);
+        const defaultRgb = isDark ? '238, 204, 180' : '48, 40, 34';
+        _vizIsDark = isDark;
+        _vizRgb = (rootStyle && rootStyle.getPropertyValue('--visualizer-rgb').trim()) || defaultRgb;
+        _vizGradientsDirty = true;
+    } catch(e) {
+        // Silently ignore if DOM not ready
+    }
 }
 
 function _rebuildVizGradients(ctx) {
@@ -4824,7 +4829,7 @@ function resizeWaveformCanvas() {
         canvas.style.width = visualizerLogicalWidth + 'px';
         canvas.style.height = visualizerLogicalHeight + 'px';
     }
-    waveformCanvasCtx = canvas.getContext('2d', { alpha: true, desynchronized: true });
+    waveformCanvasCtx = canvas.getContext('2d', { alpha: true });
     if (waveformCanvasCtx) {
         waveformCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
         waveformCanvasCtx.scale(dpr, dpr);
@@ -4842,7 +4847,7 @@ function startWaveformVisualizer() {
     canvas.classList.add('active');
 
     if (waveformAnimFrame) return;
-    const ctx = waveformCanvasCtx || canvas.getContext('2d', { alpha: true, desynchronized: true });
+    const ctx = waveformCanvasCtx || canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
     
     const bufferLength = (audioAnalyser && audioAnalyser.frequencyBinCount) || 64;
