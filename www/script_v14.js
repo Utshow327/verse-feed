@@ -2736,7 +2736,7 @@ function nextCard(isAuto = false) {
             setTimeout(() => {
                 playText(spokenText, 'feed');
                 autoMode = true;
-            }, 420); // Allow card animation to finish completely
+            }, 100);
         } else if (newVerse && newVerse.isAd) {
             if (!newVerse.funnyLine) {
                 newVerse.funnyLine = getNextFunnyLine();
@@ -2745,7 +2745,7 @@ function nextCard(isAuto = false) {
             setTimeout(() => {
                 playText(adSpokenText, 'feed');
                 autoMode = true;
-            }, 420);
+            }, 100);
         }
     } else {
         deselectVerse();
@@ -2780,7 +2780,7 @@ function prevCard() {
             setTimeout(() => {
                 playText(spokenText, 'feed');
                 autoMode = true;
-            }, 420);
+            }, 100);
         } else if (wasPlaying && newVerse && newVerse.isAd) {
             if (!newVerse.funnyLine) {
                 newVerse.funnyLine = getNextFunnyLine();
@@ -2789,7 +2789,7 @@ function prevCard() {
             setTimeout(() => {
                 playText(adSpokenText, 'feed');
                 autoMode = true;
-            }, 420);
+            }, 100);
         } else {
             deselectVerse();
         }
@@ -4875,22 +4875,25 @@ function startWaveformVisualizer() {
             visualizerSmoothedVol *= 0.88;
         }
 
-        ctx.clearRect(0, 0, visualizerLogicalWidth + 20, visualizerLogicalHeight);
+        const currentWidth = visualizerLogicalWidth;
+        const currentHeight = visualizerLogicalHeight;
+        const numPoints = Math.max(60, Math.floor(currentWidth / 6));
+        const sliceWidth = (currentWidth + 20) / (numPoints - 1);
 
         const time = Date.now() * 0.001;
 
         const drawLayer = (speed, frequency, amplitudeBase, audioMult, layerIdx) => {
             ctx.beginPath();
-            ctx.moveTo(-10, visualizerLogicalHeight);
+            ctx.moveTo(-10, currentHeight);
             for (let i = 0; i < numPoints; i++) {
                 const x = -10 + (i * sliceWidth);
                 const wave1 = Math.sin(x * frequency + time * speed);
                 const wave2 = Math.sin(x * frequency * 1.5 - time * speed * 0.8);
                 const height = amplitudeBase + (wave1 * 12) + (wave2 * 8) + (visualizerSmoothedVol * audioMult);
-                const y = visualizerLogicalHeight - Math.max(4, height);
+                const y = currentHeight - Math.max(4, height);
                 ctx.lineTo(x, y);
             }
-            ctx.lineTo(visualizerLogicalWidth + 10, visualizerLogicalHeight);
+            ctx.lineTo(currentWidth + 10, currentHeight);
             ctx.closePath();
 
             ctx.fillStyle = (cachedGradLayers && cachedGradLayers[layerIdx]) || 'rgba(238, 204, 180, 0.3)';
