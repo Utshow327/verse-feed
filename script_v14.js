@@ -4845,6 +4845,9 @@ function resizeWaveformCanvas() {
 }
 window.addEventListener('resize', resizeWaveformCanvas, { passive: true });
 
+let visualizerDrawGeneration = 0;
+let visualizerDataArray = null;
+
 function startWaveformVisualizer() {
     clearTimeout(visualizerFadeTimeout);
     const canvas = document.getElementById('waveform-canvas');
@@ -4853,78 +4856,85 @@ function startWaveformVisualizer() {
     canvas.style.display = 'block';
     canvas.classList.add('active');
 
+    // Bump generation to kill any orphaned draw loops
+    visualizerDrawGeneration++;
+    const myGeneration = visualizerDrawGeneration;
+
     if (waveformAnimFrame) {
         cancelAnimationFrame(waveformAnimFrame);
         waveformAnimFrame = null;
     }
+
     const ctx = waveformCanvasCtx || canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
-    
+
     updateVisualizerThemeCache();
-    
+
     const bufferLength = (audioAnalyser && audioAnalyser.frequencyBinCount) || 64;
-    const dataArray = new Uint8Array(bufferLength);
-    const numPoints = Math.max(60, Math.floor(visualizerLogicalWidth / 6));
-    const sliceWidth = (visualizerLogicalWidth + 20) / (numPoints - 1);
+    if (!visualizerDataArray || visualizerDataArray.length !== bufferLength) {
+        visualizerDataArray = new Uint8Array(bufferLength);
+    }
 
     function draw() {
+        // Kill this loop if a newer generation started or canvas deactivated
+        if (myGeneration !== visualizerDrawGeneration) return;
+
         if (!canvas || !canvas.classList.contains('active')) {
-            if (waveformAnimFrame) {
-                cancelAnimationFrame(waveformAnimFrame);
-                waveformAnimFrame = null;
-            }
-            if (ctx) ctx.clearRect(0, 0, visualizerLogicalWidth + 20, visualizerLogicalHeight);
+            waveformAnimFrame = null;
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
             canvas.style.display = 'none';
             return;
         }
 
         waveformAnimFrame = requestAnimationFrame(draw);
 
-        // Pristine physical buffer clear before rendering every frame
+        // Clear entire physical buffer
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.restore();
 
         if (audioAnalyser && isSpeaking && !isPaused) {
-            audioAnalyser.getByteFrequencyData(dataArray);
+            audioAnalyser.getByteFrequencyData(visualizerDataArray);
             let sum = 0;
-            const len = dataArray.length;
-            for (let i = 0; i < len; i++) sum += dataArray[i];
+            const len = visualizerDataArray.length;
+            for (let i = 0; i < len; i++) sum += visualizerDataArray[i];
             const avgVolume = sum / len / 255.0;
             visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.14;
         } else {
             visualizerSmoothedVol *= 0.88;
         }
 
-        const currentWidth = visualizerLogicalWidth;
-        const currentHeight = visualizerLogicalHeight;
-        const numPoints = Math.max(60, Math.floor(currentWidth / 6));
-        const sliceWidth = (currentWidth + 20) / (numPoints - 1);
-
+        const cw = visualizerLogicalWidth;
+        const ch = visualizerLogicalHeight;
+        const np = Math.max(60, Math.floor(cw / 6));
+        const sw = (cw + 20) / (np - 1);
         const time = Date.now() * 0.001;
 
-        const drawLayer = (speed, frequency, amplitudeBase, audioMult, layerIdx) => {
+        for (let layerIdx = 0; layerIdx < 3; layerIdx++) {
+            const speed = [1.5, 1.8, 2.2][layerIdx];
+            const frequency = [0.005, 0.007, 0.009][layerIdx];
+            const amplitudeBase = [10, 15, 20][layerIdx];
+            const audioMult = [60, 80, 110][layerIdx];
+
             ctx.beginPath();
-            ctx.moveTo(-10, currentHeight);
-            for (let i = 0; i < numPoints; i++) {
-                const x = -10 + (i * sliceWidth);
+            ctx.moveTo(-10, ch);
+            for (let i = 0; i < np; i++) {
+                const x = -10 + (i * sw);
                 const wave1 = Math.sin(x * frequency + time * speed);
-                const wave2 = Math.sin((currentWidth - x) * frequency + time * (speed * 0.85));
+                const wave2 = Math.sin((cw - x) * frequency + time * (speed * 0.85));
                 const height = amplitudeBase + (wave1 * 8) + (wave2 * 8) + (visualizerSmoothedVol * audioMult);
-                const y = currentHeight - Math.max(4, height);
+                const y = ch - Math.max(4, height);
                 ctx.lineTo(x, y);
             }
-            ctx.lineTo(currentWidth + 10, currentHeight);
+            ctx.lineTo(cw + 10, ch);
             ctx.closePath();
-
             ctx.fillStyle = (cachedGradLayers && cachedGradLayers[layerIdx]) || 'rgba(238, 204, 180, 0.3)';
             ctx.fill();
-        };
-
-        drawLayer(1.5, 0.005, 10, 60, 0);
-        drawLayer(1.8, 0.007, 15, 80, 1);
-        drawLayer(2.2, 0.009, 20, 110, 2);
+        }
     }
 
     waveformAnimFrame = requestAnimationFrame(draw);
@@ -4935,12 +4945,18 @@ function stopWaveformVisualizer(forceHide = false) {
     if (canvas) {
         canvas.classList.remove('active');
         if (forceHide) {
+            visualizerDrawGeneration++;
             if (waveformAnimFrame) {
                 cancelAnimationFrame(waveformAnimFrame);
                 waveformAnimFrame = null;
             }
             if (waveformCanvasCtx) {
-                try { waveformCanvasCtx.clearRect(0, 0, visualizerLogicalWidth + 20, visualizerLogicalHeight); } catch(e) {}
+                try {
+                    waveformCanvasCtx.save();
+                    waveformCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
+                    waveformCanvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+                    waveformCanvasCtx.restore();
+                } catch(e) {}
             }
             canvas.style.display = 'none';
             return;
@@ -4948,12 +4964,18 @@ function stopWaveformVisualizer(forceHide = false) {
         clearTimeout(visualizerFadeTimeout);
         visualizerFadeTimeout = setTimeout(() => {
             if (!canvas.classList.contains('active')) {
+                visualizerDrawGeneration++;
                 if (waveformAnimFrame) {
                     cancelAnimationFrame(waveformAnimFrame);
                     waveformAnimFrame = null;
                 }
                 if (waveformCanvasCtx) {
-                    try { waveformCanvasCtx.clearRect(0, 0, visualizerLogicalWidth + 20, visualizerLogicalHeight); } catch(e) {}
+                    try {
+                        waveformCanvasCtx.save();
+                        waveformCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
+                        waveformCanvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+                        waveformCanvasCtx.restore();
+                    } catch(e) {}
                 }
                 canvas.style.display = 'none';
             }
