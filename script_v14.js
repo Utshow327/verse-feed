@@ -417,10 +417,6 @@ let visualizerLogicalHeight = 380;
 let visualizerAudioInterval = null;
 let waveformCanvasCtx = null;
 let visualizerSmoothedVol = 0;
-var _vizRgb = '238, 204, 180';
-var _vizIsDark = true;
-var _vizGradients = null;
-var _vizGradientsDirty = true;
 let currentAppSessionPremiumAngle = null;
 let isSpeaking = false;
 let isPaused = false;
@@ -2785,19 +2781,15 @@ function prevCard() {
                 spokenText += '. ' + newVerse.book + '.';
             }
 
-            setTimeout(() => {
-                playText(spokenText, 'feed');
-                autoMode = true;
-            }, 350);
+            playText(spokenText, 'feed');
+            autoMode = true;
         } else if (wasPlaying && newVerse && newVerse.isAd) {
             if (!newVerse.funnyLine) {
                 newVerse.funnyLine = getNextFunnyLine();
             }
             const adSpokenText = "VerseFeed Premium. " + newVerse.funnyLine;
-            setTimeout(() => {
-                playText(adSpokenText, 'feed');
-                autoMode = true;
-            }, 350);
+            playText(adSpokenText, 'feed');
+            autoMode = true;
         } else {
             deselectVerse();
         }
@@ -4780,46 +4772,45 @@ function advanceSavedVerse() {
     }
 }
 
-/* --- Audio Waveform Visualizer --- */
+/* --- Audio Waveform Visualizer (60fps Optimized) --- */
 
-function initVisualizerWorker() {
-    resizeWaveformCanvas();
-    updateVisualizerThemeCache();
-}
+let cachedVisualizerRgb = '238, 204, 180';
+let cachedIsDark = true;
+let cachedGradLayers = [];
 
 function updateVisualizerThemeCache() {
     try {
-        if (!document.body) return;
-        const isDark = document.body.getAttribute('data-theme') === 'dark';
+        cachedIsDark = document.body.getAttribute('data-theme') === 'dark';
         const rootStyle = getComputedStyle(document.body);
-        const defaultRgb = isDark ? '238, 204, 180' : '48, 40, 34';
-        _vizIsDark = isDark;
-        _vizRgb = (rootStyle && rootStyle.getPropertyValue('--visualizer-rgb').trim()) || defaultRgb;
-        _vizGradientsDirty = true;
-    } catch(e) {
-        // Silently ignore if DOM not ready
-    }
+        const defaultRgb = cachedIsDark ? '238, 204, 180' : '48, 40, 34';
+        cachedVisualizerRgb = (rootStyle && rootStyle.getPropertyValue('--visualizer-rgb').trim()) || defaultRgb;
+        rebuildVisualizerGradients();
+    } catch (e) {}
 }
 
-function _rebuildVizGradients(ctx) {
-    if (!ctx) return;
-    const layerAlphas = [0.3, 0.55, 0.85];
-    _vizGradients = [];
-    for (let l = 0; l < 3; l++) {
-        const grad = ctx.createLinearGradient(0, visualizerLogicalHeight, 0, visualizerLogicalHeight - 120);
-        const a = _vizIsDark ? Math.min(1.0, layerAlphas[l] * 1.35) : layerAlphas[l];
-        grad.addColorStop(0, `rgba(${_vizRgb}, ${a})`);
-        grad.addColorStop(0.6, `rgba(${_vizRgb}, ${a * 0.4})`);
-        grad.addColorStop(1, `rgba(${_vizRgb}, 0.0)`);
-        _vizGradients.push(grad);
-    }
-    _vizGradientsDirty = false;
+function rebuildVisualizerGradients() {
+    if (!waveformCanvasCtx) return;
+    const alphas = [0.3, 0.55, 0.85];
+    cachedGradLayers = alphas.map(alpha => {
+        const layerAlpha = cachedIsDark ? Math.min(1.0, alpha * 1.35) : alpha;
+        const grad = waveformCanvasCtx.createLinearGradient(0, visualizerLogicalHeight, 0, visualizerLogicalHeight - 120);
+        grad.addColorStop(0, `rgba(${cachedVisualizerRgb}, ${layerAlpha})`);
+        grad.addColorStop(0.6, `rgba(${cachedVisualizerRgb}, ${layerAlpha * 0.4})`);
+        grad.addColorStop(1, `rgba(${cachedVisualizerRgb}, 0.0)`);
+        return grad;
+    });
+}
+
+function initVisualizerWorker() {
+    updateVisualizerThemeCache();
+    resizeWaveformCanvas();
 }
 
 function resizeWaveformCanvas() {
     const canvas = document.getElementById('waveform-canvas');
     if (!canvas) return;
-    const dpr = window.devicePixelRatio || 1;
+    // Cap DPR at 1.5 for maximum GPU performance while maintaining crispness
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     visualizerLogicalWidth = window.innerWidth;
     visualizerLogicalHeight = 380;
     const targetWidth = Math.floor(visualizerLogicalWidth * dpr);
@@ -4831,31 +4822,35 @@ function resizeWaveformCanvas() {
         canvas.style.width = visualizerLogicalWidth + 'px';
         canvas.style.height = visualizerLogicalHeight + 'px';
     }
-    waveformCanvasCtx = canvas.getContext('2d', { alpha: true });
+    waveformCanvasCtx = canvas.getContext('2d', { alpha: true, desynchronized: true });
     if (waveformCanvasCtx) {
         waveformCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
         waveformCanvasCtx.scale(dpr, dpr);
     }
-    _vizGradientsDirty = true;
+    rebuildVisualizerGradients();
 }
 window.addEventListener('resize', resizeWaveformCanvas, { passive: true });
-
-const _vizFreqData = new Uint8Array(64);
-let _vizSmoothedVoiceEnergy = 0;
 
 function startWaveformVisualizer() {
     clearTimeout(visualizerFadeTimeout);
     const canvas = document.getElementById('waveform-canvas');
     if (!canvas) return;
-    resizeWaveformCanvas();
+    if (!waveformCanvasCtx) resizeWaveformCanvas();
     canvas.style.display = 'block';
     canvas.classList.add('active');
 
     if (waveformAnimFrame) return;
     const ctx = waveformCanvasCtx || canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
+    
+    updateVisualizerThemeCache();
+    
+    const bufferLength = (audioAnalyser && audioAnalyser.frequencyBinCount) || 32;
+    const dataArray = new Uint8Array(bufferLength);
+    const numPoints = Math.min(48, Math.max(28, Math.floor(visualizerLogicalWidth / 10)));
+    const sliceWidth = visualizerLogicalWidth / (numPoints - 1);
 
-    function draw(timestamp) {
+    function draw() {
         if (!canvas) return;
         const isActive = canvas.classList.contains('active');
         if (!isActive && (!isSpeaking || isPaused)) {
@@ -4870,86 +4865,58 @@ function startWaveformVisualizer() {
 
         waveformAnimFrame = requestAnimationFrame(draw);
 
-        // Sample real audio frequency spectrum
-        let speechEnergy = 0;
         if (audioAnalyser && isSpeaking && !isPaused) {
-            audioAnalyser.getByteFrequencyData(_vizFreqData);
+            audioAnalyser.getByteFrequencyData(dataArray);
             let sum = 0;
-            // Focus on voice speech frequency range (bins 2 to 30)
-            const count = Math.min(_vizFreqData.length, 32);
-            for (let i = 2; i < count; i++) {
-                sum += _vizFreqData[i];
-            }
-            speechEnergy = (sum / (count - 2)) / 255.0;
-            // Dynamic attack (fast response to words) and smooth release (natural decay)
-            const attackRate = speechEnergy > _vizSmoothedVoiceEnergy ? 0.38 : 0.15;
-            _vizSmoothedVoiceEnergy += (speechEnergy - _vizSmoothedVoiceEnergy) * attackRate;
+            const len = dataArray.length;
+            for (let i = 0; i < len; i++) sum += dataArray[i];
+            const avgVolume = sum / (len * 255.0);
+            visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.18;
         } else {
-            _vizSmoothedVoiceEnergy *= 0.88;
+            visualizerSmoothedVol *= 0.88;
         }
 
         ctx.clearRect(0, 0, visualizerLogicalWidth, visualizerLogicalHeight);
 
-        if (_vizGradientsDirty || !_vizGradients) {
-            _rebuildVizGradients(ctx);
-        }
+        const time = performance.now() * 0.0012;
 
-        const time = timestamp * 0.001;
-        const w = visualizerLogicalWidth;
-        const h = visualizerLogicalHeight;
-        const voiceBoost = Math.pow(_vizSmoothedVoiceEnergy, 1.2) * 160; // Up to 160px voice peak
-
-        const numPoints = Math.max(48, Math.min(96, Math.floor(w / 8)));
-        const sliceWidth = w / (numPoints - 1);
-        const centerIdx = numPoints / 2;
-
-        // Layer configs: [speed, frequency, baseIdleHeight, voiceMultiplier, gradientIndex]
-        const layerParams = [
-            { speed: 1.6, freq: 0.006, idleH: 8, voiceMult: 0.55, grad: 0 },
-            { speed: 2.1, freq: 0.009, idleH: 14, voiceMult: 0.82, grad: 1 },
-            { speed: 2.7, freq: 0.013, idleH: 20, voiceMult: 1.15, grad: 2 }
-        ];
-
-        for (let l = 0; l < 3; l++) {
-            const lp = layerParams[l];
-            const tSpeed = time * lp.speed;
-            const freq = lp.freq;
-            const mult = lp.voiceMult;
-
+        const drawLayer = (speed, frequency, amplitudeBase, audioMult, layerIdx) => {
             ctx.beginPath();
-            ctx.moveTo(0, h);
-
+            ctx.moveTo(0, visualizerLogicalHeight);
+            
+            let prevX = 0;
+            let prevY = visualizerLogicalHeight;
+            
             for (let i = 0; i < numPoints; i++) {
                 const x = i * sliceWidth;
+                const wave1 = Math.sin(x * frequency + time * speed);
+                const wave2 = Math.sin(x * frequency * 1.4 - time * speed * 0.7);
+                const height = amplitudeBase + (wave1 * 12) + (wave2 * 8) + (visualizerSmoothedVol * audioMult);
+                const y = visualizerLogicalHeight - Math.max(4, height);
                 
-                // Gaussian envelope to peak in the center where screen text sits
-                const distFromCenter = Math.abs(i - centerIdx) / centerIdx;
-                const bellCurve = Math.exp(-distFromCenter * distFromCenter * 2.2);
-
-                // Sample specific frequency bin for this horizontal position
-                const binIdx = Math.min(30, Math.floor((1 - distFromCenter) * 28) + 2);
-                const binVal = (_vizFreqData[binIdx] || 0) / 255.0;
-
-                // Idle ambient sine wave
-                const idleWave = Math.sin(x * freq + tSpeed) * (lp.idleH * 0.6) + Math.sin(x * freq * 1.6 - tSpeed * 0.7) * (lp.idleH * 0.4);
-
-                // Dynamic voice peak combining overall volume and localized frequency bin
-                const reactiveVoiceH = (voiceBoost * mult * bellCurve) * (0.4 + binVal * 0.6);
-
-                const totalHeight = lp.idleH + idleWave + reactiveVoiceH;
-                const y = h - Math.max(3, totalHeight);
-
-                ctx.lineTo(x, y);
+                if (i === 0) {
+                    ctx.lineTo(x, y);
+                } else {
+                    const midX = (prevX + x) / 2;
+                    const midY = (prevY + y) / 2;
+                    ctx.quadraticCurveTo(prevX, prevY, midX, midY);
+                }
+                prevX = x;
+                prevY = y;
             }
-
-            ctx.lineTo(w, h);
+            ctx.lineTo(visualizerLogicalWidth, visualizerLogicalHeight);
             ctx.closePath();
-            ctx.fillStyle = _vizGradients[lp.grad];
+
+            ctx.fillStyle = cachedGradLayers[layerIdx] || '#d4af37';
             ctx.fill();
-        }
+        };
+
+        drawLayer(1.4, 0.005, 10, 55, 0);
+        drawLayer(1.7, 0.007, 15, 75, 1);
+        drawLayer(2.0, 0.009, 20, 105, 2);
     }
 
-    draw(performance.now());
+    draw();
 }
 
 function stopWaveformVisualizer(forceHide = false) {
@@ -4968,7 +4935,7 @@ function stopWaveformVisualizer(forceHide = false) {
                 }
                 canvas.style.display = 'none';
             }
-        }, 500);
+        }, 350);
     }
 }
 
