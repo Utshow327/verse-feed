@@ -167,6 +167,7 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     z-index: 999;
     opacity: 0;
     transition: opacity 0.35s ease;
+    contain: strict;
     will-change: opacity, transform;
     transform: translateZ(0);
 }
