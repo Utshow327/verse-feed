@@ -4810,8 +4810,7 @@ function initVisualizerWorker() {
 function resizeWaveformCanvas() {
     const canvas = document.getElementById('waveform-canvas');
     if (!canvas) return;
-    // Cap DPR at 1.5 for maximum GPU performance while maintaining crispness
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     visualizerLogicalWidth = window.innerWidth;
     visualizerLogicalHeight = 380;
     const targetWidth = Math.floor(visualizerLogicalWidth * dpr);
@@ -4823,11 +4822,7 @@ function resizeWaveformCanvas() {
         canvas.style.width = visualizerLogicalWidth + 'px';
         canvas.style.height = visualizerLogicalHeight + 'px';
     }
-    try {
-        waveformCanvasCtx = canvas.getContext('2d', { alpha: true, desynchronized: true });
-    } catch(e) {
-        waveformCanvasCtx = canvas.getContext('2d', { alpha: true });
-    }
+    waveformCanvasCtx = canvas.getContext('2d', { alpha: true });
     if (waveformCanvasCtx) {
         waveformCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
         waveformCanvasCtx.scale(dpr, dpr);
@@ -4850,9 +4845,9 @@ function startWaveformVisualizer() {
     
     updateVisualizerThemeCache();
     
-    const bufferLength = (audioAnalyser && audioAnalyser.frequencyBinCount) || 32;
+    const bufferLength = (audioAnalyser && audioAnalyser.frequencyBinCount) || 64;
     const dataArray = new Uint8Array(bufferLength);
-    const numPoints = Math.min(48, Math.max(28, Math.floor(visualizerLogicalWidth / 10)));
+    const numPoints = Math.max(60, Math.floor(visualizerLogicalWidth / 6));
     const sliceWidth = visualizerLogicalWidth / (numPoints - 1);
 
     function draw() {
@@ -4875,50 +4870,37 @@ function startWaveformVisualizer() {
             let sum = 0;
             const len = dataArray.length;
             for (let i = 0; i < len; i++) sum += dataArray[i];
-            const avgVolume = sum / (len * 255.0);
-            visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.18;
+            const avgVolume = sum / len / 255.0;
+            visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.14;
         } else {
             visualizerSmoothedVol *= 0.88;
         }
 
         ctx.clearRect(0, 0, visualizerLogicalWidth, visualizerLogicalHeight);
 
-        const time = (typeof performance !== 'undefined' ? performance.now() : Date.now()) * 0.0012;
+        const time = Date.now() * 0.001;
 
         const drawLayer = (speed, frequency, amplitudeBase, audioMult, layerIdx) => {
             ctx.beginPath();
             ctx.moveTo(0, visualizerLogicalHeight);
-            
-            let prevX = 0;
-            let prevY = visualizerLogicalHeight;
-            
             for (let i = 0; i < numPoints; i++) {
                 const x = i * sliceWidth;
                 const wave1 = Math.sin(x * frequency + time * speed);
-                const wave2 = Math.sin(x * frequency * 1.4 - time * speed * 0.7);
+                const wave2 = Math.sin(x * frequency * 1.5 - time * speed * 0.8);
                 const height = amplitudeBase + (wave1 * 12) + (wave2 * 8) + (visualizerSmoothedVol * audioMult);
                 const y = visualizerLogicalHeight - Math.max(4, height);
-                
-                if (i === 0) {
-                    ctx.lineTo(x, y);
-                } else {
-                    const midX = (prevX + x) / 2;
-                    const midY = (prevY + y) / 2;
-                    ctx.quadraticCurveTo(prevX, prevY, midX, midY);
-                }
-                prevX = x;
-                prevY = y;
+                ctx.lineTo(x, y);
             }
             ctx.lineTo(visualizerLogicalWidth, visualizerLogicalHeight);
             ctx.closePath();
 
-            ctx.fillStyle = cachedGradLayers[layerIdx] || '#d4af37';
+            ctx.fillStyle = (cachedGradLayers && cachedGradLayers[layerIdx]) || 'rgba(238, 204, 180, 0.3)';
             ctx.fill();
         };
 
-        drawLayer(1.4, 0.005, 10, 55, 0);
-        drawLayer(1.7, 0.007, 15, 75, 1);
-        drawLayer(2.0, 0.009, 20, 105, 2);
+        drawLayer(1.5, 0.005, 10, 60, 0);
+        drawLayer(1.8, 0.007, 15, 80, 1);
+        drawLayer(2.2, 0.009, 20, 110, 2);
     }
 
     draw();
@@ -4940,7 +4922,7 @@ function stopWaveformVisualizer(forceHide = false) {
                 }
                 canvas.style.display = 'none';
             }
-        }, 350);
+        }, 500);
     }
 }
 
