@@ -4864,6 +4864,12 @@ function startWaveformVisualizer() {
 
         waveformAnimFrame = requestAnimationFrame(draw);
 
+        // Pristine physical buffer clear before rendering every frame
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+
         if (audioAnalyser && isSpeaking && !isPaused && !isGenerating) {
             audioAnalyser.getByteFrequencyData(dataArray);
             let sum = 0;
