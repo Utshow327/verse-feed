@@ -1217,19 +1217,104 @@ let autoNextTimeout = null;
 
 let lastRandomVoiceId = null;
 
+const prefetchedAudioBuffers = new Map();
+
+function sanitizeTextForTTS(rawText) {
+    if (!rawText) return "";
+    let text = rawText.replace(/son\(s\)/gi, 'sons')
+                      .replace(/god's/gi, 'gods')
+                      .replace(/god 's/gi, 'gods')
+                      .replace(/\(l\d+\)/gi, '')
+                      .replace(/\[l\d+\]/gi, '')
+                      .replace(/-/g, ' ')
+                      .replace(/<span class='author-attr'>.*?<\/span>/gm, '')
+                      .replace(/<[^>]*>?/gm, '');
+
+    let sanitized = text.replace(/may peace be upon him/gi, 'upon him')
+                        .replace(/peace be upon him/gi, 'upon him')
+                        .replace(/ﷺ/g, 'upon him')
+                        .replace(/\(pbuh\)/gi, 'upon him');
+
+    sanitized = sanitized.replace(/\b[A-Z]{2,}\b/g, (match) => {
+        if (match.toUpperCase() === 'PAUSE') return 'PAUSE';
+        return match.charAt(0) + match.slice(1).toLowerCase();
+    });
+
+    return ", " + sanitized
+        .replace(/\b[iI]\.[eE]\./g, 'that is')
+        .replace(/\b[iI],[eE]\b/g, 'that is')
+        .replace(/[:;]/g, '. ');
+}
+
+async function prefetchVerseAudio(spokenText, voiceId) {
+    if (!spokenText || !piperSession || !voiceId) return;
+    const sanitized = sanitizeTextForTTS(spokenText);
+    const key = voiceId + ':' + sanitized;
+    if (prefetchedAudioBuffers.has(key)) return;
+
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const wavBlob = await piperSession.predict(sanitized.replace(/\|PAUSE\|/gi, '').trim());
+        if (!wavBlob) return;
+        const arrayBuffer = await wavBlob.arrayBuffer();
+        const decodedData = await ctx.decodeAudioData(arrayBuffer);
+        if (!decodedData) return;
+
+        const sampleRate = decodedData.sampleRate;
+        const paddingFrames = Math.floor(sampleRate * 0.2);
+        const paddedBuffer = ctx.createBuffer(
+            decodedData.numberOfChannels,
+            decodedData.length + paddingFrames,
+            sampleRate
+        );
+        for (let ch = 0; ch < decodedData.numberOfChannels; ch++) {
+            paddedBuffer.getChannelData(ch).set(decodedData.getChannelData(ch), paddingFrames);
+        }
+
+        if (prefetchedAudioBuffers.size > 25) {
+            const firstKey = prefetchedAudioBuffers.keys().next().value;
+            prefetchedAudioBuffers.delete(firstKey);
+        }
+        prefetchedAudioBuffers.set(key, [paddedBuffer]);
+    } catch(e) {}
+}
+
+function triggerLookAheadPrefetch(context) {
+    setTimeout(async () => {
+        try {
+            if (!piperSession) return;
+            let nextText = null;
+            if (context === 'feed') {
+                const nextVerse = getVerseAtIndex(currentVerseIndex.general + 1);
+                if (nextVerse && !nextVerse.isAd) {
+                    nextText = nextVerse.spoken_text || nextVerse.text;
+                    if (!nextText.endsWith('.')) nextText += '.';
+                    if (ttsAnnounceSource) nextText += '. ' + nextVerse.book + '.';
+                }
+            } else if (context === 'book') {
+                const nextIdx = (bookVoiceCurrentVerse + 1) % bookVoiceTotalVerses;
+                const info = globalVerseMap[nextIdx];
+                if (info) {
+                    nextText = info.spoken_text || info.text;
+                    if (lastAnnouncedChapter !== info.chapter) {
+                        const chapStr = isNaN(info.chapter) ? info.chapter : 'Chapter ' + info.chapter;
+                        nextText = chapStr + '. ' + nextText;
+                    }
+                    if (!nextText.endsWith('.')) nextText += '.';
+                }
+            }
+            if (nextText) {
+                prefetchVerseAudio(nextText, selectedVoice);
+            }
+        } catch(e) {}
+    }, 400);
+}
+
 async function playText(text, context) {
     // Stop any current audio with transition flag so UI remains in continuous generating/playing state
     stopAudio(true, true, true);
-    // NOW capture the new generationId (after stop bumped it)
     const generationId = currentGenerationId;
-
-    // Clean text for TTS pronunciation
-    text = text.replace(/son\(s\)/gi, 'sons')
-               .replace(/god's/gi, 'gods')
-               .replace(/god 's/gi, 'gods')
-               .replace(/\(l\d+\)/gi, '')
-               .replace(/\[l\d+\]/gi, '')
-               .replace(/-/g, ' ');
 
     // Immediately enter generating state with opacity pulse animation on play button
     isGenerating = true;
@@ -1262,33 +1347,38 @@ async function playText(text, context) {
         return;
     }
 
-    // Check if still valid after async initPiper
     if (generationId !== currentGenerationId) {
         isGenerating = false;
         return;
     }
 
-    // Strip HTML
-    text = text.replace(/<span class='author-attr'>.*?<\/span>/gm, '');
-    text = text.replace(/<[^>]*>?/gm, '');
+    const sanitizedText = sanitizeTextForTTS(text);
+    const cacheKey = selectedVoice + ':' + sanitizedText;
 
-    isGenerating = true;
+    // INSTANT PLAYBACK IF CACHED
+    if (prefetchedAudioBuffers.has(cacheKey)) {
+        const cachedQueue = prefetchedAudioBuffers.get(cacheKey);
+        if (cachedQueue && cachedQueue.length > 0) {
+            audioChunkQueue = [...cachedQueue];
+            playingQueueIndex = 0;
+            isGenerating = false;
+            isSpeaking = true;
+            isPaused = false;
+            updateSpeakButton('speak-general');
+            const btn = document.getElementById('speak-general');
+            if (btn) btn.classList.remove('loading');
+            startWaveformVisualizer();
+            startAudioPlayback(0, generationId);
+            triggerLookAheadPrefetch(context);
+            return;
+        }
+    }
 
-    let sanitizedText = text.replace(/may peace be upon him/gi, 'upon him')
-        .replace(/peace be upon him/gi, 'upon him')
-        .replace(/ﷺ/g, 'upon him')
-        .replace(/\(pbuh\)/gi, 'upon him');
+    generateAndPlayPiperTTS(sanitizedText, generationId, context);
+}
 
-    // Convert all-caps words (like GOD, LORD, ALLAH, HEAVEN) to Titlecase so phonemizer reads them as words, but protect |PAUSE|
-    sanitizedText = sanitizedText.replace(/\b[A-Z]{2,}\b/g, (match) => {
-        if (match.toUpperCase() === 'PAUSE') return 'PAUSE';
-        return match.charAt(0) + match.slice(1).toLowerCase();
-    });
-
-    sanitizedText = ", " + sanitizedText
-        .replace(/\b[iI]\.[eE]\./g, 'that is')
-        .replace(/\b[iI],[eE]\b/g, 'that is')
-        .replace(/[:;]/g, '. ');
+function generateAndPlayPiperTTS(sanitizedText, generationId, context) {
+    const btn = document.getElementById('speak-general');
 
     const fallbackTTS = () => {
         console.log("Using browser TTS fallback");
@@ -1371,11 +1461,11 @@ async function playText(text, context) {
         }
         if (!piperSession) { fallbackTTS(); return; }
         isQueueGenerating = true;
-        processAudioQueue(combinedChunks, generationId, fallbackTTS);
+        processAudioQueue(combinedChunks, generationId, fallbackTTS, sanitizedText, context);
     }, 20);
 }
 
-async function processAudioQueue(chunks, generationId, fallbackTTS) {
+async function processAudioQueue(chunks, generationId, fallbackTTS, originalSanitizedText = "", context = "") {
     for (let i = 0; i < chunks.length; i++) {
         if (generationId !== currentGenerationId) break;
         
@@ -1425,6 +1515,7 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
                 if (btn) btn.classList.remove('loading');
                 startWaveformVisualizer();
                 startAudioPlayback(0, generationId);
+                triggerLookAheadPrefetch(context);
             }
             
         } catch (err) {
@@ -1439,10 +1530,21 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
         const btn = document.getElementById('speak-general');
         if (btn) btn.classList.remove('loading');
         isGenerating = false;
+
+        // Cache the fully synthesized chunks for instant re-play and lookahead
+        if (originalSanitizedText) {
+            const cacheKey = selectedVoice + ':' + originalSanitizedText;
+            if (prefetchedAudioBuffers.size > 25) {
+                const firstKey = prefetchedAudioBuffers.keys().next().value;
+                prefetchedAudioBuffers.delete(firstKey);
+            }
+            prefetchedAudioBuffers.set(cacheKey, [...audioChunkQueue]);
+        }
         
         if (!currentAudioNode) {
             startWaveformVisualizer();
             startAudioPlayback(0, generationId);
+            triggerLookAheadPrefetch(context);
         }
     }
 }
