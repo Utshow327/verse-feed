@@ -835,6 +835,11 @@ async function initApp() {
                 setTimeout(() => {
                     loadingScreen.style.display = 'none';
                 }, 950);
+
+                // Auto-start installing/loading the voice immediately on app open
+                setTimeout(() => {
+                    initPiper(selectedVoice).catch(err => console.log("Background voice pre-install:", err));
+                }, 300);
             }
 
             // Safety Watchdog: Guarantee loading overlay is dismissed even on slowest devices
@@ -988,8 +993,8 @@ function showVoiceInstallingToast(msg = "Installing voice...", percent = null) {
     
     if (progressEl) {
         if (typeof percent === 'number') {
-            progressEl.style.transition = 'transform 0.2s ease-out';
-            const frac = Math.max(0, Math.min(1, percent / 100));
+            progressEl.style.transition = 'transform 0.25s ease-out';
+            const frac = Math.max(0.05, Math.min(1, percent / 100));
             progressEl.style.transform = `scaleX(${frac})`;
         } else {
             progressEl.style.transition = 'none';
@@ -1016,9 +1021,9 @@ function showVoiceInstallingToast(msg = "Installing voice...", percent = null) {
                 setTimeout(() => {
                     progressEl.style.transition = 'none';
                     progressEl.style.transform = 'scaleX(0)';
-                }, 200);
+                }, 250);
             }
-        }, 500);
+        }, 800);
     }
 }
 
@@ -1035,18 +1040,25 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
         piperSession = piperSessionsCache[voiceId];
         return piperSession;
     }
-    if (piperSession && piperSession.voiceId === voiceId) return piperInitPromise;
+    if (piperSession && piperSession.voiceId === voiceId && piperInitPromise) return piperInitPromise;
+    
     piperInitPromise = (async () => {
         piperInitializing = true;
         
         try {
+            const isInstalled = localStorage.getItem('piper_voice_installed_' + voiceId) === 'true';
+            if (!isInstalled) {
+                showVoiceInstallingToast("Installing voice...", 5);
+            }
+            
             const tts = await import("./libs/piper/piper-bundle.js?v=20");
             if (tts.TtsSession._instance) {
                 tts.TtsSession._instance = null; // Force reload of ONNX model
             }
             console.log("Loading Piper TTS voice:", voiceId);
-            const isInstalled = localStorage.getItem('piper_voice_installed_' + voiceId);
             const wasmBase = new URL('libs/piper/', window.location.href).href;
+            
+            let maxPercent = 5;
             const newSession = await tts.TtsSession.create({
                 voiceId: voiceId,
                 wasmPaths: {
@@ -1058,13 +1070,18 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
                     if (p && p.total && p.loaded) {
                         const pct = Math.round((p.loaded / p.total) * 100);
                         if (!isInstalled) {
-                            showVoiceInstallingToast("Installing voice...", pct);
+                            maxPercent = Math.max(maxPercent, Math.min(96, pct));
+                            showVoiceInstallingToast("Installing voice...", maxPercent);
                         }
                     }
                 }
             });
             localStorage.setItem('piper_voice_installed_' + voiceId, 'true');
-            hideVoiceToast();
+            if (!isInstalled) {
+                showVoiceInstallingToast("Voice ready", 100);
+            } else {
+                hideVoiceToast();
+            }
             newSession.voiceId = voiceId;
             let savedSpeed = localStorage.getItem('voiceSpeed_' + voiceId);
             if (!savedSpeed) {
@@ -1082,6 +1099,7 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
         } catch (e) {
             console.error("Piper TTS init failed:", e);
             piperSession = null;
+            hideVoiceToast();
             throw e;
         }
         piperInitializing = false;
@@ -2266,6 +2284,9 @@ async function saveOnboarding() {
     localStorage.setItem('hasOnboarded', 'true');
     initializeVerseFeed();
     goTo('verse-feed');
+    setTimeout(() => {
+        initPiper(selectedVoice).catch(err => console.log("Background voice pre-install:", err));
+    }, 200);
 }
 async function skipOnboarding() {
     document.getElementById('loading').style.display = 'flex';
@@ -2289,6 +2310,9 @@ async function skipOnboarding() {
     localStorage.setItem('hasOnboarded', 'true');
     initializeVerseFeed();
     goTo('verse-feed');
+    setTimeout(() => {
+        initPiper(selectedVoice).catch(err => console.log("Background voice pre-install:", err));
+    }, 200);
 }
 function buildSettings() {
     suppressFlash(() => {
@@ -2580,6 +2604,13 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
         
         if (verse.nativeAdData) {
             const nativeAd = verse.nativeAdData;
+            textEl.style.cursor = 'pointer';
+            textEl.onclick = (e) => {
+                if (e) e.stopPropagation();
+                if (window.AppSigner && typeof window.AppSigner.performNativeAdClick === 'function') {
+                    window.AppSigner.performNativeAdClick();
+                }
+            };
 
             let iconHtml = '';
             if (nativeAd.icon) {
@@ -2632,6 +2663,11 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
                 }
             }, 0);
         } else {
+            textEl.style.cursor = 'pointer';
+            textEl.onclick = (e) => {
+                if (e) e.stopPropagation();
+                openPremiumModal();
+            };
             textEl.innerHTML = `<div style="font-size: clamp(1.2rem, 4.2vw, 1.65rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.5;">${verse.funnyLine}</div>`;
         }
         card.appendChild(textEl);
