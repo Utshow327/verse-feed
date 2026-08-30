@@ -4938,6 +4938,9 @@ function startWaveformVisualizer() {
 }
 
 function stopWaveformVisualizer(forceHide = false) {
+    if (!forceHide && (autoMode || autoNextBook || isSpeaking || isGenerating)) {
+        return;
+    }
     const canvas = document.getElementById('waveform-canvas');
     if (canvas) {
         canvas.classList.remove('active');
@@ -4954,7 +4957,7 @@ function stopWaveformVisualizer(forceHide = false) {
         }
         clearTimeout(visualizerFadeTimeout);
         visualizerFadeTimeout = setTimeout(() => {
-            if (!canvas.classList.contains('active')) {
+            if (!canvas.classList.contains('active') && !isSpeaking && !autoMode && !autoNextBook) {
                 if (waveformAnimFrame) {
                     cancelAnimationFrame(waveformAnimFrame);
                     waveformAnimFrame = null;
@@ -5505,19 +5508,24 @@ function updatePillUI() {
     updateVerseActions();
 }
 
+let activeSavedVerseElement = null;
+
 function selectVerse(verseObj, type, elementId, forceSelect = false) {
     if (verseObj && verseObj.isAd) return;
-    // Clear all existing saved verse element highlights to prevent multi-selection
-    document.querySelectorAll('.saved-verse').forEach(el => {
-        el.style.background = '';
-        el.style.color = '';
-        el.style.opacity = '';
-        el.style.borderColor = '';
-        const t = el.querySelector('.verse-text');
+    if (activeSavedVerseElement) {
+        activeSavedVerseElement.style.background = '';
+        activeSavedVerseElement.style.color = '';
+        activeSavedVerseElement.style.opacity = '';
+        activeSavedVerseElement.style.borderColor = '';
+        const t = activeSavedVerseElement.querySelector('.verse-text');
         if (t) t.style.color = '';
-        const r = el.querySelector('.verse-ref');
+        const r = activeSavedVerseElement.querySelector('.verse-ref');
         if (r) r.style.color = '';
-    });
+        activeSavedVerseElement = null;
+    }
+    if (elementId && type === 'saved') {
+        activeSavedVerseElement = document.getElementById(elementId);
+    }
     let isDifferentVerse = false;
     if (!selectedVerse) {
         isDifferentVerse = true;
