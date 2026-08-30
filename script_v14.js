@@ -4874,11 +4874,9 @@ function startWaveformVisualizer() {
 
         waveformAnimFrame = requestAnimationFrame(draw);
 
-        // Pristine physical buffer clear before rendering every frame
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.restore();
+        const currentWidth = visualizerLogicalWidth;
+        const currentHeight = visualizerLogicalHeight;
+        ctx.clearRect(-10, 0, currentWidth + 20, currentHeight + 20);
 
         if (audioAnalyser && isSpeaking && !isPaused && !isGenerating) {
             audioAnalyser.getByteFrequencyData(dataArray);
@@ -4890,9 +4888,6 @@ function startWaveformVisualizer() {
         } else {
             visualizerSmoothedVol *= 0.88;
         }
-
-        const currentWidth = visualizerLogicalWidth;
-        const currentHeight = visualizerLogicalHeight;
         const numPoints = Math.min(80, Math.max(45, Math.floor(currentWidth / 10)));
         const sliceWidth = (currentWidth + 20) / (numPoints - 1);
 
