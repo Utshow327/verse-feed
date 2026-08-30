@@ -333,7 +333,8 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     justify-content: space-between;
     position: absolute;
     transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.35s ease;
-    
+    will-change: transform, opacity;
+    transform: translateZ(0);
     opacity: 1;
 }
 
