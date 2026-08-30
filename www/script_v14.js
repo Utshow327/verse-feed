@@ -1417,6 +1417,15 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
             }
 
             audioChunkQueue.push(paddedBuffer);
+
+            // Stream playback immediately on the very first chunk while subsequent chunks synthesize in the background
+            if (i === 0 && !currentAudioNode && isSpeaking && !isPaused && generationId === currentGenerationId) {
+                isGenerating = false;
+                const btn = document.getElementById('speak-general');
+                if (btn) btn.classList.remove('loading');
+                startWaveformVisualizer();
+                startAudioPlayback(0, generationId);
+            }
             
         } catch (err) {
             console.error("Piper generation error on chunk " + i, err);
@@ -1431,12 +1440,10 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
         if (btn) btn.classList.remove('loading');
         isGenerating = false;
         
-        setTimeout(() => {
-            if (generationId === currentGenerationId) {
-                startWaveformVisualizer();
-                startAudioPlayback(0, generationId);
-            }
-        }, 50);
+        if (!currentAudioNode) {
+            startWaveformVisualizer();
+            startAudioPlayback(0, generationId);
+        }
     }
 }
 
@@ -2736,7 +2743,7 @@ function nextCard(isAuto = false) {
             setTimeout(() => {
                 playText(spokenText, 'feed');
                 autoMode = true;
-            }, 100);
+            }, 360);
         } else if (newVerse && newVerse.isAd) {
             if (!newVerse.funnyLine) {
                 newVerse.funnyLine = getNextFunnyLine();
@@ -2745,7 +2752,7 @@ function nextCard(isAuto = false) {
             setTimeout(() => {
                 playText(adSpokenText, 'feed');
                 autoMode = true;
-            }, 100);
+            }, 360);
         }
     } else {
         deselectVerse();
@@ -2780,7 +2787,7 @@ function prevCard() {
             setTimeout(() => {
                 playText(spokenText, 'feed');
                 autoMode = true;
-            }, 100);
+            }, 360);
         } else if (wasPlaying && newVerse && newVerse.isAd) {
             if (!newVerse.funnyLine) {
                 newVerse.funnyLine = getNextFunnyLine();
@@ -2789,7 +2796,7 @@ function prevCard() {
             setTimeout(() => {
                 playText(adSpokenText, 'feed');
                 autoMode = true;
-            }, 100);
+            }, 360);
         } else {
             deselectVerse();
         }
