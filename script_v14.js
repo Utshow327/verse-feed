@@ -1187,7 +1187,7 @@ function stopAudio(preserveAutoMode = false, keepVisualizer = false, isTransitio
             autoNextBook = false;
         }
         if (!keepVisualizer && !preserveAutoMode && !autoMode && !autoNextBook) {
-            stopWaveformVisualizer();
+            stopWaveformVisualizer(false);
         }
         updateSpeakIcons();
         const btn = document.getElementById('speak-general');
@@ -1319,7 +1319,7 @@ async function playText(text, context) {
             if (!isAutoContinuing) {
                 isSpeaking = false;
                 updateSpeakButton('speak-general');
-                stopWaveformVisualizer(true);
+                stopWaveformVisualizer(false);
             }
 
             clearTimeout(autoNextTimeout);
@@ -1329,7 +1329,7 @@ async function playText(text, context) {
                 else if (currentContext === 'saved' && wasAutoMode) advanceSavedVerse();
                 else if (currentContext === 'search' && wasAutoMode) advanceSearchVerse();
                 else {
-                    if (!isSpeaking) stopWaveformVisualizer(true);
+                    if (!isSpeaking) stopWaveformVisualizer(false);
                 }
             }, 400);
         };
@@ -1498,7 +1498,7 @@ function startAudioPlayback(offset, generationId) {
             if (!isAutoContinuing) {
                 isSpeaking = false;
                 updateSpeakButton('speak-general');
-                stopWaveformVisualizer(true);
+                stopWaveformVisualizer(false);
             }
 
             clearTimeout(autoNextTimeout);
@@ -1512,7 +1512,7 @@ function startAudioPlayback(offset, generationId) {
                 } else if (currentAudioContextType === 'search' && autoMode) {
                     advanceSearchVerse();
                 } else {
-                    if (!isSpeaking) stopWaveformVisualizer(true);
+                    if (!isSpeaking) stopWaveformVisualizer(false);
                 }
             }, 300);
             return;
@@ -1601,7 +1601,7 @@ function speakCurrent(type) {
                     currentAudioNode.stop();
                 } catch (e) { }
             }
-            stopWaveformVisualizer(true);
+            stopWaveformVisualizer(false);
             updateSpeakIcons();
             return;
         } else {
@@ -4796,9 +4796,6 @@ function updateVisualizerThemeCache() {
         const rootStyle = getComputedStyle(document.body);
         const defaultRgb = isDark ? '238, 204, 180' : '48, 40, 34';
         cachedVisualizerRgb = (rootStyle && rootStyle.getPropertyValue('--visualizer-rgb').trim()) || defaultRgb;
-        if (visualizerWorker) {
-            visualizerWorker.postMessage({ type: 'theme', rgb: cachedVisualizerRgb });
-        }
         rebuildVisualizerGradients();
     } catch(e) {}
 }
@@ -4819,9 +4816,6 @@ function rebuildVisualizerGradients() {
     } catch(e) {}
 }
 
-let visualizerDrawGeneration = 0;
-let visualizerDataArray = null;
-
 function initVisualizerWorker() {
     updateVisualizerThemeCache();
     resizeWaveformCanvas();
@@ -4833,7 +4827,6 @@ function resizeWaveformCanvas() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     visualizerLogicalWidth = Math.max(window.innerWidth, canvas.clientWidth || 0);
     visualizerLogicalHeight = 380;
-
     const targetWidth = Math.round(visualizerLogicalWidth * dpr);
     const targetHeight = Math.round(visualizerLogicalHeight * dpr);
 
@@ -4852,18 +4845,24 @@ function resizeWaveformCanvas() {
 }
 window.addEventListener('resize', resizeWaveformCanvas, { passive: true });
 
+let visualizerDrawGeneration = 0;
+let visualizerDataArray = null;
+
 function startWaveformVisualizer() {
     clearTimeout(visualizerFadeTimeout);
     const canvas = document.getElementById('waveform-canvas');
     if (!canvas) return;
     if (!waveformCanvasCtx) resizeWaveformCanvas();
-
-    // Smooth Fade-In Animation
     canvas.style.display = 'block';
+    
+    // Double rAF ensures the browser paints display:block before starting the opacity transition
     requestAnimationFrame(() => {
-        canvas.classList.add('active');
+        requestAnimationFrame(() => {
+            canvas.classList.add('active');
+        });
     });
 
+    // Bump generation to kill any orphaned draw loops
     visualizerDrawGeneration++;
     const myGeneration = visualizerDrawGeneration;
 
@@ -4883,15 +4882,12 @@ function startWaveformVisualizer() {
     }
 
     function draw() {
+        // Kill this loop if a newer generation started
         if (myGeneration !== visualizerDrawGeneration) return;
-
-        if (!canvas || canvas.style.display === 'none') {
-            waveformAnimFrame = null;
-            return;
-        }
 
         waveformAnimFrame = requestAnimationFrame(draw);
 
+        // Clear entire physical buffer
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -4944,11 +4940,10 @@ function stopWaveformVisualizer(forceHide = false) {
     const canvas = document.getElementById('waveform-canvas');
     if (!canvas) return;
 
-    // Smooth Fade-Out Animation
     canvas.classList.remove('active');
+    clearTimeout(visualizerFadeTimeout);
 
     if (forceHide) {
-        clearTimeout(visualizerFadeTimeout);
         visualizerDrawGeneration++;
         if (waveformAnimFrame) {
             cancelAnimationFrame(waveformAnimFrame);
@@ -4966,7 +4961,7 @@ function stopWaveformVisualizer(forceHide = false) {
         return;
     }
 
-    clearTimeout(visualizerFadeTimeout);
+    // Smooth fade out: keep drawing frames during the 450ms opacity transition before turning off
     visualizerFadeTimeout = setTimeout(() => {
         if (!canvas.classList.contains('active')) {
             visualizerDrawGeneration++;
@@ -5740,7 +5735,7 @@ function handlePillPlay(e) {
                     currentAudioNode.stop();
                 } catch (err) { }
             }
-            stopWaveformVisualizer();
+            stopWaveformVisualizer(false);
             updateSpeakIcons();
             updatePillUI();
         } else {
