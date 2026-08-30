@@ -1215,7 +1215,21 @@ if (!localStorage.getItem('speed_defaults_set_v8')) {
 let playDebounceTimer = null;
 let autoNextTimeout = null;
 
-let lastRandomVoiceId = null;
+const SINE_TABLE_SIZE = 1024;
+const SINE_TABLE = new Float32Array(SINE_TABLE_SIZE);
+for (let i = 0; i < SINE_TABLE_SIZE; i++) {
+    SINE_TABLE[i] = Math.sin((i / SINE_TABLE_SIZE) * Math.PI * 2);
+}
+function fastSin(rad) {
+    const norm = (rad / (Math.PI * 2)) % 1;
+    const index = Math.floor((norm < 0 ? norm + 1 : norm) * SINE_TABLE_SIZE);
+    return SINE_TABLE[index % SINE_TABLE_SIZE];
+}
+
+const verseAudioCache = new Map();
+function getAudioCacheKey(voiceId, text) {
+    return (voiceId || selectedVoice || 'default') + '::' + (text || '').trim().replace(/\s+/g, ' ').substring(0, 100);
+}
 
 async function playText(text, context) {
     // Stop any current audio with transition flag so UI remains in continuous generating/playing state
@@ -1273,8 +1287,6 @@ async function playText(text, context) {
     text = text.replace(/<span class='author-attr'>.*?<\/span>/gm, '');
     text = text.replace(/<[^>]*>?/gm, '');
 
-    isGenerating = true;
-
     let sanitizedText = text.replace(/may peace be upon him/gi, 'upon him')
         .replace(/peace be upon him/gi, 'upon him')
         .replace(/ﷺ/g, 'upon him')
@@ -1290,6 +1302,24 @@ async function playText(text, context) {
         .replace(/\b[iI]\.[eE]\./g, 'that is')
         .replace(/\b[iI],[eE]\b/g, 'that is')
         .replace(/[:;]/g, '. ');
+
+    const cacheKey = getAudioCacheKey(piperSession.voiceId, sanitizedText);
+
+    // Instant zero-latency playback if already in device memory cache
+    if (verseAudioCache.has(cacheKey)) {
+        const cachedBuffers = verseAudioCache.get(cacheKey);
+        if (cachedBuffers && cachedBuffers.length > 0) {
+            audioChunkQueue = [...cachedBuffers];
+            playingQueueIndex = 0;
+            isGenerating = false;
+            isQueueGenerating = false;
+            const btn = document.getElementById('speak-general');
+            if (btn) btn.classList.remove('loading');
+            startWaveformVisualizer();
+            startAudioPlayback(0, generationId);
+            return;
+        }
+    }
 
     const fallbackTTS = () => {
         if (generationId !== currentGenerationId) return;
@@ -1329,7 +1359,7 @@ async function playText(text, context) {
                 else {
                     if (!isSpeaking) stopWaveformVisualizer(true);
                 }
-            }, 300);
+            }, 100);
         };
         currentUtterance.onerror = () => {
             if (!isPaused) {
@@ -1371,11 +1401,11 @@ async function playText(text, context) {
         }
         if (!piperSession) { fallbackTTS(); return; }
         isQueueGenerating = true;
-        processAudioQueue(combinedChunks, generationId, fallbackTTS);
+        processAudioQueue(combinedChunks, generationId, fallbackTTS, cacheKey);
     }, 20);
 }
 
-async function processAudioQueue(chunks, generationId, fallbackTTS) {
+async function processAudioQueue(chunks, generationId, fallbackTTS, cacheKey) {
     let hasStartedPlayback = false;
 
     for (let i = 0; i < chunks.length; i++) {
@@ -1438,12 +1468,21 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
     }
     
     isQueueGenerating = false;
-    if (generationId === currentGenerationId && audioChunkQueue.length > 0 && !hasStartedPlayback) {
-        const btn = document.getElementById('speak-general');
-        if (btn) btn.classList.remove('loading');
-        isGenerating = false;
-        startWaveformVisualizer();
-        startAudioPlayback(0, generationId);
+    if (generationId === currentGenerationId && audioChunkQueue.length > 0) {
+        if (cacheKey) {
+            verseAudioCache.set(cacheKey, [...audioChunkQueue]);
+            if (verseAudioCache.size > 80) {
+                const first = verseAudioCache.keys().next().value;
+                verseAudioCache.delete(first);
+            }
+        }
+        if (!hasStartedPlayback) {
+            const btn = document.getElementById('speak-general');
+            if (btn) btn.classList.remove('loading');
+            isGenerating = false;
+            startWaveformVisualizer();
+            startAudioPlayback(0, generationId);
+        }
     }
 }
 
@@ -4898,8 +4937,8 @@ function startWaveformVisualizer() {
             ctx.moveTo(-10, currentHeight);
             for (let i = 0; i < numPoints; i++) {
                 const x = -10 + (i * sliceWidth);
-                const wave1 = Math.sin(x * frequency + time * speed);
-                const wave2 = Math.sin((currentWidth - x) * frequency + time * (speed * 0.85));
+                const wave1 = fastSin(x * frequency + time * speed);
+                const wave2 = fastSin((currentWidth - x) * frequency + time * (speed * 0.85));
                 const height = amplitudeBase + (wave1 * 8) + (wave2 * 8) + (visualizerSmoothedVol * audioMult);
                 const y = currentHeight - Math.max(4, height);
                 ctx.lineTo(x, y);
