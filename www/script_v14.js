@@ -988,8 +988,10 @@ function showVoiceInstallingToast(msg = "Installing voice...", percent = null) {
     const progressEl = document.getElementById('toast-progress');
     if (!toast || !msgEl) return;
     
-    let displayMsg = msg;
+    let displayMsg = "Installing voice...";
     if (typeof percent === 'number' && percent >= 100) {
+        displayMsg = "Voice ready";
+    } else if (typeof msg === 'string' && msg.toLowerCase().includes('ready')) {
         displayMsg = "Voice ready";
     }
     
