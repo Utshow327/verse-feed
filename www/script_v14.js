@@ -4877,14 +4877,17 @@ function startWaveformVisualizer() {
         ctx.clearRect(0, 0, visualizerLogicalWidth, visualizerLogicalHeight);
 
         const time = Date.now() * 0.001;
+        const baseCycles = 2.8;
+        const baseFreq = (Math.PI * 2 * baseCycles) / Math.max(300, visualizerLogicalWidth);
 
-        const drawLayer = (speed, frequency, amplitudeBase, audioMult, layerIdx) => {
+        const drawLayer = (speed, freqMult, amplitudeBase, audioMult, layerIdx) => {
+            const frequency = baseFreq * freqMult;
             ctx.beginPath();
             ctx.moveTo(0, visualizerLogicalHeight);
             for (let i = 0; i < numPoints; i++) {
                 const x = i * sliceWidth;
                 const wave1 = Math.sin(x * frequency + time * speed);
-                const wave2 = Math.sin(x * frequency * 1.5 - time * speed * 0.8);
+                const wave2 = Math.sin(x * frequency * 1.3 - time * speed * 0.75);
                 const height = amplitudeBase + (wave1 * 12) + (wave2 * 8) + (visualizerSmoothedVol * audioMult);
                 const y = visualizerLogicalHeight - Math.max(4, height);
                 ctx.lineTo(x, y);
@@ -4896,9 +4899,9 @@ function startWaveformVisualizer() {
             ctx.fill();
         };
 
-        drawLayer(1.5, 0.005, 10, 60, 0);
-        drawLayer(1.8, 0.007, 15, 80, 1);
-        drawLayer(2.2, 0.009, 20, 110, 2);
+        drawLayer(1.5, 1.0, 10, 60, 0);
+        drawLayer(1.8, 1.35, 15, 80, 1);
+        drawLayer(2.2, 1.7, 20, 110, 2);
     }
 
     draw();
