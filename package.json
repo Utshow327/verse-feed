@@ -21,5 +21,8 @@
     "@revenuecat/purchases-capacitor": "^13.2.5",
     "nodemailer": "^9.0.5",
     "world-english-bible": "^1.0.1"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.4"
   }
 }
