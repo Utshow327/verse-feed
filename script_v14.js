@@ -499,8 +499,17 @@ let selectedSavedAlbum = null;
 let createdAlbums = JSON.parse(localStorage.getItem('createdAlbums') || '[]');
 if (!Array.isArray(createdAlbums)) createdAlbums = [];
 
+let audioCtx = null;
 function getAudioCtx() {
-    return getAudioContext();
+    if (!audioCtx) {
+        try {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (AudioContextClass) {
+                audioCtx = new AudioContextClass();
+            }
+        } catch (e) {}
+    }
+    return audioCtx;
 }
 
 let musicSourceNode = null;
@@ -1206,21 +1215,7 @@ if (!localStorage.getItem('speed_defaults_set_v8')) {
 let playDebounceTimer = null;
 let autoNextTimeout = null;
 
-const SINE_TABLE_SIZE = 1024;
-const SINE_TABLE = new Float32Array(SINE_TABLE_SIZE);
-for (let i = 0; i < SINE_TABLE_SIZE; i++) {
-    SINE_TABLE[i] = Math.sin((i / SINE_TABLE_SIZE) * Math.PI * 2);
-}
-function fastSin(rad) {
-    const norm = (rad / (Math.PI * 2)) % 1;
-    const index = Math.floor((norm < 0 ? norm + 1 : norm) * SINE_TABLE_SIZE);
-    return SINE_TABLE[index % SINE_TABLE_SIZE];
-}
-
-const verseAudioCache = new Map();
-function getAudioCacheKey(voiceId, text) {
-    return (voiceId || selectedVoice || 'default') + '::' + (text || '').trim().replace(/\s+/g, ' ').substring(0, 100);
-}
+let lastRandomVoiceId = null;
 
 async function playText(text, context) {
     // Stop any current audio with transition flag so UI remains in continuous generating/playing state
@@ -1242,7 +1237,6 @@ async function playText(text, context) {
     isPaused = false;
     currentAudioContextType = context;
     updateSpeakButton('speak-general');
-    startWaveformVisualizer();
 
     // Load the right voice
     if (ttsRandomVoice) {
@@ -1278,6 +1272,8 @@ async function playText(text, context) {
     text = text.replace(/<span class='author-attr'>.*?<\/span>/gm, '');
     text = text.replace(/<[^>]*>?/gm, '');
 
+    isGenerating = true;
+
     let sanitizedText = text.replace(/may peace be upon him/gi, 'upon him')
         .replace(/peace be upon him/gi, 'upon him')
         .replace(/ﷺ/g, 'upon him')
@@ -1294,27 +1290,9 @@ async function playText(text, context) {
         .replace(/\b[iI],[eE]\b/g, 'that is')
         .replace(/[:;]/g, '. ');
 
-    const cacheKey = getAudioCacheKey(piperSession.voiceId, sanitizedText);
-
-    // Instant zero-latency playback if already in device memory cache
-    if (verseAudioCache.has(cacheKey)) {
-        const cachedBuffers = verseAudioCache.get(cacheKey);
-        if (cachedBuffers && cachedBuffers.length > 0) {
-            audioChunkQueue = [...cachedBuffers];
-            playingQueueIndex = 0;
-            isGenerating = false;
-            isQueueGenerating = false;
-            const btn = document.getElementById('speak-general');
-            if (btn) btn.classList.remove('loading');
-            startWaveformVisualizer();
-            startAudioPlayback(0, generationId);
-            return;
-        }
-    }
-
     const fallbackTTS = () => {
+        console.log("Using browser TTS fallback");
         if (generationId !== currentGenerationId) return;
-        const btn = document.getElementById('speak-general');
         if (btn) btn.classList.remove('loading');
         isGenerating = false;
         isSpeaking = true;
@@ -1350,9 +1328,10 @@ async function playText(text, context) {
                 else {
                     if (!isSpeaking) stopWaveformVisualizer(true);
                 }
-            }, 100);
+            }, 400);
         };
-        currentUtterance.onerror = () => {
+        currentUtterance.onerror = (e) => {
+            console.log("SpeechSynthesis error:", e);
             if (!isPaused) {
                 isSpeaking = false;
                 updateSpeakButton('speak-general');
@@ -1361,70 +1340,111 @@ async function playText(text, context) {
         window.speechSynthesis.speak(currentUtterance);
     };
 
+    // Split text into sentence chunks and pause markers
+    let chunks = sanitizedText.split(/([.!?,;:]+[\s]+|\|PAUSE\|\s*)/i).filter(Boolean);
+    let combinedChunks = [];
+    let tempChunk = "";
+    for(let i = 0; i < chunks.length; i++) {
+        tempChunk += chunks[i];
+        if (chunks[i].match(/[.!?,;:]+[\s]+/i) || chunks[i].match(/\|PAUSE\|/i)) {
+            let ch = tempChunk.replace(/\|PAUSE\|/gi, '').trim();
+            if (ch) combinedChunks.push(ch);
+            if (chunks[i].match(/\|PAUSE\|/i)) combinedChunks.push("|PAUSE|");
+            tempChunk = "";
+        }
+    }
+    if (tempChunk.trim()) {
+        let ch = tempChunk.replace(/\|PAUSE\|/gi, '').trim();
+        if (ch) combinedChunks.push(ch);
+    }
+    if (combinedChunks.length === 0) combinedChunks = [sanitizedText.replace(/\|PAUSE\|/gi, '')];
+
     audioChunkQueue = [];
     playingQueueIndex = 0;
 
+    // Short debounce to avoid double-fires
     clearTimeout(playDebounceTimer);
     playDebounceTimer = setTimeout(async () => {
         if (generationId !== currentGenerationId) {
-            const btn = document.getElementById('speak-general');
             if (btn) btn.classList.remove('loading');
             return;
         }
         if (!piperSession) { fallbackTTS(); return; }
         isQueueGenerating = true;
+        processAudioQueue(combinedChunks, generationId, fallbackTTS);
+    }, 20);
+}
+
+async function processAudioQueue(chunks, generationId, fallbackTTS) {
+    for (let i = 0; i < chunks.length; i++) {
+        if (generationId !== currentGenerationId) break;
+        
+        // Yield cleanly to browser animation frame loop
+        await new Promise(r => requestAnimationFrame(() => setTimeout(r, 10)));
+        if (generationId !== currentGenerationId) break;
         
         try {
             const ctx = getAudioContext();
             if (ctx.state === 'suspended') await ctx.resume();
 
-            const parts = sanitizedText.split(/\|PAUSE\|/i);
-            const buffers = [];
-
-            for (let p = 0; p < parts.length; p++) {
-                if (generationId !== currentGenerationId) break;
-                const partText = parts[p].trim();
-                if (partText) {
-                    const wavBlob = await piperSession.predict(partText);
-                    if (generationId !== currentGenerationId) break;
-                    const arrayBuffer = await wavBlob.arrayBuffer();
-                    const decoded = await ctx.decodeAudioData(arrayBuffer);
-                    buffers.push(decoded);
-                }
-                if (p < parts.length - 1) {
-                    const sampleRate = ctx.sampleRate || 22050;
-                    const pauseFrames = Math.floor(sampleRate * 0.7);
-                    buffers.push(ctx.createBuffer(1, pauseFrames, sampleRate));
-                }
+            if (chunks[i] === "|PAUSE|") {
+                const sampleRate = ctx.sampleRate || 22050;
+                const pauseFrames = Math.floor(sampleRate * 0.8); // 0.8 seconds pause
+                const pauseBuffer = ctx.createBuffer(1, pauseFrames, sampleRate);
+                audioChunkQueue.push(pauseBuffer);
+                continue;
             }
 
-            if (generationId !== currentGenerationId) {
-                isQueueGenerating = false;
-                return;
+            const wavBlob = await piperSession.predict(chunks[i]);
+            if (generationId !== currentGenerationId) break;
+
+            const arrayBuffer = await wavBlob.arrayBuffer();
+            const decodedData = await ctx.decodeAudioData(arrayBuffer);
+            
+            if (generationId !== currentGenerationId) break;
+
+            const sampleRate = decodedData.sampleRate;
+            const paddingFrames = Math.floor(sampleRate * 0.2); // 200ms pause
+            const paddedBuffer = ctx.createBuffer(
+                decodedData.numberOfChannels, 
+                decodedData.length + paddingFrames, 
+                sampleRate
+            );
+            
+            for (let channel = 0; channel < decodedData.numberOfChannels; channel++) {
+                const channelData = paddedBuffer.getChannelData(channel);
+                channelData.set(decodedData.getChannelData(channel), paddingFrames);
             }
 
-            if (buffers.length > 0) {
-                audioChunkQueue = [...buffers];
-                verseAudioCache.set(cacheKey, [...buffers]);
-                if (verseAudioCache.size > 80) {
-                    const firstKey = verseAudioCache.keys().next().value;
-                    verseAudioCache.delete(firstKey);
-                }
+            audioChunkQueue.push(paddedBuffer);
+
+            // Stream playback immediately on the very first chunk while subsequent chunks synthesize in the background
+            if (i === 0 && !currentAudioNode && isSpeaking && !isPaused && generationId === currentGenerationId) {
                 isGenerating = false;
-                isQueueGenerating = false;
                 const btn = document.getElementById('speak-general');
                 if (btn) btn.classList.remove('loading');
                 startWaveformVisualizer();
                 startAudioPlayback(0, generationId);
-            } else {
-                fallbackTTS();
             }
+            
         } catch (err) {
-            console.error("Piper TTS synthesis failed:", err);
-            isQueueGenerating = false;
-            if (generationId === currentGenerationId) fallbackTTS();
+            console.error("Piper generation error on chunk " + i, err);
+            if (i === 0 && generationId === currentGenerationId) fallbackTTS();
+            break;
         }
-    }, 20);
+    }
+    
+    isQueueGenerating = false;
+    if (generationId === currentGenerationId && audioChunkQueue.length > 0) {
+        const btn = document.getElementById('speak-general');
+        if (btn) btn.classList.remove('loading');
+        isGenerating = false;
+        
+        if (!currentAudioNode) {
+            startWaveformVisualizer();
+            startAudioPlayback(0, generationId);
+        }
+    }
 }
 
 function startAudioPlayback(offset, generationId) {
@@ -1461,31 +1481,31 @@ function startAudioPlayback(offset, generationId) {
             isGenerating = false;
             currentAudioPausedAt = 0;
 
-            if (currentAudioContextType === 'feed' && autoMode) {
-                clearTimeout(autoNextTimeout);
-                autoNextTimeout = setTimeout(() => {
-                    nextCard(true);
-                }, 100);
-            } else if (currentAudioContextType === 'book' && autoNextBook) {
-                clearTimeout(autoNextTimeout);
-                autoNextTimeout = setTimeout(() => {
-                    advanceBookVerse();
-                }, 100);
-            } else if (currentAudioContextType === 'saved' && autoMode) {
-                clearTimeout(autoNextTimeout);
-                autoNextTimeout = setTimeout(() => {
-                    advanceSavedVerse();
-                }, 100);
-            } else if (currentAudioContextType === 'search' && autoMode) {
-                clearTimeout(autoNextTimeout);
-                autoNextTimeout = setTimeout(() => {
-                    advanceSearchVerse();
-                }, 100);
-            } else {
+            const isAutoContinuing = (currentAudioContextType === 'feed' && autoMode) ||
+                                     (currentAudioContextType === 'book' && autoNextBook) ||
+                                     (currentAudioContextType === 'saved' && autoMode) ||
+                                     (currentAudioContextType === 'search' && autoMode);
+
+            if (!isAutoContinuing) {
                 isSpeaking = false;
                 updateSpeakButton('speak-general');
                 stopWaveformVisualizer(true);
             }
+
+            clearTimeout(autoNextTimeout);
+            autoNextTimeout = setTimeout(() => {
+                if (currentAudioContextType === 'feed' && autoMode) {
+                    nextCard(true);
+                } else if (currentAudioContextType === 'book' && autoNextBook) {
+                    advanceBookVerse();
+                } else if (currentAudioContextType === 'saved' && autoMode) {
+                    advanceSavedVerse();
+                } else if (currentAudioContextType === 'search' && autoMode) {
+                    advanceSearchVerse();
+                } else {
+                    if (!isSpeaking) stopWaveformVisualizer(true);
+                }
+            }, 300);
             return;
         }
     }
@@ -1650,7 +1670,7 @@ function advanceBookVerse() {
     setTimeout(() => {
         playBookVerse(nextIndex);
         autoNextBook = true;
-    }, 380);
+    }, 400); // Wait for smooth scrolling to finish before blocking main thread
 }
 // --- Data Loading & Processing ---
 async function loadReligionData(rel) {
@@ -2671,26 +2691,23 @@ function renderFeedCard(index, direction = 'none') {
 
     if (direction !== 'none') {
         const oldCard = stage.querySelector('.card-center');
-        card.classList.add('animating');
         stage.appendChild(card);
-        void card.offsetWidth;
-        if (oldCard) {
-            oldCard.classList.add('animating');
-            oldCard.classList.remove('card-center');
-            if (direction === 'next') oldCard.classList.add('card-left');
-            else oldCard.classList.add('card-right');
-            setTimeout(() => {
-                if (oldCard && oldCard.parentNode) oldCard.remove();
-            }, 380);
-        }
-        card.classList.remove('card-right', 'card-left');
-        card.classList.add('card-center');
-        setTimeout(() => {
-            if (card) card.classList.remove('animating');
-        }, 380);
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                if (oldCard) {
+                    oldCard.classList.remove('card-center');
+                    if (direction === 'next') oldCard.classList.add('card-left');
+                    else oldCard.classList.add('card-right');
+                    setTimeout(() => {
+                        if (oldCard && oldCard.parentNode) oldCard.remove();
+                    }, 380);
+                }
+                card.classList.remove('card-right', 'card-left');
+                card.classList.add('card-center');
+            });
+        });
     } else {
         stage.innerHTML = '';
-        card.classList.remove('animating');
         card.classList.add('card-center');
         stage.appendChild(card);
     }
@@ -2726,7 +2743,7 @@ function nextCard(isAuto = false) {
             setTimeout(() => {
                 playText(spokenText, 'feed');
                 autoMode = true;
-            }, 300);
+            }, 360);
         } else if (newVerse && newVerse.isAd) {
             if (!newVerse.funnyLine) {
                 newVerse.funnyLine = getNextFunnyLine();
@@ -2735,7 +2752,7 @@ function nextCard(isAuto = false) {
             setTimeout(() => {
                 playText(adSpokenText, 'feed');
                 autoMode = true;
-            }, 300);
+            }, 360);
         }
     } else {
         deselectVerse();
@@ -2770,7 +2787,7 @@ function prevCard() {
             setTimeout(() => {
                 playText(spokenText, 'feed');
                 autoMode = true;
-            }, 300);
+            }, 360);
         } else if (wasPlaying && newVerse && newVerse.isAd) {
             if (!newVerse.funnyLine) {
                 newVerse.funnyLine = getNextFunnyLine();
@@ -2779,7 +2796,7 @@ function prevCard() {
             setTimeout(() => {
                 playText(adSpokenText, 'feed');
                 autoMode = true;
-            }, 300);
+            }, 360);
         } else {
             deselectVerse();
         }
@@ -4838,8 +4855,6 @@ function startWaveformVisualizer() {
     
     const bufferLength = (audioAnalyser && audioAnalyser.frequencyBinCount) || 64;
     const dataArray = new Uint8Array(bufferLength);
-    const numPoints = Math.max(60, Math.floor(visualizerLogicalWidth / 6));
-    const sliceWidth = (visualizerLogicalWidth + 20) / (numPoints - 1);
 
     function draw() {
         if (!canvas || !canvas.classList.contains('active')) {
@@ -4854,10 +4869,6 @@ function startWaveformVisualizer() {
 
         waveformAnimFrame = requestAnimationFrame(draw);
 
-        const currentWidth = visualizerLogicalWidth;
-        const currentHeight = visualizerLogicalHeight;
-        ctx.clearRect(-10, 0, currentWidth + 20, currentHeight + 20);
-
         if (audioAnalyser && isSpeaking && !isPaused && !isGenerating) {
             audioAnalyser.getByteFrequencyData(dataArray);
             let sum = 0;
@@ -4868,32 +4879,59 @@ function startWaveformVisualizer() {
         } else {
             visualizerSmoothedVol *= 0.88;
         }
-        const numPoints = Math.min(80, Math.max(45, Math.floor(currentWidth / 10)));
+
+        const currentWidth = visualizerLogicalWidth;
+        const currentHeight = visualizerLogicalHeight;
+        const numPoints = Math.min(80, Math.max(45, Math.floor(currentWidth / 14)));
         const sliceWidth = (currentWidth + 20) / (numPoints - 1);
+        const time = performance.now() * 0.001;
 
-        const time = Date.now() * 0.001;
+        ctx.clearRect(-10, 0, currentWidth + 30, currentHeight);
 
-        const drawLayer = (speed, frequency, amplitudeBase, audioMult, layerIdx) => {
-            ctx.beginPath();
-            ctx.moveTo(-10, currentHeight);
-            for (let i = 0; i < numPoints; i++) {
-                const x = -10 + (i * sliceWidth);
-                const wave1 = fastSin(x * frequency + time * speed);
-                const wave2 = fastSin((currentWidth - x) * frequency + time * (speed * 0.85));
-                const height = amplitudeBase + (wave1 * 8) + (wave2 * 8) + (visualizerSmoothedVol * audioMult);
-                const y = currentHeight - Math.max(4, height);
-                ctx.lineTo(x, y);
-            }
-            ctx.lineTo(currentWidth + 10, currentHeight);
-            ctx.closePath();
+        // Layer 1
+        ctx.beginPath();
+        ctx.moveTo(-10, currentHeight);
+        for (let i = 0; i < numPoints; i++) {
+            const x = -10 + (i * sliceWidth);
+            const wave1 = Math.sin(x * 0.005 + time * 1.5);
+            const wave2 = Math.sin((currentWidth - x) * 0.005 + time * 1.275);
+            const height = 10 + (wave1 * 8) + (wave2 * 8) + (visualizerSmoothedVol * 60);
+            ctx.lineTo(x, currentHeight - Math.max(4, height));
+        }
+        ctx.lineTo(currentWidth + 10, currentHeight);
+        ctx.closePath();
+        ctx.fillStyle = (cachedGradLayers && cachedGradLayers[0]) || 'rgba(238, 204, 180, 0.3)';
+        ctx.fill();
 
-            ctx.fillStyle = (cachedGradLayers && cachedGradLayers[layerIdx]) || 'rgba(238, 204, 180, 0.3)';
-            ctx.fill();
-        };
+        // Layer 2
+        ctx.beginPath();
+        ctx.moveTo(-10, currentHeight);
+        for (let i = 0; i < numPoints; i++) {
+            const x = -10 + (i * sliceWidth);
+            const wave1 = Math.sin(x * 0.007 + time * 1.8);
+            const wave2 = Math.sin((currentWidth - x) * 0.007 + time * 1.53);
+            const height = 15 + (wave1 * 8) + (wave2 * 8) + (visualizerSmoothedVol * 80);
+            ctx.lineTo(x, currentHeight - Math.max(4, height));
+        }
+        ctx.lineTo(currentWidth + 10, currentHeight);
+        ctx.closePath();
+        ctx.fillStyle = (cachedGradLayers && cachedGradLayers[1]) || 'rgba(238, 204, 180, 0.3)';
+        ctx.fill();
 
-        drawLayer(1.5, 0.005, 10, 60, 0);
-        drawLayer(1.8, 0.007, 15, 80, 1);
-        drawLayer(2.2, 0.009, 20, 110, 2);
+        // Layer 3
+        ctx.beginPath();
+        ctx.moveTo(-10, currentHeight);
+        for (let i = 0; i < numPoints; i++) {
+            const x = -10 + (i * sliceWidth);
+            const wave1 = Math.sin(x * 0.009 + time * 2.2);
+            const wave2 = Math.sin((currentWidth - x) * 0.009 + time * 1.87);
+            const height = 20 + (wave1 * 8) + (wave2 * 8) + (visualizerSmoothedVol * 110);
+            ctx.lineTo(x, currentHeight - Math.max(4, height));
+        }
+        ctx.lineTo(currentWidth + 10, currentHeight);
+        ctx.closePath();
+        ctx.fillStyle = (cachedGradLayers && cachedGradLayers[2]) || 'rgba(238, 204, 180, 0.3)';
+        ctx.fill();
     }
 
     waveformAnimFrame = requestAnimationFrame(draw);

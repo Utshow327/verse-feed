@@ -181,7 +181,9 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     bottom: max(20px, calc(10px + env(safe-area-inset-bottom, 0px)));
     top: auto;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) translateZ(0);
+    will-change: transform;
+    isolation: isolate;
     background: var(--nav-bg) !important;
     backdrop-filter: blur(10px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
