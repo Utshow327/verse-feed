@@ -4888,8 +4888,8 @@ function startWaveformVisualizer() {
             for (let i = 0; i < numPoints; i++) {
                 const x = -10 + (i * sliceWidth);
                 const wave1 = Math.sin(x * frequency + time * speed);
-                const wave2 = Math.sin(x * frequency * 1.5 - time * speed * 0.8);
-                const height = amplitudeBase + (wave1 * 12) + (wave2 * 8) + (visualizerSmoothedVol * audioMult);
+                const wave2 = Math.sin((currentWidth - x) * frequency + time * (speed * 0.85));
+                const height = amplitudeBase + (wave1 * 8) + (wave2 * 8) + (visualizerSmoothedVol * audioMult);
                 const y = currentHeight - Math.max(4, height);
                 ctx.lineTo(x, y);
             }
