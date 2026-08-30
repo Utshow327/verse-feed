@@ -4841,20 +4841,22 @@ function startWaveformVisualizer() {
     canvas.style.display = 'block';
     canvas.classList.add('active');
 
-    if (waveformAnimFrame) return;
+    if (waveformAnimFrame) {
+        cancelAnimationFrame(waveformAnimFrame);
+        waveformAnimFrame = null;
+    }
     const ctx = waveformCanvasCtx || canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
     
     updateVisualizerThemeCache();
     
-    let lastVisualizerFrameTime = 0;
+    const bufferLength = (audioAnalyser && audioAnalyser.frequencyBinCount) || 64;
+    const dataArray = new Uint8Array(bufferLength);
     const numPoints = Math.max(60, Math.floor(visualizerLogicalWidth / 6));
     const sliceWidth = (visualizerLogicalWidth + 20) / (numPoints - 1);
 
     function draw() {
-        if (!canvas) return;
-        const isActive = canvas.classList.contains('active');
-        if (!isActive && (!isSpeaking || isPaused)) {
+        if (!canvas || !canvas.classList.contains('active')) {
             if (waveformAnimFrame) {
                 cancelAnimationFrame(waveformAnimFrame);
                 waveformAnimFrame = null;
@@ -4865,12 +4867,6 @@ function startWaveformVisualizer() {
         }
 
         waveformAnimFrame = requestAnimationFrame(draw);
-
-        const now = performance.now();
-        if (now - lastVisualizerFrameTime < 24) { // Cap at ~40 FPS to eliminate any CPU contention on mobile
-            return;
-        }
-        lastVisualizerFrameTime = now;
 
         if (audioAnalyser && isSpeaking && !isPaused && !isGenerating) {
             audioAnalyser.getByteFrequencyData(dataArray);
@@ -4910,13 +4906,24 @@ function startWaveformVisualizer() {
         drawLayer(2.2, 0.009, 20, 110, 2);
     }
 
-    draw();
+    waveformAnimFrame = requestAnimationFrame(draw);
 }
 
 function stopWaveformVisualizer(forceHide = false) {
     const canvas = document.getElementById('waveform-canvas');
     if (canvas) {
         canvas.classList.remove('active');
+        if (forceHide) {
+            if (waveformAnimFrame) {
+                cancelAnimationFrame(waveformAnimFrame);
+                waveformAnimFrame = null;
+            }
+            if (waveformCanvasCtx) {
+                try { waveformCanvasCtx.clearRect(0, 0, visualizerLogicalWidth + 20, visualizerLogicalHeight); } catch(e) {}
+            }
+            canvas.style.display = 'none';
+            return;
+        }
         clearTimeout(visualizerFadeTimeout);
         visualizerFadeTimeout = setTimeout(() => {
             if (!canvas.classList.contains('active')) {
@@ -4929,7 +4936,7 @@ function stopWaveformVisualizer(forceHide = false) {
                 }
                 canvas.style.display = 'none';
             }
-        }, 500);
+        }, 400);
     }
 }
 
