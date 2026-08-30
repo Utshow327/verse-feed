@@ -1670,7 +1670,7 @@ function advanceBookVerse() {
     setTimeout(() => {
         playBookVerse(nextIndex);
         autoNextBook = true;
-    }, 120);
+    }, 380);
 }
 // --- Data Loading & Processing ---
 async function loadReligionData(rel) {
@@ -2743,7 +2743,7 @@ function nextCard(isAuto = false) {
             setTimeout(() => {
                 playText(spokenText, 'feed');
                 autoMode = true;
-            }, 120);
+            }, 380);
         } else if (newVerse && newVerse.isAd) {
             if (!newVerse.funnyLine) {
                 newVerse.funnyLine = getNextFunnyLine();
@@ -2752,7 +2752,7 @@ function nextCard(isAuto = false) {
             setTimeout(() => {
                 playText(adSpokenText, 'feed');
                 autoMode = true;
-            }, 120);
+            }, 380);
         }
     } else {
         deselectVerse();
@@ -2787,7 +2787,7 @@ function prevCard() {
             setTimeout(() => {
                 playText(spokenText, 'feed');
                 autoMode = true;
-            }, 120);
+            }, 380);
         } else if (wasPlaying && newVerse && newVerse.isAd) {
             if (!newVerse.funnyLine) {
                 newVerse.funnyLine = getNextFunnyLine();
@@ -2796,7 +2796,7 @@ function prevCard() {
             setTimeout(() => {
                 playText(adSpokenText, 'feed');
                 autoMode = true;
-            }, 120);
+            }, 380);
         } else {
             deselectVerse();
         }
@@ -4890,7 +4890,7 @@ function startWaveformVisualizer() {
 
         const currentWidth = visualizerLogicalWidth;
         const currentHeight = visualizerLogicalHeight;
-        const numPoints = Math.max(60, Math.floor(currentWidth / 6));
+        const numPoints = Math.min(80, Math.max(45, Math.floor(currentWidth / 10)));
         const sliceWidth = (currentWidth + 20) / (numPoints - 1);
 
         const time = Date.now() * 0.001;
