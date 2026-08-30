@@ -988,13 +988,23 @@ function showVoiceInstallingToast(msg = "Installing voice...", percent = null) {
     const progressEl = document.getElementById('toast-progress');
     if (!toast || !msgEl) return;
     
-    msgEl.textContent = msg;
+    let displayMsg = msg;
+    if (typeof percent === 'number') {
+        if (percent >= 100) {
+            displayMsg = "Voice ready";
+        } else {
+            const clean = msg.replace(/\.\.\..*$/, '').replace(/\s*\d+%.*$/, '');
+            displayMsg = `${clean}... ${Math.round(percent)}%`;
+        }
+    }
+    
+    msgEl.textContent = displayMsg;
     if (actionBtn) actionBtn.style.display = 'none';
     
     if (progressEl) {
         if (typeof percent === 'number') {
-            progressEl.style.transition = 'transform 0.25s ease-out';
-            const frac = Math.max(0.05, Math.min(1, percent / 100));
+            progressEl.style.transition = 'transform 0.2s ease-out';
+            const frac = Math.max(0.04, Math.min(1, percent / 100));
             progressEl.style.transform = `scaleX(${frac})`;
         } else {
             progressEl.style.transition = 'none';
@@ -1023,11 +1033,12 @@ function showVoiceInstallingToast(msg = "Installing voice...", percent = null) {
                     progressEl.style.transform = 'scaleX(0)';
                 }, 250);
             }
-        }, 800);
+        }, 1200);
     }
 }
 
 function hideVoiceToast() {
+    if (piperInitializing) return; // Do not hide toast while actively installing voice
     const toast = document.getElementById('global-toast');
     if (toast) toast.classList.remove('show');
     clearTimeout(voiceDownloadToastTimeout);
@@ -1047,8 +1058,9 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
         
         try {
             const isInstalled = localStorage.getItem('piper_voice_installed_' + voiceId) === 'true';
+            let maxPercent = 5;
             if (!isInstalled) {
-                showVoiceInstallingToast("Installing voice...", 5);
+                showVoiceInstallingToast("Installing voice...", maxPercent);
             }
             
             const tts = await import("./libs/piper/piper-bundle.js?v=20");
@@ -1058,7 +1070,6 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
             console.log("Loading Piper TTS voice:", voiceId);
             const wasmBase = new URL('libs/piper/', window.location.href).href;
             
-            let maxPercent = 5;
             const newSession = await tts.TtsSession.create({
                 voiceId: voiceId,
                 wasmPaths: {
@@ -1067,16 +1078,18 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
                     piperWasm: wasmBase + "piper_phonemize.wasm"
                 },
                 progress: (p) => {
-                    if (p && p.total && p.loaded) {
-                        const pct = Math.round((p.loaded / p.total) * 100);
+                    if (p && p.loaded) {
+                        const totalBytes = (p.total && p.total > 0) ? p.total : (62 * 1024 * 1024);
+                        const pct = Math.round((p.loaded / totalBytes) * 100);
                         if (!isInstalled) {
-                            maxPercent = Math.max(maxPercent, Math.min(96, pct));
+                            maxPercent = Math.max(maxPercent, Math.min(98, pct));
                             showVoiceInstallingToast("Installing voice...", maxPercent);
                         }
                     }
                 }
             });
             localStorage.setItem('piper_voice_installed_' + voiceId, 'true');
+            piperInitializing = false;
             if (!isInstalled) {
                 showVoiceInstallingToast("Voice ready", 100);
             } else {
@@ -1099,10 +1112,10 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
         } catch (e) {
             console.error("Piper TTS init failed:", e);
             piperSession = null;
+            piperInitializing = false;
             hideVoiceToast();
             throw e;
         }
-        piperInitializing = false;
     })();
     return piperInitPromise;
 }
@@ -4713,6 +4726,7 @@ function isToastAllowed(msg) {
 }
 
 function showToast(msg, duration = 2200) {
+    if (piperInitializing) return; // Do not overwrite active voice download progress
     if (!isToastAllowed(msg)) return;
 
     const toast = document.getElementById('global-toast');
@@ -5202,6 +5216,7 @@ let lastDeletedItem = null;
 let undoTimeout = null;
 
 function showDeleteToast(msg, undoCallback) {
+    if (piperInitializing) return; // Do not overwrite active voice download progress
     const toast = document.getElementById('global-toast');
     const msgEl = document.getElementById('toast-message');
     const actionBtn = document.getElementById('toast-action-btn');
