@@ -281,6 +281,7 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     display: none !important;
     background: var(--bg-grad-1);
     z-index: 1;
+    contain: content;
 }
 
 .app-section.active-section {
@@ -2603,6 +2604,7 @@ h2 {
     height: 100vh;
     pointer-events: none;
     z-index: 9999;
+    contain: strict;
 }
 .radial-item {
     position: absolute;

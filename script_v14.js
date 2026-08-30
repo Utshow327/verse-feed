@@ -4575,12 +4575,12 @@ document.addEventListener('DOMContentLoaded', () => {
             clearTimeout(tooltipTimeout);
             tooltipTimeout = setTimeout(() => showTooltip(target), 1000);
         }
-    });
+    }, { passive: true });
 
     document.addEventListener('mouseout', (e) => {
         const target = e.target.closest('[data-tooltip]');
         if (target) hideTooltip();
-    });
+    }, { passive: true });
 
     document.addEventListener('touchstart', (e) => {
         const target = e.target.closest('[data-tooltip]');
@@ -4590,12 +4590,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             hideTooltip();
         }
-    }, {passive: true});
+    }, { passive: true });
 
-    document.addEventListener('touchend', hideTooltip);
-    document.addEventListener('touchmove', hideTooltip, {passive: true});
-    document.addEventListener('mousedown', hideTooltip, {passive: true});
-    document.addEventListener('input', hideTooltip, {passive: true});
+    document.addEventListener('touchend', hideTooltip, { passive: true });
+    document.addEventListener('touchmove', hideTooltip, { passive: true });
+    document.addEventListener('mousedown', hideTooltip, { passive: true });
+    document.addEventListener('input', hideTooltip, { passive: true });
 });
 
 /* --- Pinterest-style Radial Menu --- */
@@ -4613,10 +4613,12 @@ const RADIAL_ACTIONS = {
     delete: { id: 'delete', icon: '???', color: '#f44336' }
 };
 
-function getCurrentActiveVerse() {
-    const isBookSection = document.getElementById('read-books').classList.contains('active-section') && !document.getElementById('book-content-view').classList.contains('hidden');
-    const isFeedSection = document.getElementById('verse-feed').classList.contains('active-section');
-    if (isFeedSection) return getVerseAtIndex(currentVerseIndex.general);
+function getContextVerseForRadial() {
+    const isFeed = document.getElementById('verse-feed').classList.contains('active-section');
+    if (isFeed && verseBatches.general && verseBatches.general[currentVerseIndex.general]) {
+        return verseBatches.general[currentVerseIndex.general];
+    }
+    const isBookSection = document.getElementById('read-books').classList.contains('active-section');
     if (isBookSection && globalVerseMap[bookVoiceCurrentVerse]) return globalVerseMap[bookVoiceCurrentVerse];
     return null;
 }
@@ -4640,6 +4642,7 @@ function bindRadialMenu(element, getVerseFn, actionIds, onClickFn) {
 }
 
 window.addEventListener('pointermove', (e) => {
+    if (!radialActive && !radialTimeout) return;
     if (!radialActive) {
         // Cancel hold if moved too far before timeout
         if (radialTimeout && currentRadialElement) {
@@ -4652,7 +4655,7 @@ window.addEventListener('pointermove', (e) => {
         return;
     }
     updateRadialMenu(e.clientX, e.clientY);
-});
+}, { passive: true });
 
 window.addEventListener('pointerup', (e) => {
     if (radialTimeout) {
