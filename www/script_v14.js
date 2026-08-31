@@ -4952,37 +4952,31 @@ function startWaveformVisualizer() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.restore();
 
-        if (audioAnalyser && isSpeaking && !isPaused) {
-            audioAnalyser.getByteFrequencyData(visualizerDataArray);
-            let sum = 0;
-            const len = visualizerDataArray.length;
-            for (let i = 0; i < len; i++) sum += visualizerDataArray[i];
-            const avgVolume = sum / len / 255.0;
-            visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.14;
-        } else {
-            visualizerSmoothedVol *= 0.88;
-        }
+        // Zero-overhead mathematical wave interpolation
+        const isVoiceActive = isSpeaking && !isPaused;
+        const targetVol = isVoiceActive ? 0.85 : 0.15;
+        visualizerSmoothedVol += (targetVol - visualizerSmoothedVol) * (isVoiceActive ? 0.08 : 0.04);
 
         const cw = visualizerLogicalWidth;
         const ch = visualizerLogicalHeight;
-        const np = Math.max(30, Math.floor(cw / 12));
+        const np = Math.max(32, Math.floor(cw / 12));
         const sw = (cw + 20) / (np - 1);
         const time = Date.now() * 0.001;
 
         for (let layerIdx = 0; layerIdx < 3; layerIdx++) {
-            const speed = [1.5, 1.8, 2.2][layerIdx];
-            const frequency = [0.005, 0.007, 0.009][layerIdx];
-            const amplitudeBase = [10, 15, 20][layerIdx];
-            const audioMult = [60, 80, 110][layerIdx];
+            const speed = [1.4, 1.8, 2.3][layerIdx];
+            const frequency = [0.0045, 0.0065, 0.0085][layerIdx];
+            const amplitudeBase = [8, 14, 20][layerIdx];
+            const waveScale = [45, 65, 90][layerIdx];
 
             ctx.beginPath();
             ctx.moveTo(-10, ch);
             for (let i = 0; i < np; i++) {
                 const x = -10 + (i * sw);
                 const wave1 = Math.sin(x * frequency + time * speed);
-                const wave2 = Math.sin((cw - x) * frequency + time * (speed * 0.85));
-                const height = amplitudeBase + (wave1 * 8) + (wave2 * 8) + (visualizerSmoothedVol * audioMult);
-                const y = ch - Math.max(4, height);
+                const wave2 = Math.sin((cw - x) * (frequency * 1.1) + time * (speed * 0.8));
+                const height = amplitudeBase + ((wave1 + wave2) * 5) + (visualizerSmoothedVol * waveScale * (1 + 0.25 * Math.sin(time * 3 + i * 0.1)));
+                const y = ch - Math.max(3, height);
                 ctx.lineTo(x, y);
             }
             ctx.lineTo(cw + 10, ch);

@@ -50,14 +50,16 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Initialize Google Mobile Ads SDK
-        try {
-            MobileAds.initialize(this, initializationStatus -> {
-                preloadNextNativeAd();
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        // Initialize Google Mobile Ads SDK after smooth startup delay
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            try {
+                MobileAds.initialize(this, initializationStatus -> {
+                    preloadNextNativeAd();
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }, 2000);
 
         // Enable edge-to-edge drawing — content extends behind status bar and navigation bar
         Window window = getWindow();
@@ -306,23 +308,16 @@ public class MainActivity extends BridgeActivity {
 
             if (nativeAd.getIcon() != null && nativeAd.getIcon().getDrawable() != null) {
                 Drawable drawable = nativeAd.getIcon().getDrawable();
-                Bitmap bitmap = null;
-                if (drawable instanceof BitmapDrawable) {
-                    bitmap = ((BitmapDrawable) drawable).getBitmap();
-                } else {
-                    int w = Math.max(1, drawable.getIntrinsicWidth());
-                    int h = Math.max(1, drawable.getIntrinsicHeight());
-                    bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-                    Canvas canvas = new Canvas(bitmap);
-                    drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
-                    drawable.draw(canvas);
-                }
-                if (bitmap != null) {
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 90, baos);
-                    String base64 = Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP);
-                    json.put("icon", "data:image/png;base64," + base64);
-                }
+                int w = Math.min(96, Math.max(1, drawable.getIntrinsicWidth()));
+                int h = Math.min(96, Math.max(1, drawable.getIntrinsicHeight()));
+                Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+                Canvas canvas = new Canvas(bitmap);
+                drawable.setBounds(0, 0, w, h);
+                drawable.draw(canvas);
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                bitmap.compress(Bitmap.CompressFormat.PNG, 80, baos);
+                String base64 = Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP);
+                json.put("icon", "data:image/png;base64," + base64);
             }
         } catch (Exception e) {
             e.printStackTrace();
