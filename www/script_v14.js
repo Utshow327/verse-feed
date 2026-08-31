@@ -6507,9 +6507,14 @@ function enableNameEditMode() {
     
     const currentName = nameEl.innerText.trim();
     nameEl.isEditing = true;
-    nameEl.innerHTML = `<input type="text" id="inline-name-input" value="${currentName}" style="font-size: 1.2rem; font-family: var(--font-main); color: var(--text-color); background: rgba(0,0,0,0.1); border: 1px solid var(--accent); border-radius: 6px; padding: 2px 8px; text-align: center; width: 100%; box-sizing: border-box; outline: none;" />`;
     
-    const inputEl = document.getElementById('inline-name-input');
+    const inputEl = document.createElement('input');
+    inputEl.type = 'text';
+    inputEl.id = 'inline-name-input';
+    inputEl.value = currentName;
+    inputEl.style.cssText = 'font-size: 1.2rem; font-family: var(--font-main); color: var(--text-color); background: rgba(0,0,0,0.1); border: 1px solid var(--accent); border-radius: 6px; padding: 2px 8px; text-align: center; width: 100%; box-sizing: border-box; outline: none;';
+    nameEl.innerHTML = '';
+    nameEl.appendChild(inputEl);
     inputEl.focus();
     inputEl.setSelectionRange(0, inputEl.value.length);
     
