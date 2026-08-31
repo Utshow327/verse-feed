@@ -1067,6 +1067,7 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
             console.log("Loading Piper TTS voice:", voiceId);
             const wasmBase = new URL('libs/piper/', window.location.href).href;
             
+            let lastProgressUpdate = 0;
             const newSession = await tts.TtsSession.create({
                 voiceId: voiceId,
                 wasmPaths: {
@@ -1076,6 +1077,9 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
                 },
                 progress: (p) => {
                     if (p && p.loaded) {
+                        const now = Date.now();
+                        if (now - lastProgressUpdate < 500) return; // Throttle to every 500ms
+                        lastProgressUpdate = now;
                         const totalBytes = (p.total && p.total > 0) ? p.total : (62 * 1024 * 1024);
                         const pct = Math.round((p.loaded / totalBytes) * 100);
                         if (!isInstalled) {
@@ -2738,6 +2742,8 @@ function renderFeedCard(index, direction = 'none') {
 
     trackVerseDwellTime(verse);
 
+    const oldCards = Array.from(stage.querySelectorAll('.verse-card'));
+
     let card = null;
     if (direction === 'next') card = createFeedCardDOM(verse, 'card-right');
     else if (direction === 'prev') card = createFeedCardDOM(verse, 'card-left');
@@ -2745,19 +2751,19 @@ function renderFeedCard(index, direction = 'none') {
 
     card.id = 'feed-card-' + index;
 
-    if (direction !== 'none') {
-        const oldCard = stage.querySelector('.card-center');
+    if (direction !== 'none' && oldCards.length > 0) {
         stage.appendChild(card);
+        oldCards.forEach(oldCard => {
+            oldCard.classList.remove('card-center', 'card-right', 'card-left');
+            if (direction === 'next') oldCard.classList.add('card-left');
+            else oldCard.classList.add('card-right');
+            oldCard.style.pointerEvents = 'none';
+            setTimeout(() => {
+                try { if (oldCard && oldCard.parentNode) oldCard.parentNode.removeChild(oldCard); } catch(e){}
+            }, 360);
+        });
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                if (oldCard) {
-                    oldCard.classList.remove('card-center');
-                    if (direction === 'next') oldCard.classList.add('card-left');
-                    else oldCard.classList.add('card-right');
-                    setTimeout(() => {
-                        if (oldCard && oldCard.parentNode) oldCard.remove();
-                    }, 380);
-                }
                 card.classList.remove('card-right', 'card-left');
                 card.classList.add('card-center');
             });
@@ -4929,11 +4935,16 @@ function startWaveformVisualizer() {
         visualizerDataArray = new Uint8Array(bufferLength);
     }
 
-    function draw() {
+    let lastDrawTime = 0;
+    function draw(timestamp) {
         // Kill this loop if a newer generation started
         if (myGeneration !== visualizerDrawGeneration) return;
 
         waveformAnimFrame = requestAnimationFrame(draw);
+
+        // Throttle to ~30fps to save CPU (especially during voice download)
+        if (timestamp - lastDrawTime < 33) return;
+        lastDrawTime = timestamp;
 
         // Clear entire physical buffer
         ctx.save();
@@ -4954,7 +4965,7 @@ function startWaveformVisualizer() {
 
         const cw = visualizerLogicalWidth;
         const ch = visualizerLogicalHeight;
-        const np = Math.max(60, Math.floor(cw / 6));
+        const np = Math.max(30, Math.floor(cw / 12));
         const sw = (cw + 20) / (np - 1);
         const time = Date.now() * 0.001;
 

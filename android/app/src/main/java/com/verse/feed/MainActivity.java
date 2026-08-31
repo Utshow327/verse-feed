@@ -38,9 +38,10 @@ import java.io.ByteArrayOutputStream;
 public class MainActivity extends BridgeActivity {
     private Boolean currentAppearanceLight = null;
     private NativeAd currentNativeAd = null;
+    private NativeAd standbyNativeAd = null;
     private NativeAdView nativeAdViewContainer = null;
     private View nativeAdClickTarget = null;
-    private String cachedAdJsonString = null;
+    private String standbyAdJsonString = null;
     private static final String NATIVE_AD_TEST_UNIT_ID = "ca-app-pub-3940256099942544/2247696110";
     private static final String NATIVE_AD_LIVE_UNIT_ID = "ca-app-pub-5829734517659644/6990835162";
     private boolean isAdLoading = false;
@@ -91,10 +92,20 @@ public class MainActivity extends BridgeActivity {
             webView.addJavascriptInterface(new Object() {
                 @JavascriptInterface
                 public String getNextNativeAd() {
-                    if (cachedAdJsonString != null) {
-                        String result = cachedAdJsonString;
-                        cachedAdJsonString = null; // Consume ad
-                        MainActivity.this.runOnUiThread(() -> preloadNextNativeAd());
+                    if (standbyAdJsonString != null && standbyNativeAd != null) {
+                        String result = standbyAdJsonString;
+                        final NativeAd adToDisplay = standbyNativeAd;
+                        standbyAdJsonString = null;
+                        standbyNativeAd = null;
+                        
+                        MainActivity.this.runOnUiThread(() -> {
+                            if (currentNativeAd != null) {
+                                currentNativeAd.destroy();
+                            }
+                            currentNativeAd = adToDisplay;
+                            attachNativeAdToView(currentNativeAd);
+                            preloadNextNativeAd();
+                        });
                         return result;
                     }
                     MainActivity.this.runOnUiThread(() -> preloadNextNativeAd());
@@ -320,17 +331,16 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void preloadNextNativeAd() {
-        if (isAdLoading || cachedAdJsonString != null) return;
+        if (isAdLoading || standbyAdJsonString != null) return;
         isAdLoading = true;
 
         AdLoader.Builder builder = new AdLoader.Builder(this, NATIVE_AD_LIVE_UNIT_ID);
         builder.forNativeAd(nativeAd -> {
-            if (currentNativeAd != null) {
-                currentNativeAd.destroy();
+            if (standbyNativeAd != null) {
+                standbyNativeAd.destroy();
             }
-            currentNativeAd = nativeAd;
-            attachNativeAdToView(nativeAd);
-            cachedAdJsonString = buildNativeAdJson(nativeAd).toString();
+            standbyNativeAd = nativeAd;
+            standbyAdJsonString = buildNativeAdJson(nativeAd).toString();
             isAdLoading = false;
         });
 
@@ -350,12 +360,11 @@ public class MainActivity extends BridgeActivity {
     private void loadFallbackTestNativeAd() {
         AdLoader.Builder builder = new AdLoader.Builder(this, NATIVE_AD_TEST_UNIT_ID);
         builder.forNativeAd(nativeAd -> {
-            if (currentNativeAd != null) {
-                currentNativeAd.destroy();
+            if (standbyNativeAd != null) {
+                standbyNativeAd.destroy();
             }
-            currentNativeAd = nativeAd;
-            attachNativeAdToView(nativeAd);
-            cachedAdJsonString = buildNativeAdJson(nativeAd).toString();
+            standbyNativeAd = nativeAd;
+            standbyAdJsonString = buildNativeAdJson(nativeAd).toString();
             isAdLoading = false;
         });
 
