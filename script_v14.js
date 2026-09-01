@@ -1605,7 +1605,7 @@ function updateSpeakButton(buttonId) {
 // --- Unified Audio Control ---
 function speakCurrent(type) {
     const now = Date.now();
-    if (now - lastSpeakClick < 400) return; // Prevent double-tap jitter
+    if (now - lastSpeakClick < 120) return; // Snappy debounce
     lastSpeakClick = now;
 
     const ctx = getAudioContext();
@@ -1620,7 +1620,12 @@ function speakCurrent(type) {
     if (!isBookSection && !isFeedSection) return;
 
     if (isGenerating) {
-        console.log("Audio generating, ignoring extra clicks...");
+        // Immediate user cancellation if tapped while generating/loading
+        stopAudio(true);
+        isGenerating = false;
+        isSpeaking = false;
+        isPaused = false;
+        updateSpeakIcons();
         return;
     }
 
@@ -2540,26 +2545,26 @@ function getVerseAtIndex(index) {
 }
 
 const premiumFunnyLines = [
-    "Buy Premium and the developer will literally do a happy dance.",
-    "Spiritual peace, but make it 100% ad-free.",
-    "Ads in your zen zone? Absolutely not. Go Premium.",
-    "One small tap for you, one giant leap for an indie developer.",
-    "Elevate your vibe to total ad-free tranquility.",
-    "Feed your soul, not the advertising algorithms.",
-    "Unlock all natural HD voices and relax forever.",
-    "Upgrade to Premium: Zero ads, maximum cozy vibes.",
-    "Your daily dose of wisdom, now with zero commercial breaks.",
-    "Give your eyes a vacation with clean, ad-free reading.",
-    "Treat yourself to Premium like you treat yourself to snacks.",
-    "Legend says Premium makes holy verses sound 10x more majestic.",
-    "Keep the spiritual flow going with zero interruptions.",
-    "Uninterrupted peace of mind is just one tap away.",
-    "Support indie apps and keep the good vibes flowing.",
-    "Less distraction, more reflection. Get Premium.",
-    "Keep your feed pure, clean, and beautifully minimal.",
-    "Your attention is sacred. Protect it with VerseFeed Premium.",
-    "All HD voices, unlimited folders, and pure tranquility.",
-    "A cozy, distraction-free sanctuary for your daily verses."
+    "One small tap for you, one giant leap for this starving indie dev.",
+    "Remove ads and fund the developer's 3 AM coffee addiction.",
+    "Ads keep our servers alive. Premium keeps the developer's sanity alive.",
+    "Look, we both hate ads. Just tap the button and let's never speak of this again.",
+    "Upgrade to Premium so I can finally afford actual groceries instead of instant noodles.",
+    "You're reading ancient wisdom while staring at an ad. Let's fix that.",
+    "Tap Remove Ads and an angel will personally bless your WiFi signal.",
+    "Think of Premium as buying the developer a virtual tea. A very appreciative tea.",
+    "No ads, all HD voices, and eternal good karma. Best investment of your week.",
+    "Your spiritual enlightenment shouldn't have a commercial break.",
+    "100% of Premium buyers report feeling 42% more zen and 100% ad-free.",
+    "Help an indie developer survive capitalism. Tap to unlock Premium.",
+    "If you buy Premium, I promise to tell my mom someone actually bought my app.",
+    "Peace, tranquility, and zero banner ads trying to sell you car insurance.",
+    "Upgrade to Premium: Your daily verses deserve better than a low-budget ad.",
+    "Buy Premium and I'll literally do a celebratory backflip in my room.",
+    "Support a solo developer and cleanse your feed of all promotional clutter.",
+    "Zero ads, maximum cozy vibes, and you save a programmer from despair.",
+    "Skip the ads, keep the wisdom, and bless an indie creator's day.",
+    "A cozy, distraction-free sanctuary with all HD neural voices unlocked."
 ];
 
 let funnyLinesBag = [];
@@ -2678,11 +2683,13 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
             }, 0);
         } else {
             textEl.style.cursor = 'pointer';
+            textEl.style.justifyContent = 'center';
+            textEl.style.padding = '20px 24px';
             textEl.onclick = (e) => {
                 if (e) e.stopPropagation();
                 openPremiumModal();
             };
-            textEl.innerHTML = `<div style="font-size: clamp(1.2rem, 4.2vw, 1.65rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.5;">${verse.funnyLine}</div>`;
+            textEl.innerHTML = `<div style="font-size: clamp(1.2rem, 4.2vw, 1.65rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.55; text-align: center; max-width: 90%;">${verse.funnyLine}</div>`;
         }
         card.appendChild(textEl);
 
@@ -4952,31 +4959,37 @@ function startWaveformVisualizer() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.restore();
 
-        // Zero-overhead mathematical wave interpolation
-        const isVoiceActive = isSpeaking && !isPaused;
-        const targetVol = isVoiceActive ? 0.85 : 0.15;
-        visualizerSmoothedVol += (targetVol - visualizerSmoothedVol) * (isVoiceActive ? 0.08 : 0.04);
+        if (audioAnalyser && isSpeaking && !isPaused) {
+            audioAnalyser.getByteFrequencyData(visualizerDataArray);
+            let sum = 0;
+            const len = visualizerDataArray.length;
+            for (let i = 0; i < len; i++) sum += visualizerDataArray[i];
+            const avgVolume = sum / len / 255.0;
+            visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.18;
+        } else {
+            visualizerSmoothedVol *= 0.85;
+        }
 
         const cw = visualizerLogicalWidth;
         const ch = visualizerLogicalHeight;
-        const np = Math.max(32, Math.floor(cw / 12));
+        const np = Math.max(40, Math.floor(cw / 8));
         const sw = (cw + 20) / (np - 1);
         const time = Date.now() * 0.001;
 
         for (let layerIdx = 0; layerIdx < 3; layerIdx++) {
-            const speed = [1.4, 1.8, 2.3][layerIdx];
-            const frequency = [0.0045, 0.0065, 0.0085][layerIdx];
-            const amplitudeBase = [8, 14, 20][layerIdx];
-            const waveScale = [45, 65, 90][layerIdx];
+            const speed = [1.5, 1.8, 2.2][layerIdx];
+            const frequency = [0.005, 0.007, 0.009][layerIdx];
+            const amplitudeBase = [10, 15, 20][layerIdx];
+            const audioMult = [65, 90, 120][layerIdx];
 
             ctx.beginPath();
             ctx.moveTo(-10, ch);
             for (let i = 0; i < np; i++) {
                 const x = -10 + (i * sw);
                 const wave1 = Math.sin(x * frequency + time * speed);
-                const wave2 = Math.sin((cw - x) * (frequency * 1.1) + time * (speed * 0.8));
-                const height = amplitudeBase + ((wave1 + wave2) * 5) + (visualizerSmoothedVol * waveScale * (1 + 0.25 * Math.sin(time * 3 + i * 0.1)));
-                const y = ch - Math.max(3, height);
+                const wave2 = Math.sin((cw - x) * frequency + time * (speed * 0.85));
+                const height = amplitudeBase + (wave1 * 8) + (wave2 * 8) + (visualizerSmoothedVol * audioMult);
+                const y = ch - Math.max(4, height);
                 ctx.lineTo(x, y);
             }
             ctx.lineTo(cw + 10, ch);
