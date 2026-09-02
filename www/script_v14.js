@@ -1,3 +1,16 @@
+
+// Eradicate corrupted machine-translation cache
+try {
+    const keysToPurge = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('vtr_') || k.startsWith('verse_trans_'))) {
+            keysToPurge.push(k);
+        }
+    }
+    keysToPurge.forEach(k => localStorage.removeItem(k));
+} catch(e) {}
+
 // ==============================================
 // GLOBAL USER STATE & ISOLATED PROFILE / CLOUD SYNC ENGINE
 // ==============================================
@@ -1465,6 +1478,8 @@ function applyLanguageTranslations(langCode = currentAppLanguage) {
         showSavedVerses(true);
     }
     if (typeof buildSettings === 'function') buildSettings();
+    loadedReligions.clear();
+    loadSelectedData();
 }
 
 function getFirebaseCurrentUid() {
@@ -3156,10 +3171,19 @@ function advanceBookVerse() {
     }, 50);
 }
 // --- Data Loading & Processing ---
+
+function getReligionDataUrls(rel) {
+    if (rel === 'Islam') {
+        const quranFile = (currentAppLanguage === 'bn') ? './data/quran_bn.json?v=30' : './data/quran_v2.json?v=21';
+        return [quranFile, './data/hadiths_v2.json?v=21'];
+    }
+    return dataUrls[rel];
+}
+
 async function loadReligionData(rel) {
     if (loadedReligions.has(rel)) return;
     try {
-        const urls = dataUrls[rel];
+        const urls = getReligionDataUrls(rel);
         const responses = await Promise.all(urls.map(url => fetch(url).then(res => res.json())));
         
         await new Promise(r => setTimeout(r, 5)); // Yield to UI thread
@@ -4153,7 +4177,7 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
 
     const textEl = document.createElement('div');
     textEl.classList.add('verse-text');
-    applyDynamicVerseTranslation(textEl, verse.text || '');
+    textEl.textContent = verse.text || '';
 
     const footer = document.createElement('div');
     footer.classList.add('card-footer');
@@ -4719,7 +4743,7 @@ function renderVersesList(versesArray, listElement) {
         let displayVerse = v.text;
         displayVerse = displayVerse.replace(/<span class='author-attr'>.*?<\/span>/gm, '');
         displayVerse = displayVerse.replace(/<[^>]*>?/gm, '');
-        applyDynamicVerseTranslation(text, displayVerse);
+        text.innerText = displayVerse;
         
         const footer = document.createElement('div');
         footer.classList.add('saved-verse-footer');
@@ -5320,7 +5344,7 @@ function renderBookChapterBatch(batchSize = 30) {
         
         let displayVerse = text;
         if (displayVerse.endsWith('.')) displayVerse = displayVerse.slice(0, -1);
-        applyDynamicVerseTranslation(p, displayVerse);
+        p.innerHTML = displayVerse;
         p.onclick = (e) => {
             e.stopPropagation();
             handleVerseClick(gIndex);
