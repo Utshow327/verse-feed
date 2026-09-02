@@ -5333,7 +5333,7 @@ function goTo(section) {
             verseBatches.general = [];
             currentFeedIndex = 0;
             initializeVerseFeed();
-            showToast('Feed refreshed');
+            
         } else if (verseBatches.general.length === 0) {
             initializeVerseFeed();
         }
