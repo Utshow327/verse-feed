@@ -2224,25 +2224,33 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
     
     const cached = getCachedVerseTranslation(rawText, lang);
     if (cached && !isGarbageTranslation(cached)) {
+        const existingActions = domElement.querySelector('.verse-actions');
         domElement.innerText = cached;
+        if (existingActions) domElement.appendChild(existingActions);
         domElement.style.opacity = '1';
         return;
     }
     
     // Render text with subtle opacity during background neural translation
+    const existingActions = domElement.querySelector('.verse-actions');
     domElement.innerText = rawText;
+    if (existingActions) domElement.appendChild(existingActions);
     domElement.style.transition = 'opacity 0.25s ease';
     domElement.style.opacity = '0.7';
     
     translateTextAsync(rawText, lang).then(translated => {
         if (domElement && domElement.isConnected) {
             const finalTxt = (translated && !isGarbageTranslation(translated)) ? translated : rawText;
+            const actions = domElement.querySelector('.verse-actions');
             domElement.innerText = finalTxt;
+            if (actions) domElement.appendChild(actions);
             domElement.style.opacity = '1';
         }
     }).catch(() => {
         if (domElement && domElement.isConnected) {
+            const actions = domElement.querySelector('.verse-actions');
             domElement.innerText = rawText;
+            if (actions) domElement.appendChild(actions);
             domElement.style.opacity = '1';
         }
     });
@@ -5280,7 +5288,12 @@ function goTo(section) {
     if (section === 'verse-feed') {
         const n = document.getElementById('nav-feed'); if (n) n.classList.add('active-nav');
         const t = document.querySelector('.tab-btn[data-target="verse-feed"]'); if (t) t.classList.add('active');
-        if (verseBatches.general.length === 0) {
+        if (isAlreadyActive) {
+            verseBatches.general = [];
+            currentFeedIndex = 0;
+            initializeVerseFeed();
+            showToast('Feed refreshed');
+        } else if (verseBatches.general.length === 0) {
             initializeVerseFeed();
         }
         deselectVerse();
@@ -6228,6 +6241,16 @@ function renderChapter(chapter) {
     currentBookChapterState = { chapter, sortedKeys, verses, startIndex };
     currentBookChapterRenderedCount = 0;
     currentRenderedChapter = chapter;
+    
+    // Pre-warm translations for the entire chapter in background
+    if (currentAppLanguage !== 'en_US' && currentAppLanguage !== 'en') {
+        sortedKeys.forEach(vKey => {
+            const raw = verses[vKey];
+            if (raw && !getCachedVerseTranslation(raw, currentAppLanguage)) {
+                translateTextAsync(raw, currentAppLanguage);
+            }
+        });
+    }
     
     renderBookChapterBatch(30);
     setupBookChapterScrollListener();
