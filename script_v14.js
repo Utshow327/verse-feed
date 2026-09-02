@@ -2415,6 +2415,7 @@ function applyLanguageTranslations(langCode = currentAppLanguage) {
     if (typeof buildSettings === 'function') buildSettings();
     loadedReligions.clear();
     loadSelectedData();
+    preloadFunnyLines(langCode);
 }
 
 function getFirebaseCurrentUid() {
@@ -5010,6 +5011,15 @@ function getNextFunnyLine() {
     return funnyLinesBag.pop();
 }
 
+function preloadFunnyLines(lang = currentAppLanguage) {
+    if (!lang || lang === 'en_US' || lang === 'en') return;
+    premiumFunnyLines.forEach(line => {
+        if (line && !getCachedVerseTranslation(line, lang)) {
+            translateTextAsync(line, lang);
+        }
+    });
+}
+
 function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
     const card = document.createElement('div');
     card.classList.add('verse-card', initialPositionClass);
@@ -7593,6 +7603,7 @@ function selectAppLanguage(lang) {
     }
     
     applyLanguageTranslations(lang.code);
+    preloadFunnyLines(lang.code);
     if (typeof renderCards === 'function') {
         renderCards();
     }
