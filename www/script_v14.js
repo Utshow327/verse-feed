@@ -1084,16 +1084,16 @@ const i18nDict = {
     },
     "Talmud": {
         "bn": "তালমুদ",
-        "hi": "तालमूड",
+        "hi": "तालमुद",
         "ar": "التلمود",
         "he": "תלמוד",
         "es": "Talmud"
     },
     "Tanakh": {
-        "bn": "তানখ",
+        "bn": "তানাক",
         "hi": "तनाख",
-        "ar": "تناخ",
-        "he": "תנ״ך",
+        "ar": "التناخ",
+        "he": "תנ\"ך",
         "es": "Tanaj"
     },
     "Torah": {
@@ -2385,9 +2385,11 @@ const i18nDict = {
         "es": "Mishná"
     },
     "Midrash": {
-        "bn": "মিদরাশ",
+        "bn": "মিদ্রাশ",
         "hi": "मिद्रश",
-        "es": "Midrash"
+        "es": "Midrash",
+        "he": "מדרש",
+        "ar": "مدراش"
     },
     "Halakhah": {
         "bn": "হালাখা",
@@ -3370,8 +3372,79 @@ const i18nDict = {
         "it": "Peah",
         "de": "Pe'ah",
         "ru": "Пеа"
+    },
+    "Balakanda": {
+        "he": "באלאקאנדה",
+        "ar": "بالاكاندا",
+        "bn": "আদিকান্ড",
+        "hi": "बालकाण्ड",
+        "es": "Balakanda",
+        "fr": "Balakanda"
+    },
+    "Ayodhyakanda": {
+        "he": "איודיהקאנדה",
+        "ar": "أيودياكاندا",
+        "bn": "অযোধ্যাকান্ড",
+        "hi": "अयोध्याकाण्ड",
+        "es": "Ayodhyakanda",
+        "fr": "Ayodhyakanda"
+    },
+    "Aranyakanda": {
+        "he": "אראניאקאנדה",
+        "ar": "أرانياكاندا",
+        "bn": "অরণ্যকান্ড",
+        "hi": "अरण्यकाण्ड",
+        "es": "Aranyakanda",
+        "fr": "Aranyakanda"
+    },
+    "Kishkindhakanda": {
+        "he": "קישקינדהקאנדה",
+        "ar": "كيشكيندهاكاندا",
+        "bn": "কিস্কিন্ধাকান্ড",
+        "hi": "किष्किन्धाकाण्ड",
+        "es": "Kishkindhakanda",
+        "fr": "Kishkindhakanda"
+    },
+    "Sundarakanda": {
+        "he": "סונדאראקאנדה",
+        "ar": "سونداراكاندا",
+        "bn": "সুন্দরকান্ড",
+        "hi": "सुन्दरकाण्ड",
+        "es": "Sundarakanda",
+        "fr": "Sundarakanda"
+    },
+    "Yuddhakanda": {
+        "he": "יודהקאנדה",
+        "ar": "يودهاكاندا",
+        "bn": "লঙ্কাকান্ড",
+        "hi": "युद्धकाण्ड",
+        "es": "Yuddhakanda",
+        "fr": "Yuddhakanda"
+    },
+    "Uttarakanda": {
+        "he": "אוטאראקאנדה",
+        "ar": "أوتاراكاندا",
+        "bn": "উত্তরকান্ড",
+        "hi": "उत्तरकाण्ड",
+        "es": "Uttarakanda",
+        "fr": "Uttarakanda"
+    },
+    "Mishna": {
+        "he": "משנה",
+        "ar": "ميشناه",
+        "bn": "মিশনা",
+        "hi": "मिशना",
+        "es": "Mishná"
+    },
+    "Zohar": {
+        "he": "זוהר",
+        "ar": "زوهار",
+        "bn": "জোহর",
+        "hi": "ज़ोहर",
+        "es": "Zohar"
     }
 };
+
 
 
 
@@ -5603,17 +5676,23 @@ function formatVerseRef(v) {
     let chapPart = (chap !== '' && chap !== null && chap !== undefined) ? ' ' + chap : '';
     let versePart = (verse !== '' && verse !== null && verse !== undefined) ? (chapPart ? ':' + verse : ' ' + verse) : '';
     
-    // Translate structural English words in chapter label (e.g. Part 9 -> পর্ব ৯ / Partie 9)
-    const structuralKeys = ['Part', 'Book', 'Chapter', 'Section', 'Hymn', 'Discourse'];
-    structuralKeys.forEach(k => {
-        const reg = new RegExp('\\b' + k + '\\b', 'gi');
-        if (reg.test(chapPart)) {
-            const translatedTerm = (typeof t === 'function') ? t(k) : k;
-            chapPart = chapPart.replace(reg, translatedTerm);
-        }
-    });
+    // Auto-detect and translate textual words in chapter/structure label
+    if (currentAppLanguage !== 'en_US' && currentAppLanguage !== 'en') {
+        const words = chapPart.split(/(\s+|:)/);
+        chapPart = words.map(w => {
+            const clean = w.trim();
+            if (!clean || !/[a-zA-Z]/.test(clean)) return w;
+            if (typeof t === 'function') {
+                const tw = t(clean);
+                if (tw && tw.toLowerCase() !== clean.toLowerCase()) return tw;
+            }
+            const cached = getCachedVerseTranslation(clean, currentAppLanguage);
+            if (cached && !isGarbageTranslation(cached, currentAppLanguage)) return cached;
+            return w;
+        }).join('');
+    }
 
-    // Universal Native Digit Localization (Arabic, Bengali, Hindi, Urdu, Farsi, etc.)
+    // Universal Native Digit Localization (Hebrew Gematria, Arabic, Bengali, Hindi, Urdu, etc.)
     chapPart = localizeDigits(chapPart, currentAppLanguage);
     versePart = localizeDigits(versePart, currentAppLanguage);
     
@@ -5624,7 +5703,7 @@ function formatVerseRef(v) {
     }
     if (currentAppLanguage !== 'en_US' && currentAppLanguage !== 'en') {
         const cachedBook = getCachedVerseTranslation(rawBook, currentAppLanguage);
-        if (cachedBook && !isGarbageTranslation(cachedBook)) {
+        if (cachedBook && !isGarbageTranslation(cachedBook, currentAppLanguage)) {
             localizedBook = cachedBook;
         }
     }
@@ -6440,16 +6519,30 @@ function preloadFunnyLines(lang = currentAppLanguage) {
 
 function applyDynamicRefTranslation(refEl, verse) {
     if (!refEl || !verse) return;
-    applyDynamicRefTranslation(refEl, verse);
+    refEl.textContent = formatVerseRef(verse);
     if (currentAppLanguage === 'en_US' || currentAppLanguage === 'en') return;
 
-    const rawBook = verse.book || verse.religion || '';
-    if (rawBook && (!i18nDict[rawBook] || !i18nDict[rawBook][currentAppLanguage])) {
-        translateTextAsync(rawBook, currentAppLanguage).then(trans => {
-            if (trans && refEl.isConnected) {
-                refEl.textContent = formatVerseRef(verse);
-            }
-        });
+    // Automatic English Text Detection: If any Latin English letters are detected in the rendered citation, translate them!
+    const textNow = refEl.textContent;
+    if (/[a-zA-Z]{2,}/.test(textNow)) {
+        const rawBook = verse.book || verse.religion || '';
+        const chap = (verse.chapter !== undefined && verse.chapter !== null) ? String(verse.chapter) : '';
+        
+        if (/[a-zA-Z]/.test(rawBook)) {
+            translateTextAsync(rawBook, currentAppLanguage).then(trans => {
+                if (trans && refEl.isConnected) {
+                    refEl.textContent = formatVerseRef(verse);
+                }
+            });
+        }
+        
+        if (/[a-zA-Z]/.test(chap)) {
+            translateTextAsync(chap, currentAppLanguage).then(trans => {
+                if (trans && refEl.isConnected) {
+                    refEl.textContent = formatVerseRef(verse);
+                }
+            });
+        }
     }
 }
 
