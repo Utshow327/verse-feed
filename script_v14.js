@@ -826,7 +826,8 @@ const i18nDict = {
         "it": "Guru Granth Sahib",
         "de": "Guru Granth Sahib",
         "ru": "Гуру Грантх Сахиб",
-        "pa": "ਗੁਰੂ ਗ੍ਰੰਥ ਸਾਹਿਬ"
+        "pa": "ਗੁਰੂ ਗ੍ਰੰਥ ਸਾਹਿਬ",
+        "he": "גורו גרנת' סאהיב"
     },
     "Guru Nanak and the Sikh Religion": {
         "ar": "غورو ناناك والديانة السيخية",
@@ -849,7 +850,8 @@ const i18nDict = {
         "ru": "Экзистенциализм",
         "ja": "実存主義",
         "pt": "Existencialismo",
-        "tr": "Varoluşçuluk"
+        "tr": "Varoluşçuluk",
+        "he": "אקזיסטנציאליזם"
     },
     "Stoicism": {
         "ar": "الرواقية",
@@ -862,7 +864,8 @@ const i18nDict = {
         "ru": "Стоицизм",
         "ja": "ストア派",
         "pt": "Estoicismo",
-        "tr": "Stoacılık"
+        "tr": "Stoacılık",
+        "he": "סטואיות"
     },
     "Absurdism": {
         "ar": "العبثية",
@@ -875,7 +878,8 @@ const i18nDict = {
         "ru": "Абсурдизм",
         "ja": "不条理主義",
         "pt": "Absurdismo",
-        "tr": "Absürdizm"
+        "tr": "Absürdizm",
+        "he": "אבסורדיזם"
     },
     "Nihilism": {
         "ar": "العدمية",
@@ -888,7 +892,8 @@ const i18nDict = {
         "ru": "Нигилизм",
         "ja": "虚無主義",
         "pt": "Niilismo",
-        "tr": "Nihilizm"
+        "tr": "Nihilizm",
+        "he": "ניהיליזם"
     },
     "Taoism": {
         "ar": "الطاوية",
@@ -901,7 +906,8 @@ const i18nDict = {
         "ru": "Даосизм",
         "ja": "道教",
         "pt": "Taoísmo",
-        "tr": "Taoizm"
+        "tr": "Taoizm",
+        "he": "טאואיזם"
     },
     "Confucianism": {
         "ar": "الكونفوشيوسية",
@@ -914,7 +920,8 @@ const i18nDict = {
         "ru": "Конфуцианство",
         "ja": "儒教",
         "pt": "Confucionismo",
-        "tr": "Konfüçyüsçülük"
+        "tr": "Konfüçyüsçülük",
+        "he": "קונפוציאניזם"
     },
     "Philosophy": {
         "ar": "الفلسفة",
@@ -1233,7 +1240,9 @@ const i18nDict = {
     "Dhammapada": {
         "bn": "ধম্মপদ",
         "hi": "धम्मपद",
-        "es": "Dhammapada"
+        "es": "Dhammapada",
+        "he": "דהמפדה",
+        "ar": "دهامابادا"
     },
     "Bhagavad Gita": {
         "bn": "শ্রীমদ্ভগবদ্গীতা",
@@ -1244,7 +1253,8 @@ const i18nDict = {
         "fr": "Bhagavad-Gita",
         "it": "Bhagavad Gita",
         "de": "Bhagavad Gita",
-        "ru": "Бхагавад-гита"
+        "ru": "Бхагавад-гита",
+        "he": "בהגוואד גיטה"
     },
     "Sunan Ibn Majah": {
         "bn": "সুনান ইবনে মাজাহ",
@@ -2317,12 +2327,16 @@ const i18nDict = {
     "Rationalism": {
         "bn": "যুক্তিবাদ",
         "hi": "तर्कवाद",
-        "es": "Racionalismo"
+        "es": "Racionalismo",
+        "he": "רציונליזם",
+        "ar": "العقلانية"
     },
     "Empiricism": {
         "bn": "অভিজ্ঞতাবাদ",
         "hi": "अनुभववाद",
-        "es": "Empirismo"
+        "es": "Empirismo",
+        "he": "אמפיריציזם",
+        "ar": "التجريبية"
     },
     "Enlightenment": {
         "bn": "আলোকায়ন",
@@ -2337,7 +2351,9 @@ const i18nDict = {
     "Pragmatism": {
         "bn": "প্রয়োগবাদ",
         "hi": "व्यावहारिकतावाद",
-        "es": "Pragmatismo"
+        "es": "Pragmatismo",
+        "he": "פרגמטיזם",
+        "ar": "البراغماتية"
     },
     "Letters from a Stoic": {
         "bn": "এক স্টোয়িকের পত্রাবলী",
@@ -2429,12 +2445,16 @@ const i18nDict = {
     "Ramayana": {
         "bn": "রামায়ণ",
         "hi": "रामायण",
-        "es": "Ramayana"
+        "es": "Ramayana",
+        "he": "רמאיאנה",
+        "ar": "رامايانا"
     },
     "Mahabharata": {
         "bn": "মহাভারত",
         "hi": "महाभारत",
-        "es": "Mahabharata"
+        "es": "Mahabharata",
+        "he": "מהאבהארטה",
+        "ar": "مهابهاراتا"
     },
     "Ramcharitmanas": {
         "bn": "রামচরিতমানস",
@@ -2444,7 +2464,9 @@ const i18nDict = {
     "Upanishads": {
         "bn": "উপনিষদ",
         "hi": "उपनिषद",
-        "es": "Upanishads"
+        "es": "Upanishads",
+        "he": "אופנישדות",
+        "ar": "الأوبانيشاد"
     },
     "Sahih al-Bukhari": {
         "bn": "সহীহ বুখারী",
@@ -3155,7 +3177,8 @@ const i18nDict = {
         "fr": "Guru Granth",
         "it": "Guru Granth",
         "de": "Guru Granth",
-        "ru": "Гуру Грантх"
+        "ru": "Гуру Грантх",
+        "he": "גורו גרנת'"
     },
     "Chronicles": {
         "ar": "أخبار الأيام",
@@ -3442,8 +3465,51 @@ const i18nDict = {
         "bn": "জোহর",
         "hi": "ज़ोहर",
         "es": "Zohar"
+    },
+    "Humanism": {
+        "he": "הומניזם",
+        "ar": "الإنسانية",
+        "bn": "মানবতাবাদ",
+        "hi": "मानवतावाद",
+        "es": "Humanismo"
+    },
+    "Idealism": {
+        "he": "אידיאליזם",
+        "ar": "المثالية",
+        "bn": "ভাববাদ",
+        "hi": "प्रत्ययवाद",
+        "es": "Idealismo"
+    },
+    "Cynicism": {
+        "he": "ציניזם",
+        "ar": "الكلبية",
+        "bn": "নিন্দাবাদ",
+        "hi": "सिनिकवाद",
+        "es": "Cinismo"
+    },
+    "Epicureanism": {
+        "he": "אפיקוריאניזם",
+        "ar": "الأبيقورية",
+        "bn": "এপিকিউরীয়বাদ",
+        "hi": "एपिक्यूरियनवाद",
+        "es": "Epicureísmo"
+    },
+    "Hedonism": {
+        "he": "הדוניזם",
+        "ar": "مذهب المتعة",
+        "bn": "আনন্দবাদ",
+        "hi": "सुखवाद",
+        "es": "Hedonismo"
+    },
+    "Vedas": {
+        "he": "ודות",
+        "ar": "الفيدا",
+        "bn": "বেদ",
+        "hi": "वेद",
+        "es": "Vedas"
     }
 };
+
 
 
 
