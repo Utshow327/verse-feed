@@ -60,41 +60,41 @@ var sessionUserPremiumAngle = null;
 const CANONICAL_RELIGIONS = ['Christianity', 'Islam', 'Hinduism', 'Sikhism', 'Buddhism', 'Judaism', 'Philosophy'];
 
 const supportedLanguages = [
-    { code: 'en_US', name: 'English', native: 'English', hasVoice: true, voiceLabel: '🎙️ Neural Voice Available' },
-    { code: 'bn', name: 'Bangla', native: 'বাংলা', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'hi', name: 'Hindi', native: 'हिन्दी', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'ar', name: 'Arabic', native: 'العربية', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'es', name: 'Spanish', native: 'Español', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'fr', name: 'French', native: 'Français', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'de', name: 'German', native: 'Deutsch', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'ja', name: 'Japanese', native: '日本語', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'tr', name: 'Turkish', native: 'Türkçe', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'ru', name: 'Russian', native: 'Русский', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'pt', name: 'Portuguese', native: 'Português', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'id', name: 'Indonesian', native: 'Bahasa Indonesia', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'ur', name: 'Urdu', native: 'اردو', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'it', name: 'Italian', native: 'Italiano', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'zh', name: 'Chinese', native: '中文', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'ko', name: 'Korean', native: '한국어', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'fa', name: 'Persian', native: 'فارسی', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'ta', name: 'Tamil', native: 'தமிழ்', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'te', name: 'Telugu', native: 'తెలుగు', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'mr', name: 'Marathi', native: 'मराठी', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'gu', name: 'Gujarati', native: 'ગુજરાતી', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'vi', name: 'Vietnamese', native: 'Tiếng Việt', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'th', name: 'Thai', native: 'ไทย', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'pl', name: 'Polish', native: 'Polski', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'nl', name: 'Dutch', native: 'Nederlands', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'sv', name: 'Swedish', native: 'Svenska', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'el', name: 'Greek', native: 'Ελληνικά', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'he', name: 'Hebrew', native: 'עברית', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'uk', name: 'Ukrainian', native: 'Українська', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'ro', name: 'Romanian', native: 'Română', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'cs', name: 'Czech', native: 'Čeština', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'hu', name: 'Hungarian', native: 'Magyar', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'ms', name: 'Malay', native: 'Bahasa Melayu', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'fil', name: 'Filipino', native: 'Tagalog', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' }
+    { code: 'en_US', name: 'English', native: 'English', hasVoice: true, voiceLabel: '🎙️ Neural Voice Available', packBadge: '✓ Default Pack (All Books)', isBundled: true },
+    { code: 'bn', name: 'Bangla', native: 'বাংলা', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '📦 Authentic Pack (Quran & Bible)', isBundled: true },
+    { code: 'hi', name: 'Hindi', native: 'हिन्दी', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'ar', name: 'Arabic', native: 'العربية', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'es', name: 'Spanish', native: 'Español', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'fr', name: 'French', native: 'Français', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'de', name: 'German', native: 'Deutsch', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'ja', name: 'Japanese', native: '日本語', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'tr', name: 'Turkish', native: 'Türkçe', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'ru', name: 'Russian', native: 'Русский', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'pt', name: 'Portuguese', native: 'Português', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'id', name: 'Indonesian', native: 'Bahasa Indonesia', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'ur', name: 'Urdu', native: 'اردو', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'it', name: 'Italian', native: 'Italiano', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'zh', name: 'Chinese', native: '中文', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'ko', name: 'Korean', native: '한국어', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'fa', name: 'Persian', native: 'فارسی', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'ta', name: 'Tamil', native: 'தமிழ்', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'te', name: 'Telugu', native: 'తెలుగు', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'mr', name: 'Marathi', native: 'मराठी', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'gu', name: 'Gujarati', native: 'ગુજરાતી', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'vi', name: 'Vietnamese', native: 'Tiếng Việt', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'th', name: 'Thai', native: 'ไทย', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'pl', name: 'Polish', native: 'Polski', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'nl', name: 'Dutch', native: 'Nederlands', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'sv', name: 'Swedish', native: 'Svenska', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'el', name: 'Greek', native: 'Ελληνικά', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'he', name: 'Hebrew', native: 'עברית', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'uk', name: 'Ukrainian', native: 'Українська', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'ro', name: 'Romanian', native: 'Română', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'cs', name: 'Czech', native: 'Čeština', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'hu', name: 'Hungarian', native: 'Magyar', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'ms', name: 'Malay', native: 'Bahasa Melayu', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
+    { code: 'fil', name: 'Filipino', native: 'Tagalog', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false }
 ];
 
 const i18nDict = {
@@ -3174,8 +3174,12 @@ function advanceBookVerse() {
 
 function getReligionDataUrls(rel) {
     if (rel === 'Islam') {
-        const quranFile = (currentAppLanguage === 'bn') ? './data/quran_bn.json?v=30' : './data/quran_v2.json?v=21';
+        const quranFile = (currentAppLanguage === 'bn') ? './data/quran_bn.json?v=35' : './data/quran_v2.json?v=21';
         return [quranFile, './data/hadiths_v2.json?v=21'];
+    }
+    if (rel === 'Christianity') {
+        const bibleFile = (currentAppLanguage === 'bn') ? './data/bible_bn.json?v=35' : './data/bible.json?v=21';
+        return [bibleFile];
     }
     return dataUrls[rel];
 }
@@ -6562,11 +6566,14 @@ function renderLanguageList(filterQuery = '') {
         item.style.cssText = `display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-radius: 14px; border: 1px solid ${isSelected ? 'var(--p-gold)' : 'var(--glass-border)'}; background: ${isSelected ? 'rgba(188, 174, 158, 0.15)' : 'rgba(255,255,255,0.03)'}; cursor: pointer; transition: all 0.2s ease;`;
         
         item.innerHTML = `
-            <div style="display: flex; flex-direction: column; gap: 2px;">
+            <div style="display: flex; flex-direction: column; gap: 3px;">
                 <span style="font-size: 0.98rem; font-weight: 600; color: var(--text-color);">${lang.native} <span style="font-size: 0.85rem; opacity: 0.7; font-weight: 400;">(${lang.name})</span></span>
-                <span style="font-size: 0.75rem; color: ${lang.hasVoice ? '#10b981' : '#f59e0b'}; opacity: 0.85; font-weight: 500;">${lang.voiceLabel}</span>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <span style="font-size: 0.72rem; padding: 2px 6px; border-radius: 6px; background: rgba(255,255,255,0.06); color: var(--text-color); opacity: 0.9;">${lang.packBadge}</span>
+                    <span style="font-size: 0.72rem; color: ${lang.hasVoice ? '#10b981' : '#f59e0b'}; opacity: 0.85;">${lang.voiceLabel}</span>
+                </div>
             </div>
-            ${isSelected ? '<span style="color: var(--p-gold); font-weight: bold; font-size: 1.1rem;">✓</span>' : ''}
+            ${isSelected ? '<span style="color: var(--p-gold); font-weight: bold; font-size: 1.1rem;">✓ Active</span>' : '<span style="font-size: 0.78rem; opacity: 0.7; border: 1px solid var(--glass-border); padding: 4px 8px; border-radius: 8px;">Select</span>'}
         `;
 
         item.onclick = () => {
