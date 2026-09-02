@@ -3294,7 +3294,8 @@ function formatVerseRef(v) {
     let chapPart = (chap !== '' && chap !== null && chap !== undefined) ? ' ' + chap : '';
     let versePart = (verse !== '' && verse !== null && verse !== undefined) ? (chapPart ? ':' + verse : ' ' + verse) : '';
     
-    return `${book}${chapPart}${versePart}`.trim();
+    const localizedBook = (typeof t === "function") ? t(book) : book;
+    return `${localizedBook}${chapPart}${versePart}`.trim();
 }
 
 function cleanText(text) {
