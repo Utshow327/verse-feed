@@ -2246,10 +2246,39 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
 let currentAppLanguage = localStorage.getItem('versefeed_user_language') || 'en_US';
 
 function t(key) {
-    if (!key) return '';
-    if (currentAppLanguage === 'en_US' || !i18nDict[key]) return key;
-    const trans = i18nDict[key][currentAppLanguage];
-    return trans || key;
+    if (!key || typeof key !== 'string') return key || '';
+    if (currentAppLanguage === 'en_US' || currentAppLanguage === 'en') return key;
+    
+    // 1. Exact Dictionary Match
+    if (typeof i18nDict !== 'undefined') {
+        if (i18nDict[key] && i18nDict[key][currentAppLanguage]) {
+            return i18nDict[key][currentAppLanguage];
+        }
+        // Case-insensitive dictionary lookup
+        const lower = key.toLowerCase().trim();
+        for (let k in i18nDict) {
+            if (k.toLowerCase() === lower && i18nDict[k][currentAppLanguage]) {
+                return i18nDict[k][currentAppLanguage];
+            }
+        }
+    }
+    
+    // 2. Cache Lookup
+    const cached = getCachedVerseTranslation(key, currentAppLanguage);
+    if (cached && !isGarbageTranslation(cached)) {
+        return cached;
+    }
+    
+    // 3. Background Async Auto-Translation (Warms cache for next render)
+    if (key.length > 1 && !/^\d+$/.test(key)) {
+        translateTextAsync(key, currentAppLanguage).then(trans => {
+            if (trans && !isGarbageTranslation(trans)) {
+                setCachedVerseTranslation(key, currentAppLanguage, trans);
+            }
+        }).catch(() => {});
+    }
+    
+    return key;
 }
 
 function getCanonicalReligion(str) {
@@ -4148,19 +4177,10 @@ function formatVerseRef(v) {
         versePart = versePart.replace(/\d/g, d => bnDigits[parseInt(d, 10)]);
     }
     
-    // Check direct book, capitalized, uppercase, and lowercase variations in dictionary
+    // Localize Book Name through universal dictionary & cache
     let localizedBook = rawBook;
     if (typeof t === "function") {
         localizedBook = t(rawBook);
-        if (localizedBook === rawBook && typeof i18nDict !== 'undefined') {
-            const trimmed = rawBook.trim();
-            for (let k in i18nDict) {
-                if (k.toLowerCase() === trimmed.toLowerCase()) {
-                    localizedBook = t(k);
-                    break;
-                }
-            }
-        }
     }
     
     return `${localizedBook}${chapPart}${versePart}`.trim();
@@ -6271,7 +6291,7 @@ function populateChapterWheel() {
     chapterList.forEach((chap, index) => {
         const div = document.createElement('div');
         div.className = 'chap-wheel-item';
-        div.innerText = (index + 1).toString();
+        div.innerText = (currentAppLanguage === 'bn') ? (index + 1).toString().replace(/\d/g, d => ['০','১','২','৩','৪','৫','৬','৭','৮','৯'][parseInt(d, 10)]) : (index + 1).toString();
         div.dataset.val = chap;
         div.onclick = () => {
             const target = div.offsetLeft + div.offsetWidth / 2 - wheel.clientWidth / 2;
