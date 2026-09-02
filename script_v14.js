@@ -1242,6 +1242,144 @@ const i18nDict = {
         "hi": "ग्रंथ साहिब",
         "pa": "ਗ੍ਰੰਥ ਸਾਹਿਬ"
     }
+,
+    "Sutras": {"bn":"সূত্র","hi":"सूत्र","es":"Sutras"},
+    "SUTRAS": {"bn":"সূত্র","hi":"सूत्र","es":"Sutras"},
+    "sutras": {"bn":"সূত্র","hi":"सूत्र","es":"Sutras"},
+    "Dhammapada": {"bn":"ধম্মপদ","hi":"धम्मपद","es":"Dhammapada"},
+    "Zen": {"bn":"জেন","hi":"ज़ेन","es":"Zen"},
+    "Jatakas & Legends": {"bn":"জাতক ও উপাখ্যান","hi":"जातक और कथाएं","es":"Jatakas y Leyendas"},
+    "Stoicism": {"bn":"স্টোয়িক দর্শন","hi":"स्टोइक दर्शन","es":"Estoicismo"},
+    "Ancient Greek": {"bn":"প্রাচীন গ্রিক দর্শন","hi":"प्राचीन यूनानी दर्शन","es":"Griego Antiguo"},
+    "Rationalism": {"bn":"যুক্তিবাদ","hi":"तर्कवाद","es":"Racionalismo"},
+    "Empiricism": {"bn":"অভিজ্ঞতাবাদ","hi":"अनुभववाद","es":"Empirismo"},
+    "Enlightenment": {"bn":"আলোকায়ন","hi":"प्रबोधन","es":"Ilustración"},
+    "Existentialism": {"bn":"অস্তিত্ববাদ","hi":"अस्तित्ववाद","es":"Existencialismo"},
+    "Analytic": {"bn":"বিশ্লেষণমূলক দর্শন","hi":"विश्लेषणात्मक","es":"Analítica"},
+    "Pragmatism": {"bn":"প্রয়োগবাদ","hi":"व्यावहारिकतावाद","es":"Pragmatismo"},
+    "Meditations": {"bn":"আত্মচিন্তা (ধ্যান)","hi":"आत्मचिंतन","es":"Meditaciones"},
+    "Letters from a Stoic": {"bn":"এক স্টোয়িকের পত্রাবলী","hi":"एक स्टोइक के पत्र","es":"Cartas de un Estoico"},
+    "Enchiridion": {"bn":"এনকিরিডিয়ন","hi":"एनचिरिडियन","es":"Manual de Vida"},
+    "Discourses": {"bn":"প্রবচন","hi":"प्रवचन","es":"Discursos"},
+    "Republic": {"bn":"প্রজাতন্ত্র (রিপাবলিক)","hi":"गणतंत्र","es":"La República"},
+    "Nicomachean Ethics": {"bn":"নিকোমেকিয়ান নীতিবিদ্যা","hi":"नीतिशास्त्र","es":"Ética a Nicómaco"},
+    "Beyond Good and Evil": {"bn":"ভালো ও মন্দের ওপারে","hi":"अच्छाई और बुराई से परे","es":"Más allá del bien y del mal"},
+    "Guru Granth Sahib": {"bn":"গুরু গ্রন্থ সাহিব","hi":"गुरु ग्रंथ साहिब","pa":"ਗੁਰੂ ਗ੍ਰੰਥ ਸਾਹਿਬ"},
+    "Granth Sahib": {"bn":"গ্রন্থ সাহিব","hi":"ग्रंथ साहिब","pa":"ਗ੍ਰੰਥ ਸਾਹਿਬ"},
+    "Gurbani": {"bn":"গুরবাণী","hi":"गुरबाणी","pa":"ਗੁਰਬਾਣੀ"},
+    "Japji Sahib": {"bn":"জপজী সাহিব","hi":"जपजी साहिब","pa":"ਜਪੁਜੀ ਸਾਹਿਬ"},
+    "Torah": {"bn":"তৌরাত","hi":"तोराह","es":"Torá"},
+    "Tanakh": {"bn":"তানাক","hi":"तनाख","es":"Tanaj"},
+    "Talmud": {"bn":"তালমুদ","hi":"तालमुद","es":"Talmud"},
+    "Mishnah": {"bn":"মিশনাহ","hi":"मिशनाह","es":"Mishná"},
+    "Midrash": {"bn":"মিদরাশ","hi":"मिद्रश","es":"Midrash"},
+    "Halakhah": {"bn":"হালাখা","hi":"हालाखा","es":"Halajá"},
+    "Kabbalah": {"bn":"কাব্বালাহ","hi":"कब्बालाह","es":"Cábala"},
+    "Jewish Thought": {"bn":"ইহুদি দর্শন","hi":"यहूदी विचार","es":"Pensamiento Judío"},
+    "Bhagavad Gita": {"bn":"শ্রীমদ্ভগবদ্গীতা","hi":"श्रीमद्भगवद्गीता","es":"Bhagavad Gita"},
+    "Gita": {"bn":"গীতা","hi":"गीता","es":"Gita"},
+    "Rigveda": {"bn":"ঋগ্বেদ","hi":"ऋग्वेद","es":"Rigveda"},
+    "AtharvaVeda": {"bn":"অথর্ববেদ","hi":"अथर्ववेद","es":"Atharvaveda"},
+    "Yajurveda": {"bn":"যজুর্বেদ","hi":"यजुर्वेद","es":"Yajurveda"},
+    "Ramayana": {"bn":"রামায়ণ","hi":"रामायण","es":"Ramayana"},
+    "Mahabharata": {"bn":"মহাভারত","hi":"महाभारत","es":"Mahabharata"},
+    "Ramcharitmanas": {"bn":"রামচরিতমানস","hi":"रामचरितमानस","es":"Ramcharitmanas"},
+    "Upanishads": {"bn":"উপনিষদ","hi":"उपनिषद","es":"Upanishads"},
+    "Quran": {"bn":"পবিত্র কুরআন","hi":"पवित्र क़ुरआन","ar":"القرآن الكريم"},
+    "Sahih al-Bukhari": {"bn":"সহীহ বুখারী","hi":"सहीह बुखारी","ar":"صحيح البخاري"},
+    "Sahih Muslim": {"bn":"সহীহ মুসলিম","hi":"सहीह मुस्लिम","ar":"صحيح مسلم"},
+    "Sunan Abi Dawud": {"bn":"সুনান আবু দাউদ","hi":"सुनन अबी दाऊद","ar":"سنن أبي داود"},
+    "Jami at-Tirmidhi": {"bn":"জামে তিরমিযী","hi":"जामी अत-तिर्मिज़ी","ar":"جامع الترمذي"},
+    "Sunan an-Nasa'i": {"bn":"সুনান আন-নাসায়ী","hi":"सुनन अन-नसाई","ar":"سنن النسائي"},
+    "Sunan Ibn Majah": {"bn":"সুনান ইবনে মাজাহ","hi":"सुनन इब्न माजाह","ar":"سنن ابن ماجه"},
+    "Muwatta Malik": {"bn":"মুওয়াত্তা মালিক","hi":"मुवत्ता मालिक","ar":"موطأ مالك"},
+    "Musnad Ahmad": {"bn":"মুসনাদ আহমাদ","hi":"मुसनद अहमद","ar":"مسند أحمد"},
+    "Genesis": {"bn":"আদিপুস্তক","hi":"उत्पत्ति","es":"Génesis"},
+    "Exodus": {"bn":"যাত্রাপুস্তক","hi":"निर्गमन","es":"Éxodo"},
+    "Leviticus": {"bn":"লেবীয় পুস্তক","hi":"लैव्यव्यवस्था","es":"Levítico"},
+    "Numbers": {"bn":"গণনা পুস্তক","hi":"गिनती","es":"Números"},
+    "Deuteronomy": {"bn":"দ্বিতীয় বিবরণ","hi":"व्यवस्थाविवरण","es":"Deuteronomio"},
+    "Joshua": {"bn":"যিহোশূয়","hi":"यहोशू","es":"Josué"},
+    "Judges": {"bn":"বিচারকচরিত","hi":"न्यायियों","es":"Jueces"},
+    "Ruth": {"bn":"রূতের বিবরণ","hi":"रूत","es":"Rut"},
+    "1 Samuel": {"bn":"১ শমূয়েল","hi":"१ शमूएल","es":"1 Samuel"},
+    "2 Samuel": {"bn":"২ শমূয়েল","hi":"२ शमूएल","es":"2 Samuel"},
+    "1 Kings": {"bn":"১ রাজাবলি","hi":"१ राजा","es":"1 Reyes"},
+    "2 Kings": {"bn":"২ রাজাবলি","hi":"२ राजा","es":"2 Reyes"},
+    "1 Chronicles": {"bn":"১ বংশাবলি","hi":"१ इतिहास","es":"1 Crónicas"},
+    "2 Chronicles": {"bn":"২ বংশাবলি","hi":"२ इतिहास","es":"2 Crónicas"},
+    "Ezra": {"bn":"ইষ্রা","hi":"एज्रा","es":"Esdras"},
+    "Nehemiah": {"bn":"নহিমিয়","hi":"नहेमायाह","es":"Nehemías"},
+    "Esther": {"bn":"ইষ্টের","hi":"एस्तेर","es":"Ester"},
+    "Job": {"bn":"ইয়োব","hi":"अय्यूब","es":"Job"},
+    "Psalms": {"bn":"সামসংগীত","hi":"भजन संहिता","es":"Salmos"},
+    "Proverbs": {"bn":"হিতোপদেশ","hi":"नीतिवचन","es":"Proverbios"},
+    "Ecclesiastes": {"bn":"উপদেশক","hi":"सभोपदेशक","es":"Eclesiastés"},
+    "Song of Solomon": {"bn":"পরমগীত","hi":"श्रेष्ठगीत","es":"Cantares"},
+    "Isaiah": {"bn":"যিশাইয়","hi":"यशायाह","es":"Isaías"},
+    "Jeremiah": {"bn":"যিরমিয়","hi":"यिर्मयाह","es":"Jeremías"},
+    "Lamentations": {"bn":"বিলাপ গান","hi":"विलापगीत","es":"Lamentaciones"},
+    "Ezekiel": {"bn":"যিহিষ্কেল","hi":"यहेजकेल","es":"Ezequiel"},
+    "Daniel": {"bn":"দানিয়েল","hi":"दानिय्येल","es":"Daniel"},
+    "Hosea": {"bn":"হোশেয়","hi":"होशे","es":"Oseas"},
+    "Joel": {"bn":"যোয়েল","hi":"योएल","es":"Joel"},
+    "Amos": {"bn":"আমোষ","hi":"आमोस","es":"Amós"},
+    "Obadiah": {"bn":"ওবদিয়","hi":"ओबद्याह","es":"Abdías"},
+    "Jonah": {"bn":"যূনস","hi":"योना","es":"Jonás"},
+    "Micah": {"bn":"মীখা","hi":"मीका","es":"Miqueas"},
+    "Nahum": {"bn":"নাহূম","hi":"नहूम","es":"Nahúm"},
+    "Habakkuk": {"bn":"হবক্‌কূক","hi":"हबक्कूक","es":"Habacuc"},
+    "Zephaniah": {"bn":"সফনিয়","hi":"सपन्याह","es":"Sofonías"},
+    "Haggai": {"bn":"হগয়","hi":"हाग्गै","es":"Hageo"},
+    "Zechariah": {"bn":"সখরিয়","hi":"जकर्याह","es":"Zacarías"},
+    "Malachi": {"bn":"মালাখি","hi":"मलाकी","es":"Malaquías"},
+    "Matthew": {"bn":"মথি","hi":"मत्ती","es":"Mateo"},
+    "Mark": {"bn":"মার্ক","hi":"मरकुस","es":"Marcos"},
+    "Luke": {"bn":"লূক","hi":"लूका","es":"Lucas"},
+    "John": {"bn":"যোহন","hi":"यूहन्ना","es":"Juan"},
+    "Acts": {"bn":"প্রেরিতদের কার্য","hi":"प्रेरितों के काम","es":"Hechos"},
+    "Romans": {"bn":"রোমীয়","hi":"रोमियों","es":"Romanos"},
+    "1 Corinthians": {"bn":"১ করিন্থীয়","hi":"१ कुरिन्थियों","es":"1 Corintios"},
+    "2 Corinthians": {"bn":"২ করিন্থীয়","hi":"२ कुरिन्थियों","es":"2 Corintios"},
+    "Galatians": {"bn":"গালাতীয়","hi":"गलातियों","es":"Gálatas"},
+    "Ephesians": {"bn":"ইফিষীয়","hi":"इफिसियों","es":"Efesios"},
+    "Philippians": {"bn":"ফিলিপীয়","hi":"फिलिप्पियों","es":"Filipenses"},
+    "Colossians": {"bn":"কলসীয়","hi":"कुलुस्सियों","es":"Colosenses"},
+    "1 Thessalonians": {"bn":"১ থিষলনীকীয়","hi":"१ थिस्सलुनीकियों","es":"1 Tesalonicenses"},
+    "2 Thessalonians": {"bn":"২ থিষলনীকীয়","hi":"२ थिस्सलुनीकियों","es":"2 Tesalonicenses"},
+    "1 Timothy": {"bn":"১ তীমথিয়","hi":"१ तीमुथियुस","es":"1 Timoteo"},
+    "2 Timothy": {"bn":"২ তীমথিয়","hi":"२ तीमुथियुस","es":"2 Timoteo"},
+    "Titus": {"bn":"তীত","hi":"तीतुस","es":"Tito"},
+    "Philemon": {"bn":"ফিলীমন","hi":"फिलेमोन","es":"Filemón"},
+    "Hebrews": {"bn":"ইব্রীয়","hi":"इब्रानियों","es":"Hebreos"},
+    "James": {"bn":"যাকোব","hi":"याकूब","es":"Santiago"},
+    "1 Peter": {"bn":"১ পিতর","hi":"१ पतरस","es":"1 Pedro"},
+    "2 Peter": {"bn":"২ পিতর","hi":"२ पतरस","es":"2 Pedro"},
+    "1 John": {"bn":"১ যোহন","hi":"१ यूहन्ना","es":"1 Juan"},
+    "2 John": {"bn":"২ যোহন","hi":"२ यूहन्ना","es":"2 Juan"},
+    "3 John": {"bn":"৩ যোহন","hi":"३ यूहन्ना","es":"3 Juan"},
+    "Jude": {"bn":"যিহূদা","hi":"यहूदा","es":"Judas"},
+    "Revelation": {"bn":"প্রকাশিত বাক্য","hi":"प्रकाशितवाक्य","es":"Apocalipsis"},
+    "One small tap for you, one giant leap for this starving indie dev.": {"bn":"আপনার জন্য একটি ছোট ট্যাপ, এই পরিশ্রমী নির্মাতার জন্য এক বিশাল পদক্ষেপ।"},
+    "Remove ads and fund the developer's 3 AM coffee addiction.": {"bn":"বিজ্ঞাপন সরান এবং নির্মাতাকে রাত ৩টার কফির যোগান দিন।"},
+    "Ads keep our servers alive. Premium keeps the developer's sanity alive.": {"bn":"বিজ্ঞাপন সার্ভার বাঁচিয়ে রাখে। প্রিমিয়াম নির্মাতাকে বাঁচিয়ে রাখে।"},
+    "Look, we both hate ads. Just tap the button and let's never speak of this again.": {"bn":"আমরা দুজনই বিজ্ঞাপন অপছন্দ করি। বোতামে চাপ দিন এবং শান্তিতে পড়ুন।"},
+    "Upgrade to Premium so I can finally afford actual groceries instead of instant noodles.": {"bn":"প্রিমিয়ামে আপগ্রেড করুন যাতে এই স্বাধীন ডেভেলপার নুডলসের বদলে ভালো খাবার খেতে পারে।"},
+    "You're reading ancient wisdom while staring at an ad. Let's fix that.": {"bn":"আপনি প্রাচীন প্রজ্ঞা পড়ার মাঝে বিজ্ঞাপন দেখছেন। চলুন এটি দূর করি।"},
+    "Tap Remove Ads and an angel will personally bless your WiFi signal.": {"bn":"বিজ্ঞাপন সরান বাটনে ট্যাপ করুন এবং প্রশান্তিময় অভিজ্ঞতা উপভোগ করুন।"},
+    "Think of Premium as buying the developer a virtual tea. A very appreciative tea.": {"bn":"প্রিমিয়াম নিয়ে নির্মাতাকে এক কাপ প্রশংসার চা উপহার দিন।"},
+    "No ads, all HD voices, and eternal good karma. Best investment of your week.": {"bn":"কোনো বিজ্ঞাপন নেই, সব এইচডি কণ্ঠস্বর এবং নিখুঁত আধ্যাত্মিক প্রশান্তি।"},
+    "Your spiritual enlightenment shouldn't have a commercial break.": {"bn":"আপনার আধ্যাত্মিক পাঠে কোনো বিজ্ঞাপনের বিরতি থাকা উচিত নয়।"},
+    "100% of Premium buyers report feeling 42% more zen and 100% ad-free.": {"bn":"প্রিমিয়াম সদস্যরা উপভোগ করেন ১০০% বিজ্ঞাপনমুক্ত নিরবচ্ছিন্ন অভিজ্ঞতা।"},
+    "Help an indie developer survive capitalism. Tap to unlock Premium.": {"bn":"একক নির্মাতাকে সমর্থন করুন। প্রিমিয়াম আনলক করতে ট্যাপ করুন।"},
+    "If you buy Premium, I promise to tell my mom someone actually bought my app.": {"bn":"প্রিমিয়াম নিলে আমি মাকে গর্ব করে বলতে পারব কেউ আমার অ্যাপ ভালোবেসেছে!"},
+    "Peace, tranquility, and zero banner ads trying to sell you car insurance.": {"bn":"শান্তি, স্থিরতা এবং কোনো অবাঞ্ছিত বাণিজ্যিক বিজ্ঞাপন ছাড়া পবিত্র পাঠ।"},
+    "Upgrade to Premium: Your daily verses deserve better than a low-budget ad.": {"bn":"প্রিমিয়াম নিন: আপনার দৈনিক বাণীগুলো বিজ্ঞাপনের চেয়ে অনেক বেশি মূল্যবান।"},
+    "Buy Premium and I'll literally do a celebratory backflip in my room.": {"bn":"প্রিমিয়াম নিলে এই ডেভেলপার পরম আনন্দে কৃতজ্ঞ থাকবে!"},
+    "Support a solo developer and cleanse your feed of all promotional clutter.": {"bn":"একক নির্মাতাকে সমর্থন করুন এবং আপনার ফিড সম্পূর্ণ পরিচ্ছন্ন রাখুন।"},
+    "Zero ads, maximum cozy vibes, and you save a programmer from despair.": {"bn":"শূন্য বিজ্ঞাপন, সর্বোচ্চ প্রশান্তি এবং একটি সুন্দর আধ্যাত্মিক পরিবেশ।"},
+    "Skip the ads, keep the wisdom, and bless an indie creator's day.": {"bn":"বিজ্ঞাপন এড়িয়ে চলুন, প্রজ্ঞা ধরে রাখুন এবং নির্মাতাকে উৎসাহিত করুন।"},
+    "A cozy, distraction-free sanctuary with all HD neural voices unlocked.": {"bn":"সব এইচডি কণ্ঠস্বর সহ এক শান্ত, নিরবচ্ছিন্ন পবিত্র অভিজ্ঞতার আশ্রয়।"}
 };
 
 // --- Universal Neural Verse Translation & Cache Engine ---
@@ -3258,63 +3396,35 @@ async function loadUnselectedDataInBackground() {
 }
 function formatVerseRef(v) {
     if (!v) return '';
-    let book = (v.book || '').trim();
+    const rawBook = v.book || v.religion || '';
+    const chap = (v.chapter !== undefined && v.chapter !== null) ? String(v.chapter) : '';
+    const verse = (v.verse !== undefined && v.verse !== null) ? String(v.verse) : '';
     
-    // Remove redundant Part/Chapter strings from book name
-    book = book.replace(/\s+(part|chapter|section)\s+\d+$/i, '').trim();
-
-    // Standardize & shorten source format
-    const bLower = book.toLowerCase();
-    if (bLower.includes('quran')) {
-        book = 'Quran';
-    } else if (bLower.includes('dhammapada')) {
-        book = 'Dhammapada';
-    } else if (bLower.includes('guru granth') || bLower.includes('granth sahib')) {
-        book = 'Granth Sahib';
-    } else if (bLower.includes('bhagavad gita') || bLower.includes('gita')) {
-        book = 'Bhagavad Gita';
-    } else if (bLower.includes('philosophical')) {
-        book = book.replace(/philosophical/i, 'Phil.');
-    } else if (bLower.includes('psychological')) {
-        book = book.replace(/psychological/i, 'Psych.');
-    }
-    
-    let chap = '';
-    if (v.chapterNum !== undefined && v.chapterNum !== null && v.chapterNum !== '') {
-        chap = v.chapterNum;
-    } else if (v.chapterIndex !== undefined && v.chapterIndex !== null && v.chapterIndex !== '') {
-        chap = v.chapterIndex;
-    } else if (typeof v.chapter === 'number') {
-        chap = v.chapter;
-    } else if (typeof v.chapter === 'string') {
-        const match = v.chapter.match(/\d+/);
-        if (match) {
-            chap = parseInt(match[0], 10);
-        } else if (!bLower.includes('dhammapada')) {
-            chap = v.chapter.replace(/^(part|chapter|sec|section)\s*/i, '').trim();
-        }
-    }
-    
-    let verse = '';
-    if (v.verseNum !== undefined && v.verseNum !== null && v.verseNum !== '') {
-        verse = v.verseNum;
-    } else if (v.verseIndex !== undefined && v.verseIndex !== null && v.verseIndex !== '') {
-        verse = v.verseIndex;
-    } else if (typeof v.verse === 'number') {
-        verse = v.verse;
-    } else if (typeof v.verse === 'string') {
-        const match = v.verse.match(/\d+/);
-        if (match) {
-            verse = parseInt(match[0], 10);
-        } else {
-            verse = v.verse;
-        }
-    }
-
     let chapPart = (chap !== '' && chap !== null && chap !== undefined) ? ' ' + chap : '';
     let versePart = (verse !== '' && verse !== null && verse !== undefined) ? (chapPart ? ':' + verse : ' ' + verse) : '';
     
-    const localizedBook = (typeof t === "function") ? t(book) : book;
+    // In Bengali mode, convert Western digits to Bengali digits
+    if (currentAppLanguage === 'bn') {
+        const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+        chapPart = chapPart.replace(/\d/g, d => bnDigits[parseInt(d, 10)]);
+        versePart = versePart.replace(/\d/g, d => bnDigits[parseInt(d, 10)]);
+    }
+    
+    // Check direct book, capitalized, uppercase, and lowercase variations in dictionary
+    let localizedBook = rawBook;
+    if (typeof t === "function") {
+        localizedBook = t(rawBook);
+        if (localizedBook === rawBook && typeof i18nDict !== 'undefined') {
+            const trimmed = rawBook.trim();
+            for (let k in i18nDict) {
+                if (k.toLowerCase() === trimmed.toLowerCase()) {
+                    localizedBook = t(k);
+                    break;
+                }
+            }
+        }
+    }
+    
     return `${localizedBook}${chapPart}${versePart}`.trim();
 }
 
@@ -4194,7 +4304,7 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
                 if (e) e.stopPropagation();
                 openPremiumModal();
             };
-            textEl.innerHTML = `<div style="font-size: clamp(1.2rem, 4.2vw, 1.65rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.55; text-align: center; max-width: 90%;">${verse.funnyLine}</div>`;
+            textEl.innerHTML = `<div style="font-size: clamp(1.2rem, 4.2vw, 1.65rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.55; text-align: center; max-width: 90%;">${t(verse.funnyLine)}</div>`;
         }
         card.appendChild(textEl);
 
@@ -6624,13 +6734,20 @@ function selectAppLanguage(lang) {
     localStorage.setItem('versefeed_user_language', lang.code);
     localStorage.setItem('user_language_selected', 'true');
     
+    // Immediate visual selection update in modal
+    const searchVal = document.getElementById('lang-search-input')?.value || '';
+    renderLanguageList(searchVal);
+    
     applyLanguageTranslations(lang.code);
-    closeLanguageModal();
+    
+    setTimeout(() => {
+        closeLanguageModal();
+    }, 220);
 
     if (!lang.hasVoice) {
-        showToast('Selected ' + lang.name + '. Voice narration is unavailable for this language (Text only).');
+        showToast(lang.name + ' (Text only)');
     } else {
-        showToast('Language set to ' + lang.name);
+        showToast(lang.name);
     }
 }
 
