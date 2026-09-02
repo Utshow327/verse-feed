@@ -2347,8 +2347,11 @@ function buildSettings() {
             localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
         }
         document.querySelectorAll('.global-rel-btn').forEach(btn => {
-            if (btn.id === 'dark-mode-toggle') return;
-            const rel = btn.textContent.trim();
+            if (btn.id === 'dark-mode-toggle' || btn.onclick?.toString().includes('openLanguageModal')) return;
+            const rel = btn.dataset.religion || btn.textContent.trim();
+            if (rel && typeof t === 'function') {
+                btn.textContent = t(rel);
+            }
             if (globalSelectedRels.includes(rel)) {
                 btn.classList.add('active');
             } else {
@@ -3466,10 +3469,11 @@ function showReligions() {
 
     sortedRels.forEach(rel => {
         const btn = document.createElement('button');
-        btn.innerText = rel;
+        const locRel = typeof t === 'function' ? t(rel) : rel;
+        btn.innerText = locRel;
         
         if (!religionBooks[rel]) {
-            btn.innerText = rel + ' (Loading...)';
+            btn.innerText = locRel + ' (Loading...)';
             btn.style.opacity = '0.7';
             if (!loadedReligions.has(rel)) {
                 loadReligionData(rel);
@@ -3478,7 +3482,7 @@ function showReligions() {
 
         btn.onclick = async () => {
             if (!religionBooks[rel]) {
-                btn.innerText = rel + ' (Loading...)';
+                btn.innerText = locRel + ' (Loading...)';
                 btn.style.opacity = '0.7';
                 await loadReligionData(rel);
             }
@@ -5075,10 +5079,9 @@ function applyRandomPremiumAngle() {
     }
 }
 
-// --- Multi-Language Selector System ---
+// --- Multi-Language Selector & i18n Translation System ---
 const supportedLanguages = [
-    { code: 'en_US', name: 'English (US)', native: 'English (US)', hasVoice: true, voiceLabel: '🎙️ Neural Voice Available' },
-    { code: 'en_GB', name: 'English (UK)', native: 'English (UK)', hasVoice: true, voiceLabel: '🎙️ Neural Voice Available' },
+    { code: 'en_US', name: 'English', native: 'English', hasVoice: true, voiceLabel: '🎙️ Neural Voice Available' },
     { code: 'bn', name: 'Bengali', native: 'বাংলা', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
     { code: 'hi', name: 'Hindi', native: 'हिन्दी', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
     { code: 'ar', name: 'Arabic', native: 'العربية', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
@@ -5097,7 +5100,84 @@ const supportedLanguages = [
     { code: 'fa', name: 'Persian', native: 'فارسی', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' }
 ];
 
+const i18nDict = {
+    'Christianity': { bn: 'খ্রিস্টধর্ম', hi: 'ईसाई धर्म', ar: 'المسيحية', es: 'Cristianismo', fr: 'Christianisme', de: 'Christentum', ja: 'キリスト教', tr: 'Hristiyanlık', ru: 'Христианство', pt: 'Cristianismo', id: 'Kristen', ur: 'عیسائیت', it: 'Cristianesimo', zh: '基督教', ko: '기독교', fa: 'مسیحیت' },
+    'Islam': { bn: 'ইসলাম', hi: 'इस्लाम', ar: 'الإسلام', es: 'Islam', fr: 'Islam', de: 'Islam', ja: 'イスラム教', tr: 'İslam', ru: 'Ислам', pt: 'Islã', id: 'Islam', ur: 'اسلام', it: 'Islam', zh: '伊斯兰教', ko: '이슬람교', fa: 'اسلام' },
+    'Hinduism': { bn: 'হিন্দুধর্ম', hi: 'हिन्दू धर्म', ar: 'الهندوسية', es: 'Hinduismo', fr: 'Hindouisme', de: 'Hinduismus', ja: 'ヒンドゥー教', tr: 'Hinduizm', ru: 'Индуизм', pt: 'Hinduismo', id: 'Hindu', ur: 'ہندومت', it: 'Induismo', zh: '印度教', ko: '힌두교', fa: 'هندوئیسم' },
+    'Sikhism': { bn: 'শিখধর্ম', hi: 'सिख धर्म', ar: 'السيخية', es: 'Sijismo', fr: 'Sikhisme', de: 'Sikhismus', ja: 'シーク教', tr: 'Sihizm', ru: 'Сикхизм', pt: 'Sikhismo', id: 'Sikhisme', ur: 'سکھ مت', it: 'Sikhismo', zh: '锡克教', ko: '시크교', fa: 'سیکیسم' },
+    'Buddhism': { bn: 'বৌদ্ধধর্ম', hi: 'बौद्ध धर्म', ar: 'البوذية', es: 'Budismo', fr: 'Bouddhisme', de: 'Buddhismus', ja: '仏教', tr: 'Budizm', ru: 'Буддизм', pt: 'Budismo', id: 'Buddha', ur: 'بدھ مت', it: 'Buddismo', zh: '佛教', ko: '불교', fa: 'بودیسم' },
+    'Judaism': { bn: 'ইহুদিধর্ম', hi: 'यहूदी धर्म', ar: 'اليهودية', es: 'Judaísmo', fr: 'Judaïsme', de: 'Judentum', ja: 'ユダヤ教', tr: 'Musevilik', ru: 'Иудаизм', pt: 'Judaísmo', id: 'Yudaisme', ur: 'یہودیت', it: 'Ebraismo', zh: '犹太教', ko: '유대교', fa: 'یهودیت' },
+    'Philosophy': { bn: 'দর্শন', hi: 'दर्शनशास्त्र', ar: 'الفلسفة', es: 'Filosofía', fr: 'Philosophie', de: 'Philosophie', ja: '哲学', tr: 'Felsefe', ru: 'Философия', pt: 'Filosofia', id: 'Filsafat', ur: 'فلسفہ', it: 'Filosofia', zh: '哲学', ko: '철학', fa: 'فلسفه' },
+    'Remove Ads': { bn: 'বিজ্ঞাপন সরান', hi: 'विज्ञापन हटाएं', ar: 'إزالة الإعلانات', es: 'Quitar anuncios', fr: 'Supprimer les pubs', de: 'Werbung entfernen', ja: '広告を非表示', tr: 'Reklamları Kaldır', ru: 'Убрать рекламу', pt: 'Remover Anúncios', id: 'Hapus Iklan', ur: 'اشتہارات ہٹائیں', it: 'Rimuovi Annunci', zh: '去除广告', ko: '광고 제거', fa: 'حذف تبلیغات' },
+    'Sponsored': { bn: 'স্পনসরড', hi: 'प्रायोजित', ar: 'برعاية', es: 'Patrocinado', fr: 'Sponsorisé', de: 'Gesponsert', ja: 'スポンサー', tr: 'Sponsorlu', ru: 'Реклама', pt: 'Patrocinado', id: 'Disponsori', ur: 'اسپانسر شدہ', it: 'Sponsorizzato', zh: '赞助', ko: '스폰서', fa: 'حمایت شده' },
+    'Premium': { bn: 'প্রিমিয়াম', hi: 'प्रीमियम', ar: 'بريميوم', es: 'Premium', fr: 'Premium', de: 'Premium', ja: 'プレミアム', tr: 'Premium', ru: 'Премиум', pt: 'Premium', id: 'Premium', ur: 'پریمیم', it: 'Premium', zh: '高级版', ko: '프리미엄', fa: 'ویژه' },
+    'Language': { bn: 'ভাষা', hi: 'भाषा', ar: 'اللغة', es: 'Idioma', fr: 'Langue', de: 'Sprache', ja: '言語', tr: 'Dil', ru: 'Язык', pt: 'Idioma', id: 'Bahasa', ur: 'زبان', it: 'Lingua', zh: '语言', ko: '언어', fa: 'زبان' },
+    'Choose Language': { bn: 'ভাষা নির্বাচন করুন', hi: 'भाषा चुनें', ar: 'اختر اللغة', es: 'Elegir idioma', fr: 'Choisir la langue', de: 'Sprache wählen', ja: '言語を選択', tr: 'Dil Seçin', ru: 'Выберите язык', pt: 'Escolher Idioma', id: 'Pilih Bahasa', ur: 'زبان منتخب کریں', it: 'Scegli la lingua', zh: '选择语言', ko: '언어 선택', fa: 'انتخاب زبان' },
+    'Search language...': { bn: 'ভাষা খুঁজুন...', hi: 'भाषा खोजें...', ar: 'ابحث عن لغة...', es: 'Buscar idioma...', fr: 'Rechercher une langue...', de: 'Sprache suchen...', ja: '言語を検索...', tr: 'Dil ara...', ru: 'Поиск языка...', pt: 'Buscar idioma...', id: 'Cari bahasa...', ur: 'زبان تلاش کریں...', it: 'Cerca lingua...', zh: '搜索语言...', ko: '언어 검색...', fa: 'جستجوی زبان...' },
+    'Privacy Policy': { bn: 'গোপনীয়তা নীতি', hi: 'गोपनीयता नीति', ar: 'سياسة الخصوصية', es: 'Política de privacidad', fr: 'Politique de confidentialité', de: 'Datenschutz', ja: 'プライバシーポリシー', tr: 'Gizlilik Politikası', ru: 'Политика конфиденциальности', pt: 'Política de Privacidade', id: 'Kebijakan Privasi', ur: 'رازداری کی پالیسی', it: 'Informativa sulla privacy', zh: '隐私政策', ko: '개인정보처리방침', fa: 'سیاست حفظ حریم خصوصی' },
+    'Terms of Service': { bn: 'ব্যবহারের শর্তাবলী', hi: 'सेवा की शर्तें', ar: 'شروط الخدمة', es: 'Términos del servicio', fr: 'Conditions d\'utilisation', de: 'Nutzungsbedingungen', ja: '利用規約', tr: 'Kullanım Koşulları', ru: 'Условия использования', pt: 'Termos de Serviço', id: 'Ketentuan Layanan', ur: 'خدمات کی شرائط', it: 'Termini di servizio', zh: '服务条款', ko: '이용약관', fa: 'شرایط خدمات' },
+    'Credits': { bn: 'স্বীকৃতি ও কৃতজ্ঞতা', hi: 'आभार एवं श्रेय', ar: 'المصادر والاعتمادات', es: 'Créditos', fr: 'Crédits', de: 'Credits', ja: 'クレジット', tr: 'Katkıda Bulunanlar', ru: 'Благодарности', pt: 'Créditos', id: 'Kredit', ur: 'کریڈٹس', it: 'Crediti', zh: '致谢', ko: '크레딧', fa: 'اعتبارات' },
+    'Continue as Guest': { bn: 'অতিথি হিসেবে চালিয়ে যান', hi: 'अतिथि के रूप में जारी रखें', ar: 'المتابعة كضيف', es: 'Continuar como invitado', fr: 'Continuer en tant qu\'invité', de: 'Als Gast fortfahren', ja: 'ゲストとして続行', tr: 'Misafir Olarak Devam Et', ru: 'Продолжить как гость', pt: 'Continuar como Convidado', id: 'Lanjutkan sebagai Tamu', ur: 'بطور مہمان جاری رکھیں', it: 'Continua come ospite', zh: '以访客身份继续', ko: '게스트로 계속', fa: 'ادامه به عنوان مهمان' },
+    'Sign in with Google': { bn: 'Google দিয়ে সাইন ইন করুন', hi: 'Google से साइन इन करें', ar: 'تسجيل الدخول باستخدام Google', es: 'Iniciar sesión con Google', fr: 'Se connecter avec Google', de: 'Mit Google anmelden', ja: 'Googleでログイン', tr: 'Google ile Giriş Yap', ru: 'Войти через Google', pt: 'Entrar com o Google', id: 'Masuk dengan Google', ur: 'گوگل کے ساتھ سائن ان کریں', it: 'Accedi con Google', zh: '使用 Google 登录', ko: 'Google로 로그인', fa: 'ورود با Google' },
+    'Search verses or authors...': { bn: 'আয়াত বা গ্রন্থ খুঁজুন...', hi: 'श्लोक या लेखक खोजें...', ar: 'ابحث عن الآيات أو الكتب...', es: 'Buscar versos o libros...', fr: 'Rechercher des versets...', de: 'Verse oder Bücher suchen...', ja: '詩句や本を検索...', tr: 'Ayet veya kitap ara...', ru: 'Поиск стихов или книг...', pt: 'Buscar versículos...', id: 'Cari ayat atau buku...', ur: 'آیات یا کتب تلاش کریں...', it: 'Cerca versetti o libri...', zh: '搜索经文或书籍...', ko: '구절 또는 책 검색...', fa: 'جستجوی آیات یا کتاب‌ها...' }
+};
+
 let currentAppLanguage = localStorage.getItem('versefeed_user_language') || 'en_US';
+
+function t(key) {
+    if (!key) return '';
+    if (currentAppLanguage === 'en_US' || !i18nDict[key]) return key;
+    const trans = i18nDict[key][currentAppLanguage];
+    return trans || key;
+}
+
+function applyLanguageTranslations(langCode = currentAppLanguage) {
+    currentAppLanguage = langCode;
+    
+    // Update Settings Religion Toggle Buttons
+    document.querySelectorAll('.global-rel-btn').forEach(btn => {
+        if (btn.id === 'dark-mode-toggle' || btn.onclick?.toString().includes('openLanguageModal')) return;
+        const canonicalRel = btn.dataset.religion;
+        if (canonicalRel) {
+            btn.textContent = t(canonicalRel);
+        }
+    });
+
+    // Update Settings Language Button Label
+    const selectedLangObj = supportedLanguages.find(l => l.code === langCode) || supportedLanguages[0];
+    const settingsLabel = document.getElementById('settings-current-lang-label');
+    if (settingsLabel) {
+        settingsLabel.textContent = t('Language') + ': ' + (selectedLangObj.native || selectedLangObj.name);
+    }
+
+    // Update Settings Links
+    const privLink = document.getElementById('link-privacy-policy');
+    if (privLink) privLink.textContent = t('Privacy Policy');
+    const termsLink = document.getElementById('link-terms-service');
+    if (termsLink) termsLink.textContent = t('Terms of Service');
+    const credLink = document.getElementById('link-credits-modal');
+    if (credLink) credLink.textContent = t('Credits');
+
+    // Update Premium Button Text
+    const premBtn = document.getElementById('user-premium-btn');
+    if (premBtn) premBtn.textContent = t('Premium');
+
+    // Update Onboarding Guest Button
+    const guestBtn = document.querySelector('button[onclick="continueAsGuest()"]');
+    if (guestBtn) guestBtn.textContent = t('Continue as Guest');
+
+    // Update Search Placeholder
+    const libSearchInput = document.getElementById('lib-search-input');
+    if (libSearchInput) {
+        libSearchInput.placeholder = t('Search verses or authors...');
+    }
+
+    // Refresh Settings & Library UI
+    if (typeof buildSettings === 'function') buildSettings();
+    if (typeof showReligions === 'function' && document.getElementById('library-home') && !document.getElementById('library-home').classList.contains('hidden')) {
+        showReligions();
+    }
+}
 
 function renderLanguageList(filterQuery = '') {
     const container = document.getElementById('language-list-container');
@@ -5145,9 +5225,7 @@ function selectAppLanguage(lang) {
     localStorage.setItem('versefeed_user_language', lang.code);
     localStorage.setItem('user_language_selected', 'true');
     
-    const settingsLabel = document.getElementById('settings-current-lang-label');
-    if (settingsLabel) settingsLabel.textContent = 'Language: ' + lang.name;
-
+    applyLanguageTranslations(lang.code);
     closeLanguageModal();
 
     if (!lang.hasVoice) {
@@ -5176,14 +5254,8 @@ function closeLanguageModal(e) {
 }
 
 function initLanguageSettings() {
-    const saved = localStorage.getItem('versefeed_user_language');
-    if (saved) {
-        const lang = supportedLanguages.find(l => l.code === saved);
-        if (lang) {
-            const settingsLabel = document.getElementById('settings-current-lang-label');
-            if (settingsLabel) settingsLabel.textContent = 'Language: ' + lang.name;
-        }
-    }
+    const saved = localStorage.getItem('versefeed_user_language') || 'en_US';
+    applyLanguageTranslations(saved);
 }
 
 
