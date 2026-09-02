@@ -63,7 +63,25 @@ const supportedLanguages = [
     { code: 'it', name: 'Italian', native: 'Italiano', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
     { code: 'zh', name: 'Chinese', native: '中文', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
     { code: 'ko', name: 'Korean', native: '한국어', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
-    { code: 'fa', name: 'Persian', native: 'فارسی', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' }
+    { code: 'fa', name: 'Persian', native: 'فارسی', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'ta', name: 'Tamil', native: 'தமிழ்', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'te', name: 'Telugu', native: 'తెలుగు', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'mr', name: 'Marathi', native: 'मराठी', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'gu', name: 'Gujarati', native: 'ગુજરાતી', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'vi', name: 'Vietnamese', native: 'Tiếng Việt', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'th', name: 'Thai', native: 'ไทย', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'pl', name: 'Polish', native: 'Polski', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'nl', name: 'Dutch', native: 'Nederlands', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'sv', name: 'Swedish', native: 'Svenska', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'el', name: 'Greek', native: 'Ελληνικά', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'he', name: 'Hebrew', native: 'עברית', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'uk', name: 'Ukrainian', native: 'Українська', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'ro', name: 'Romanian', native: 'Română', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'cs', name: 'Czech', native: 'Čeština', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'hu', name: 'Hungarian', native: 'Magyar', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'ms', name: 'Malay', native: 'Bahasa Melayu', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'fil', name: 'Filipino', native: 'Tagalog', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' }
 ];
 
 const i18nDict = {
@@ -74,7 +92,7 @@ const i18nDict = {
     'Buddhism': { bn: 'বৌদ্ধধর্ম', hi: 'बौद्ध धर्म', ar: 'البوذية', es: 'Budismo', fr: 'Bouddhisme', de: 'Buddhismus', ja: '仏教', tr: 'Budizm', ru: 'Буддизм', pt: 'Budismo', id: 'Buddha', ur: 'بدھ مت', it: 'Buddismo', zh: '佛教', ko: '불교', fa: 'بودیسم' },
     'Judaism': { bn: 'ইহুদিধর্ম', hi: 'यहूदी धर्म', ar: 'اليهودية', es: 'Judaísmo', fr: 'Judaïsme', de: 'Judentum', ja: 'ユダヤ教', tr: 'Musevilik', ru: 'Иудаизм', pt: 'Judaísmo', id: 'Yudaisme', ur: 'یہودیت', it: 'Ebraismo', zh: '犹太教', ko: '유대교', fa: 'یهودیت' },
     'Philosophy': { bn: 'দর্শন', hi: 'दर्शनशास्त्र', ar: 'الفلسفة', es: 'Filosofía', fr: 'Philosophie', de: 'Philosophie', ja: '哲学', tr: 'Felsefe', ru: 'Философия', pt: 'Filosofia', id: 'Filsafat', ur: 'فلسفہ', it: 'Filosofia', zh: '哲学', ko: '철학', fa: 'فلسفه' },
-    'Remove Ads': { bn: 'বিজ্ঞাপন সরান', hi: 'विज्ञापन हटाएं', ar: 'إزالة الإعلانات', es: 'Quitar anuncios', fr: 'Supprimer les pubs', de: 'Werbung entfernen', ja: '広告を非表示', tr: 'Reklamları Kaldır', ru: 'Убрать рекламу', pt: 'Remover Anúncios', id: 'Hapus Iklan', ur: 'اشتہارات হটائیں', it: 'Rimuovi Annunci', zh: '去除广告', ko: '광고 제거', fa: 'حذف تبلیغات' },
+    'Remove Ads': { bn: 'বিজ্ঞাপন সরান', hi: 'विज्ञापन हटाएं', ar: 'إزالة الإعلانات', es: 'Quitar anuncios', fr: 'Supprimer les pubs', de: 'Werbung entfernen', ja: '広告を非表示', tr: 'Reklamları Kaldır', ru: 'Убрать рекламу', pt: 'Remover Anúncios', id: 'Hapus Iklan', ur: 'اشتہارات ہٹائیں', it: 'Rimuovi Annunci', zh: '去除广告', ko: '광고 제거', fa: 'حذف تبلیغات' },
     'Sponsored': { bn: 'স্পনসরড', hi: 'प्रायोजित', ar: 'برعاية', es: 'Patrocinado', fr: 'Sponsorisé', de: 'Gesponsert', ja: 'スポンサー', tr: 'Sponsorlu', ru: 'Реклама', pt: 'Patrocinado', id: 'Disponsori', ur: 'اسپانسر شدہ', it: 'Sponsorizzato', zh: '赞助', ko: '스폰서', fa: 'حمایت شده' },
     'Premium': { bn: 'প্রিমিয়াম', hi: 'प्रीमियम', ar: 'بريميوم', es: 'Premium', fr: 'Premium', de: 'Premium', ja: 'プレミアム', tr: 'Premium', ru: 'Премиум', pt: 'Premium', id: 'Premium', ur: 'پریمیم', it: 'Premium', zh: '高级版', ko: '프리미엄', fa: 'ویژه' },
     'Language': { bn: 'ভাষা', hi: 'भाषा', ar: 'اللغة', es: 'Idioma', fr: 'Langue', de: 'Sprache', ja: '言語', tr: 'Dil', ru: 'Язык', pt: 'Idioma', id: 'Bahasa', ur: 'زبان', it: 'Lingua', zh: '语言', ko: '언어', fa: 'زبان' },
@@ -82,10 +100,20 @@ const i18nDict = {
     'Search language...': { bn: 'ভাষা খুঁজুন...', hi: 'भाषा खोजें...', ar: 'ابحث عن لغة...', es: 'Buscar idioma...', fr: 'Rechercher une langue...', de: 'Sprache suchen...', ja: '言語を検索...', tr: 'Dil ara...', ru: 'Поиск языка...', pt: 'Buscar idioma...', id: 'Cari bahasa...', ur: 'زبان تلاش کریں...', it: 'Cerca lingua...', zh: '搜索语言...', ko: '언어 검색...', fa: 'جستجوی زبان...' },
     'Privacy Policy': { bn: 'গোপনীয়তা নীতি', hi: 'गोपनीयता नीति', ar: 'سياسة الخصوصية', es: 'Política de privacidad', fr: 'Politique de confidentialité', de: 'Datenschutz', ja: 'プライバシーポリシー', tr: 'Gizlilik Politikası', ru: 'Политика конфиденциальности', pt: 'Política de Privacidade', id: 'Kebijakan Privasi', ur: 'رازداری کی پالیسی', it: 'Informativa sulla privacy', zh: '隐私政策', ko: '개인정보처리방침', fa: 'سیاست حفظ حریم خصوصی' },
     'Terms of Service': { bn: 'ব্যবহারের শর্তাবলী', hi: 'सेवा की शर्तें', ar: 'شروط الخدمة', es: 'Términos del servicio', fr: 'Conditions d\'utilisation', de: 'Nutzungsbedingungen', ja: '利用規約', tr: 'Kullanım Koşulları', ru: 'Условия использования', pt: 'Termos de Serviço', id: 'Ketentuan Layanan', ur: 'خدمات کی شرائط', it: 'Termini di servizio', zh: '服务条款', ko: '이용약관', fa: 'شرایط خدمات' },
-    'Credits': { bn: 'স্বীকৃতি ও কৃতজ্ঞতা', hi: 'आभार एवं श्रेय', ar: 'المصادر والاعتمادات', es: 'Créditos', fr: 'Crédits', de: 'Credits', ja: 'クレジット', tr: 'Katkıda Bulunanlar', ru: 'Благодарности', pt: 'Créditos', id: 'Kredit', ur: 'کریڈٹس', it: 'Crediti', zh: '致谢', ko: '크레딧', fa: 'اعتبارات' },
+    'Credits': { bn: 'স্বীকৃতি ও কৃতজ্ঞতা', hi: 'আভার एवं श्रेय', ar: 'المصادر والاعتمادات', es: 'Créditos', fr: 'Crédits', de: 'Credits', ja: 'クレジット', tr: 'Katkıda Bulunanlar', ru: 'Благодарности', pt: 'Créditos', id: 'Kredit', ur: 'کریڈٹس', it: 'Crediti', zh: '致谢', ko: '크레딧', fa: 'اعتبارات' },
     'Continue as Guest': { bn: 'অতিথি হিসেবে চালিয়ে যান', hi: 'अतिथि के रूप में जारी रखें', ar: 'المتابعة كضيف', es: 'Continuar como invitado', fr: 'Continuer en tant qu\'invité', de: 'Als Gast fortfahren', ja: 'ゲストとして続行', tr: 'Misafir Olarak Devam Et', ru: 'Продолжить как гость', pt: 'Continuar como Convidado', id: 'Lanjutkan sebagai Tamu', ur: 'بطور مہمان جاری رکھیں', it: 'Continua come ospite', zh: '以访客身份继续', ko: '게스트로 계속', fa: 'ادامه به عنوان مهمان' },
-    'Sign in with Google': { bn: 'Google দিয়ে সাইন ইন করুন', hi: 'Google से साइन ইন करें', ar: 'تسجيل الدخول باستخدام Google', es: 'Iniciar sesión con Google', fr: 'Se connecter avec Google', de: 'Mit Google anmelden', ja: 'Googleでログイン', tr: 'Google ile Giriş Yap', ru: 'Войти через Google', pt: 'Entrar com o Google', id: 'Masuk dengan Google', ur: 'گوگل کے ساتھ سائن ان کریں', it: 'Accedi con Google', zh: '使用 Google 登录', ko: 'Google로 로그인', fa: 'ورود با Google' },
-    'Search verses or authors...': { bn: 'আয়াত বা গ্রন্থ খুঁজুন...', hi: 'श्लोक या लेखक खोजें...', ar: 'ابحث عن الآيات أو الكتب...', es: 'Buscar versos o libros...', fr: 'Rechercher des versets...', de: 'Verse oder Bücher suchen...', ja: '詩句や本を検索...', tr: 'Ayet veya kitap ara...', ru: 'Поиск стихов или книг...', pt: 'Buscar versículos...', id: 'Cari ayat atau buku...', ur: 'آیات یا کتب تلاش کریں...', it: 'Cerca versetti o libri...', zh: '搜索经文或书籍...', ko: '구절 또는 책 검색...', fa: 'جستجوی آیات یا کتاب‌ها...' }
+    'Sign in with Google': { bn: 'Google দিয়ে সাইন ইন করুন', hi: 'Google से साइन इन करें', ar: 'تسجيل الدخول باستخدام Google', es: 'Iniciar sesión con Google', fr: 'Se connecter avec Google', de: 'Mit Google anmelden', ja: 'Googleでログイン', tr: 'Google ile Giriş Yap', ru: 'Войти через Google', pt: 'Entrar com o Google', id: 'Masuk dengan Google', ur: 'گوگل کے ساتھ سائن ان کریں', it: 'Accedi con Google', zh: '使用 Google 登录', ko: 'Google로 로그인', fa: 'ورود با Google' },
+    'Search verses or authors...': { bn: 'আয়াত বা গ্রন্থ খুঁজুন...', hi: 'श्लोक या लेखक खोजें...', ar: 'ابحث عن الآيات أو الكتب...', es: 'Buscar versos o libros...', fr: 'Rechercher des versets...', de: 'Verse oder Bücher suchen...', ja: '詩句や本を検索...', tr: 'Ayet veya kitap ara...', ru: 'Поиск стихов или книг...', pt: 'Buscar versículos...', id: 'Cari ayat atau buku...', ur: 'آیات یا کتب تلاش کریں...', it: 'Cerca versetti o libri...', zh: '搜索经文或书籍...', ko: '구절 또는 책 검색...', fa: 'جستجوی آیات یا کتاب‌ها...' },
+    'All': { bn: 'সকল', hi: 'सभी', ar: 'الكل', es: 'Todos', fr: 'Tous', de: 'Alle', ja: 'すべて', tr: 'Tümü', ru: 'Все', pt: 'Todos', id: 'Semua', ur: 'تمام', it: 'Tutti', zh: '全部', ko: '전체', fa: 'همه' },
+    'Default': { bn: 'ডিফল্ট', hi: 'डिफ़ॉल्ट', ar: 'الافتراضي', es: 'Predeterminado', fr: 'Par défaut', de: 'Standard', ja: 'デフォルト', tr: 'Varsayılan', ru: 'По умолчанию', pt: 'Padrão', id: 'Default', ur: 'ڈیفالٹ', it: 'Predefinito', zh: '默认', ko: '기본', fa: 'پیش‌فرض' },
+    'Folder deleted': { bn: 'ফোল্ডার মুছে ফেলা হয়েছে', hi: 'फ़ोल्डर हटा दिया गया', ar: 'تم حذف المجلد', es: 'Carpeta eliminada', fr: 'Dossier supprimé', de: 'Ordner gelöscht', ja: 'フォルダを削除しました', tr: 'Klasör silindi', ru: 'Папка удалена', pt: 'Pasta excluída', id: 'Folder dihapus', ur: 'فولڈر حذف کر دیا گیا', it: 'Cartella eliminata', zh: '文件夹已删除', ko: '폴더 삭제됨', fa: 'پوشه حذف شد' },
+    'Folder restored': { bn: 'ফোল্ডার পুনরুদ্ধার করা হয়েছে', hi: 'फ़ोल्डर पुनर्स्थापित किया गया', ar: 'تمت استعادة المجلد', es: 'Carpeta restaurada', fr: 'Dossier restauré', de: 'Ordner wiederhergestellt', ja: 'フォルダを復元しました', tr: 'Klasör geri yüklendi', ru: 'Папка восстановлена', pt: 'Pasta restaurada', id: 'Folder dipulihkan', ur: 'فولڈر بحال کر دیا گیا', it: 'Cartella ripristinata', zh: '文件夹已恢复', ko: '폴더 복원됨', fa: 'пошه بازیابی شد' },
+    'Verse deleted': { bn: 'আয়াত মুছে ফেলা হয়েছে', hi: 'श्लोक हटा दिया गया', ar: 'تم حذف الآية', es: 'Verso eliminado', fr: 'Verset supprimé', de: 'Vers gelöscht', ja: '詩句を削除しました', tr: 'Ayet silindi', ru: 'Стих удален', pt: 'Versículo excluído', id: 'Ayat dihapus', ur: 'آیت حذف کر دی گئی', it: 'Versetto eliminato', zh: '经文已删除', ko: '구절 삭제됨', fa: 'آیه حذف شد' },
+    'Verse restored': { bn: 'আয়াত পুনরুদ্ধার করা হয়েছে', hi: 'श्लोक पुनर्स्थापित किया गया', ar: 'تمت استعادة الآية', es: 'Verso restaurado', fr: 'Verset restauré', de: 'Vers wiederhergestellt', ja: '詩句を復元しました', tr: 'Ayet geri yüklendi', ru: 'Стих восстановлен', pt: 'Versículo restaurado', id: 'Ayat dipulihkan', ur: 'آیت بحال کر دی گئی', it: 'Versetto ripristinato', zh: '经文已恢复', ko: '구절 복원됨', fa: 'آیه بازیابی شد' },
+    'Undo': { bn: 'বাতিল', hi: 'पूर्ववत करें', ar: 'تراجع', es: 'Deshacer', fr: 'Annuler', de: 'Rückgängig', ja: '元に戻す', tr: 'Geri Al', ru: 'Отмена', pt: 'Desfazer', id: 'Urungkan', ur: 'واپس', it: 'Annulla', zh: '撤销', ko: '실행 취소', fa: 'واگرد' },
+    'Chapter': { bn: 'অধ্যায়', hi: 'अध्याय', ar: 'الفصل', es: 'Capítulo', fr: 'Chapitre', de: 'Kapitel', ja: '章', tr: 'Bölüm', ru: 'Глава', pt: 'Capítulo', id: 'Bab', ur: 'باب', it: 'Capitolo', zh: '章', ko: '장', fa: 'فصل' },
+    'Verse': { bn: 'আয়াত', hi: 'श्लोक', ar: 'الآية', es: 'Verso', fr: 'Verset', de: 'Vers', ja: '節', tr: 'Ayet', ru: 'Стих', pt: 'Versículo', id: 'Ayat', ur: 'آیت', it: 'Versetto', zh: '节', ko: '절', fa: 'آیه' },
+    'Back': { bn: 'পেছনে', hi: 'वापस', ar: 'رجوع', es: 'Volver', fr: 'Retour', de: 'Zurück', ja: '戻る', tr: 'Geri', ru: 'Назад', pt: 'Voltar', id: 'Kembali', ur: 'پیچھے', it: 'Indietro', zh: '返回', ko: '뒤로', fa: 'بازگشت' }
 };
 
 let currentAppLanguage = localStorage.getItem('versefeed_user_language') || 'en_US';
@@ -3228,7 +3256,7 @@ function _showSavedVersesImpl(rebuildFolders = true) {
             
             const nameSpan = document.createElement('span');
             nameSpan.className = 'album-name';
-            nameSpan.textContent = albumName;
+            nameSpan.textContent = albumName === 'Default' ? t('Default') : albumName;
             folder.appendChild(nameSpan);
             
             const isSelected = (selectedVerse && selectedVerse.type === 'folder' && selectedVerse.name === albumName) || selectedSavedAlbum === albumName;
@@ -3270,7 +3298,7 @@ function _showSavedVersesImpl(rebuildFolders = true) {
     const titleSpan = document.createElement('span');
     titleSpan.className = 'selected-folder-title';
     titleSpan.id = 'selected-folder-title';
-    titleSpan.textContent = selectedSavedAlbum || 'All';
+    titleSpan.textContent = selectedSavedAlbum ? (selectedSavedAlbum === 'Default' ? t('Default') : selectedSavedAlbum) : t('All');
     
     titleWrap.appendChild(titleSpan);
     
@@ -5168,7 +5196,7 @@ function stopWaveformVisualizer(forceHide = false) {
         return;
     }
 
-    // Smooth fade out: keep drawing frames during the 450ms opacity transition before turning off
+    // Smooth slide out: keep drawing undulating wave frames during the 650ms downward transition
     visualizerFadeTimeout = setTimeout(() => {
         if (!canvas.classList.contains('active')) {
             visualizerDrawGeneration++;
@@ -5186,7 +5214,7 @@ function stopWaveformVisualizer(forceHide = false) {
             }
             canvas.style.display = 'none';
         }
-    }, 450);
+    }, 650);
 }
 
 function applyRandomPremiumAngle() {
