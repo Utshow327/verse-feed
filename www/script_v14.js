@@ -841,13 +841,10 @@ async function initApp() {
                     initPiper(selectedVoice).catch(err => console.log("Background voice pre-install:", err));
                 }, 300);
 
-                initLanguageSettings();
-
-                // On first app launch, present the language picker
-                if (localStorage.getItem('user_language_selected') !== 'true') {
-                    setTimeout(() => {
-                        openLanguageModal(true);
-                    }, 650);
+                try {
+                    initLanguageSettings();
+                } catch(e) {
+                    console.warn("Language settings init:", e);
                 }
             }
 
@@ -2339,6 +2336,24 @@ async function skipOnboarding() {
         initPiper(selectedVoice).catch(err => console.log("Background voice pre-install:", err));
     }, 200);
 }
+const CANONICAL_RELIGIONS = ['Christianity', 'Islam', 'Hinduism', 'Sikhism', 'Buddhism', 'Judaism', 'Philosophy'];
+
+function getCanonicalReligion(str) {
+    if (!str) return '';
+    const trimmed = str.trim();
+    if (CANONICAL_RELIGIONS.includes(trimmed)) return trimmed;
+    if (typeof i18nDict !== 'undefined') {
+        for (let canon of CANONICAL_RELIGIONS) {
+            if (i18nDict[canon]) {
+                for (let lang in i18nDict[canon]) {
+                    if (i18nDict[canon][lang] === trimmed) return canon;
+                }
+            }
+        }
+    }
+    return trimmed;
+}
+
 function buildSettings() {
     suppressFlash(() => {
         applyRandomPremiumAngle();
@@ -2348,11 +2363,14 @@ function buildSettings() {
         }
         document.querySelectorAll('.global-rel-btn').forEach(btn => {
             if (btn.id === 'dark-mode-toggle' || btn.onclick?.toString().includes('openLanguageModal')) return;
-            const rel = btn.dataset.religion || btn.textContent.trim();
-            if (rel && typeof t === 'function') {
-                btn.textContent = t(rel);
+            const canonicalRel = btn.dataset.religion || getCanonicalReligion(btn.textContent);
+            if (canonicalRel) {
+                btn.dataset.religion = canonicalRel;
+                if (typeof t === 'function') {
+                    btn.textContent = t(canonicalRel);
+                }
             }
-            if (globalSelectedRels.includes(rel)) {
+            if (globalSelectedRels.includes(canonicalRel)) {
                 btn.classList.add('active');
             } else {
                 btn.classList.remove('active');
@@ -2360,7 +2378,8 @@ function buildSettings() {
         });
     });
 }
-async function toggleGlobalReligion(rel) {
+async function toggleGlobalReligion(rawRel) {
+    const rel = getCanonicalReligion(rawRel);
     if (!isPremiumUser) {
         openPremiumModal();
         return;
