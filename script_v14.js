@@ -1247,95 +1247,31 @@ const i18nDict = {
 // --- Universal Neural Verse Translation & Cache Engine ---
 const verseTranslationMemoryCache = {};
 
-function getTranslationCacheKey(text, lang) {
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-        hash = ((hash << 5) - hash) + text.charCodeAt(i);
-        hash |= 0;
+function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLanguage) {
+    if (!domElement || !rawText) return;
+    if (lang === 'en_US' || lang === 'en') {
+        domElement.innerText = rawText;
+        return;
     }
-    return 'vtr_' + lang + '_' + Math.abs(hash);
-}
-
-function getCachedVerseTranslation(text, lang) {
-    if (!text || !lang || lang === 'en_US') return text;
-    const key = getTranslationCacheKey(text, lang);
-    if (verseTranslationMemoryCache[key]) return verseTranslationMemoryCache[key];
-    try {
-        const stored = localStorage.getItem(key);
-        if (stored) {
-            verseTranslationMemoryCache[key] = stored;
-            return stored;
-        }
-    } catch(e) {}
-    return null;
-}
-
-function setCachedVerseTranslation(text, lang, translation) {
-    if (!text || !lang || !translation) return;
-    const key = getTranslationCacheKey(text, lang);
-    verseTranslationMemoryCache[key] = translation;
-    try {
-        localStorage.setItem(key, translation);
-    } catch(e) {}
-}
-
-
-function cleanBengaliUnicode(text) {
-    if (!text) return '';
-    return text
-        .replace(/\s*্\s*/g, '্')
-        .replace(/([ক-হ])\s+([া-ৌ])/g, '$1$2')
-        .replace(/([ক-হ])\s+্/g, '$1্')
-        .replace(/্\s+([ক-হ])/g, '্$1')
-        .replace(/\s+([।,;!?])/g, '$1')
-        .replace(/\s{2,}/g, ' ')
-        .trim();
-}
-
-async function translateTextAsync(text, targetLang) {
-    if (!text || !targetLang || targetLang === 'en_US') return text;
     
-    // Check cache first
-    const cached = getCachedVerseTranslation(text, targetLang);
-    if (cached) return cached;
+    // If rawText already contains target language script, render directly
+    if (lang === 'bn' && /[\u0980-\u09FF]/.test(rawText)) {
+        domElement.innerText = rawText;
+        return;
+    }
     
-    const shortLang = targetLang.split('_')[0];
+    const cached = getCachedVerseTranslation(rawText, lang);
+    if (cached) {
+        domElement.innerText = cached;
+        return;
+    }
     
-    // 1. Try MyMemory API
-    try {
-        const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=en|' + shortLang;
-        const resp = await fetch(url);
-        if (resp.ok) {
-            const data = await resp.json();
-            if (data && data.responseData && data.responseData.translatedText) {
-                let trans = data.responseData.translatedText.trim();
-                if (!trans.toUpperCase().includes('MYMEMORY WARNING') && !trans.toUpperCase().includes('QUERY LENGTH LIMIT')) {
-                    if (targetLang === 'bn') trans = cleanBengaliUnicode(trans);
-                    setCachedVerseTranslation(text, targetLang, trans);
-                    return trans;
-                }
-            }
+    domElement.innerText = rawText;
+    translateTextAsync(rawText, lang).then(translated => {
+        if (translated && translated !== rawText && domElement) {
+            domElement.innerText = translated;
         }
-    } catch(e) {}
-
-    // 2. Try Google Translate Fallback
-    try {
-        const gUrl = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=' + shortLang + '&dt=t&q=' + encodeURIComponent(text);
-        const gResp = await fetch(gUrl);
-        if (gResp.ok) {
-            const gData = await gResp.json();
-            if (Array.isArray(gData) && Array.isArray(gData[0])) {
-                const gTrans = gData[0].map(item => item[0]).join('').trim();
-                if (gTrans) {
-                    if (targetLang === 'bn') gTrans = cleanBengaliUnicode(gTrans);
-                    setCachedVerseTranslation(text, targetLang, gTrans);
-                    return gTrans;
-                }
-            }
-        }
-    } catch(e) {}
-
-    return text;
+    });
 }
 
 function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLanguage) {
@@ -4182,7 +4118,7 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
 
     const textEl = document.createElement('div');
     textEl.classList.add('verse-text');
-    textEl.textContent = verse.text || '';
+    applyDynamicVerseTranslation(textEl, verse.text || '');
 
     const footer = document.createElement('div');
     footer.classList.add('card-footer');
@@ -4748,7 +4684,7 @@ function renderVersesList(versesArray, listElement) {
         let displayVerse = v.text;
         displayVerse = displayVerse.replace(/<span class='author-attr'>.*?<\/span>/gm, '');
         displayVerse = displayVerse.replace(/<[^>]*>?/gm, '');
-        text.innerText = displayVerse;
+        applyDynamicVerseTranslation(text, displayVerse);
         
         const footer = document.createElement('div');
         footer.classList.add('saved-verse-footer');
@@ -5349,7 +5285,7 @@ function renderBookChapterBatch(batchSize = 30) {
         
         let displayVerse = text;
         if (displayVerse.endsWith('.')) displayVerse = displayVerse.slice(0, -1);
-        p.innerHTML = displayVerse;
+        applyDynamicVerseTranslation(p, displayVerse);
         p.onclick = (e) => {
             e.stopPropagation();
             handleVerseClick(gIndex);
