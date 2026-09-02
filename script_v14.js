@@ -1385,6 +1385,22 @@ const i18nDict = {
 // --- Universal Neural Verse Translation & Cache Engine ---
 const verseTranslationMemoryCache = {};
 
+function isGarbageTranslation(str) {
+    if (!str || typeof str !== 'string') return true;
+    const trimmed = str.trim();
+    if (trimmed.length < 2) return true;
+    if (/^[?*\s.,!\-_=+]+$/.test(trimmed)) return true;
+    const upper = trimmed.toUpperCase();
+    if (upper.includes('MYMEMORY WARNING') || 
+        upper.includes('QUERY LENGTH LIMIT') || 
+        upper.includes('DAILY LIMIT') ||
+        upper.includes('TRANSLATION LIMIT') ||
+        upper.includes('TOO MANY REQUESTS')) {
+        return true;
+    }
+    return false;
+}
+
 function getTranslationCacheKey(text, lang) {
     let hash = 0;
     for (let i = 0; i < text.length; i++) {
@@ -1397,10 +1413,21 @@ function getTranslationCacheKey(text, lang) {
 function getCachedVerseTranslation(text, lang) {
     if (!text || !lang || lang === 'en_US' || lang === 'en') return text;
     const key = getTranslationCacheKey(text, lang);
-    if (verseTranslationMemoryCache[key]) return verseTranslationMemoryCache[key];
+    if (verseTranslationMemoryCache[key]) {
+        if (isGarbageTranslation(verseTranslationMemoryCache[key])) {
+            delete verseTranslationMemoryCache[key];
+            try { localStorage.removeItem(key); } catch(e) {}
+            return null;
+        }
+        return verseTranslationMemoryCache[key];
+    }
     try {
         const stored = localStorage.getItem(key);
         if (stored) {
+            if (isGarbageTranslation(stored)) {
+                localStorage.removeItem(key);
+                return null;
+            }
             verseTranslationMemoryCache[key] = stored;
             return stored;
         }
@@ -1409,7 +1436,7 @@ function getCachedVerseTranslation(text, lang) {
 }
 
 function setCachedVerseTranslation(text, lang, translation) {
-    if (!text || !lang || !translation) return;
+    if (!text || !lang || !translation || isGarbageTranslation(translation)) return;
     const key = getTranslationCacheKey(text, lang);
     verseTranslationMemoryCache[key] = translation;
     try {
@@ -1434,7 +1461,7 @@ async function translateTextAsync(text, targetLang) {
     
     // Check cache first
     const cached = getCachedVerseTranslation(text, targetLang);
-    if (cached) return cached;
+    if (cached && !isGarbageTranslation(cached)) return cached;
     
     const shortLang = targetLang.split('_')[0];
     
@@ -1446,7 +1473,7 @@ async function translateTextAsync(text, targetLang) {
             const data = await resp.json();
             if (data && data.responseData && data.responseData.translatedText) {
                 let trans = data.responseData.translatedText.trim();
-                if (!trans.toUpperCase().includes('MYMEMORY WARNING') && !trans.toUpperCase().includes('QUERY LENGTH LIMIT')) {
+                if (!isGarbageTranslation(trans)) {
                     if (targetLang === 'bn') trans = cleanBengaliUnicode(trans);
                     setCachedVerseTranslation(text, targetLang, trans);
                     return trans;
@@ -1463,7 +1490,7 @@ async function translateTextAsync(text, targetLang) {
             const gData = await gResp.json();
             if (Array.isArray(gData) && Array.isArray(gData[0])) {
                 let gTrans = gData[0].map(item => item[0]).join('').trim();
-                if (gTrans) {
+                if (gTrans && !isGarbageTranslation(gTrans)) {
                     if (targetLang === 'bn') gTrans = cleanBengaliUnicode(gTrans);
                     setCachedVerseTranslation(text, targetLang, gTrans);
                     return gTrans;
@@ -1483,7 +1510,7 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
         return;
     }
     
-    // If rawText already contains target language script, render directly with 0ms delay
+    // If rawText already contains target language script, render directly
     if (lang === 'bn' && /[\u0980-\u09FF]/.test(rawText)) {
         domElement.innerText = rawText;
         domElement.style.opacity = '1';
@@ -1491,20 +1518,21 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
     }
     
     const cached = getCachedVerseTranslation(rawText, lang);
-    if (cached) {
+    if (cached && !isGarbageTranslation(cached)) {
         domElement.innerText = cached;
         domElement.style.opacity = '1';
         return;
     }
     
-    // Smooth transition: don't flash English, show subtle placeholder and fade in
+    // Smooth transition
     domElement.style.transition = 'opacity 0.25s ease';
     domElement.style.opacity = '0.35';
     domElement.innerText = '...';
     
     translateTextAsync(rawText, lang).then(translated => {
         if (domElement && domElement.isConnected) {
-            domElement.innerText = translated || rawText;
+            const finalTxt = (translated && !isGarbageTranslation(translated)) ? translated : rawText;
+            domElement.innerText = finalTxt;
             domElement.style.opacity = '1';
         }
     }).catch(() => {
