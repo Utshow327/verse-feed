@@ -48,7 +48,7 @@ const CANONICAL_RELIGIONS = ['Christianity', 'Islam', 'Hinduism', 'Sikhism', 'Bu
 
 const supportedLanguages = [
     { code: 'en_US', name: 'English', native: 'English', hasVoice: true, voiceLabel: '🎙️ Neural Voice Available' },
-    { code: 'bn', name: 'Bengali', native: 'বাংলা', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'bn', name: 'Bangla', native: 'বাংলা', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
     { code: 'hi', name: 'Hindi', native: 'हिन्दी', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
     { code: 'ar', name: 'Arabic', native: 'العربية', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
     { code: 'es', name: 'Spanish', native: 'Español', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
