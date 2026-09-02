@@ -85,6 +85,33 @@ const supportedLanguages = [
 ];
 
 const i18nDict = {
+    "Meditations": {"bn":"মেডিটেশনস","hi":"मेडिटेशन","es":"Meditaciones"},
+    "Talmud": {"bn":"তালমুদ","hi":"तालमूड","ar":"التلمود","he":"תלמוד"},
+    "Tanakh": {"bn":"তানখ","hi":"तनाख","ar":"تناخ","he":"תנ״ך"},
+    "Torah": {"bn":"তোরাহ","hi":"तोराह","ar":"التوراة","he":"תורה"},
+    "Proverbs": {"bn":"হিতোপদেশ","hi":"नीतिवचन","ar":"الأمثال","es":"Proverbios"},
+    "Psalms": {"bn":"গীতসংহিতা","hi":"भजन संहिता","ar":"المزامير","es":"Salmos"},
+    "John": {"bn":"যোহন","hi":"यूहन्ना","ar":"يوحنا","es":"Juan"},
+    "Luke": {"bn":"লূক","hi":"लूका","ar":"لوقا","es":"Lucas"},
+    "Mark": {"bn":"মার্ক","hi":"मरकुस","ar":"مرقس","es":"Marcos"},
+    "Matthew": {"bn":"মথি","hi":"मत्ती","ar":"متى","es":"Mateo"},
+    "Deuteronomy": {"bn":"দ্বিতীয় বিবরণ","hi":"व्यवस्थाविवरण","ar":"التثنية","es":"Deuteronomio"},
+    "Numbers": {"bn":"গণনা পুস্তক","hi":"गिनती","ar":"العدد","es":"Números"},
+    "Leviticus": {"bn":"লেবীয় পুস্তক","hi":"लैव्यव्यवस्था","ar":"اللاويين","es":"Levítico"},
+    "Exodus": {"bn":"যাত্রাপুস্তক","hi":"निर्गमन","ar":"الخروج","es":"Éxodo"},
+    "Genesis": {"bn":"আদিপুস্তক","hi":"उत्पत्ति","ar":"التكوين","es":"Génesis"},
+    "New Testament": {"bn":"নতুন নিয়ম","hi":"नया नियम","ar":"العهد الجديد","es":"Nuevo Testamento"},
+    "Old Testament": {"bn":"পুরাতন নিয়ম","hi":"पुराना नियम","ar":"العهد القديم","es":"Antiguo Testamento"},
+    "Granth Sahib": {"bn":"গ্রন্থ সাহিব","hi":"ग्रंथ साहिब","pa":"ਗ੍ਰੰਥ ਸਾਹਿਬ"},
+    "Dhammapada": {"bn":"ধম্মপদ","hi":"धम्मपद"},
+    "Bhagavad Gita": {"bn":"ভগবদ্গীতা","hi":"भगवद्गीता"},
+    "Sunan Ibn Majah": {"bn":"সুনান ইবনে মাজাহ","hi":"सुनन इब्न माजाह","ar":"سنن ابن ماجه","ur":"سنن ابن ماجہ"},
+    "Sunan an-Nasai": {"bn":"সুনান আন-নাসায়ী","hi":"सुनन अन-नसाई","ar":"سنن النسائي","ur":"سنن نسائی"},
+    "Jami At Tirmidhi": {"bn":"জামে তিরমিযী","hi":"जामी अत-तिर्मिज़ी","ar":"جامع الترمذي","ur":"جامع ترمذی"},
+    "Sunan Abu Dawud": {"bn":"সুনান আবু দাউদ","hi":"सुनन अबू दाऊद","ar":"سنن أبي داود","ur":"سنن ابو داؤد"},
+    "Sahih Muslim": {"bn":"সহীহ মুসলিম","hi":"सहीह मुस्लिम","ar":"صحيح مسلم","ur":"صحیح مسلم"},
+    "Sahih Bukhari": {"bn":"সহীহ বুখারী","hi":"सहीह बुखारी","ar":"صحيح البخاري","ur":"صحیح بخاری"},
+    "Quran": {"bn":"কোরআন","hi":"क़ुरआन","ar":"القرآن","ur":"قرآن"},
     "Christianity": {
         "bn": "খ্রিস্টধর্ম",
         "hi": "ईसाई धर्म",
@@ -1239,6 +1266,19 @@ function setCachedVerseTranslation(text, lang, translation) {
     } catch(e) {}
 }
 
+
+function cleanBengaliUnicode(text) {
+    if (!text) return '';
+    return text
+        .replace(/\s*্\s*/g, '্')
+        .replace(/([ক-হ])\s+([া-ৌ])/g, '$1$2')
+        .replace(/([ক-হ])\s+্/g, '$1্')
+        .replace(/্\s+([ক-হ])/g, '্$1')
+        .replace(/\s+([।,;!?])/g, '$1')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+}
+
 async function translateTextAsync(text, targetLang) {
     if (!text || !targetLang || targetLang === 'en_US') return text;
     
@@ -1257,6 +1297,7 @@ async function translateTextAsync(text, targetLang) {
             if (data && data.responseData && data.responseData.translatedText) {
                 let trans = data.responseData.translatedText.trim();
                 if (!trans.toUpperCase().includes('MYMEMORY WARNING') && !trans.toUpperCase().includes('QUERY LENGTH LIMIT')) {
+                    if (targetLang === 'bn') trans = cleanBengaliUnicode(trans);
                     setCachedVerseTranslation(text, targetLang, trans);
                     return trans;
                 }
@@ -1273,6 +1314,7 @@ async function translateTextAsync(text, targetLang) {
             if (Array.isArray(gData) && Array.isArray(gData[0])) {
                 const gTrans = gData[0].map(item => item[0]).join('').trim();
                 if (gTrans) {
+                    if (targetLang === 'bn') gTrans = cleanBengaliUnicode(gTrans);
                     setCachedVerseTranslation(text, targetLang, gTrans);
                     return gTrans;
                 }
@@ -5088,7 +5130,7 @@ function showBooks(rel) {
     const bookListContainer = document.getElementById('book-list');
 
     const list = document.getElementById('book-list');
-    list.innerHTML = '<h2>' + rel + '</h2>';
+    list.innerHTML = '<h2>' + (typeof t === 'function' ? t(rel) : rel) + '</h2>';
 
     // Render Daily Curated Audiobook at Top (Hidden if user is premium)
     const isUserPremium = (typeof isPremiumUser !== 'undefined' && isPremiumUser) || localStorage.getItem('isPremiumUser') === 'true';
@@ -5107,7 +5149,7 @@ function showBooks(rel) {
 
     religionBooks[rel].books.forEach(book => {
         const btn = document.createElement('button');
-        btn.innerText = book.name;
+        btn.innerText = (typeof t === 'function' ? t(book.name) : book.name);
         btn.onclick = () => showBookContent(rel, book);
         list.appendChild(btn);
     });
@@ -5133,11 +5175,11 @@ function showBookContent(rel, book) {
         document.getElementById('sub-book-list-view').classList.remove('hidden');
         
         const list = document.getElementById('sub-book-list');
-        list.innerHTML = `<h2>${book.name}</h2>`;
+        list.innerHTML = `<h2>${typeof t === 'function' ? t(book.name) : book.name}</h2>`;
         
         book.subBookOrder.forEach(sub => {
             const btn = document.createElement('button');
-            btn.innerText = sub;
+            btn.innerText = (typeof t === 'function' ? t(sub) : sub);
             btn.onclick = () => showSubBookContent(sub);
             list.appendChild(btn);
         });
