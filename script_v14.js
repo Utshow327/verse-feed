@@ -3575,6 +3575,11 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
 
 let currentAppLanguage = localStorage.getItem('versefeed_user_language') || 'en_US';
 
+function getAppBaseLanguage(lang = currentAppLanguage) {
+    if (!lang) return 'en';
+    return lang.split('_')[0].split('-')[0].toLowerCase();
+}
+
 function t(key) {
     if (!key || typeof key !== 'string') return key || '';
     if (currentAppLanguage === 'en_US' || currentAppLanguage === 'en') return key;
