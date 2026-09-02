@@ -2085,7 +2085,7 @@ const i18nDict = {
 // --- Universal Neural Verse Translation & Cache Engine ---
 const verseTranslationMemoryCache = {};
 
-function isGarbageTranslation(str) {
+function isGarbageTranslation(str, targetLang = currentAppLanguage) {
     if (!str || typeof str !== 'string') return true;
     const trimmed = str.trim();
     if (trimmed.length < 2) return true;
@@ -2096,6 +2096,11 @@ function isGarbageTranslation(str) {
         upper.includes('DAILY LIMIT') ||
         upper.includes('TRANSLATION LIMIT') ||
         upper.includes('TOO MANY REQUESTS')) {
+        return true;
+    }
+    // If target language is non-Latin (Bengali, Arabic, Hindi, Russian, etc.), reject if untranslated English words leaked
+    const nonLatinLangs = ['bn', 'ar', 'hi', 'ru', 'ja', 'zh', 'ko', 'fa', 'ur', 'ta', 'te', 'mr', 'gu', 'pa', 'he', 'th', 'el'];
+    if (nonLatinLangs.includes(targetLang) && /[a-zA-Z]{3,}/.test(trimmed)) {
         return true;
     }
     return false;
@@ -2146,11 +2151,13 @@ function setCachedVerseTranslation(text, lang, translation) {
 
 function cleanBengaliUnicode(text) {
     if (!text) return '';
-    return text
+    // Strip leftover untranslated english words that leaked into bengali sentences
+    let cleaned = text.replace(/\b[a-zA-Z]+\b/g, '').replace(/\s+/g, ' ');
+    return cleaned
         .replace(/([\u0980-\u09FF])\s+\u09CD\s+([\u0980-\u09FF])/g, '$1\u09CD$2')
         .replace(/\s+\u09CD\s+/g, '\u09CD')
         .replace(/([\u0980-\u09FF])\s+([\u09BC-\u09CD\u09D7\u09BE-\u09CC])/g, '$1$2')
-        .replace(/\uFFFD/g, '')
+        .replace(/[\uFFFD\u25CC]/g, '')
         .replace(/\s+([।,;!?])/g, '$1')
         .replace(/\s{2,}/g, ' ')
         .trim();
@@ -3273,45 +3280,99 @@ let lastSwipeTime = 0;
 
 let touchStartTarget = null;
 
+let isDraggingFeed = false;
+let feedTouchStartX = 0;
+let feedTouchStartY = 0;
+let feedCurrentDeltaX = 0;
+let feedIsHorizontalGesture = false;
+
 function setupGestures() {
-    document.addEventListener('touchstart', e => {
-        if (e.changedTouches && e.changedTouches[0]) {
-            touchStartTarget = e.target;
-            touchStartX = e.changedTouches[0].screenX;
-            touchStartY = e.changedTouches[0].screenY;
-        }
-    }, { passive: true });
-    document.addEventListener('touchend', e => {
-        if (e.changedTouches && e.changedTouches[0]) {
-            touchEndX = e.changedTouches[0].screenX;
-            touchEndY = e.changedTouches[0].screenY;
-            handleGesture();
-        }
-    }, { passive: true });
     const feedStage = document.getElementById('feed-stage');
+    if (!feedStage) return;
+
+    feedStage.addEventListener('touchstart', e => {
+        if (!appLoaded) return;
+        const activeModal = document.querySelector('.modal-overlay:not(.hidden)');
+        if (activeModal) return;
+        if (e.target.closest && (e.target.closest('.bookmark-btn') || e.target.closest('.speak-btn') || e.target.closest('.modal-overlay'))) return;
+
+        if (e.touches && e.touches[0]) {
+            isDraggingFeed = true;
+            feedIsHorizontalGesture = false;
+            feedTouchStartX = e.touches[0].clientX;
+            feedTouchStartY = e.touches[0].clientY;
+            feedCurrentDeltaX = 0;
+            touchStartTarget = e.target;
+        }
+    }, { passive: true });
+
+    feedStage.addEventListener('touchmove', e => {
+        if (!isDraggingFeed || !e.touches || !e.touches[0]) return;
+        const currentX = e.touches[0].clientX;
+        const currentY = e.touches[0].clientY;
+        const diffX = currentX - feedTouchStartX;
+        const diffY = currentY - feedTouchStartY;
+
+        if (!feedIsHorizontalGesture) {
+            if (Math.abs(diffX) > 6 && Math.abs(diffX) > Math.abs(diffY)) {
+                feedIsHorizontalGesture = true;
+            } else if (Math.abs(diffY) > 8) {
+                isDraggingFeed = false;
+                return;
+            }
+        }
+
+        if (feedIsHorizontalGesture) {
+            feedCurrentDeltaX = diffX;
+            const currentCard = feedStage.querySelector('.verse-card.card-center');
+            if (currentCard) {
+                currentCard.style.transition = 'none';
+                const scale = Math.max(0.92, 1 - (Math.abs(diffX) / window.innerWidth) * 0.08);
+                currentCard.style.transform = `translateX(${diffX}px) scale(${scale})`;
+            }
+        }
+    }, { passive: true });
+
+    feedStage.addEventListener('touchend', e => {
+        if (!isDraggingFeed) return;
+        isDraggingFeed = false;
+
+        const currentCard = feedStage.querySelector('.verse-card.card-center');
+        if (feedIsHorizontalGesture && currentCard) {
+            currentCard.style.transition = 'transform 0.28s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.28s ease';
+            if (feedCurrentDeltaX < -60) {
+                lastSwipeTime = Date.now();
+                nextCard();
+            } else if (feedCurrentDeltaX > 60 && currentVerseIndex.general > 0) {
+                lastSwipeTime = Date.now();
+                prevCard();
+            } else {
+                currentCard.style.transform = 'translateX(0) scale(1)';
+            }
+        }
+        feedIsHorizontalGesture = false;
+        feedCurrentDeltaX = 0;
+    }, { passive: true });
+
     feedStage.addEventListener('click', (e) => {
         if (!appLoaded) return;
-        if (Date.now() - lastSwipeTime < 500) return; // Prevent phantom clicks after a swipe
-        
+        if (Date.now() - lastSwipeTime < 500) return;
         if (e.target.closest('.bookmark-btn') || e.target.closest('.speak-btn') || e.target.closest('.card-peek-left') || e.target.closest('.card-peek-right')) return;
+        
         const width = window.innerWidth;
         const clickX = e.clientX;
-        
         const isFeed = document.getElementById('verse-feed').classList.contains('active-section');
         if (!isFeed) return;
         
-        // 30% Left side: Prev Verse only
         if (clickX < width * 0.3) {
             prevCard();
             return;
         }
-        // 30% Right side: Next Verse only
         if (clickX > width * 0.7) {
             nextCard();
             return;
         }
 
-        // Middle 40% area: Select verse if clicked on card, else deselect
         const cardClicked = e.target.closest('.verse-card.card-center');
         if (cardClicked) {
             const currentVerse = getVerseAtIndex(currentVerseIndex.general);
@@ -3323,28 +3384,8 @@ function setupGestures() {
         }
     });
 }
-function handleGesture() {
-    if (!appLoaded) return;
-    const activeModal = document.querySelector('.modal-overlay:not(.hidden)');
-    if (activeModal) return;
-    if (touchStartTarget && touchStartTarget.closest && (touchStartTarget.closest('.modal-overlay') || touchStartTarget.closest('[id*="wheel"]'))) return;
 
-    const diffX = touchEndX - touchStartX;
-    const diffY = touchEndY - touchStartY;
-    const isFeed = document.getElementById('verse-feed').classList.contains('active-section');
-    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
-        lastSwipeTime = Date.now();
-        if (diffX > 0) {
-            if (isFeed) {
-                prevCard();
-            }
-        } else {
-            if (isFeed) {
-                nextCard();
-            }
-        }
-    }
-}
+function handleGesture() {}
 // --- Piper TTS Audio Initialization ---
 let piperSession = null;
 let piperInitializing = false;
@@ -7542,21 +7583,16 @@ function selectAppLanguage(lang) {
     }
     
     applyLanguageTranslations(lang.code);
-    
-    setTimeout(() => {
-        closeLanguageModal();
-        if (typeof renderCards === 'function') {
-            renderCards();
-        }
-    }, 220);
+    if (typeof renderCards === 'function') {
+        renderCards();
+    }
 
     if (!lang.hasVoice) {
-        showToast(lang.name + ' (Text only)');
+        showToast((lang.native || lang.name) + ' (Text only)');
     } else {
-        showToast(lang.name);
+        showToast(lang.native || lang.name);
     }
 }
-
 function openLanguageModal(isFirstLaunch = false) {
     const modal = document.getElementById('language-modal');
     if (!modal) return;
