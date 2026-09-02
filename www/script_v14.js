@@ -4927,6 +4927,31 @@ function pushVersesWithAdCheck(newBatch) {
         verseBatches.general.push(verse);
     }
 }
+
+function preloadUpcomingVerses(currentIndex = currentVerseIndex.general || 0) {
+    // Keep at least 25 verses generated ahead in the pool
+    const targetAhead = currentIndex + 25;
+    while (verseBatches.general.length < targetAhead) {
+        const lastRels = verseBatches.general.length >= 2 ? 
+            [verseBatches.general[verseBatches.general.length - 2].religion, verseBatches.general[verseBatches.general.length - 1].religion] : 
+            [];
+        const newBatch = generateBatch('general', lastRels);
+        if (newBatch.length === 0) break;
+        pushVersesWithAdCheck(newBatch);
+    }
+
+    // Pre-translate upcoming 15 verses in parallel in the background
+    if (currentAppLanguage !== 'en_US' && currentAppLanguage !== 'en') {
+        const end = Math.min(currentIndex + 15, verseBatches.general.length);
+        for (let i = currentIndex; i < end; i++) {
+            const v = verseBatches.general[i];
+            if (v && v.text && !getCachedVerseTranslation(v.text, currentAppLanguage)) {
+                translateTextAsync(v.text, currentAppLanguage);
+            }
+        }
+    }
+}
+
 function initializeVerseFeed(forceRefresh) {
     const stage = document.getElementById('feed-stage');
     const emptyState = document.getElementById('feed-empty-state');
@@ -4948,6 +4973,7 @@ function initializeVerseFeed(forceRefresh) {
     }
     pushVersesWithAdCheck(newBatch);
     renderFeedCard(0);
+    preloadUpcomingVerses(0);
 }
 const negativeWords = ['smite', 'kill', 'destroy', 'wrath', 'blood', 'sword', 'curse', 'hell', 'fire', 'punish', 'death', 'die', 'slay', 'enemy', 'evil', 'wicked', 'sin', 'weep', 'wail', 'gnash', 'vengeance', 'terror', 'fear', 'plague', 'famine', 'perish', 'slaughter', 'condemn', 'abomination', 'hate', 'despise', 'anger', 'fury', 'saliva', 'spit', 'vomit', 'urine', 'defecate', 'excrement', 'menstruation', 'menses', 'camel', 'slave', 'sexual', 'intercourse', 'naked', 'breast', 'suck', 'suckling', 'semen', 'sperm', 'genital'];
 const positiveWords = ['love', 'peace', 'joy', 'hope', 'faith', 'light', 'grace', 'mercy', 'compassion', 'kindness', 'bless', 'heal', 'forgive', 'comfort', 'strength', 'wisdom', 'truth', 'spirit', 'heart', 'soul', 'heaven', 'glory', 'righteous', 'holy', 'pure', 'good', 'rejoice', 'glad', 'praise', 'worship', 'save', 'deliver', 'guide', 'protect'];
@@ -5290,6 +5316,7 @@ function trackVerseDwellTime(verse) {
 }
 
 function renderFeedCard(index, direction = 'none') {
+    preloadUpcomingVerses(index);
     const stage = document.getElementById('feed-stage');
     if (!stage) return;
     const verse = getVerseAtIndex(index);
