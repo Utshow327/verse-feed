@@ -1909,8 +1909,8 @@ h2 {
     opacity: 1;
     border-color: var(--text-color);
 }
-#dark-mode-toggle {
-    aspect-ratio: auto;
+#dark-mode-toggle, #language-toggle-btn {
+    aspect-ratio: 1;
 }
 
 

@@ -1399,7 +1399,7 @@ function applyLanguageTranslations(langCode = currentAppLanguage) {
     const selectedLangObj = supportedLanguages.find(l => l.code === langCode) || supportedLanguages[0];
     const settingsLabel = document.getElementById('settings-current-lang-label');
     if (settingsLabel) {
-        settingsLabel.textContent = t('Language') + ': ' + (selectedLangObj.native || selectedLangObj.name);
+        settingsLabel.textContent = selectedLangObj.name;
     }
 
     // 3. Update Settings Links
@@ -3807,7 +3807,7 @@ function buildSettings() {
             localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
         }
         document.querySelectorAll('.global-rel-btn').forEach(btn => {
-            if (btn.id === 'dark-mode-toggle' || btn.onclick?.toString().includes('openLanguageModal')) return;
+            if (btn.id === 'dark-mode-toggle' || btn.id === 'language-toggle-btn' || btn.onclick?.toString().includes('openLanguageModal')) return;
             const canonicalRel = btn.dataset.religion || getCanonicalReligion(btn.textContent);
             if (canonicalRel) {
                 btn.dataset.religion = canonicalRel;
@@ -6563,17 +6563,16 @@ function renderLanguageList(filterQuery = '') {
     filtered.forEach(lang => {
         const item = document.createElement('div');
         const isSelected = currentAppLanguage === lang.code;
-        item.style.cssText = `display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-radius: 14px; border: 1px solid ${isSelected ? 'var(--p-gold)' : 'var(--glass-border)'}; background: ${isSelected ? 'rgba(188, 174, 158, 0.15)' : 'rgba(255,255,255,0.03)'}; cursor: pointer; transition: all 0.2s ease;`;
+        item.style.cssText = `display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-radius: 14px; border: 1px solid ${isSelected ? 'var(--p-gold)' : 'var(--glass-border)'}; background: ${isSelected ? 'rgba(188, 174, 158, 0.12)' : 'rgba(255,255,255,0.03)'}; cursor: pointer; transition: all 0.2s ease;`;
         
+        const isSameName = lang.native.toLowerCase() === lang.name.toLowerCase();
+
         item.innerHTML = `
-            <div style="display: flex; flex-direction: column; gap: 3px;">
-                <span style="font-size: 0.98rem; font-weight: 600; color: var(--text-color);">${lang.native} <span style="font-size: 0.85rem; opacity: 0.7; font-weight: 400;">(${lang.name})</span></span>
-                <div style="display: flex; gap: 6px; align-items: center;">
-                    <span style="font-size: 0.72rem; padding: 2px 6px; border-radius: 6px; background: rgba(255,255,255,0.06); color: var(--text-color); opacity: 0.9;">${lang.packBadge}</span>
-                    <span style="font-size: 0.72rem; color: ${lang.hasVoice ? '#10b981' : '#f59e0b'}; opacity: 0.85;">${lang.voiceLabel}</span>
-                </div>
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+                <span style="font-size: 1.02rem; font-weight: 600; color: var(--text-color);">${lang.native}</span>
+                ${!isSameName ? `<span style="font-size: 0.84rem; opacity: 0.55; color: var(--text-color); font-weight: 400;">(${lang.name})</span>` : ''}
             </div>
-            ${isSelected ? '<span style="color: var(--p-gold); font-weight: bold; font-size: 1.1rem;">✓ Active</span>' : '<span style="font-size: 0.78rem; opacity: 0.7; border: 1px solid var(--glass-border); padding: 4px 8px; border-radius: 8px;">Select</span>'}
+            ${isSelected ? '<span style="color: var(--p-gold); font-weight: 700; font-size: 1.1rem;">✓</span>' : ''}
         `;
 
         item.onclick = () => {
