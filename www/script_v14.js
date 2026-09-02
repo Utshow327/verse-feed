@@ -791,6 +791,111 @@ const supportedLanguages = [
 ];
 
 const i18nDict = {
+    "Existentialism": {
+        "ar": "الوجودية",
+        "bn": "অস্তিত্ববাদ",
+        "hi": "अस्तित्ववाद",
+        "es": "Existencialismo",
+        "fr": "Existentialisme",
+        "it": "Esistenzialismo",
+        "de": "Existenzialismus",
+        "ru": "Экзистенциализм",
+        "ja": "実存主義",
+        "pt": "Existencialismo",
+        "tr": "Varoluşçuluk"
+    },
+    "Stoicism": {
+        "ar": "الرواقية",
+        "bn": "স্টোয়িক দর্শন",
+        "hi": "वैराग्यवाद",
+        "es": "Estoicismo",
+        "fr": "Stoïcisme",
+        "it": "Stoicismo",
+        "de": "Stoizismus",
+        "ru": "Стоицизм",
+        "ja": "ストア派",
+        "pt": "Estoicismo",
+        "tr": "Stoacılık"
+    },
+    "Absurdism": {
+        "ar": "العبثية",
+        "bn": "অ্যাবসার্ডিজম",
+        "hi": "विसंगततावाद",
+        "es": "Absurdismo",
+        "fr": "Absurdisme",
+        "it": "Assurdismo",
+        "de": "Absurdismus",
+        "ru": "Абсурдизм",
+        "ja": "不条理主義",
+        "pt": "Absurdismo",
+        "tr": "Absürdizm"
+    },
+    "Nihilism": {
+        "ar": "العدمية",
+        "bn": "শূন্যতাবাদ",
+        "hi": "शून्यवाद",
+        "es": "Nihilismo",
+        "fr": "Nihilisme",
+        "it": "Nichilismo",
+        "de": "Nihilismus",
+        "ru": "Нигилизм",
+        "ja": "虚無主義",
+        "pt": "Niilismo",
+        "tr": "Nihilizm"
+    },
+    "Taoism": {
+        "ar": "الطاوية",
+        "bn": "তাওধর্ম",
+        "hi": "ताओ धर्म",
+        "es": "Taoísmo",
+        "fr": "Taoïsme",
+        "it": "Taoismo",
+        "de": "Taoismus",
+        "ru": "Даосизм",
+        "ja": "道教",
+        "pt": "Taoísmo",
+        "tr": "Taoizm"
+    },
+    "Confucianism": {
+        "ar": "الكونفوشيوسية",
+        "bn": "কনফুসীয় ধর্ম",
+        "hi": "कन्फ्यूशियस धर्म",
+        "es": "Confucianismo",
+        "fr": "Confucianisme",
+        "it": "Confucianesimo",
+        "de": "Konfuzianismus",
+        "ru": "Конфуцианство",
+        "ja": "儒教",
+        "pt": "Confucionismo",
+        "tr": "Konfüçyüsçülük"
+    },
+    "Philosophy": {
+        "ar": "الفلسفة",
+        "bn": "দর্শন",
+        "hi": "दर्शन",
+        "es": "Filosofía",
+        "fr": "Philosophie",
+        "it": "Filosofia",
+        "de": "Philosophie",
+        "ru": "Философия",
+        "ja": "哲学",
+        "pt": "Filosofia",
+        "tr": "Felsefe"
+    },
+    "Psychology": {
+        "ar": "علم النفس",
+        "bn": "মনোবিজ্ঞান",
+        "hi": "मनोविज्ञान",
+        "es": "Psicología",
+        "fr": "Psychologie",
+        "it": "Psicologia",
+        "de": "Psychologie",
+        "ru": "Психология",
+        "ja": "心理学",
+        "pt": "Psicologia",
+        "tr": "Psikoloji"
+    },
+
     "Folder deleted": {
         "bn": "ফোল্ডার মুছে ফেলা হয়েছে",
         "hi": "फ़ोल्डर हटा दिया गया",
@@ -5149,6 +5254,22 @@ function preloadFunnyLines(lang = currentAppLanguage) {
             translateTextAsync(line, lang);
         }
     });
+}
+
+
+function applyDynamicRefTranslation(refEl, verse) {
+    if (!refEl || !verse) return;
+    applyDynamicRefTranslation(refEl, verse);
+    if (currentAppLanguage === 'en_US' || currentAppLanguage === 'en') return;
+
+    const rawBook = verse.book || verse.religion || '';
+    if (rawBook && (!i18nDict[rawBook] || !i18nDict[rawBook][currentAppLanguage])) {
+        translateTextAsync(rawBook, currentAppLanguage).then(trans => {
+            if (trans && refEl.isConnected) {
+                refEl.textContent = formatVerseRef(verse);
+            }
+        });
+    }
 }
 
 function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
