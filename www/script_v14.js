@@ -1235,9 +1235,15 @@ const i18nDict = {
         "es": "Dhammapada"
     },
     "Bhagavad Gita": {
-        "bn": "ভগবদ্গীতা",
-        "hi": "भगवद्गीता",
-        "es": "Bhagavad Gita"
+        "bn": "শ্রীমদ্ভগবদ্গীতা",
+        "hi": "श्रीमद्भगवद्गीता",
+        "es": "Bhagavad Gita",
+        "ar": "بهاغافاد غيتا",
+        "sa": "श्रीमद्भगवद्गीता",
+        "fr": "Bhagavad-Gita",
+        "it": "Bhagavad Gita",
+        "de": "Bhagavad Gita",
+        "ru": "Бхагавад-гита"
     },
     "Sunan Ibn Majah": {
         "bn": "সুনান ইবনে মাজাহ",
@@ -3130,8 +3136,236 @@ const i18nDict = {
         "pt": "Discurso",
         "ru": "Беседа",
         "tr": "Söylem"
+    },
+    "Guru Granth": {
+        "ar": "جورو جرانث",
+        "bn": "গুরু গ্রন্থ",
+        "hi": "गुरु ग्रंथ",
+        "pa": "ਗੁਰੂ ਗ੍ਰੰਥ",
+        "es": "Gurú Granth",
+        "fr": "Guru Granth",
+        "it": "Guru Granth",
+        "de": "Guru Granth",
+        "ru": "Гуру Грантх"
+    },
+    "Chronicles": {
+        "ar": "أخبار الأيام",
+        "bn": "বংশাবলি",
+        "hi": "इतिहास",
+        "es": "Crónicas",
+        "fr": "Chroniques",
+        "it": "Cronache",
+        "de": "Chronik",
+        "ru": "Паралипоменон"
+    },
+    "Kings": {
+        "ar": "الملوك",
+        "bn": "রাজাবলি",
+        "hi": "राजा",
+        "es": "Reyes",
+        "fr": "Rois",
+        "it": "Re",
+        "de": "Könige",
+        "ru": "Царств"
+    },
+    "Samuel": {
+        "ar": "صموئيل",
+        "bn": "শমূয়েল",
+        "hi": "शमूएल",
+        "es": "Samuel",
+        "fr": "Samuel",
+        "it": "Samuele",
+        "de": "Samuel",
+        "ru": "Царств"
+    },
+    "Song of Songs": {
+        "ar": "نشيد الأنشاد",
+        "bn": "পরমগীত",
+        "hi": "श्रेष्ठगीत",
+        "es": "Cantares",
+        "fr": "Cantique des Cantiques",
+        "it": "Cantico dei Cantici",
+        "de": "Hohelied",
+        "ru": "Песнь Песней"
+    },
+    "Pirkei Avot": {
+        "ar": "أقوال الآباء",
+        "bn": "পিরকেই অভোট",
+        "hi": "पिरकेई अवोत",
+        "he": "פרקי אבות",
+        "es": "Pirkei Avot",
+        "fr": "Pirkei Avot",
+        "it": "Pirkei Avot",
+        "de": "Pirke Awot",
+        "ru": "Пиркей Авот"
+    },
+    "Berakhot": {
+        "ar": "براخوت",
+        "bn": "বেরাখত",
+        "hi": "बेराखोत",
+        "he": "ברכות",
+        "es": "Berajot",
+        "fr": "Berakhot",
+        "it": "Berakhot",
+        "de": "Berachot",
+        "ru": "Брахот"
+    },
+    "Shabbat": {
+        "ar": "شابات",
+        "bn": "শাব্বাত",
+        "hi": "शब्बात",
+        "he": "שבת",
+        "es": "Shabat",
+        "fr": "Chabbat",
+        "it": "Shabbat",
+        "de": "Schabbat",
+        "ru": "Шаббат"
+    },
+    "Pesachim": {
+        "ar": "بيساخيم",
+        "bn": "পেসাহিম",
+        "hi": "पेसाखिम",
+        "he": "פסחים",
+        "es": "Pesajim",
+        "fr": "Pessahim",
+        "it": "Pesachim",
+        "de": "Pessachim",
+        "ru": "Песахим"
+    },
+    "Yoma": {
+        "ar": "يوما",
+        "bn": "ইয়োমা",
+        "hi": "योमा",
+        "he": "יומא",
+        "es": "Yomá",
+        "fr": "Yoma",
+        "it": "Yoma",
+        "de": "Joma",
+        "ru": "Йома"
+    },
+    "Sukkah": {
+        "ar": "سوكاه",
+        "bn": "সুক্কাহ",
+        "hi": "सुक्काह",
+        "he": "סוכה",
+        "es": "Sucá",
+        "fr": "Soukka",
+        "it": "Sukkah",
+        "de": "Sukka",
+        "ru": "Сукка"
+    },
+    "Rosh Hashanah": {
+        "ar": "روش هاشاناه",
+        "bn": "রোশ হাশানাহ",
+        "hi": "रोश हशनाह",
+        "he": "ראש השנה",
+        "es": "Rosh Hashaná",
+        "fr": "Roch Hachana",
+        "it": "Rosh Hashanah",
+        "de": "Rosch ha-Schana",
+        "ru": "Рош ха-Шана"
+    },
+    "Megillah": {
+        "ar": "مجيلاه",
+        "bn": "মেগিল্লাহ",
+        "hi": "मेगिलाह",
+        "he": "מגילה",
+        "es": "Meguilá",
+        "fr": "Meguila",
+        "it": "Megillah",
+        "de": "Megilla",
+        "ru": "Мегила"
+    },
+    "Kiddushin": {
+        "ar": "كيدوشين",
+        "bn": "কিদ্দুশিন",
+        "hi": "किद्दुशिन",
+        "he": "קידושין",
+        "es": "Kidushín",
+        "fr": "Kiddouchin",
+        "it": "Kiddushin",
+        "de": "Kidduschin",
+        "ru": "Кидушин"
+    },
+    "Sotah": {
+        "ar": "سوتاه",
+        "bn": "সোতাহ",
+        "hi": "सोताह",
+        "he": "סוטה",
+        "es": "Sotá",
+        "fr": "Sota",
+        "it": "Sotah",
+        "de": "Sota",
+        "ru": "Сота"
+    },
+    "Bava Kamma": {
+        "ar": "بافا كاما",
+        "bn": "বাভা কাম্মা",
+        "hi": "बावा कम्मा",
+        "he": "בבא קמא",
+        "es": "Bava Kama",
+        "fr": "Bava Kama",
+        "it": "Bava Kamma",
+        "de": "Bawa kamma",
+        "ru": "Бава Кама"
+    },
+    "Bava Metzia": {
+        "ar": "بافا متسيا",
+        "bn": "বাভা মেৎসিয়া",
+        "hi": "बावा मेत्सिया",
+        "he": "בבא מציעא",
+        "es": "Bava Metziá",
+        "fr": "Bava Metsia",
+        "it": "Bava Metzia",
+        "de": "Bawa mezia",
+        "ru": "Бава Мециа"
+    },
+    "Bava Batra": {
+        "ar": "بافا باترا",
+        "bn": "বাভা বাত্রা",
+        "hi": "बावा बात्रा",
+        "he": "בבא בתרא",
+        "es": "Bava Batra",
+        "fr": "Bava Batra",
+        "it": "Bava Batra",
+        "de": "Bawa batra",
+        "ru": "Бава Батра"
+    },
+    "Sanhedrin": {
+        "ar": "سنهدرين",
+        "bn": "সানহেড্রিন",
+        "hi": "सन्हेद्रिन",
+        "he": "סנהדרין",
+        "es": "Sanedrín",
+        "fr": "Sanhédrin",
+        "it": "Sinedrio",
+        "de": "Sanhedrin",
+        "ru": "Сангедрин"
+    },
+    "Makkot": {
+        "ar": "ماكوت",
+        "bn": "মাক্কত",
+        "hi": "मक्कोत",
+        "he": "מכות",
+        "es": "Makot",
+        "fr": "Makkot",
+        "it": "Makkot",
+        "de": "Makkot",
+        "ru": "Макот"
+    },
+    "Peah": {
+        "ar": "بياه",
+        "bn": "পেয়াহ",
+        "hi": "पेयाह",
+        "he": "פאה",
+        "es": "Peah",
+        "fr": "Peah",
+        "it": "Peah",
+        "de": "Pe'ah",
+        "ru": "Пеа"
     }
 };
+
 
 const verseTranslationMemoryCache = {};
 
