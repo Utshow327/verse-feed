@@ -2315,9 +2315,13 @@ const i18nDict = {
         "es": "Zen"
     },
     "Jatakas & Legends": {
-        "bn": "জাতক ও উপাখ্যান",
-        "hi": "जातक और कथाएं",
-        "es": "Jatakas y Leyendas"
+        "bn": "জাতক ও পৌরাণিক কাহিনী",
+        "hi": "जातक और पौराणिक कथाएं",
+        "es": "Jatakas y Leyendas",
+        "he": "ג'טאקות ואגדות",
+        "ar": "جاتاكاس والأساطير",
+        "fr": "Jâtakas et Légendes",
+        "de": "Jatakas und Legenden"
     },
     "Ancient Greek": {
         "bn": "প্রাচীন গ্রিক দর্শন",
@@ -3507,8 +3511,17 @@ const i18nDict = {
         "bn": "বেদ",
         "hi": "वेद",
         "es": "Vedas"
+    },
+    "Jatakas": {
+        "he": "ג'טאקות",
+        "ar": "جاتاكاس",
+        "bn": "জাতক",
+        "hi": "जातक",
+        "es": "Jatakas",
+        "fr": "Jâtakas"
     }
 };
+
 
 
 
@@ -3599,11 +3612,33 @@ async function translateTextAsync(text, targetLang) {
     
     // Check cache first
     const cached = getCachedVerseTranslation(text, targetLang);
-    if (cached && !isGarbageTranslation(cached)) return cached;
+    if (cached && !isGarbageTranslation(cached, targetLang)) return cached;
     
-    const shortLang = targetLang.split('_')[0];
+    const shortLang = targetLang.split('_')[0].split('-')[0].toLowerCase();
     
-    // 1. Try MyMemory API
+    // 1. High-Speed Google Engine (No IP cap, instant response)
+    try {
+        const gUrl = 'https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=' + shortLang + '&q=' + encodeURIComponent(text);
+        const gResp = await fetch(gUrl);
+        if (gResp.ok) {
+            const gData = await gResp.json();
+            let gTrans = '';
+            if (Array.isArray(gData)) {
+                if (Array.isArray(gData[0])) {
+                    gTrans = (gData[0][0] || '').trim();
+                } else if (typeof gData[0] === 'string') {
+                    gTrans = gData[0].trim();
+                }
+            }
+            if (gTrans && !isGarbageTranslation(gTrans, targetLang)) {
+                if (shortLang === 'bn') gTrans = cleanBengaliUnicode(gTrans);
+                setCachedVerseTranslation(text, targetLang, gTrans);
+                return gTrans;
+            }
+        }
+    } catch(e) {}
+
+    // 2. MyMemory Fallback
     try {
         const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=en|' + shortLang;
         const resp = await fetch(url);
@@ -3611,27 +3646,10 @@ async function translateTextAsync(text, targetLang) {
             const data = await resp.json();
             if (data && data.responseData && data.responseData.translatedText) {
                 let trans = data.responseData.translatedText.trim();
-                if (!isGarbageTranslation(trans)) {
-                    if (targetLang === 'bn') trans = cleanBengaliUnicode(trans);
+                if (!isGarbageTranslation(trans, targetLang)) {
+                    if (shortLang === 'bn') trans = cleanBengaliUnicode(trans);
                     setCachedVerseTranslation(text, targetLang, trans);
                     return trans;
-                }
-            }
-        }
-    } catch(e) {}
-
-    // 2. Try Google Translate Fallback
-    try {
-        const gUrl = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=' + shortLang + '&dt=t&q=' + encodeURIComponent(text);
-        const gResp = await fetch(gUrl);
-        if (gResp.ok) {
-            const gData = await gResp.json();
-            if (Array.isArray(gData) && Array.isArray(gData[0])) {
-                let gTrans = gData[0].map(item => item[0]).join('').trim();
-                if (gTrans && !isGarbageTranslation(gTrans)) {
-                    if (targetLang === 'bn') gTrans = cleanBengaliUnicode(gTrans);
-                    setCachedVerseTranslation(text, targetLang, gTrans);
-                    return gTrans;
                 }
             }
         }
