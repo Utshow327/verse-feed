@@ -1,13 +1,8703 @@
+
+// Eradicate corrupted machine-translation cache
+try {
+    const keysToPurge = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('vtr_') || k.startsWith('verse_trans_'))) {
+            keysToPurge.push(k);
+        }
+    }
+    keysToPurge.forEach(k => localStorage.removeItem(k));
+} catch(e) {}
+
+// ==============================================
+// GLOBAL USER STATE & ISOLATED PROFILE / CLOUD SYNC ENGINE
+// ==============================================
+const firebaseConfig = {
+  apiKey: "AIzaSyCy1lG5CcGlMj4qGEuUJt-8L_Tul6ZMrKM",
+  authDomain: "religionapp-38998.firebaseapp.com",
+  projectId: "religionapp-38998",
+  storageBucket: "religionapp-38998.firebasestorage.app",
+  messagingSenderId: "131330287162",
+  appId: "1:131330287162:web:84e3694ec4d07987163703",
+  measurementId: "G-R240CQB881"
+};
+
+let db = null;
+if (typeof firebase !== 'undefined') {
+    try {
+        if (!firebase.apps || !firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        if (typeof firebase.firestore === 'function') {
+            db = firebase.firestore();
+            try {
+                db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+            } catch(err) {}
+        }
+    } catch(e) {
+        console.warn("Early Firebase init notice:", e);
+    }
+}
+
+const originalGetItem = localStorage.getItem;
+const originalSetItem = localStorage.setItem;
+const originalRemoveItem = localStorage.removeItem;
+
+let googleUser = null;
+try {
+    const rawUser = originalGetItem.call(localStorage, 'googleUser');
+    if (rawUser) googleUser = JSON.parse(rawUser);
+} catch(e) { googleUser = null; }
+
+let googleAccessToken = null;
+let cloudSyncTimeout = null;
+let isRestoringState = false;
+var sessionUserPremiumAngle = null;
+
+// --- Canonical Religions & i18n Translation System ---
+const CANONICAL_RELIGIONS = ['Christianity', 'Islam', 'Hinduism', 'Sikhism', 'Buddhism', 'Judaism', 'Philosophy'];
+
+const supportedLanguages = [
+    {
+        "code": "en_US",
+        "name": "English",
+        "native": "English",
+        "hasVoice": true,
+        "isBundled": true
+    },
+    {
+        "code": "bn",
+        "name": "Bangla",
+        "native": "বাংলা",
+        "hasVoice": false,
+        "isBundled": true
+    },
+    {
+        "code": "es",
+        "name": "Spanish",
+        "native": "Español",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "fr",
+        "name": "French",
+        "native": "Français",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ar",
+        "name": "Arabic",
+        "native": "العربية",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "hi",
+        "name": "Hindi",
+        "native": "हिन्दी",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "pt",
+        "name": "Portuguese",
+        "native": "Português",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ru",
+        "name": "Russian",
+        "native": "Русский",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ja",
+        "name": "Japanese",
+        "native": "日本語",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "de",
+        "name": "German",
+        "native": "Deutsch",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "zh",
+        "name": "Chinese (Simplified)",
+        "native": "简体中文",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "zh_TW",
+        "name": "Chinese (Traditional)",
+        "native": "繁體中文",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ko",
+        "name": "Korean",
+        "native": "한국어",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "it",
+        "name": "Italian",
+        "native": "Italiano",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "tr",
+        "name": "Turkish",
+        "native": "Türkçe",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "vi",
+        "name": "Vietnamese",
+        "native": "Tiếng Việt",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "pl",
+        "name": "Polish",
+        "native": "Polski",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "uk",
+        "name": "Ukrainian",
+        "native": "Українська",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "nl",
+        "name": "Dutch",
+        "native": "Nederlands",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "fa",
+        "name": "Persian",
+        "native": "فارسی",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "id",
+        "name": "Indonesian",
+        "native": "Bahasa Indonesia",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ms",
+        "name": "Malay",
+        "native": "Bahasa Melayu",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "th",
+        "name": "Thai",
+        "native": "ไทย",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ur",
+        "name": "Urdu",
+        "native": "اردو",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "pa",
+        "name": "Punjabi",
+        "native": "ਪੰਜਾਬੀ",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ta",
+        "name": "Tamil",
+        "native": "தமிழ்",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "te",
+        "name": "Telugu",
+        "native": "తెలుగు",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "mr",
+        "name": "Marathi",
+        "native": "मराठी",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "gu",
+        "name": "Gujarati",
+        "native": "ગુજરાતી",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "kn",
+        "name": "Kannada",
+        "native": "ಕನ್ನಡ",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ml",
+        "name": "Malayalam",
+        "native": "മലയാളം",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "my",
+        "name": "Burmese",
+        "native": "မြန်မာဘာသာ",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ne",
+        "name": "Nepali",
+        "native": "नेपाली",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "si",
+        "name": "Sinhala",
+        "native": "සිංහල",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "km",
+        "name": "Khmer",
+        "native": "ភាសាខ្មែរ",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "lo",
+        "name": "Lao",
+        "native": "ພາສາລາວ",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "fil",
+        "name": "Filipino",
+        "native": "Filipino (Tagalog)",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "jv",
+        "name": "Javanese",
+        "native": "Basa Jawa",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "su",
+        "name": "Sundanese",
+        "native": "Basa Sunda",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ceb",
+        "name": "Cebuano",
+        "native": "Sinugboanon",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "sv",
+        "name": "Swedish",
+        "native": "Svenska",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "no",
+        "name": "Norwegian",
+        "native": "Norsk",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "da",
+        "name": "Danish",
+        "native": "Dansk",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "fi",
+        "name": "Finnish",
+        "native": "Suomi",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "el",
+        "name": "Greek",
+        "native": "Ελληνικά",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "he",
+        "name": "Hebrew",
+        "native": "עברית",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ro",
+        "name": "Romanian",
+        "native": "Română",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "cs",
+        "name": "Czech",
+        "native": "Čeština",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "hu",
+        "name": "Hungarian",
+        "native": "Magyar",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "sk",
+        "name": "Slovak",
+        "native": "Slovenčina",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "bg",
+        "name": "Bulgarian",
+        "native": "Български",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "hr",
+        "name": "Croatian",
+        "native": "Hrvatski",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "sr",
+        "name": "Serbian",
+        "native": "Српски",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "bs",
+        "name": "Bosnian",
+        "native": "Bosanski",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "sl",
+        "name": "Slovenian",
+        "native": "Slovenščina",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "lt",
+        "name": "Lithuanian",
+        "native": "Lietuvių",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "lv",
+        "name": "Latvian",
+        "native": "Latviešu",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "et",
+        "name": "Estonian",
+        "native": "Eesti",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "sq",
+        "name": "Albanian",
+        "native": "Shqip",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "mk",
+        "name": "Macedonian",
+        "native": "Македонски",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "be",
+        "name": "Belarusian",
+        "native": "Беларуская",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ka",
+        "name": "Georgian",
+        "native": "ქართული",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "hy",
+        "name": "Armenian",
+        "native": "Հայերեն",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "az",
+        "name": "Azerbaijani",
+        "native": "Azərbaycan",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "kk",
+        "name": "Kazakh",
+        "native": "Қазақ тілі",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "uz",
+        "name": "Uzbek",
+        "native": "Oʻzbekcha",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ky",
+        "name": "Kyrgyz",
+        "native": "Кыргызча",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "tg",
+        "name": "Tajik",
+        "native": "Тоҷикӣ",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "tk",
+        "name": "Turkmen",
+        "native": "Türkmençe",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "mn",
+        "name": "Mongolian",
+        "native": "Монгол",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "sw",
+        "name": "Swahili",
+        "native": "Kiswahili",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "am",
+        "name": "Amharic",
+        "native": "አማርኛ",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "yo",
+        "name": "Yoruba",
+        "native": "Èdè Yorùbá",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ig",
+        "name": "Igbo",
+        "native": "Asụsụ Igbo",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ha",
+        "name": "Hausa",
+        "native": "Harshen Hausa",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "zu",
+        "name": "Zulu",
+        "native": "isiZulu",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "xh",
+        "name": "Xhosa",
+        "native": "isiXhosa",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "af",
+        "name": "Afrikaans",
+        "native": "Afrikaans",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "so",
+        "name": "Somali",
+        "native": "Soomaaliga",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "mg",
+        "name": "Malagasy",
+        "native": "Fiteny Malagasy",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "sn",
+        "name": "Shona",
+        "native": "chiShona",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ny",
+        "name": "Chichewa",
+        "native": "ChiCheŵa",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "rw",
+        "name": "Kinyarwanda",
+        "native": "Ikinyarwanda",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "st",
+        "name": "Sesotho",
+        "native": "Sesotho",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "is",
+        "name": "Icelandic",
+        "native": "Íslenska",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ga",
+        "name": "Irish",
+        "native": "Gaeilge",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "cy",
+        "name": "Welsh",
+        "native": "Cymraeg",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "gd",
+        "name": "Scottish Gaelic",
+        "native": "Gàidhlig",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "mt",
+        "name": "Maltese",
+        "native": "Malti",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "eu",
+        "name": "Basque",
+        "native": "Euskara",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ca",
+        "name": "Catalan",
+        "native": "Català",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "gl",
+        "name": "Galician",
+        "native": "Galego",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "la",
+        "name": "Latin",
+        "native": "Latina",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "eo",
+        "name": "Esperanto",
+        "native": "Esperanto",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "haw",
+        "name": "Hawaiian",
+        "native": "ʻŌlelo Hawaiʻi",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "mi",
+        "name": "Maori",
+        "native": "Te Reo Māori",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "sm",
+        "name": "Samoan",
+        "native": "Gagana Sāmoa",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ps",
+        "name": "Pashto",
+        "native": "پښتو",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ku",
+        "name": "Kurdish",
+        "native": "Kurdî (کوردی)",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "sd",
+        "name": "Sindhi",
+        "native": "سنڌي",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "or",
+        "name": "Odia",
+        "native": "ଓଡ଼ିଆ",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "as",
+        "name": "Assamese",
+        "native": "অসমীয়া",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ug",
+        "name": "Uyghur",
+        "native": "ئۇيغۇرچە",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "yi",
+        "name": "Yiddish",
+        "native": "ייִדיש",
+        "hasVoice": false,
+        "isBundled": false
+    }
+];
+
+const i18nDict = {
+    "Folder deleted": {
+        "bn": "ফোল্ডার মুছে ফেলা হয়েছে",
+        "hi": "फ़ोल्डर हटा दिया गया",
+        "ar": "تم حذف المجلد",
+        "es": "Carpeta eliminada",
+        "fr": "Dossier supprimé",
+        "it": "Cartella eliminata",
+        "de": "Ordner gelöscht",
+        "ru": "Папка удалена",
+        "ja": "フォルダを削除しました",
+        "pt": "Pasta excluída",
+        "tr": "Klasör silindi"
+    },
+    "Verse deleted": {
+        "bn": "আয়াত মুছে ফেলা হয়েছে",
+        "hi": "श्लोक हटा दिया गया",
+        "ar": "تم حذف الآية",
+        "es": "Versículo eliminado",
+        "fr": "Verset supprimé",
+        "it": "Versetto eliminato",
+        "de": "Vers gelöscht",
+        "ru": "Стих удален",
+        "ja": "詩を削除しました",
+        "pt": "Versículo excluído",
+        "tr": "Ayet silindi"
+    },
+    "Folder restored": {
+        "bn": "ফোল্ডার পুনরুদ্ধার করা হয়েছে",
+        "hi": "फ़ोल्डर पुनर्स्थापित किया गया",
+        "ar": "تمت استعادة المجلد",
+        "es": "Carpeta restaurada",
+        "fr": "Dossier restauré",
+        "it": "Cartella ripristinata",
+        "de": "Ordner wiederhergestellt",
+        "ru": "Папка восстановлена",
+        "ja": "フォルダを復元しました",
+        "pt": "Pasta restaurada",
+        "tr": "Klasör geri yüklendi"
+    },
+    "Verse restored": {
+        "bn": "আয়াত পুনরুদ্ধার করা হয়েছে",
+        "hi": "श्लोक पुनर्स्थापित किया गया",
+        "ar": "تمت استعادة الآية",
+        "es": "Versículo restaurado",
+        "fr": "Verset restauré",
+        "it": "Versetto ripristinato",
+        "de": "Vers wiederhergestellt",
+        "ru": "Стих восстановлен",
+        "ja": "詩を復元しました",
+        "pt": "Versículo restaurado",
+        "tr": "Ayet geri yüklendi"
+    },
+    "Verse copied": {
+        "bn": "আয়াত কপি করা হয়েছে",
+        "hi": "श्लोक कॉपी किया गया",
+        "ar": "تم نسخ الآية",
+        "es": "Versículo copiado",
+        "fr": "Verset copié",
+        "it": "Versetto copiato",
+        "de": "Vers kopiert",
+        "ru": "Стих скопирован",
+        "ja": "詩をコピーしました",
+        "pt": "Versículo copiado",
+        "tr": "Ayet kopyalandı"
+    },
+    "Bookmark removed": {
+        "bn": "বুকমার্ক সরানো হয়েছে",
+        "hi": "बुकमार्क हटाया गया",
+        "ar": "تمت إزالة الإشارة المرجعية",
+        "es": "Marcador eliminado",
+        "fr": "Signet supprimé",
+        "it": "Segnalibro rimosso",
+        "de": "Lesezeichen entfernt",
+        "ru": "Закладка удалена",
+        "ja": "ブックマークを削除しました",
+        "pt": "Marcador removido",
+        "tr": "Yer işareti kaldırıldı"
+    },
+    "Saved to Bookmarks (All)": {
+        "bn": "বুকমার্কে সংরক্ষিত",
+        "hi": "बुकमार्क में सहेजा गया",
+        "ar": "تم الحفظ في الإشارات المرجعية",
+        "es": "Guardado en Marcadores",
+        "fr": "Enregistré dans les signets",
+        "it": "Salvato nei Preferiti",
+        "de": "In Lesezeichen gespeichert",
+        "ru": "Сохранено в закладки",
+        "ja": "ブックマークに保存しました",
+        "pt": "Salvo nos Favoritos",
+        "tr": "Yer İşaretlerine Kaydedildi"
+    },
+    "Undo": {
+        "bn": "পূর্বাবস্থায় ফেরত",
+        "hi": "पूर्ववत करें",
+        "ar": "تراجع",
+        "es": "Deshacer",
+        "fr": "Annuler",
+        "it": "Annulla",
+        "de": "Rückgängig",
+        "ru": "Отменить",
+        "ja": "元に戻す",
+        "pt": "Desfazer",
+        "tr": "Geri Al"
+    },
+
+    "Meditations": {"bn":"মেডিটেশনস","hi":"मेडिटेशन","es":"Meditaciones"},
+    "Talmud": {"bn":"তালমুদ","hi":"तालमूड","ar":"التلمود","he":"תלמוד"},
+    "Tanakh": {"bn":"তানখ","hi":"तनाख","ar":"تناخ","he":"תנ״ך"},
+    "Torah": {"bn":"তোরাহ","hi":"तोराह","ar":"التوراة","he":"תורה"},
+    "Proverbs": {"bn":"হিতোপদেশ","hi":"नीतिवचन","ar":"الأمثال","es":"Proverbios"},
+    "Psalms": {"bn":"গীতসংহিতা","hi":"भजन संहिता","ar":"المزامير","es":"Salmos"},
+    "John": {"bn":"যোহন","hi":"यूहन्ना","ar":"يوحنا","es":"Juan"},
+    "Luke": {"bn":"লূক","hi":"लूका","ar":"لوقا","es":"Lucas"},
+    "Mark": {"bn":"মার্ক","hi":"मरकुस","ar":"مرقس","es":"Marcos"},
+    "Matthew": {"bn":"মথি","hi":"मत्ती","ar":"متى","es":"Mateo"},
+    "Deuteronomy": {"bn":"দ্বিতীয় বিবরণ","hi":"व्यवस्थाविवरण","ar":"التثنية","es":"Deuteronomio"},
+    "Numbers": {"bn":"গণনা পুস্তক","hi":"गिनती","ar":"العدد","es":"Números"},
+    "Leviticus": {"bn":"লেবীয় পুস্তক","hi":"लैव्यव्यवस्था","ar":"اللاويين","es":"Levítico"},
+    "Exodus": {"bn":"যাত্রাপুস্তক","hi":"निर्गमन","ar":"الخروج","es":"Éxodo"},
+    "Genesis": {"bn":"আদিপুস্তক","hi":"उत्पत्ति","ar":"التكوين","es":"Génesis"},
+    "New Testament": {"bn":"নতুন নিয়ম","hi":"नया नियम","ar":"العهد الجديد","es":"Nuevo Testamento"},
+    "Old Testament": {"bn":"পুরাতন নিয়ম","hi":"पुराना नियम","ar":"العهد القديم","es":"Antiguo Testamento"},
+    "Granth Sahib": {"bn":"গ্রন্থ সাহিব","hi":"ग्रंथ साहिब","pa":"ਗ੍ਰੰਥ ਸਾਹਿਬ"},
+    "Dhammapada": {"bn":"ধম্মপদ","hi":"धम्मपद"},
+    "Bhagavad Gita": {"bn":"ভগবদ্গীতা","hi":"भगवद्गीता"},
+    "Sunan Ibn Majah": {"bn":"সুনান ইবনে মাজাহ","hi":"सुनन इब्न माजाह","ar":"سنن ابن ماجه","ur":"سنن ابن ماجہ"},
+    "Sunan an-Nasai": {"bn":"সুনান আন-নাসায়ী","hi":"सुनन अन-नसाई","ar":"سنن النسائي","ur":"سنن نسائی"},
+    "Jami At Tirmidhi": {"bn":"জামে তিরমিযী","hi":"जामी अत-तिर्मिज़ी","ar":"جامع الترمذي","ur":"جامع ترمذی"},
+    "Sunan Abu Dawud": {"bn":"সুনান আবু দাউদ","hi":"सुनन अबू दाऊद","ar":"سنن أبي داود","ur":"سنن ابو داؤد"},
+    "Sahih Muslim": {"bn":"সহীহ মুসলিম","hi":"सहीह मुस्लिम","ar":"صحيح مسلم","ur":"صحیح مسلم"},
+    "Sahih Bukhari": {"bn":"সহীহ বুখারী","hi":"सहीह बुखारी","ar":"صحيح البخاري","ur":"صحیح بخاری"},
+    "Quran": {"bn":"কোরআন","hi":"क़ुरआन","ar":"القرآن","ur":"قرآن"},
+    "Christianity": {
+        "bn": "খ্রিস্টধর্ম",
+        "hi": "ईसाई धर्म",
+        "ar": "المسيحية",
+        "es": "Cristianismo",
+        "fr": "Christianisme",
+        "de": "Christentum",
+        "ja": "キリスト教",
+        "tr": "Hristiyanlık",
+        "ru": "Христианство",
+        "pt": "Cristianismo",
+        "id": "Kristen",
+        "ur": "عیسائیت",
+        "it": "Cristianesimo",
+        "zh": "基督教",
+        "ko": "기독교",
+        "fa": "مسیحیت"
+    },
+    "Islam": {
+        "bn": "ইসলাম",
+        "hi": "इस्लाम",
+        "ar": "الإسلام",
+        "es": "Islam",
+        "fr": "Islam",
+        "de": "Islam",
+        "ja": "イスラム教",
+        "tr": "İslam",
+        "ru": "Ислам",
+        "pt": "Islã",
+        "id": "Islam",
+        "ur": "اسلام",
+        "it": "Islam",
+        "zh": "伊斯兰教",
+        "ko": "이슬람교",
+        "fa": "اسلام"
+    },
+    "Hinduism": {
+        "bn": "হিন্দুধর্ম",
+        "hi": "हिन्दू धर्म",
+        "ar": "الهندوسية",
+        "es": "Hinduismo",
+        "fr": "Hindouisme",
+        "de": "Hinduismus",
+        "ja": "ヒンドゥー教",
+        "tr": "Hinduizm",
+        "ru": "Индуизм",
+        "pt": "Hinduismo",
+        "id": "Hindu",
+        "ur": "ہندومت",
+        "it": "Induismo",
+        "zh": "印度教",
+        "ko": "힌두교",
+        "fa": "هندوئیسم"
+    },
+    "Sikhism": {
+        "bn": "শিখধর্ম",
+        "hi": "सिख धर्म",
+        "ar": "السيخية",
+        "es": "Sijismo",
+        "fr": "Sikhisme",
+        "de": "Sikhismus",
+        "ja": "シーク教",
+        "tr": "Sihizm",
+        "ru": "Сикхизм",
+        "pt": "Sikhismo",
+        "id": "Sikhisme",
+        "ur": "سکھ مت",
+        "it": "Sikhismo",
+        "zh": "锡克教",
+        "ko": "시크교",
+        "fa": "সیکیسم"
+    },
+    "Buddhism": {
+        "bn": "বৌদ্ধধর্ম",
+        "hi": "बौद्ध धर्म",
+        "ar": "البوذية",
+        "es": "Budismo",
+        "fr": "Bouddhisme",
+        "de": "Buddhismus",
+        "ja": "仏教",
+        "tr": "Budizm",
+        "ru": "Буддизм",
+        "pt": "Budismo",
+        "id": "Buddha",
+        "ur": "بدھ مت",
+        "it": "Buddismo",
+        "zh": "佛教",
+        "ko": "불교",
+        "fa": "بودیسم"
+    },
+    "Judaism": {
+        "bn": "ইহুদিধর্ম",
+        "hi": "यहूदी धर्म",
+        "ar": "اليهودية",
+        "es": "Judaísmo",
+        "fr": "Judaïsme",
+        "de": "Judentum",
+        "ja": "ユダヤ教",
+        "tr": "Musevilik",
+        "ru": "Иудаизм",
+        "pt": "Judaísmo",
+        "id": "Yudaisme",
+        "ur": "یہودیت",
+        "it": "Ebraismo",
+        "zh": "犹太教",
+        "ko": "유대교",
+        "fa": "یهودیت"
+    },
+    "Philosophy": {
+        "bn": "দর্শন",
+        "hi": "दर्शनशास्त्र",
+        "ar": "الفلسفة",
+        "es": "Filosofía",
+        "fr": "Philosophie",
+        "de": "Philosophie",
+        "ja": "哲学",
+        "tr": "Felsefe",
+        "ru": "Философия",
+        "pt": "Filosofia",
+        "id": "Filsafat",
+        "ur": "فلسفہ",
+        "it": "Filosofia",
+        "zh": "哲学",
+        "ko": "철학",
+        "fa": "فلسفه"
+    },
+    "Feed": {
+        "bn": "ফিড",
+        "hi": "फ़ीड",
+        "ar": "الرئيسية",
+        "es": "Inicio",
+        "fr": "Flux",
+        "de": "Feed",
+        "ja": "フィード",
+        "tr": "Akış",
+        "ru": "Лента",
+        "pt": "Feed",
+        "id": "Feed",
+        "ur": "فیڈ",
+        "it": "Feed",
+        "zh": "信息流",
+        "ko": "피드",
+        "fa": "فید"
+    },
+    "Books": {
+        "bn": "গ্রন্থসমূহ",
+        "hi": "पुस्तकें",
+        "ar": "الكتب",
+        "es": "Libros",
+        "fr": "Livres",
+        "de": "Bücher",
+        "ja": "書籍",
+        "tr": "Kitaplar",
+        "ru": "Книги",
+        "pt": "Livros",
+        "id": "Buku",
+        "ur": "کتب",
+        "it": "Libri",
+        "zh": "经书",
+        "ko": "서적",
+        "fa": "کتاب‌ها"
+    },
+    "Saved": {
+        "bn": "সংরক্ষিত",
+        "hi": "सहेजे गए",
+        "ar": "المحفوظات",
+        "es": "Guardados",
+        "fr": "Enregistrés",
+        "de": "Gespeichert",
+        "ja": "保存済み",
+        "tr": "Kaydedilenler",
+        "ru": "Сохраненные",
+        "pt": "Salvos",
+        "id": "Tersimpan",
+        "ur": "محفوظ",
+        "it": "Salvati",
+        "zh": "已收藏",
+        "ko": "저장됨",
+        "fa": "ذخیره شده"
+    },
+    "Settings": {
+        "bn": "সেটিংস",
+        "hi": "सेटिंग्स",
+        "ar": "الإعدادات",
+        "es": "Ajustes",
+        "fr": "Paramètres",
+        "de": "Einstellungen",
+        "ja": "設定",
+        "tr": "Ayarlar",
+        "ru": "Настройки",
+        "pt": "Configurações",
+        "id": "Pengaturan",
+        "ur": "ترتیبات",
+        "it": "Impostazioni",
+        "zh": "设置",
+        "ko": "설정",
+        "fa": "تنظیمات"
+    },
+    "Spiritual Wisdom": {
+        "bn": "আধ্যাত্মিক জ্ঞান",
+        "hi": "आध्यात्मिक ज्ञान",
+        "ar": "الحكمة الروحية",
+        "es": "Sabiduría Espiritual",
+        "fr": "Sagesse Spirituelle",
+        "de": "Spirituelle Weisheit",
+        "ja": "精神の知恵",
+        "tr": "Manevi Bilgelik",
+        "ru": "Духовная Мудрость",
+        "pt": "Sabedoria Espiritual",
+        "id": "Kebijaksanaan Spiritual",
+        "ur": "روحانی حکمت",
+        "it": "Saggezza Spirituale",
+        "zh": "心灵智慧",
+        "ko": "영적 지혜",
+        "fa": "حکمت معنوی"
+    },
+    "Access scriptures, curated ambient tracks, and personalized daily verses.": {
+        "bn": "ধর্মগ্রন্থ, মননশীল সুর এবং প্রতিদিনের অনুপ্রেরণামূলক বাণী উপভোগ করুন।",
+        "hi": "धर्मग्रंथों, परिवेशी धुनों और दैनिक श्लोकों का अनुभव करें।",
+        "ar": "استمتع بالكتب المقدسة، والمقاطع الهادئة، والآيات اليومية المخصصة.",
+        "es": "Accede a escrituras, pistas ambientales y versos diarios personalizados.",
+        "fr": "Accédez aux écritures, morceaux d'ambiance et versets quotidiens personnalisés.",
+        "de": "Greifen Sie auf Schriften, Ambient-Tracks und tägliche Verse zu.",
+        "ja": "聖典、厳選されたアンビエント音楽、パーソナライズされた聖句にアクセス。",
+        "tr": "Kutsal metinlere, huzurlu müziklere ve günlük ayetlere erişin.",
+        "ru": "Читайте священные тексты, слушайте медитативную музыку и стихи на каждый день.",
+        "pt": "Acesse escrituras, faixas ambientes e versículos diários personalizados.",
+        "id": "Akses kitab suci, musik latar yang menenangkan, dan ayat harian pilihan.",
+        "ur": "مقدس کتب، پرسکون موسیقی اور روزانہ کی آیات تک رسائی حاصل کریں۔",
+        "it": "Accedi alle scritture, tracce ambientali e versetti giornalieri personalizzati.",
+        "zh": "探索神圣经典、精选环境音效和每日个性化经文。",
+        "ko": "경전, 엄선된 명상 음악, 맞춤형 일일 구절을 만나보세요.",
+        "fa": "به متون مقدس، آهنگ‌های آرامش‌بخش و آیات روزانه دسترسی پیدا کنید."
+    },
+    "Remove Ads": {
+        "bn": "বিজ্ঞাপন সরান",
+        "hi": "विज्ञापन हटाएं",
+        "ar": "إزالة الإعلانات",
+        "es": "Quitar anuncios",
+        "fr": "Supprimer les pubs",
+        "de": "Werbung entfernen",
+        "ja": "広告を非表示",
+        "tr": "Reklamları Kaldır",
+        "ru": "Убрать рекламу",
+        "pt": "Remover Anúncios",
+        "id": "Hapus Iklan",
+        "ur": "اشتہارات ہٹائیں",
+        "it": "Rimuovi Annunci",
+        "zh": "去除广告",
+        "ko": "광고 제거",
+        "fa": "حذف تبلیغات"
+    },
+    "Sponsored": {
+        "bn": "স্পনসরড",
+        "hi": "प्रायोजित",
+        "ar": "برعاية",
+        "es": "Patrocinado",
+        "fr": "Sponsorisé",
+        "de": "Gesponsert",
+        "ja": "スポンサー",
+        "tr": "Sponsorlu",
+        "ru": "Реклама",
+        "pt": "Patrocinado",
+        "id": "Disponsori",
+        "ur": "اسپانسر شدہ",
+        "it": "Sponsorizzato",
+        "zh": "赞助",
+        "ko": "스폰서",
+        "fa": "حمایت شده"
+    },
+    "Premium": {
+        "bn": "প্রিমিয়াম",
+        "hi": "प्रीमियम",
+        "ar": "بريميوم",
+        "es": "Premium",
+        "fr": "Premium",
+        "de": "Premium",
+        "ja": "プレミアム",
+        "tr": "Premium",
+        "ru": "Премиум",
+        "pt": "Premium",
+        "id": "Premium",
+        "ur": "پریمیم",
+        "it": "Premium",
+        "zh": "高级版",
+        "ko": "프리미엄",
+        "fa": "ویژه"
+    },
+    "Language": {
+        "bn": "ভাষা",
+        "hi": "भाषा",
+        "ar": "اللغة",
+        "es": "Idioma",
+        "fr": "Langue",
+        "de": "Sprache",
+        "ja": "言語",
+        "tr": "Dil",
+        "ru": "Язык",
+        "pt": "Idioma",
+        "id": "Bahasa",
+        "ur": "زبان",
+        "it": "Lingua",
+        "zh": "语言",
+        "ko": "언어",
+        "fa": "زبان"
+    },
+    "Choose Language": {
+        "bn": "ভাষা নির্বাচন করুন",
+        "hi": "भाषा चुनें",
+        "ar": "اختر اللغة",
+        "es": "Elegir idioma",
+        "fr": "Choisir la langue",
+        "de": "Sprache wählen",
+        "ja": "言語を選択",
+        "tr": "Dil Seçin",
+        "ru": "Выберите язык",
+        "pt": "Escolher Idioma",
+        "id": "Pilih Bahasa",
+        "ur": "زبان منتخب کریں",
+        "it": "Scegli la lingua",
+        "zh": "选择语言",
+        "ko": "언어 선택",
+        "fa": "انتخاب زبان"
+    },
+    "Search language...": {
+        "bn": "ভাষা খুঁজুন...",
+        "hi": "भाषा खोजें...",
+        "ar": "ابحث عن لغة...",
+        "es": "Buscar idioma...",
+        "fr": "Rechercher une langue...",
+        "de": "Sprache suchen...",
+        "ja": "言語を検索...",
+        "tr": "Dil ara...",
+        "ru": "Поиск языка...",
+        "pt": "Buscar idioma...",
+        "id": "Cari bahasa...",
+        "ur": "زبان تلاش کریں...",
+        "it": "Cerca lingua...",
+        "zh": "搜索语言...",
+        "ko": "언어 검색...",
+        "fa": "جستجوی زبان..."
+    },
+    "Privacy Policy": {
+        "bn": "গোপনীয়তা নীতি",
+        "hi": "गोपनीयता नीति",
+        "ar": "سياسة الخصوصية",
+        "es": "Política de privacidad",
+        "fr": "Politique de confidentialité",
+        "de": "Datenschutz",
+        "ja": "プライバシーポリシー",
+        "tr": "Gizlilik Politikası",
+        "ru": "Политика конфиденциальности",
+        "pt": "Política de Privacidade",
+        "id": "Kebijakan Privasi",
+        "ur": "رازداری کی پالیسی",
+        "it": "Informativa sulla privacy",
+        "zh": "隐私政策",
+        "ko": "개인정보처리방침",
+        "fa": "سیاست حفظ حریم خصوصی"
+    },
+    "Terms of Service": {
+        "bn": "ব্যবহারের শর্তাবলী",
+        "hi": "सेवा की शर्तें",
+        "ar": "شروط الخدمة",
+        "es": "Términos del servicio",
+        "fr": "Conditions d'utilisation",
+        "de": "Nutzungsbedingungen",
+        "ja": "利用規約",
+        "tr": "Kullanım Koşulları",
+        "ru": "Условия использования",
+        "pt": "Termos de Serviço",
+        "id": "Ketentuan Layanan",
+        "ur": "خدمات کی شرائط",
+        "it": "Termini di servizio",
+        "zh": "服务条款",
+        "ko": "이용약관",
+        "fa": "شرایط خدمات"
+    },
+    "Credits": {
+        "bn": "স্বীকৃতি ও কৃতজ্ঞতা",
+        "hi": "आभार एवं श्रेय",
+        "ar": "المصادر والاعتمادات",
+        "es": "Créditos",
+        "fr": "Crédits",
+        "de": "Credits",
+        "ja": "クレジット",
+        "tr": "Katkıda Bulunanlar",
+        "ru": "Благодарности",
+        "pt": "Créditos",
+        "id": "Kredit",
+        "ur": "کریڈٹس",
+        "it": "Crediti",
+        "zh": "致谢",
+        "ko": "크레딧",
+        "fa": "اعتبارات"
+    },
+    "Continue as Guest": {
+        "bn": "অতিথি হিসেবে চালান",
+        "hi": "अतिथि के रूप में जारी रखें",
+        "ar": "المتابعة كضيف",
+        "es": "Continuar como invitado",
+        "fr": "Continuer en tant qu'invité",
+        "de": "Als Gast fortfahren",
+        "ja": "ゲストとして続行",
+        "tr": "Misafir Olarak Devam Et",
+        "ru": "Продолжить как гость",
+        "pt": "Continuar como Convidado",
+        "id": "Lanjutkan হিসেবে Tamu",
+        "ur": "بطور مہمان جاری رکھیں",
+        "it": "Continua come ospite",
+        "zh": "以访客身份继续",
+        "ko": "게스트로 계속",
+        "fa": "ادامه به عنوان مهمان"
+    },
+    "Sign in with Google": {
+        "bn": "Google দিয়ে সাইন ইন",
+        "hi": "Google से साइन इन करें",
+        "ar": "تسجيل الدخول باستخدام Google",
+        "es": "Iniciar sesión con Google",
+        "fr": "Se connecter avec Google",
+        "de": "Mit Google anmelden",
+        "ja": "Googleでログイン",
+        "tr": "Google ile Giriş Yap",
+        "ru": "Войти через Google",
+        "pt": "Entrar com o Google",
+        "id": "Masuk dengan Google",
+        "ur": "گوگل کے ساتھ سائن ان کریں",
+        "it": "Accedi con Google",
+        "zh": "使用 Google 登录",
+        "ko": "Google로 로그인",
+        "fa": "ورود با Google"
+    },
+    "Search verses or authors...": {
+        "bn": "আয়াত বা গ্রন্থ খুঁজুন...",
+        "hi": "श्लोक या लेखक खोजें...",
+        "ar": "ابحث عن الآيات أو الكتب...",
+        "es": "Buscar versos o libros...",
+        "fr": "Rechercher des versets...",
+        "de": "Verse oder Bücher suchen...",
+        "ja": "詩句や本を検索...",
+        "tr": "Ayet veya kitap ara...",
+        "ru": "Поиск стихов или книг...",
+        "pt": "Buscar versículos...",
+        "id": "Cari ayat বা buku...",
+        "ur": "آیات یا کتب تلاش کریں...",
+        "it": "Cerca versetti o libri...",
+        "zh": "搜索经文或书籍...",
+        "ko": "구절 또는 책 검색...",
+        "fa": "جستجوی آیات یا کتاب‌ها..."
+    },
+    "All": {
+        "bn": "সকল",
+        "hi": "सभी",
+        "ar": "الكل",
+        "es": "Todos",
+        "fr": "Tous",
+        "de": "Alle",
+        "ja": "すべて",
+        "tr": "Tümü",
+        "ru": "Все",
+        "pt": "Todos",
+        "id": "Semua",
+        "ur": "تمام",
+        "it": "Tutti",
+        "zh": "全部",
+        "ko": "전체",
+        "fa": "همه"
+    },
+    "Default": {
+        "bn": "ডিফল্ট",
+        "hi": "डिफ़ॉल्ट",
+        "ar": "الافتراضي",
+        "es": "Predeterminado",
+        "fr": "Par défaut",
+        "de": "Standard",
+        "ja": "デフォルト",
+        "tr": "Varsayılan",
+        "ru": "По умолчанию",
+        "pt": "Padrão",
+        "id": "Default",
+        "ur": "ڈیفالٹ",
+        "it": "Predefinito",
+        "zh": "默认",
+        "ko": "기본",
+        "fa": "پیش‌فرض"
+    },
+    "Folder deleted": {
+        "bn": "ফোল্ডার মুছে ফেলা হয়েছে",
+        "hi": "फ़ोल्डर हटा दिया गया",
+        "ar": "تم حذف المجلد",
+        "es": "Carpeta eliminada",
+        "fr": "Dossier supprimé",
+        "de": "Ordner gelöscht",
+        "ja": "フォルダを削除しました",
+        "tr": "Klasör silindi",
+        "ru": "Папка удалена",
+        "pt": "Pasta excluída",
+        "id": "Folder dihapus",
+        "ur": "فولڈر حذف کر دیا گیا",
+        "it": "Cartella eliminata",
+        "zh": "文件夹已删除",
+        "ko": "폴더 삭제됨",
+        "fa": "پوشه حذف شد"
+    },
+    "Folder restored": {
+        "bn": "ফোল্ডার পুনরুদ্ধার করা হয়েছে",
+        "hi": "फ़ोल्डर पुनर्स्थापित किया गया",
+        "ar": "تمت استعادة المجلد",
+        "es": "Carpeta restaurada",
+        "fr": "Dossier restauré",
+        "de": "Ordner wiederhergestellt",
+        "ja": "フォルダを復元しました",
+        "tr": "Klasör geri yüklendi",
+        "ru": "Папка восстановлена",
+        "pt": "Pasta restaurada",
+        "id": "Folder dipulihkan",
+        "ur": "فولڈر بحال کر دیا گیا",
+        "it": "Cartella ripristinata",
+        "zh": "文件夹已恢复",
+        "ko": "폴더 복원됨",
+        "fa": "پوشه بازیابی شد"
+    },
+    "Verse deleted": {
+        "bn": "আয়াত মুছে ফেলা হয়েছে",
+        "hi": "श्लोक हटा दिया गया",
+        "ar": "تم حذف الآية",
+        "es": "Verso eliminado",
+        "fr": "Verset supprimé",
+        "de": "Vers gelöscht",
+        "ja": "詩句を削除しました",
+        "tr": "Ayet silindi",
+        "ru": "Стих удален",
+        "pt": "Versículo excluído",
+        "id": "Ayat dihapus",
+        "ur": "آیت حذف کر دی گئی",
+        "it": "Versetto eliminato",
+        "zh": "经文已删除",
+        "ko": "구절 삭제됨",
+        "fa": "آیه حذف شد"
+    },
+    "Verse restored": {
+        "bn": "আয়াত পুনরুদ্ধার করা হয়েছে",
+        "hi": "श्लोक पुनर्स्थापित किया गया",
+        "ar": "تمت استعادة الآية",
+        "es": "Verso restaurado",
+        "fr": "Verset restauré",
+        "de": "Vers wiederhergestellt",
+        "ja": "詩句を復元しました",
+        "tr": "Ayet geri yüklendi",
+        "ru": "Стих восстановлен",
+        "pt": "Versículo restaurado",
+        "id": "Ayat dipulihkan",
+        "ur": "آیت بحال کر دی گئی",
+        "it": "Versetto ripristinato",
+        "zh": "经文已恢复",
+        "ko": "구절 복원됨",
+        "fa": "آیه بازیابی شد"
+    },
+    "Undo": {
+        "bn": "বাতিল",
+        "hi": "पूर्ववत करें",
+        "ar": "تراجع",
+        "es": "Deshacer",
+        "fr": "Annuler",
+        "de": "Rückgängig",
+        "ja": "元に戻す",
+        "tr": "Geri Al",
+        "ru": "Отмена",
+        "pt": "Desfazer",
+        "id": "Urungkan",
+        "ur": "واپس",
+        "it": "Annulla",
+        "zh": "撤销",
+        "ko": "실행 취소",
+        "fa": "واگرد"
+    },
+    "Chapter": {
+        "bn": "অধ্যায়",
+        "hi": "अध्याय",
+        "ar": "الفصل",
+        "es": "Capítulo",
+        "fr": "Chapitre",
+        "de": "Kapitel",
+        "ja": "章",
+        "tr": "Bölüm",
+        "ru": "Глава",
+        "pt": "Capítulo",
+        "id": "Bab",
+        "ur": "باب",
+        "it": "Capitolo",
+        "zh": "章",
+        "ko": "장",
+        "fa": "فصل"
+    },
+    "Verse": {
+        "bn": "আয়াত",
+        "hi": "श्लोक",
+        "ar": "الآية",
+        "es": "Verso",
+        "fr": "Verset",
+        "de": "Vers",
+        "ja": "節",
+        "tr": "Ayet",
+        "ru": "Стих",
+        "pt": "Versículo",
+        "id": "Ayat",
+        "ur": "آیت",
+        "it": "Versetto",
+        "zh": "节",
+        "ko": "절",
+        "fa": "آیه"
+    },
+    "Back": {
+        "bn": "পেছনে",
+        "hi": "वापस",
+        "ar": "رجوع",
+        "es": "Volver",
+        "fr": "Retour",
+        "de": "Zurück",
+        "ja": "戻る",
+        "tr": "Geri",
+        "ru": "Назад",
+        "pt": "Voltar",
+        "id": "Kembali",
+        "ur": "پیچھے",
+        "it": "Indietro",
+        "zh": "返回",
+        "ko": "뒤로",
+        "fa": "بازگشت"
+    },
+    "No verses in this folder": {
+        "bn": "এই ফোল্ডারে কোনো সংরক্ষিত আয়াত নেই",
+        "hi": "इस फ़ोल्डर में कोई श्लोक नहीं है",
+        "ar": "لا توجد آيات في هذا المجلد",
+        "es": "No hay versos en esta carpeta",
+        "fr": "Aucun verset dans ce dossier",
+        "de": "Keine Verse in diesem Ordner",
+        "ja": "このフォルダには詩句がありません",
+        "tr": "Bu klasörde ayet yok",
+        "ru": "В этой папке нет стихов",
+        "pt": "Nenhum versículo nesta pasta",
+        "id": "Tidak ada ayat di folder ini",
+        "ur": "اس فولڈر میں کوئی آیت نہیں ہے",
+        "it": "Nessun versetto in questa cartella",
+        "zh": "此文件夹中没有经文",
+        "ko": "이 폴더에 구절이 없습니다",
+        "fa": "هیچ آیه‌ای در این پوشه نیست"
+    },
+    "Create Folder": {
+        "bn": "নতুন ফোল্ডার",
+        "hi": "फ़ोल्डर बनाएं",
+        "ar": "إنشاء مجلد",
+        "es": "Crear carpeta",
+        "fr": "Créer un dossier",
+        "de": "Ordner erstellen",
+        "ja": "フォルダを作成",
+        "tr": "Klasör Oluştur",
+        "ru": "Создать папку",
+        "pt": "Criar Pasta",
+        "id": "Buat Folder",
+        "ur": "فولڈر بنائیں",
+        "it": "Crea cartella",
+        "zh": "创建文件夹",
+        "ko": "폴더 생성",
+        "fa": "ایجاد پوشه"
+    },
+    "Folder Name": {
+        "bn": "ফোল্ডারের নাম",
+        "hi": "फ़ोल्डर का नाम",
+        "ar": "اسم المجلد",
+        "es": "Nombre de carpeta",
+        "fr": "Nom du dossier",
+        "de": "Ordnername",
+        "ja": "フォルダ名",
+        "tr": "Klasör Adı",
+        "ru": "Имя папки",
+        "pt": "Nome da Pasta",
+        "id": "Nama Folder",
+        "ur": "فولڈر کا نام",
+        "it": "Nome cartella",
+        "zh": "文件夹名称",
+        "ko": "폴더 이름",
+        "fa": "نام پوشه"
+    },
+    "New Name": {
+        "bn": "নতুন নাম",
+        "hi": "नया नाम",
+        "ar": "الاسم الجديد",
+        "es": "Nuevo nombre",
+        "fr": "Nouveau nom",
+        "de": "Neuer Name",
+        "ja": "新しい名前",
+        "tr": "Yeni Ad",
+        "ru": "Новое имя",
+        "pt": "Novo Nome",
+        "id": "Nama Baru",
+        "ur": "نیا نام",
+        "it": "Nuovo nome",
+        "zh": "新名称",
+        "ko": "새 이름",
+        "fa": "نام جدید"
+    },
+    "Rename": {
+        "bn": "নাম পরিবর্তন",
+        "hi": "নাম बदलें",
+        "ar": "إعادة تسمية",
+        "es": "Renombrar",
+        "fr": "Renommer",
+        "de": "Umbenennen",
+        "ja": "名前変更",
+        "tr": "Yeniden Adlandır",
+        "ru": "Переименовать",
+        "pt": "Renomear",
+        "id": "Ubah Nama",
+        "ur": "نام تبدیل کریں",
+        "it": "Rinomina",
+        "zh": "重命名",
+        "ko": "이름 변경",
+        "fa": "تغییر نام"
+    },
+    "Delete Account": {
+        "bn": "অ্যাকাউন্ট মুছুন",
+        "hi": "खाता हटाएं",
+        "ar": "حذف الحساب",
+        "es": "Eliminar cuenta",
+        "fr": "Supprimer le compte",
+        "de": "Konto löschen",
+        "ja": "アカウント削除",
+        "tr": "Hesabı Sil",
+        "ru": "Удалить аккаунт",
+        "pt": "Excluir Conta",
+        "id": "Hapus Akun",
+        "ur": "اکاؤنٹ حذف کریں",
+        "it": "Elimina account",
+        "zh": "删除账户",
+        "ko": "계정 삭제",
+        "fa": "حذف حساب"
+    },
+    "Sign Out": {
+        "bn": "সাইন আউট",
+        "hi": "साइन आउट",
+        "ar": "تسجيل الخروج",
+        "es": "Cerrar sesión",
+        "fr": "Se déconnecter",
+        "de": "Abmelden",
+        "ja": "サインアウト",
+        "tr": "Çıkış Yap",
+        "ru": "Выйти",
+        "pt": "Sair",
+        "id": "Keluar",
+        "ur": "سائن آؤٹ",
+        "it": "Esci",
+        "zh": "退出登录",
+        "ko": "로그아웃",
+        "fa": "خروج"
+    },
+    "Cancel": {
+        "bn": "বাতিল",
+        "hi": "रद्द करें",
+        "ar": "إلغاء",
+        "es": "Cancelar",
+        "fr": "Annuler",
+        "de": "Abbrechen",
+        "ja": "キャンセル",
+        "tr": "İptal",
+        "ru": "Отмена",
+        "pt": "Cancelar",
+        "id": "Batal",
+        "ur": "منسوخ",
+        "it": "Annulla",
+        "zh": "取消",
+        "ko": "취소",
+        "fa": "لغو"
+    },
+    "AD Free": {
+        "bn": "বিজ্ঞাপনমুক্ত অভিজ্ঞতা",
+        "hi": "विज्ञापन मुक्त",
+        "ar": "خالٍ من الإعلانات",
+        "es": "Sin anuncios",
+        "fr": "Sans publicité",
+        "de": "Werbefrei",
+        "ja": "広告なし",
+        "tr": "Reklamsız",
+        "ru": "Без рекламы",
+        "pt": "Sem anúncios",
+        "id": "Bebas Iklan",
+        "ur": "اشتہارات سے پاک",
+        "it": "Senza pubblicità",
+        "zh": "无广告体验",
+        "ko": "광고 없음",
+        "fa": "بدون تبلیغات"
+    },
+    "All HD Offline Voices": {
+        "bn": "সকল এইচডি অফলাইন ভয়েস",
+        "hi": "सभी एचडी ऑफ़लाइन आवाज़ें",
+        "ar": "جميع الأصوات فائقة الجودة بدون إنترنت",
+        "es": "Todas las voces HD sin conexión",
+        "fr": "Toutes les voix HD hors ligne",
+        "de": "Alle HD-Offline-Stimmen",
+        "ja": "すべてのHDオフライン音声",
+        "tr": "Tüm HD Çevrimdışı Sesler",
+        "ru": "Все HD голоса офлайн",
+        "pt": "Todas as vozes HD offline",
+        "id": "Semua Suara HD Offline",
+        "ur": "تمام ایچ ڈی آف لائن آوازیں",
+        "it": "Tutte le voci HD offline",
+        "zh": "所有高清离线语音",
+        "ko": "모든 HD 오프라인 음성",
+        "fa": "تمام صداهای HD آفلاین"
+    },
+    "Unlimited Folders 30 Char": {
+        "bn": "সীমাহীন বুকমার্ক ফোল্ডার",
+        "hi": "असीमित फ़ोल्डर",
+        "ar": "مجلدات غير محدودة",
+        "es": "Carpetas ilimitadas",
+        "fr": "Dossiers illimités",
+        "de": "Unbegrenzte Ordner",
+        "ja": "無制限のフォルダ",
+        "tr": "Sınırsız Klasör",
+        "ru": "Неограниченное количество папок",
+        "pt": "Pastas ilimitadas",
+        "id": "Folder Tanpa Batas",
+        "ur": "لامحدود فولڈرز",
+        "it": "Cartelle illimitate",
+        "zh": "无限收藏文件夹",
+        "ko": "무제한 폴더",
+        "fa": "پوشه‌های نامحدود"
+    },
+    "Custom Topic Filters": {
+        "bn": "কাস্টম টপিক ফিল্টার",
+        "hi": "कस्टम विषय फ़िल्टर",
+        "ar": "فلاتر مخصصة للمواضيع",
+        "es": "Filtros de temas personalizados",
+        "fr": "Filtres de sujets personnalisés",
+        "de": "Benutzerdefinierte Themenfilter",
+        "ja": "カスタムトピックフィルター",
+        "tr": "Özel Konu Filtreleri",
+        "ru": "Фильтры по темам",
+        "pt": "Filtros de tópicos personalizados",
+        "id": "Filter Topik Kustom",
+        "ur": "اپنی مرضی کے موضوعاتی فلٹرز",
+        "it": "Filtri tematici personalizzati",
+        "zh": "自定义主题筛选",
+        "ko": "맞춤형 주제 필터",
+        "fa": "فیلترهای موضوعی سفارشی"
+    },
+    "Source Narration": {
+        "bn": "গ্রন্থের নামসহ পাঠ",
+        "hi": "स्रोत का उच्चारण",
+        "ar": "قراءة اسم المصدر",
+        "es": "Narración de la fuente",
+        "fr": "Narration de la source",
+        "de": "Quellenangabe-Sprachausgabe",
+        "ja": "出典名の読み上げ",
+        "tr": "Kaynak Seslendirmesi",
+        "ru": "Озвучивание источника",
+        "pt": "Narração da fonte",
+        "id": "Pengucapan Sumber",
+        "ur": "ماخذ کی آواز",
+        "it": "Narrazione della fonte",
+        "zh": "来源播报",
+        "ko": "출처 음성 안내",
+        "fa": "اعلام منبع"
+    },
+    "Ambient Audio Controls": {
+        "bn": "মননশীল ব্যাকগ্রাউন্ড সুর নিয়ন্ত্রণ",
+        "hi": "परिवेशी ऑडियो नियंत्रण",
+        "ar": "التحكم بالصوت الهادئ",
+        "es": "Controles de audio ambiental",
+        "fr": "Contrôles audio d'ambiance",
+        "de": "Ambient-Audio-Steuerung",
+        "ja": "アンビエント音響コントロール",
+        "tr": "Ortam Sesi Kontrolleri",
+        "ru": "Управление фоновым звуком",
+        "pt": "Controles de áudio ambiente",
+        "id": "Kontrol Audio Ambience",
+        "ur": "پرسکون آواز کے کنٹرول",
+        "it": "Controlli audio ambiente",
+        "zh": "环境背景音调节",
+        "ko": "배경음 조절",
+        "fa": "کنترل صدای محیط"
+    },
+    "Random Voice Rotation": {
+        "bn": "স্বয়ংক্রিয় ভয়েস পরিবর্তন",
+        "hi": "रैंडम वॉयस रोटेशन",
+        "ar": "تبديل عشوائي للأصوات",
+        "es": "Rotación aleatoria de voces",
+        "fr": "Rotation aléatoire des voix",
+        "de": "Zufällige Stimmenrotation",
+        "ja": "ランダム音声ローテーション",
+        "tr": "Rastgele Ses Döndürme",
+        "ru": "Случайная смена голосов",
+        "pt": "Rotação aleatória de vozes",
+        "id": "Rotasi Suara Acak",
+        "ur": "خودکار آواز کی تبدیلی",
+        "it": "Rotazione casuale delle voci",
+        "zh": "随机声音轮换",
+        "ko": "랜덤 음성 순환",
+        "fa": "چرخش تصادفی صدا"
+    },
+    "Get Annual": {
+        "bn": "বার্ষিক প্ল্যান নিন",
+        "hi": "वार्षिक प्लान लें",
+        "ar": "احصل على الخطة السنوية",
+        "es": "Obtener Anual",
+        "fr": "Prendre l'annuel",
+        "de": "Jährlich holen",
+        "ja": "年間プランを取得",
+        "tr": "Yıllık Al",
+        "ru": "Годовая подписка",
+        "pt": "Obter Anual",
+        "id": "Ambil Tahunan",
+        "ur": "سالانہ پلان لیں",
+        "it": "Ottieni Annuale",
+        "zh": "获取年度订阅",
+        "ko": "연간 플랜 선택",
+        "fa": "دریافت اشتراک سالانه"
+    },
+    "Get Monthly": {
+        "bn": "মাসিক প্ল্যান নিন",
+        "hi": "मासिक प्लान लें",
+        "ar": "احصل على الخطة الشهرية",
+        "es": "Obtener Mensual",
+        "fr": "Prendre le mensuel",
+        "de": "Monatlich holen",
+        "ja": "月間プランを取得",
+        "tr": "Aylık Al",
+        "ru": "Месячная подписка",
+        "pt": "Obter Mensal",
+        "id": "Ambil Bulanan",
+        "ur": "ماہانہ پلان لیں",
+        "it": "Ottieni Mensile",
+        "zh": "获取月度订阅",
+        "ko": "월간 플랜 선택",
+        "fa": "دریافت اشتراک ماهانه"
+    },
+    "Get Lifetime": {
+        "bn": "আজীবন প্ল্যান নিন",
+        "hi": "लाइफटाइम प्लान लें",
+        "ar": "احصل على مدى الحياة",
+        "es": "Obtener de por vida",
+        "fr": "Accès à vie",
+        "de": "Lebenslang holen",
+        "ja": "買い切りプランを取得",
+        "tr": "Ömür Boyu Al",
+        "ru": "Навсегда",
+        "pt": "Acesso Vitalício",
+        "id": "Akses Seumur Hidup",
+        "ur": "تامر پلان لیں",
+        "it": "Ottieni a vita",
+        "zh": "永久买断",
+        "ko": "평생 이용권 선택",
+        "fa": "دسترسی مادام‌العمر"
+    },
+    "Sign In": {
+        "bn": "সাইন ইন",
+        "hi": "साइन इन",
+        "ar": "تسجيل الدخول",
+        "es": "Iniciar sesión",
+        "fr": "Connexion",
+        "de": "Anmelden",
+        "ja": "サインイン",
+        "tr": "Giriş Yap",
+        "ru": "Войти",
+        "pt": "Entrar",
+        "id": "Masuk",
+        "ur": "سائن ان",
+        "it": "Accedi",
+        "zh": "登录",
+        "ko": "로그인",
+        "fa": "ورود"
+    },
+    "Sign Up": {
+        "bn": "নিবন্ধন",
+        "hi": "साइन अप",
+        "ar": "إنشاء حساب",
+        "es": "Registrarse",
+        "fr": "Inscription",
+        "de": "Registrieren",
+        "ja": "新規登録",
+        "tr": "Kayıt Ol",
+        "ru": "Регистрация",
+        "pt": "Cadastrar-se",
+        "id": "Daftar",
+        "ur": "سائن اپ",
+        "it": "Registrati",
+        "zh": "注册",
+        "ko": "회원가입",
+        "fa": "ثبت نام"
+    },
+    "Full Name": {
+        "bn": "পুরো নাম",
+        "hi": "पूरा नाम",
+        "ar": "الاسم الكامل",
+        "es": "Nombre completo",
+        "fr": "Nom complet",
+        "de": "Vollständiger Name",
+        "ja": "氏名",
+        "tr": "Tam Ad",
+        "ru": "Полное имя",
+        "pt": "Nome Completo",
+        "id": "Nama Lengkap",
+        "ur": "پورا نام",
+        "it": "Nome completo",
+        "zh": "全名",
+        "ko": "성명",
+        "fa": "نام کامل"
+    },
+    "Email Address": {
+        "bn": "ইমেইল ঠিকানা",
+        "hi": "ईमेल पता",
+        "ar": "البريد الإلكتروني",
+        "es": "Correo electrónico",
+        "fr": "Adresse e-mail",
+        "de": "E-Mail-Adresse",
+        "ja": "メールアドレス",
+        "tr": "E-posta Adresi",
+        "ru": "Адрес эл. почты",
+        "pt": "Endereço de E-mail",
+        "id": "Alamat Email",
+        "ur": "ای میل پتہ",
+        "it": "Indirizzo email",
+        "zh": "电子邮件地址",
+        "ko": "이메일 주소",
+        "fa": "آدرس ایمیل"
+    },
+    "Password": {
+        "bn": "পাসওয়ার্ড",
+        "hi": "पासवर्ड",
+        "ar": "كلمة المرور",
+        "es": "Contraseña",
+        "fr": "Mot de passe",
+        "de": "Passwort",
+        "ja": "パスワード",
+        "tr": "Şifre",
+        "ru": "Пароль",
+        "pt": "Senha",
+        "id": "Kata Sandi",
+        "ur": "پاس ورڈ",
+        "it": "Password",
+        "zh": "密码",
+        "ko": "비밀번호",
+        "fa": "رمز عبور"
+    },
+    "Confirm Password": {
+        "bn": "পাসওয়ার্ড নিশ্চিত করুন",
+        "hi": "पासवर्ड की पुष्टि करें",
+        "ar": "تأكيد كلمة المرور",
+        "es": "Confirmar contraseña",
+        "fr": "Confirmer le mot de passe",
+        "de": "Passwort bestätigen",
+        "ja": "パスワード確認",
+        "tr": "Şifreyi Onayla",
+        "ru": "Подтвердите пароль",
+        "pt": "Confirmar Senha",
+        "id": "Konfirmasi Kata Sandi",
+        "ur": "پاس ورڈ کی تصدیق کریں",
+        "it": "Conferma password",
+        "zh": "确认密码",
+        "ko": "비밀번호 확인",
+        "fa": "تأیید رمز عبور"
+    },
+    "Forgot Password?": {
+        "bn": "পাসওয়ার্ড ভুলে গেছেন?",
+        "hi": "पासवर्ड भूल गए?",
+        "ar": "نسيت كلمة المرور؟",
+        "es": "¿Olvidaste tu contraseña?",
+        "fr": "Mot de passe oublié ?",
+        "de": "Passwort vergessen?",
+        "ja": "パスワードをお忘れですか？",
+        "tr": "Şifrenizi mi unuttunuz?",
+        "ru": "Забыли пароль?",
+        "pt": "Esqueceu a senha?",
+        "id": "Lupa Kata Sandi?",
+        "ur": "پاس ورڈ بھول گئے؟",
+        "it": "Password dimenticata?",
+        "zh": "忘记密码？",
+        "ko": "비밀번호를 잊으셨나요?",
+        "fa": "رمز عبور را فراموش کرده‌اید؟"
+    },
+    "Continue with Google": {
+        "bn": "Google দিয়ে চালিয়ে যান",
+        "hi": "Google के साथ जारी रखें",
+        "ar": "المتابعة باستخدام Google",
+        "es": "Continuar con Google",
+        "fr": "Continuer avec Google",
+        "de": "Weiter mit Google",
+        "ja": "Googleで続行",
+        "tr": "Google ile Devam Et",
+        "ru": "Продолжить с Google",
+        "pt": "Continuar com o Google",
+        "id": "Lanjutkan dengan Google",
+        "ur": "گوگل کے ساتھ جاری رکھیں",
+        "it": "Continua con Google",
+        "zh": "使用 Google 继续",
+        "ko": "Google로 계속하기",
+        "fa": "ادامه با Google"
+    },
+    "Quran": {
+        "bn": "কোরআন",
+        "hi": "क़ुरआन",
+        "ar": "القرآن",
+        "ur": "قرآن"
+    },
+    "Bhagavad Gita": {
+        "bn": "ভগবদ্গীতা",
+        "hi": "भगवद्गीता"
+    },
+    "Dhammapada": {
+        "bn": "ধম্মপদ",
+        "hi": "धम्मपद"
+    },
+    "Granth Sahib": {
+        "bn": "গ্রন্থ সাহিব",
+        "hi": "ग्रंथ साहिब",
+        "pa": "ਗ੍ਰੰਥ ਸਾਹਿਬ"
+    }
+,
+    "Sutras": {"bn":"সূত্র","hi":"सूत्र","es":"Sutras"},
+    "SUTRAS": {"bn":"সূত্র","hi":"सूत्र","es":"Sutras"},
+    "sutras": {"bn":"সূত্র","hi":"सूत्र","es":"Sutras"},
+    "Dhammapada": {"bn":"ধম্মপদ","hi":"धम्मपद","es":"Dhammapada"},
+    "Zen": {"bn":"জেন","hi":"ज़ेन","es":"Zen"},
+    "Jatakas & Legends": {"bn":"জাতক ও উপাখ্যান","hi":"जातक और कथाएं","es":"Jatakas y Leyendas"},
+    "Stoicism": {"bn":"স্টোয়িক দর্শন","hi":"स्टोइक दर्शन","es":"Estoicismo"},
+    "Ancient Greek": {"bn":"প্রাচীন গ্রিক দর্শন","hi":"प्राचीन यूनानी दर्शन","es":"Griego Antiguo"},
+    "Rationalism": {"bn":"যুক্তিবাদ","hi":"तर्कवाद","es":"Racionalismo"},
+    "Empiricism": {"bn":"অভিজ্ঞতাবাদ","hi":"अनुभववाद","es":"Empirismo"},
+    "Enlightenment": {"bn":"আলোকায়ন","hi":"प्रबोधन","es":"Ilustración"},
+    "Existentialism": {"bn":"অস্তিত্ববাদ","hi":"अस्तित्ववाद","es":"Existencialismo"},
+    "Analytic": {"bn":"বিশ্লেষণমূলক দর্শন","hi":"विश्लेषणात्मक","es":"Analítica"},
+    "Pragmatism": {"bn":"প্রয়োগবাদ","hi":"व्यावहारिकतावाद","es":"Pragmatismo"},
+    "Meditations": {"bn":"আত্মচিন্তা (ধ্যান)","hi":"आत्मचिंतन","es":"Meditaciones"},
+    "Letters from a Stoic": {"bn":"এক স্টোয়িকের পত্রাবলী","hi":"एक स्टोइक के पत्र","es":"Cartas de un Estoico"},
+    "Enchiridion": {"bn":"এনকিরিডিয়ন","hi":"एनचिरिडियन","es":"Manual de Vida"},
+    "Discourses": {"bn":"প্রবচন","hi":"प्रवचन","es":"Discursos"},
+    "Republic": {"bn":"প্রজাতন্ত্র (রিপাবলিক)","hi":"गणतंत्र","es":"La República"},
+    "Nicomachean Ethics": {"bn":"নিকোমেকিয়ান নীতিবিদ্যা","hi":"नीतिशास्त्र","es":"Ética a Nicómaco"},
+    "Beyond Good and Evil": {"bn":"ভালো ও মন্দের ওপারে","hi":"अच्छाई और बुराई से परे","es":"Más allá del bien y del mal"},
+    "Guru Granth Sahib": {"bn":"গুরু গ্রন্থ সাহিব","hi":"गुरु ग्रंथ साहिब","pa":"ਗੁਰੂ ਗ੍ਰੰਥ ਸਾਹਿਬ"},
+    "Granth Sahib": {"bn":"গ্রন্থ সাহিব","hi":"ग्रंथ साहिब","pa":"ਗ੍ਰੰਥ ਸਾਹਿਬ"},
+    "Gurbani": {"bn":"গুরবাণী","hi":"गुरबाणी","pa":"ਗੁਰਬਾਣੀ"},
+    "Japji Sahib": {"bn":"জপজী সাহিব","hi":"जपजी साहिब","pa":"ਜਪੁਜੀ ਸਾਹਿਬ"},
+    "Torah": {"bn":"তৌরাত","hi":"तोराह","es":"Torá"},
+    "Tanakh": {"bn":"তানাক","hi":"तनाख","es":"Tanaj"},
+    "Talmud": {"bn":"তালমুদ","hi":"तालमुद","es":"Talmud"},
+    "Mishnah": {"bn":"মিশনাহ","hi":"मिशनाह","es":"Mishná"},
+    "Midrash": {"bn":"মিদরাশ","hi":"मिद्रश","es":"Midrash"},
+    "Halakhah": {"bn":"হালাখা","hi":"हालाखा","es":"Halajá"},
+    "Kabbalah": {"bn":"কাব্বালাহ","hi":"कब्बालाह","es":"Cábala"},
+    "Jewish Thought": {"bn":"ইহুদি দর্শন","hi":"यहूदी विचार","es":"Pensamiento Judío"},
+    "Bhagavad Gita": {"bn":"শ্রীমদ্ভগবদ্গীতা","hi":"श्रीमद्भगवद्गीता","es":"Bhagavad Gita"},
+    "Gita": {"bn":"গীতা","hi":"गीता","es":"Gita"},
+    "Rigveda": {"bn":"ঋগ্বেদ","hi":"ऋग्वेद","es":"Rigveda"},
+    "AtharvaVeda": {"bn":"অথর্ববেদ","hi":"अथर्ववेद","es":"Atharvaveda"},
+    "Yajurveda": {"bn":"যজুর্বেদ","hi":"यजुर्वेद","es":"Yajurveda"},
+    "Ramayana": {"bn":"রামায়ণ","hi":"रामायण","es":"Ramayana"},
+    "Mahabharata": {"bn":"মহাভারত","hi":"महाभारत","es":"Mahabharata"},
+    "Ramcharitmanas": {"bn":"রামচরিতমানস","hi":"रामचरितमानस","es":"Ramcharitmanas"},
+    "Upanishads": {"bn":"উপনিষদ","hi":"उपनिषद","es":"Upanishads"},
+    "Quran": {"bn":"পবিত্র কুরআন","hi":"पवित्र क़ुरआन","ar":"القرآن الكريم"},
+    "Sahih al-Bukhari": {"bn":"সহীহ বুখারী","hi":"सहीह बुखारी","ar":"صحيح البخاري"},
+    "Sahih Muslim": {"bn":"সহীহ মুসলিম","hi":"सहीह मुस्लिम","ar":"صحيح مسلم"},
+    "Sunan Abi Dawud": {"bn":"সুনান আবু দাউদ","hi":"सुनन अबी दाऊद","ar":"سنن أبي داود"},
+    "Jami at-Tirmidhi": {"bn":"জামে তিরমিযী","hi":"जामी अत-तिर्मिज़ी","ar":"جامع الترمذي"},
+    "Sunan an-Nasa'i": {"bn":"সুনান আন-নাসায়ী","hi":"सुनन अन-नसाई","ar":"سنن النسائي"},
+    "Sunan Ibn Majah": {"bn":"সুনান ইবনে মাজাহ","hi":"सुनन इब्न माजाह","ar":"سنن ابن ماجه"},
+    "Muwatta Malik": {"bn":"মুওয়াত্তা মালিক","hi":"मुवत्ता मालिक","ar":"موطأ مالك"},
+    "Musnad Ahmad": {"bn":"মুসনাদ আহমাদ","hi":"मुसनद अहमद","ar":"مسند أحمد"},
+    "Genesis": {"bn":"আদিপুস্তক","hi":"उत्पत्ति","es":"Génesis"},
+    "Exodus": {"bn":"যাত্রাপুস্তক","hi":"निर्गमन","es":"Éxodo"},
+    "Leviticus": {"bn":"লেবীয় পুস্তক","hi":"लैव्यव्यवस्था","es":"Levítico"},
+    "Numbers": {"bn":"গণনা পুস্তক","hi":"गिनती","es":"Números"},
+    "Deuteronomy": {"bn":"দ্বিতীয় বিবরণ","hi":"व्यवस्थाविवरण","es":"Deuteronomio"},
+    "Joshua": {"bn":"যিহোশূয়","hi":"यहोशू","es":"Josué"},
+    "Judges": {"bn":"বিচারকচরিত","hi":"न्यायियों","es":"Jueces"},
+    "Ruth": {"bn":"রূতের বিবরণ","hi":"रूत","es":"Rut"},
+    "1 Samuel": {"bn":"১ শমূয়েল","hi":"१ शमूएल","es":"1 Samuel"},
+    "2 Samuel": {"bn":"২ শমূয়েল","hi":"२ शमूएल","es":"2 Samuel"},
+    "1 Kings": {"bn":"১ রাজাবলি","hi":"१ राजा","es":"1 Reyes"},
+    "2 Kings": {"bn":"২ রাজাবলি","hi":"२ राजा","es":"2 Reyes"},
+    "1 Chronicles": {"bn":"১ বংশাবলি","hi":"१ इतिहास","es":"1 Crónicas"},
+    "2 Chronicles": {"bn":"২ বংশাবলি","hi":"२ इतिहास","es":"2 Crónicas"},
+    "Ezra": {"bn":"ইষ্রা","hi":"एज्रा","es":"Esdras"},
+    "Nehemiah": {"bn":"নহিমিয়","hi":"नहेमायाह","es":"Nehemías"},
+    "Esther": {"bn":"ইষ্টের","hi":"एस्तेर","es":"Ester"},
+    "Job": {"bn":"ইয়োব","hi":"अय्यूब","es":"Job"},
+    "Psalms": {"bn":"সামসংগীত","hi":"भजन संहिता","es":"Salmos"},
+    "Proverbs": {"bn":"হিতোপদেশ","hi":"नीतिवचन","es":"Proverbios"},
+    "Ecclesiastes": {"bn":"উপদেশক","hi":"सभोपदेशक","es":"Eclesiastés"},
+    "Song of Solomon": {"bn":"পরমগীত","hi":"श्रेष्ठगीत","es":"Cantares"},
+    "Isaiah": {"bn":"যিশাইয়","hi":"यशायाह","es":"Isaías"},
+    "Jeremiah": {"bn":"যিরমিয়","hi":"यिर्मयाह","es":"Jeremías"},
+    "Lamentations": {"bn":"বিলাপ গান","hi":"विलापगीत","es":"Lamentaciones"},
+    "Ezekiel": {"bn":"যিহিষ্কেল","hi":"यहेजकेल","es":"Ezequiel"},
+    "Daniel": {"bn":"দানিয়েল","hi":"दानिय्येल","es":"Daniel"},
+    "Hosea": {"bn":"হোশেয়","hi":"होशे","es":"Oseas"},
+    "Joel": {"bn":"যোয়েল","hi":"योएल","es":"Joel"},
+    "Amos": {"bn":"আমোষ","hi":"आमोस","es":"Amós"},
+    "Obadiah": {"bn":"ওবদিয়","hi":"ओबद्याह","es":"Abdías"},
+    "Jonah": {"bn":"যূনস","hi":"योना","es":"Jonás"},
+    "Micah": {"bn":"মীখা","hi":"मीका","es":"Miqueas"},
+    "Nahum": {"bn":"নাহূম","hi":"नहूम","es":"Nahúm"},
+    "Habakkuk": {"bn":"হবক্‌কূক","hi":"हबक्कूक","es":"Habacuc"},
+    "Zephaniah": {"bn":"সফনিয়","hi":"सपन्याह","es":"Sofonías"},
+    "Haggai": {"bn":"হগয়","hi":"हाग्गै","es":"Hageo"},
+    "Zechariah": {"bn":"সখরিয়","hi":"जकर्याह","es":"Zacarías"},
+    "Malachi": {"bn":"মালাখি","hi":"मलाकी","es":"Malaquías"},
+    "Matthew": {"bn":"মথি","hi":"मत्ती","es":"Mateo"},
+    "Mark": {"bn":"মার্ক","hi":"मरकुस","es":"Marcos"},
+    "Luke": {"bn":"লূক","hi":"लूका","es":"Lucas"},
+    "John": {"bn":"যোহন","hi":"यूहन्ना","es":"Juan"},
+    "Acts": {"bn":"প্রেরিতদের কার্য","hi":"प्रेरितों के काम","es":"Hechos"},
+    "Romans": {"bn":"রোমীয়","hi":"रोमियों","es":"Romanos"},
+    "1 Corinthians": {"bn":"১ করিন্থীয়","hi":"१ कुरिन्थियों","es":"1 Corintios"},
+    "2 Corinthians": {"bn":"২ করিন্থীয়","hi":"२ कुरिन्थियों","es":"2 Corintios"},
+    "Galatians": {"bn":"গালাতীয়","hi":"गलातियों","es":"Gálatas"},
+    "Ephesians": {"bn":"ইফিষীয়","hi":"इफिसियों","es":"Efesios"},
+    "Philippians": {"bn":"ফিলিপীয়","hi":"फिलिप्पियों","es":"Filipenses"},
+    "Colossians": {"bn":"কলসীয়","hi":"कुलुस्सियों","es":"Colosenses"},
+    "1 Thessalonians": {"bn":"১ থিষলনীকীয়","hi":"१ थिस्सलुनीकियों","es":"1 Tesalonicenses"},
+    "2 Thessalonians": {"bn":"২ থিষলনীকীয়","hi":"२ थिस्सलुनीकियों","es":"2 Tesalonicenses"},
+    "1 Timothy": {"bn":"১ তীমথিয়","hi":"१ तीमुथियुस","es":"1 Timoteo"},
+    "2 Timothy": {"bn":"২ তীমথিয়","hi":"२ तीमुथियुस","es":"2 Timoteo"},
+    "Titus": {"bn":"তীত","hi":"तीतुस","es":"Tito"},
+    "Philemon": {"bn":"ফিলীমন","hi":"फिलेमोन","es":"Filemón"},
+    "Hebrews": {"bn":"ইব্রীয়","hi":"इब्रानियों","es":"Hebreos"},
+    "James": {"bn":"যাকোব","hi":"याकूब","es":"Santiago"},
+    "1 Peter": {"bn":"১ পিতর","hi":"१ पतरस","es":"1 Pedro"},
+    "2 Peter": {"bn":"২ পিতর","hi":"२ पतरस","es":"2 Pedro"},
+    "1 John": {"bn":"১ যোহন","hi":"१ यूहन्ना","es":"1 Juan"},
+    "2 John": {"bn":"২ যোহন","hi":"२ यूहन्ना","es":"2 Juan"},
+    "3 John": {"bn":"৩ যোহন","hi":"३ यूहन्ना","es":"3 Juan"},
+    "Jude": {"bn":"যিহূদা","hi":"यहूदा","es":"Judas"},
+    "Revelation": {"bn":"প্রকাশিত বাক্য","hi":"प्रकाशितवाक्य","es":"Apocalipsis"},
+    "One small tap for you, one giant leap for this starving indie dev.": {"bn":"আপনার জন্য একটি ছোট ট্যাপ, এই পরিশ্রমী নির্মাতার জন্য এক বিশাল পদক্ষেপ।"},
+    "Remove ads and fund the developer's 3 AM coffee addiction.": {"bn":"বিজ্ঞাপন সরান এবং নির্মাতাকে রাত ৩টার কফির যোগান দিন।"},
+    "Ads keep our servers alive. Premium keeps the developer's sanity alive.": {"bn":"বিজ্ঞাপন সার্ভার বাঁচিয়ে রাখে। প্রিমিয়াম নির্মাতাকে বাঁচিয়ে রাখে।"},
+    "Look, we both hate ads. Just tap the button and let's never speak of this again.": {"bn":"আমরা দুজনই বিজ্ঞাপন অপছন্দ করি। বোতামে চাপ দিন এবং শান্তিতে পড়ুন।"},
+    "Upgrade to Premium so I can finally afford actual groceries instead of instant noodles.": {"bn":"প্রিমিয়ামে আপগ্রেড করুন যাতে এই স্বাধীন ডেভেলপার নুডলসের বদলে ভালো খাবার খেতে পারে।"},
+    "You're reading ancient wisdom while staring at an ad. Let's fix that.": {"bn":"আপনি প্রাচীন প্রজ্ঞা পড়ার মাঝে বিজ্ঞাপন দেখছেন। চলুন এটি দূর করি।"},
+    "Tap Remove Ads and an angel will personally bless your WiFi signal.": {"bn":"বিজ্ঞাপন সরান বাটনে ট্যাপ করুন এবং প্রশান্তিময় অভিজ্ঞতা উপভোগ করুন।"},
+    "Think of Premium as buying the developer a virtual tea. A very appreciative tea.": {"bn":"প্রিমিয়াম নিয়ে নির্মাতাকে এক কাপ প্রশংসার চা উপহার দিন।"},
+    "No ads, all HD voices, and eternal good karma. Best investment of your week.": {"bn":"কোনো বিজ্ঞাপন নেই, সব এইচডি কণ্ঠস্বর এবং নিখুঁত আধ্যাত্মিক প্রশান্তি।"},
+    "Your spiritual enlightenment shouldn't have a commercial break.": {"bn":"আপনার আধ্যাত্মিক পাঠে কোনো বিজ্ঞাপনের বিরতি থাকা উচিত নয়।"},
+    "100% of Premium buyers report feeling 42% more zen and 100% ad-free.": {"bn":"প্রিমিয়াম সদস্যরা উপভোগ করেন ১০০% বিজ্ঞাপনমুক্ত নিরবচ্ছিন্ন অভিজ্ঞতা।"},
+    "Help an indie developer survive capitalism. Tap to unlock Premium.": {"bn":"একক নির্মাতাকে সমর্থন করুন। প্রিমিয়াম আনলক করতে ট্যাপ করুন।"},
+    "If you buy Premium, I promise to tell my mom someone actually bought my app.": {"bn":"প্রিমিয়াম নিলে আমি মাকে গর্ব করে বলতে পারব কেউ আমার অ্যাপ ভালোবেসেছে!"},
+    "Peace, tranquility, and zero banner ads trying to sell you car insurance.": {"bn":"শান্তি, স্থিরতা এবং কোনো অবাঞ্ছিত বাণিজ্যিক বিজ্ঞাপন ছাড়া পবিত্র পাঠ।"},
+    "Upgrade to Premium: Your daily verses deserve better than a low-budget ad.": {"bn":"প্রিমিয়াম নিন: আপনার দৈনিক বাণীগুলো বিজ্ঞাপনের চেয়ে অনেক বেশি মূল্যবান।"},
+    "Buy Premium and I'll literally do a celebratory backflip in my room.": {"bn":"প্রিমিয়াম নিলে এই ডেভেলপার পরম আনন্দে কৃতজ্ঞ থাকবে!"},
+    "Support a solo developer and cleanse your feed of all promotional clutter.": {"bn":"একক নির্মাতাকে সমর্থন করুন এবং আপনার ফিড সম্পূর্ণ পরিচ্ছন্ন রাখুন।"},
+    "Zero ads, maximum cozy vibes, and you save a programmer from despair.": {"bn":"শূন্য বিজ্ঞাপন, সর্বোচ্চ প্রশান্তি এবং একটি সুন্দর আধ্যাত্মিক পরিবেশ।"},
+    "Skip the ads, keep the wisdom, and bless an indie creator's day.": {"bn":"বিজ্ঞাপন এড়িয়ে চলুন, প্রজ্ঞা ধরে রাখুন এবং নির্মাতাকে উৎসাহিত করুন।"},
+    "A cozy, distraction-free sanctuary with all HD neural voices unlocked.": {"bn":"সব এইচডি কণ্ঠস্বর সহ এক শান্ত, নিরবচ্ছিন্ন পবিত্র অভিজ্ঞতার আশ্রয়।"}
+,
+    "Part": {"bn":"পর্ব","hi":"भाग","fr":"Partie","es":"Parte","ar":"الجزء","de":"Teil","it":"Parte","pt":"Parte","ru":"Часть","tr":"Bölüm"},
+    "Book": {"bn":"খণ্ড","hi":"किताब","fr":"Livre","es":"Libro","ar":"الكتاب","de":"Buch","it":"Libro","pt":"Livro","ru":"Книга","tr":"Kitap"},
+    "Chapter": {"bn":"অধ্যায়","hi":"अध्याय","fr":"Chapitre","es":"Capítulo","ar":"الفصل","de":"Kapitel","it":"Capitolo","pt":"Capítulo","ru":"Глава","tr":"Bölüm"},
+    "Section": {"bn":"অনুচ্ছেদ","hi":"अनुभाग","fr":"Section","es":"Sección","ar":"القسم","de":"Abschnitt","it":"Sezione","pt":"Seção","ru":"Раздел","tr":"Kısım"},
+    "Hymn": {"bn":"স্তোত্র","hi":"सूक्त","fr":"Hymne","es":"Himno","ar":"ترنيمة","de":"Hymne","it":"Inno","pt":"Hino","ru":"Гимн","tr":"İlahi"},
+    "Discourse": {"bn":"প্রবচন","hi":"प्रवचन","fr":"Discours","es":"Discurso","ar":"خطاب","de":"Diskurs","it":"Discorso","pt":"Discurso","ru":"Беседа","tr":"Söylem"}
+};
+
+// --- Universal Neural Verse Translation & Cache Engine ---
+const verseTranslationMemoryCache = {};
+
+function isGarbageTranslation(str, targetLang = currentAppLanguage) {
+    if (!str || typeof str !== 'string') return true;
+    const trimmed = str.trim();
+    if (trimmed.length < 2) return true;
+    if (/^[?*\s.,!\-_=+]+$/.test(trimmed)) return true;
+    const upper = trimmed.toUpperCase();
+    if (upper.includes('MYMEMORY WARNING') || 
+        upper.includes('QUERY LENGTH LIMIT') || 
+        upper.includes('DAILY LIMIT') ||
+        upper.includes('TRANSLATION LIMIT') ||
+        upper.includes('TOO MANY REQUESTS')) {
+        return true;
+    }
+    // If target language is non-Latin (Bengali, Arabic, Hindi, Russian, etc.), reject if untranslated English words leaked
+    const nonLatinLangs = ['bn', 'ar', 'hi', 'ru', 'ja', 'zh', 'ko', 'fa', 'ur', 'ta', 'te', 'mr', 'gu', 'pa', 'he', 'th', 'el'];
+    if (nonLatinLangs.includes(targetLang) && /[a-zA-Z]{3,}/.test(trimmed)) {
+        return true;
+    }
+    return false;
+}
+
+function getTranslationCacheKey(text, lang) {
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+        hash = ((hash << 5) - hash) + text.charCodeAt(i);
+        hash |= 0;
+    }
+    return 'vtr_' + lang + '_' + Math.abs(hash);
+}
+
+function getCachedVerseTranslation(text, lang) {
+    if (!text || !lang || lang === 'en_US' || lang === 'en') return text;
+    const key = getTranslationCacheKey(text, lang);
+    if (verseTranslationMemoryCache[key]) {
+        if (isGarbageTranslation(verseTranslationMemoryCache[key])) {
+            delete verseTranslationMemoryCache[key];
+            try { localStorage.removeItem(key); } catch(e) {}
+            return null;
+        }
+        return verseTranslationMemoryCache[key];
+    }
+    try {
+        const stored = localStorage.getItem(key);
+        if (stored) {
+            if (isGarbageTranslation(stored)) {
+                localStorage.removeItem(key);
+                return null;
+            }
+            verseTranslationMemoryCache[key] = stored;
+            return stored;
+        }
+    } catch(e) {}
+    return null;
+}
+
+function setCachedVerseTranslation(text, lang, translation) {
+    if (!text || !lang || !translation || isGarbageTranslation(translation)) return;
+    const key = getTranslationCacheKey(text, lang);
+    verseTranslationMemoryCache[key] = translation;
+    try {
+        localStorage.setItem(key, translation);
+    } catch(e) {}
+}
+
+function cleanBengaliUnicode(text) {
+    if (!text) return '';
+    // Strip leftover untranslated english words that leaked into bengali sentences
+    let cleaned = text.replace(/\b[a-zA-Z]+\b/g, '').replace(/\s+/g, ' ');
+    return cleaned
+        .replace(/([\u0980-\u09FF])\s+\u09CD\s+([\u0980-\u09FF])/g, '$1\u09CD$2')
+        .replace(/\s+\u09CD\s+/g, '\u09CD')
+        .replace(/([\u0980-\u09FF])\s+([\u09BC-\u09CD\u09D7\u09BE-\u09CC])/g, '$1$2')
+        .replace(/[\uFFFD\u25CC]/g, '')
+        .replace(/\s+([।,;!?])/g, '$1')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+}
+
+async function translateTextAsync(text, targetLang) {
+    if (!text || !targetLang || targetLang === 'en_US' || targetLang === 'en') return text;
+    
+    // Check cache first
+    const cached = getCachedVerseTranslation(text, targetLang);
+    if (cached && !isGarbageTranslation(cached)) return cached;
+    
+    const shortLang = targetLang.split('_')[0];
+    
+    // 1. Try MyMemory API
+    try {
+        const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=en|' + shortLang;
+        const resp = await fetch(url);
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.responseData && data.responseData.translatedText) {
+                let trans = data.responseData.translatedText.trim();
+                if (!isGarbageTranslation(trans)) {
+                    if (targetLang === 'bn') trans = cleanBengaliUnicode(trans);
+                    setCachedVerseTranslation(text, targetLang, trans);
+                    return trans;
+                }
+            }
+        }
+    } catch(e) {}
+
+    // 2. Try Google Translate Fallback
+    try {
+        const gUrl = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=' + shortLang + '&dt=t&q=' + encodeURIComponent(text);
+        const gResp = await fetch(gUrl);
+        if (gResp.ok) {
+            const gData = await gResp.json();
+            if (Array.isArray(gData) && Array.isArray(gData[0])) {
+                let gTrans = gData[0].map(item => item[0]).join('').trim();
+                if (gTrans && !isGarbageTranslation(gTrans)) {
+                    if (targetLang === 'bn') gTrans = cleanBengaliUnicode(gTrans);
+                    setCachedVerseTranslation(text, targetLang, gTrans);
+                    return gTrans;
+                }
+            }
+        }
+    } catch(e) {}
+
+    return text;
+}
+
+function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLanguage) {
+    if (!domElement || !rawText) return;
+    if (lang === 'en_US' || lang === 'en') {
+        domElement.innerText = rawText;
+        domElement.style.opacity = '1';
+        return;
+    }
+    
+    // If rawText already contains target language script, render directly
+    if (lang === 'bn' && /[\u0980-\u09FF]/.test(rawText)) {
+        domElement.innerText = rawText;
+        domElement.style.opacity = '1';
+        return;
+    }
+    if (lang === 'ar' && /[\u0600-\u06FF]/.test(rawText)) {
+        domElement.innerText = rawText;
+        domElement.style.opacity = '1';
+        return;
+    }
+    
+    const cached = getCachedVerseTranslation(rawText, lang);
+    if (cached && !isGarbageTranslation(cached)) {
+        const existingActions = domElement.querySelector('.verse-actions');
+        domElement.innerText = cached;
+        if (existingActions) domElement.appendChild(existingActions);
+        domElement.style.opacity = '1';
+        return;
+    }
+    
+    // Render text with subtle opacity during background neural translation
+    const existingActions = domElement.querySelector('.verse-actions');
+    domElement.innerText = rawText;
+    if (existingActions) domElement.appendChild(existingActions);
+    domElement.style.transition = 'opacity 0.25s ease';
+    domElement.style.opacity = '0.7';
+    
+    translateTextAsync(rawText, lang).then(translated => {
+        if (domElement && domElement.isConnected) {
+            const finalTxt = (translated && !isGarbageTranslation(translated)) ? translated : rawText;
+            const actions = domElement.querySelector('.verse-actions');
+            domElement.innerText = finalTxt;
+            if (actions) domElement.appendChild(actions);
+            domElement.style.opacity = '1';
+        }
+    }).catch(() => {
+        if (domElement && domElement.isConnected) {
+            const actions = domElement.querySelector('.verse-actions');
+            domElement.innerText = rawText;
+            if (actions) domElement.appendChild(actions);
+            domElement.style.opacity = '1';
+        }
+    });
+}
+
+let currentAppLanguage = localStorage.getItem('versefeed_user_language') || 'en_US';
+
+function t(key) {
+    if (!key || typeof key !== 'string') return key || '';
+    if (currentAppLanguage === 'en_US' || currentAppLanguage === 'en') return key;
+    
+    // 1. Exact Dictionary Match
+    if (typeof i18nDict !== 'undefined') {
+        if (i18nDict[key] && i18nDict[key][currentAppLanguage]) {
+            return i18nDict[key][currentAppLanguage];
+        }
+        // Case-insensitive dictionary lookup
+        const lower = key.toLowerCase().trim();
+        for (let k in i18nDict) {
+            if (k.toLowerCase() === lower && i18nDict[k][currentAppLanguage]) {
+                return i18nDict[k][currentAppLanguage];
+            }
+        }
+    }
+    
+    // 2. Cache Lookup
+    const cached = getCachedVerseTranslation(key, currentAppLanguage);
+    if (cached && !isGarbageTranslation(cached)) {
+        return cached;
+    }
+    
+    // 3. Background Async Auto-Translation (Warms cache for next render)
+    if (key.length > 1 && !/^\d+$/.test(key)) {
+        translateTextAsync(key, currentAppLanguage).then(trans => {
+            if (trans && !isGarbageTranslation(trans)) {
+                setCachedVerseTranslation(key, currentAppLanguage, trans);
+            }
+        }).catch(() => {});
+    }
+    
+    return key;
+}
+
+function getCanonicalReligion(str) {
+    if (!str) return '';
+    const trimmed = str.trim();
+    if (CANONICAL_RELIGIONS.includes(trimmed)) return trimmed;
+    if (typeof i18nDict !== 'undefined') {
+        for (let canon of CANONICAL_RELIGIONS) {
+            if (i18nDict[canon]) {
+                for (let lang in i18nDict[canon]) {
+                    if (i18nDict[canon][lang] === trimmed) return canon;
+                }
+            }
+        }
+    }
+    return trimmed;
+}
+
+function applyLanguageTranslations(langCode = currentAppLanguage) {
+    currentAppLanguage = langCode;
+    
+    // 1. Update Settings Religion Toggle Buttons
+    document.querySelectorAll('.global-rel-btn').forEach(btn => {
+        if (btn.id === 'dark-mode-toggle' || btn.onclick?.toString().includes('openLanguageModal')) return;
+        const canonicalRel = btn.dataset.religion || getCanonicalReligion(btn.textContent);
+        if (canonicalRel) {
+            btn.dataset.religion = canonicalRel;
+            btn.textContent = t(canonicalRel);
+        }
+    });
+
+    // 2. Update Settings Language Button Label (Display in authentic native script)
+    const selectedLangObj = supportedLanguages.find(l => l.code === langCode) || supportedLanguages[0];
+    const settingsLabel = document.getElementById('settings-current-lang-label');
+    if (settingsLabel) {
+        settingsLabel.textContent = selectedLangObj.native || selectedLangObj.name;
+    }
+
+    // 3. Update Settings Links
+    const privLink = document.getElementById('link-privacy-policy');
+    if (privLink) privLink.textContent = t('Privacy Policy');
+    const termsLink = document.getElementById('link-terms-service');
+    if (termsLink) termsLink.textContent = t('Terms of Service');
+    const credLink = document.getElementById('link-credits-modal');
+    if (credLink) credLink.textContent = t('Credits');
+
+    // 4. Update Premium Buttons & Paywall
+    const premBtn = document.getElementById('user-premium-btn');
+    if (premBtn) premBtn.textContent = t('Premium');
+    
+    const paywallTitle = document.querySelector('.premium-title');
+    if (paywallTitle) paywallTitle.textContent = t('Premium');
+    
+    const paywallFeatures = document.querySelectorAll('.premium-feature-row span');
+    const featureKeys = ['AD Free', 'All HD Offline Voices', 'Unlimited Folders 30 Char', 'Custom Topic Filters', 'Source Narration', 'Ambient Audio Controls', 'Random Voice Rotation'];
+    paywallFeatures.forEach((span, idx) => {
+        if (featureKeys[idx]) span.textContent = t(featureKeys[idx]);
+    });
+
+    const paywallBuyBtn = document.querySelector('.premium-buy-pill-text');
+    if (paywallBuyBtn) paywallBuyBtn.textContent = t('Get Annual');
+
+    // 5. Update Onboarding Screen
+    const onboardWelcomeH2 = document.querySelector('#onboard-welcome h2');
+    if (onboardWelcomeH2) onboardWelcomeH2.textContent = t('Spiritual Wisdom');
+    const onboardWelcomeP = document.querySelector('#onboard-welcome p');
+    if (onboardWelcomeP) onboardWelcomeP.textContent = t('Access scriptures, curated ambient tracks, and personalized daily verses.');
+    const googleBtnSpan = document.querySelector('#google-signin-btn-container button span');
+    if (googleBtnSpan) googleBtnSpan.textContent = t('Sign in with Google');
+    const guestBtn = document.querySelector('button[onclick="continueAsGuest()"]');
+    if (guestBtn) guestBtn.textContent = t('Continue as Guest');
+
+    // 6. Update Modals (Auth, Folder Creation, Rename, Language)
+    const authTabSignin = document.getElementById('auth-tab-signin');
+    if (authTabSignin) authTabSignin.textContent = t('Sign In');
+    const authTabSignup = document.getElementById('auth-tab-signup');
+    if (authTabSignup) authTabSignup.textContent = t('Sign Up');
+    const authSubmitBtn = document.getElementById('auth-submit-btn');
+    if (authSubmitBtn && authSubmitBtn.textContent.includes('Sign')) {
+        authSubmitBtn.textContent = t('Sign In');
+    }
+
+    const createAlbumInput = document.getElementById('create-album-name');
+    if (createAlbumInput) createAlbumInput.placeholder = t('Folder Name');
+    const createAlbumBtn = document.querySelector('#create-bookmark-modal .album-create-btn');
+    if (createAlbumBtn) createAlbumBtn.textContent = t('Create Folder');
+
+    const renameAlbumInput = document.getElementById('rename-album-input');
+    if (renameAlbumInput) renameAlbumInput.placeholder = t('New Name');
+    const renameAlbumBtn = document.querySelector('#rename-modal .album-create-btn');
+    if (renameAlbumBtn) renameAlbumBtn.textContent = t('Rename');
+
+    const langModalTitle = document.querySelector('#language-modal .modal-content h3');
+    if (langModalTitle) langModalTitle.textContent = t('Choose Language');
+    const langSearch = document.getElementById('lang-search-input');
+    if (langSearch) langSearch.placeholder = t('Search language...');
+
+    // 7. Update Search Placeholder
+    const libSearchInput = document.getElementById('lib-search-input');
+    if (libSearchInput) {
+        libSearchInput.placeholder = t('Search verses or authors...');
+    }
+
+    // 8. Re-render Active Feed Card, Library, and Saved Screens in chosen language
+    if (typeof renderFeedCard === 'function' && typeof currentVerseIndex !== 'undefined') {
+        renderFeedCard(currentVerseIndex.general || 0);
+    }
+    if (typeof showReligions === 'function' && document.getElementById('library-home') && !document.getElementById('library-home').classList.contains('hidden')) {
+        showReligions();
+    }
+    if (typeof showSavedVerses === 'function' && document.getElementById('saved-verses') && !document.getElementById('saved-verses').classList.contains('hidden')) {
+        showSavedVerses(true);
+    }
+    if (typeof buildSettings === 'function') buildSettings();
+    loadedReligions.clear();
+    loadSelectedData();
+    preloadFunnyLines(langCode);
+}
+
+function getFirebaseCurrentUid() {
+    try {
+        if (googleUser && googleUser.sub) return googleUser.sub;
+        if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0 && typeof firebase.auth === 'function') {
+            const cur = firebase.auth().currentUser;
+            return cur ? cur.uid : null;
+        }
+    } catch(e) {}
+    return null;
+}
+
+const STATE_KEYS = [
+    'globalSelectedRels', 'savedVerses', 'createdAlbums', 
+    'bookMarkedVerse', 'darkModeEnabled', 'selectedVoice', 
+    'ttsAnnounceSource', 'ttsRandomVoice', 'musicVolume', 'musicEnabled',
+    'currentMusicTrack', 'seenVersesHistory'
+];
+
+function getActiveProfileId() {
+    const uid = getFirebaseCurrentUid();
+    if (uid) {
+        return 'account_' + uid;
+    }
+    return 'guest';
+}
+
+// --- Flash suppression & local bookmark echo guard ---
+let _flashSuppressDepth = 0;
+let localBookmarkSnapshot = '';
+let localBookmarkMutationUntil = 0;
+
+function getBookmarkSnapshotFromData(data) {
+    const sv = Array.isArray(data?.savedVerses) ? data.savedVerses.filter(v => v && v.text) : [];
+    const ca = Array.isArray(data?.createdAlbums) ? data.createdAlbums.filter(a => typeof a === 'string' && a.trim()) : [];
+    return JSON.stringify({ sv, ca });
+}
+
+function getLocalBookmarkSnapshot() {
+    return JSON.stringify({
+        sv: (savedVerses || []).filter(v => v && v.text),
+        ca: (createdAlbums || []).filter(a => typeof a === 'string' && a.trim())
+    });
+}
+
+function markLocalBookmarkMutation() {
+    localBookmarkSnapshot = getLocalBookmarkSnapshot();
+    localBookmarkMutationUntil = Date.now() + 8000;
+}
+
+function isBookmarkEcho(remoteData) {
+    if (!remoteData || Date.now() > localBookmarkMutationUntil) return false;
+    return getBookmarkSnapshotFromData(remoteData) === localBookmarkSnapshot;
+}
+
+function suppressFlash(fn) {
+    document.documentElement.classList.add('flash-suppress');
+    _flashSuppressDepth++;
+    try {
+        if (typeof fn === 'function') fn();
+    } finally {
+        _flashSuppressDepth--;
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                if (_flashSuppressDepth <= 0) {
+                    _flashSuppressDepth = 0;
+                    document.documentElement.classList.remove('flash-suppress');
+                }
+            });
+        });
+    }
+}
+
+function openModal(modalEl) {
+    if (!modalEl) return;
+    suppressFlash(() => modalEl.classList.remove('hidden'));
+}
+
+function closeModal(modalEl) {
+    if (!modalEl) return;
+    suppressFlash(() => modalEl.classList.add('hidden'));
+}
+
+// Automatic One-Time Migration of un-namespaced keys into pf_guest_*
+(function migrateOldStorageToGuest() {
+    const migrated = originalGetItem.call(localStorage, 'pf_guest_migrated_v2');
+    if (!migrated) {
+        STATE_KEYS.forEach(key => {
+            const oldVal = originalGetItem.call(localStorage, key);
+            if (oldVal !== null && oldVal !== undefined) {
+                originalSetItem.call(localStorage, 'pf_guest_' + key, oldVal);
+                originalRemoveItem.call(localStorage, key);
+            }
+        });
+        originalSetItem.call(localStorage, 'pf_guest_migrated_v2', 'true');
+    }
+})();
+
+// Intercept localStorage methods for STATE_KEYS so every component operates on active profile sandbox
+localStorage.getItem = function(key) {
+    if (STATE_KEYS.includes(key)) {
+        const profileId = getActiveProfileId();
+        return originalGetItem.call(this, 'pf_' + profileId + '_' + key);
+    }
+    return originalGetItem.call(this, key);
+};
+
+localStorage.setItem = function(key, value) {
+    if (STATE_KEYS.includes(key)) {
+        const profileId = getActiveProfileId();
+        originalSetItem.call(this, 'pf_' + profileId + '_' + key, value);
+        if ((key === 'savedVerses' || key === 'createdAlbums') && !isRestoringState) {
+            markLocalBookmarkMutation();
+        }
+        if (!isRestoringState && typeof triggerCloudSync === 'function') {
+            triggerCloudSync();
+        }
+        return;
+    }
+    originalSetItem.call(this, key, value);
+};
+
+localStorage.removeItem = function(key) {
+    if (STATE_KEYS.includes(key)) {
+        const profileId = getActiveProfileId();
+        originalRemoveItem.call(this, 'pf_' + profileId + '_' + key);
+        return;
+    }
+    originalRemoveItem.call(this, key);
+};
+
+function switchProfile(targetProfileId) {
+    isRestoringState = true;
+    const prevRels = globalSelectedRels ? JSON.stringify(globalSelectedRels) : null;
+    
+    try {
+        savedVerses = JSON.parse(localStorage.getItem('savedVerses') || '[]');
+        if (!Array.isArray(savedVerses)) savedVerses = [];
+    } catch(e) { savedVerses = []; }
+
+    try {
+        createdAlbums = JSON.parse(localStorage.getItem('createdAlbums') || '[]');
+        if (!Array.isArray(createdAlbums)) createdAlbums = [];
+    } catch(e) { createdAlbums = []; }
+
+    try {
+        bookMarkedVerse = JSON.parse(localStorage.getItem('bookMarkedVerse') || '{}');
+        if (!bookMarkedVerse || typeof bookMarkedVerse !== 'object') bookMarkedVerse = {};
+    } catch(e) { bookMarkedVerse = {}; }
+
+    try {
+        const rawSeen = localStorage.getItem('seenVersesHistory');
+        seenVersesList = rawSeen ? JSON.parse(rawSeen) || [] : [];
+    } catch(e) { seenVersesList = []; }
+    seenVersesSet = new Set(seenVersesList);
+
+    try {
+        const rawRels = localStorage.getItem('globalSelectedRels');
+        if (rawRels) {
+            const parsed = JSON.parse(rawRels);
+            if (Array.isArray(parsed)) {
+                globalSelectedRels = parsed.filter(r => ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Sikhism', 'Judaism', 'Philosophy'].includes(r));
+            } else if (typeof parsed === 'string' && ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Sikhism', 'Judaism', 'Philosophy'].includes(parsed)) {
+                globalSelectedRels = [parsed];
+            } else {
+                globalSelectedRels = null;
+            }
+        } else {
+            globalSelectedRels = null;
+        }
+    } catch(e) { globalSelectedRels = null; }
+
+    if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
+        globalSelectedRels = [...religions];
+        localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
+    }
+
+    const dmStr = localStorage.getItem('darkModeEnabled');
+    darkModeEnabled = dmStr === null ? true : dmStr === 'true';
+    if (darkModeEnabled) document.body.setAttribute('data-theme', 'dark');
+    else document.body.removeAttribute('data-theme');
+    if (typeof updateDarkModeIcon === 'function') updateDarkModeIcon(darkModeEnabled);
+    if (typeof updateVisualizerThemeCache === 'function') updateVisualizerThemeCache();
+
+    selectedVoice = localStorage.getItem('selectedVoice') || 'en_GB-alan-medium';
+    if (targetProfileId === 'guest' || !isPremiumUser) {
+        ttsAnnounceSource = false;
+        ttsRandomVoice = false;
+    } else {
+        ttsAnnounceSource = localStorage.getItem('ttsAnnounceSource') === 'true';
+        ttsRandomVoice = localStorage.getItem('ttsRandomVoice') === 'true';
+    }
+
+    let curVol = parseFloat(localStorage.getItem('musicVolume') || '0.5');
+    if (isNaN(curVol)) curVol = 0.5;
+    if (typeof audio !== 'undefined' && audio) {
+        audio.volume = curVol;
+    }
+    const slider = document.getElementById('music-volume-slider');
+    if (slider) {
+        slider.value = curVol;
+        const pct = Math.round(curVol * 100);
+        slider.setAttribute('data-tooltip', 'Music Volume (' + pct + '%): Adjust the background music volume.');
+        slider.title = pct + '%';
+    }
+
+    const mEnabled = localStorage.getItem('musicEnabled') !== 'false';
+    const musicBtn = document.getElementById('music-toggle');
+    if (musicBtn) {
+        if (mEnabled) {
+            if (typeof audio !== 'undefined' && audio) {
+                safePlayAudio(audio).then(() => {
+                    musicBtn.classList.add('active');
+                }).catch(e => {
+                    const playOnInteract = () => {
+                        if (localStorage.getItem('musicEnabled') !== 'false') {
+                            safePlayAudio(audio).then(() => {
+                                const btn = document.getElementById('music-toggle');
+                                if (btn) btn.classList.add('active');
+                                document.removeEventListener('click', playOnInteract);
+                                document.removeEventListener('pointerdown', playOnInteract);
+                                document.removeEventListener('touchstart', playOnInteract);
+                            }).catch(err => {});
+                        }
+                    };
+                    document.addEventListener('click', playOnInteract);
+                    document.addEventListener('pointerdown', playOnInteract);
+                    document.addEventListener('touchstart', playOnInteract, {passive: true});
+                });
+            }
+        } else {
+            musicBtn.classList.remove('active');
+            if (typeof audio !== 'undefined' && audio) audio.pause();
+        }
+    }
+
+    if (typeof updateTogglesUI === 'function') updateTogglesUI();
+    if (typeof buildSettings === 'function') buildSettings();
+    if (typeof syncVoiceWheelToCurrent === 'function') syncVoiceWheelToCurrent();
+
+    if (typeof showSavedVerses === 'function') {
+        showSavedVerses(true);
+    }
+
+    if (typeof initializeVerseFeed === 'function') {
+        initializeVerseFeed(true);
+    }
+
+    isRestoringState = false;
+}
+
+function loadStateFromProfile(profileId) {
+    switchProfile(profileId);
+}
+
+function saveStateToProfile(profileId) {
+    // Isolated profile storage handles saving automatically via intercepted setItem
+}
+
+function triggerCloudSync(immediate = false) {
+    const uid = getFirebaseCurrentUid();
+    if (!uid) return;
+    clearTimeout(cloudSyncTimeout);
+    if (immediate) {
+        if (typeof saveUserDataToFirestore === 'function') {
+            saveUserDataToFirestore(uid);
+        }
+        return;
+    }
+    cloudSyncTimeout = setTimeout(() => {
+        if (typeof saveUserDataToFirestore === 'function') {
+            saveUserDataToFirestore(uid);
+        }
+    }, 1500);
+}
+// ==============================================
+
+
+
+const validReligions = ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Sikhism', 'Judaism', 'Philosophy'];
+let religionVerses = {};
+let religionBooks = {};
+let activeRankings = {};
+
+async function loadActiveRankings() {
+    if (Object.keys(activeRankings).length > 0) return;
+    try {
+        const res = await fetch('./data/active_rankings.json?v=22');
+        if (res.ok) {
+            activeRankings = await res.json();
+        }
+    } catch (e) {
+        console.warn('Could not load active rankings:', e);
+    }
+}
+let globalSelectedRels = null;
+try {
+    const rawRels = localStorage.getItem('globalSelectedRels');
+    if (rawRels !== null) {
+        const parsed = JSON.parse(rawRels);
+        if (Array.isArray(parsed)) {
+            globalSelectedRels = parsed.filter(r => validReligions.includes(r));
+        } else if (typeof parsed === 'string') {
+            globalSelectedRels = validReligions.includes(parsed) ? [parsed] : null;
+        }
+    }
+} catch (e) {
+    globalSelectedRels = null;
+}
+let verseBatches = { general: [] };
+let currentBatchIndex = { general: 0 };
+let currentVerseIndex = { general: 0 };
+let savedVerses = [];
+try {
+    const rawSaved = localStorage.getItem('savedVerses');
+    if (rawSaved) {
+        const parsedSaved = JSON.parse(rawSaved);
+        if (Array.isArray(parsedSaved)) savedVerses = parsedSaved;
+    }
+} catch (e) {
+    savedVerses = [];
+}
+// Migration: Ensure all loaded verses have unique IDs
+if (Array.isArray(savedVerses)) {
+    let changed = false;
+    savedVerses.forEach(v => {
+        if (!v.id || typeof v.id !== 'string') {
+            v.id = 'sv_' + Date.now() + '_' + Math.floor(Math.random()*100000);
+            changed = true;
+        }
+    });
+    if (changed) {
+        localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+    }
+}
+let audio;
+let lastAnnouncedChapter = null;
+let appLoaded = false;
+const voicesList = [
+    { value: 'en_GB-alan-medium', label: 'Alan' },
+    { value: 'en_GB-alba-medium', label: 'Alba' },
+    { value: 'en_US-libritts_r-medium', label: 'Libri' }
+];
+
+const musicTracks = [
+    './music/ambient_flute.mp3',
+    './music/ambient_guitar.mp3',
+    './music/ambient_meditation.mp3'
+];
+
+function getRandomMusicTrackIndex(excludeIndex = -1) {
+    // Build list of all track indices excluding the current one
+    const allIndices = [];
+    for (let i = 0; i < musicTracks.length; i++) {
+        if (i !== excludeIndex) allIndices.push(i);
+    }
+    if (allIndices.length === 0) return 0;
+    return allIndices[Math.floor(Math.random() * allIndices.length)];
+}
+
+let currentTrack = getRandomMusicTrackIndex(-1);
+let currentReligion = '';
+let currentBookName = '';
+
+// Audio State
+let chapScrollTimeout = null;
+let voiceScrollTimeout = null;
+let visualizerFadeTimeout = null;
+let visualizerWorker = null;
+let visualizerWorkerReady = false;
+let visualizerLogicalWidth = typeof window !== 'undefined' ? window.innerWidth : 300;
+let visualizerLogicalHeight = 380;
+let visualizerAudioInterval = null;
+let waveformCanvasCtx = null;
+let visualizerSmoothedVol = 0;
+let cachedVisualizerRgb = '238, 204, 180';
+let cachedGradLayers = [];
+let currentAppSessionPremiumAngle = null;
+let isSpeaking = false;
+let isPaused = false;
+let isGenerating = false;
+let currentUtterance = null;
+let lastSpeakClick = 0;
+// selectedVoice is now initialized further down
+let autoNextBook = false;
+let autoMode = false;
+let seenVersesList = [];
+try {
+    const savedSeen = localStorage.getItem('seenVersesHistory');
+    if (savedSeen) seenVersesList = JSON.parse(savedSeen) || [];
+} catch(e) { seenVersesList = []; }
+let seenVersesSet = new Set(seenVersesList);
+
+function saveSeenVerses() {
+    try {
+        localStorage.setItem('seenVersesHistory', JSON.stringify(seenVersesList.slice(-3000)));
+        if (!isRestoringState && googleUser && googleUser.sub) {
+            triggerCloudSync();
+        }
+    } catch(e) {}
+}
+
+function getVerseSig(v) {
+    if (!v) return '';
+    return (v.religion || '') + '|' + (v.book || '') + '|' + (v.chapter || '') + '|' + (v.verse || '') + '|' + (v.text || '').substring(0, 35);
+}
+
+let allVersesUsed = { general: new Set() };
+let bookMarkedVerse = JSON.parse(localStorage.getItem('bookMarkedVerse')) || {};
+let bookVoiceCurrentVerse = 0;
+let bookVoiceTotalVerses = 0;
+let currentBookContent = {};
+let chapterList = [];
+let globalVerseMap = [];
+// Voice Settings
+let selectedVoice = localStorage.getItem('selectedVoice') || 'en_GB-alan-medium';
+let loadedVoices = new Set();
+const MIN_CHAR_LIMIT = 20;
+const maxCharLimit = 250;
+let darkModeStr = localStorage.getItem('darkModeEnabled');
+let darkModeEnabled = darkModeStr === null ? true : darkModeStr === 'true';
+const religions = ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Sikhism', 'Judaism', 'Philosophy'];
+
+const dataUrls = {
+    Christianity: ['./data/bible.json?v=21'],
+    Islam: ['./data/quran_v2.json?v=21', './data/hadiths_v2.json?v=21'],
+    Hinduism: ['./data/gita.json?v=22', './data/hindu_books.json?v=22'],
+    Judaism: ['./data/sefaria.json?v=21'],
+    Sikhism: ['./data/gurbani.json?v=21'],
+    Buddhism: ['./data/buddhism.json?v=21'],
+    Philosophy: ['./data/philosophy.json?v=21']
+};
+let loadedReligions = new Set();
+// Settings
+let ttsAnnounceSource = false;
+let ttsRandomVoice = false;
+
+const voiceBaseLengths = {
+    'en_GB-alan-medium': 0.9,
+    'en_GB-alba-medium': 1.25,
+    'en_US-libritts_r-medium': 1.66
+};
+// Rendering Variables
+let currentRenderedChapter = null;
+let chapterStartIndices = {};
+// Gesture Variables
+let touchStartX = 0;
+let touchStartY = 0;
+let touchEndX = 0;
+let touchEndY = 0;
+// Onboarding Temp Selection
+let onboardingSelection = new Set();
+// Bookmark / Album state
+let selectedSavedAlbum = null;
+let createdAlbums = JSON.parse(localStorage.getItem('createdAlbums') || '[]');
+if (!Array.isArray(createdAlbums)) createdAlbums = [];
+
+let audioCtx = null;
+function getAudioCtx() {
+    if (!audioCtx) {
+        try {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (AudioContextClass) {
+                audioCtx = new AudioContextClass();
+            }
+        } catch (e) {}
+    }
+    return audioCtx;
+}
+
+let musicSourceNode = null;
+let musicHighpassFilter = null;
+function setupMusicAudioProcessing() {
+    try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        const ctx = getAudioContext();
+        if (ctx && ctx.state === 'suspended') {
+            ctx.resume().catch(() => {});
+        }
+        if (!musicSourceNode && audio) {
+            musicSourceNode = ctx.createMediaElementSource(audio);
+            musicHighpassFilter = ctx.createBiquadFilter();
+            musicHighpassFilter.type = 'highpass';
+            musicHighpassFilter.frequency.value = 130; // Cleanly cuts out sub-130Hz frequencies causing device vibration
+            musicHighpassFilter.Q.value = 0.7;
+            musicSourceNode.connect(musicHighpassFilter);
+            musicHighpassFilter.connect(ctx.destination);
+        }
+    } catch (e) {
+        // Direct audio element fallback
+    }
+}
+
+function safePlayAudio(audioEl) {
+    if (!audioEl) return Promise.resolve();
+    try {
+        setupMusicAudioProcessing();
+        const ctx = getAudioContext();
+        if (ctx && ctx.state === 'suspended') {
+            ctx.resume().catch(() => {});
+        }
+        const p = audioEl.play();
+        if (p && typeof p.then === 'function') {
+            return p;
+        }
+        return Promise.resolve();
+    } catch (e) {
+        return Promise.resolve();
+    }
+}
+
+let audioAnalyser = null;
+let waveformAnimFrame = null;
+let unlockTriggered = false;
+
+// Random Ad scheduling (every 4th to 6th verse)
+let adGapBag = [];
+function getNextAdGap() {
+    if (adGapBag.length === 0) {
+        adGapBag = [3, 4, 5]; // 3=4th card, 4=5th card, 5=6th card
+        for (let i = adGapBag.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [adGapBag[i], adGapBag[j]] = [adGapBag[j], adGapBag[i]];
+        }
+    }
+    return adGapBag.pop();
+}
+
+let versesSinceLastAd = 0;
+let nextAdGap = getNextAdGap();
+
+function unlockAudio() {
+    if (unlockTriggered) return;
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume();
+    
+    // Play a silent oscillator to force iOS WebKit to fully unlock the audio engine
+    try {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        gain.gain.value = 0;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(0);
+        osc.stop(ctx.currentTime + 0.01);
+    } catch (e) {}
+    
+    unlockTriggered = true;
+    document.removeEventListener('touchstart', unlockAudio);
+    document.removeEventListener('mousedown', unlockAudio);
+    document.removeEventListener('touchend', unlockAudio);
+}
+
+document.addEventListener('touchstart', unlockAudio, {passive: true});
+document.addEventListener('mousedown', unlockAudio, {passive: true});
+document.addEventListener('touchend', unlockAudio, {passive: true});
+document.addEventListener('pointerdown', unlockAudio, {passive: true});
+document.addEventListener('keydown', unlockAudio, {passive: true});
+document.addEventListener('click', unlockAudio, {passive: true});
+
+let noiseBuffer = null;
+function getNoiseBuffer() {
+    if (noiseBuffer) return noiseBuffer;
+    const ctx = getAudioCtx();
+    if (!ctx) return null;
+    try {
+        const len = Math.floor(ctx.sampleRate * 0.015); // 15ms
+        noiseBuffer = ctx.createBuffer(1, len, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < len; i++) {
+            output[i] = Math.random() * 2 - 1; // Pure white noise
+        }
+    } catch (e) {
+        noiseBuffer = null;
+    }
+    return noiseBuffer;
+}
+
+function playScrollSound() {
+    const ctx = getAudioCtx();
+    if (!ctx || ctx.state === 'suspended') return;
+    try {
+        const buffer = getNoiseBuffer();
+        if (!buffer) return;
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        
+        // Lowpass filter makes it a dull mechanical plastic "click" rather than harsh static
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 1200;
+
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(0, ctx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.002);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.014);
+        gainNode.gain.setValueAtTime(0, ctx.currentTime + 0.015);
+        
+        source.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        source.start(ctx.currentTime);
+    } catch (e) {}
+}
+
+let lastActiveVoiceIdx = -1;
+let lastActiveChapterIdx = -1;
+// Scroll Sync Flag
+let isProgrammaticScroll = false;
+// (System TTS fallback setup removed, purely using offline Piper TTS)
+
+async function checkForAppUpdates() {
+    if (!window.Capacitor || !Capacitor.isNative) return;
+    try {
+        const AppUpdate = Capacitor.Plugins.AppUpdate;
+        if (AppUpdate) {
+            const result = await AppUpdate.getAppUpdateInfo();
+            // 2 = UPDATE_AVAILABLE
+            if (result.updateAvailability === 2 && result.immediateUpdateAllowed) {
+                await AppUpdate.performImmediateUpdate();
+            }
+        }
+    } catch (e) {
+        console.error("App Update check failed:", e);
+    }
+}
+
+async function initApp() {
+    // Early failsafe: ensures loading curtain always opens smoothly under any network/engine conditions
+    setTimeout(() => {
+        const ls = document.getElementById('loading');
+        if (ls && ls.style.display !== 'none') {
+            document.body.classList.add('app-ready');
+            ls.classList.add('loaded');
+            setTimeout(() => { ls.style.display = 'none'; }, 600);
+        }
+    }, 1200);
+
+    try {
+        initVisualizerWorker();
+        checkForAppUpdates();
+        updateUserUI();
+        switchProfile(getActiveProfileId());
+        applyAutoSpeed(selectedVoice);
+        applyRandomPremiumAngle();
+        addSelectionListeners();
+
+        const darkToggle = document.getElementById('dark-mode-toggle');
+        updateDarkModeIcon(darkModeEnabled);
+        if (darkToggle) {
+            darkToggle.addEventListener('click', () => {
+                suppressFlash(() => {
+                darkModeEnabled = !darkModeEnabled;
+                localStorage.setItem('darkModeEnabled', darkModeEnabled);
+                updateDarkModeIcon(darkModeEnabled);
+                if (darkModeEnabled) {
+                    document.body.setAttribute('data-theme', 'dark');
+                } else {
+                    document.body.removeAttribute('data-theme');
+                }
+                updateVisualizerThemeCache();
+                });
+            });
+        }
+        if (darkModeEnabled) {
+            document.body.setAttribute('data-theme', 'dark');
+        }
+
+        audio = document.getElementById('audio');
+        let initialVol = 0.5;
+        let savedVol = localStorage.getItem('musicVolume');
+        if (savedVol !== null && savedVol !== '1' && savedVol !== '1.0') {
+            initialVol = parseFloat(savedVol);
+            if (isNaN(initialVol)) initialVol = 0.5;
+        } else {
+            initialVol = 0.5;
+        }
+        if (audio) {
+            audio.volume = initialVol;
+        }
+        localStorage.setItem('musicVolume', initialVol.toString());
+        
+        let volumeSlider = document.getElementById('music-volume-slider');
+        if (volumeSlider) {
+            volumeSlider.value = initialVol;
+            const pct = Math.round(initialVol * 100);
+            volumeSlider.setAttribute('data-tooltip', 'Music Volume (' + pct + '%): Adjust the background music volume.');
+            volumeSlider.title = pct + '%';
+        }
+
+        // Random track on every app launch / reload
+        currentTrack = getRandomMusicTrackIndex(-1);
+        if (audio && musicTracks[currentTrack]) {
+            audio.src = musicTracks[currentTrack];
+            audio.addEventListener('ended', nextTrack);
+        }
+
+        let musicEnabled = localStorage.getItem('musicEnabled');
+        if (musicEnabled === null) musicEnabled = 'true'; // Default on
+        
+        const musicBtn = document.getElementById('music-toggle');
+        if (musicEnabled === 'true' && musicBtn) {
+            safePlayAudio(audio).then(() => {
+                musicBtn.classList.add('active');
+            }).catch(e => {
+                // Autoplay blocked by WebView policy, will resume on first touch
+            });
+
+            const playOnFirstInteraction = () => {
+                const ctx = getAudioContext();
+                if (ctx && ctx.state === 'suspended') {
+                    ctx.resume().catch(() => {});
+                }
+                if (localStorage.getItem('musicEnabled') !== 'false' && audio) {
+                    safePlayAudio(audio).then(() => {
+                        const btn = document.getElementById('music-toggle');
+                        if (btn) btn.classList.add('active');
+                    }).catch(err => {});
+                }
+                document.removeEventListener('click', playOnFirstInteraction);
+                document.removeEventListener('pointerdown', playOnFirstInteraction);
+                document.removeEventListener('touchstart', playOnFirstInteraction);
+                document.removeEventListener('scroll', playOnFirstInteraction);
+            };
+            document.addEventListener('click', playOnFirstInteraction, { passive: true });
+            document.addEventListener('pointerdown', playOnFirstInteraction, { passive: true });
+            document.addEventListener('touchstart', playOnFirstInteraction, { passive: true });
+            document.addEventListener('scroll', playOnFirstInteraction, { passive: true });
+        }
+
+        // Pause music when app is backgrounded / user switches apps, resume on return
+        let wasMusicPlayingBeforeBackground = false;
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (audio && !audio.paused) {
+                    wasMusicPlayingBeforeBackground = true;
+                    audio.pause();
+                }
+                if (isSpeaking && !isPaused) {
+                    stopAudio(true);
+                }
+            } else {
+                const mEnabled = localStorage.getItem('musicEnabled') !== 'false';
+                if (wasMusicPlayingBeforeBackground && mEnabled) {
+                    wasMusicPlayingBeforeBackground = false;
+                    if (audio) safePlayAudio(audio).catch(() => {});
+                }
+                if (googleUser && googleUser.sub && typeof loadUserDataFromFirestore === 'function') {
+                    loadUserDataFromFirestore(googleUser.sub);
+                }
+            }
+        });
+
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+            window.Capacitor.Plugins.App.addListener('appStateChange', ({ isActive }) => {
+                if (!isActive) {
+                    if (audio && !audio.paused) {
+                        wasMusicPlayingBeforeBackground = true;
+                        audio.pause();
+                    }
+                } else {
+                    const mEnabled = localStorage.getItem('musicEnabled') !== 'false';
+                    if (wasMusicPlayingBeforeBackground && mEnabled) {
+                        wasMusicPlayingBeforeBackground = false;
+                        if (audio) safePlayAudio(audio).catch(() => {});
+                    }
+                    if (googleUser && googleUser.sub && typeof loadUserDataFromFirestore === 'function') {
+                        loadUserDataFromFirestore(googleUser.sub);
+                    }
+                }
+            });
+        }
+
+        if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
+            globalSelectedRels = [...religions];
+            localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
+            triggerCloudSync();
+        }
+
+        setTimeout(() => {
+            setupGestures();
+            setupWheelListeners();
+
+            function dismissLoadingAndShowApp() {
+                const loadingScreen = document.getElementById('loading');
+                if (!loadingScreen || loadingScreen.style.display === 'none') {
+                    document.body.classList.add('app-ready');
+                    appLoaded = true;
+                    return;
+                }
+                // App is ready and static underneath immediately
+                document.body.classList.add('app-ready');
+                appLoaded = true;
+
+                // Smoothly swipe up the loading screen curtain
+                loadingScreen.classList.add('loaded');
+                
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                }, 950);
+
+                // Auto-start installing/loading the voice immediately on app open
+                setTimeout(() => {
+                    initPiper(selectedVoice).catch(err => console.log("Background voice pre-install:", err));
+                }, 300);
+
+                try {
+                    initLanguageSettings();
+                } catch(e) {
+                    console.warn("Language settings init:", e);
+                }
+            }
+
+            // Safety Watchdog: Guarantee loading overlay is dismissed even on slowest devices
+            setTimeout(() => {
+                const loadingScreen = document.getElementById('loading');
+                if (loadingScreen && loadingScreen.style.display !== 'none') {
+                    console.log('Safety watchdog dismissing loading overlay');
+                    dismissLoadingAndShowApp();
+                }
+            }, 3000);
+
+            // Load data and show loading overlay until verses and layout are fully ready and responsive
+            loadSelectedData().then(async () => {
+                initializeVerseFeed();
+                goTo('verse-feed');
+                // Ensure browser finishes layout and initial DOM painting
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                dismissLoadingAndShowApp();
+            }).catch(async err => {
+                console.error("Data load error:", err);
+                initializeVerseFeed();
+                goTo('verse-feed');
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                dismissLoadingAndShowApp();
+            });
+        }, 10);
+
+
+    } catch (error) {
+        console.error('Initialization error:', error);
+    }
+}
+let lastAppliedStatusBarTheme = true;
+function updateDarkModeIcon(isDark) {
+    if (lastAppliedStatusBarTheme !== isDark && window.AppSigner && typeof window.AppSigner.setStatusBarTheme === 'function') {
+        lastAppliedStatusBarTheme = isDark;
+        try { window.AppSigner.setStatusBarTheme(Boolean(isDark)); } catch (e) {}
+    }
+    const btn = document.getElementById('dark-mode-toggle');
+    if (!btn) return;
+    if (isDark) {
+        btn.innerHTML = '<svg id="dark-mode-icon-svg" style="width:22px;height:22px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
+    } else {
+        btn.innerHTML = '<svg id="dark-mode-icon-svg" style="width:22px;height:22px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+    }
+}
+let lastSwipeTime = 0;
+
+let touchStartTarget = null;
+
+let isDraggingFeed = false;
+let feedTouchStartX = 0;
+let feedTouchStartY = 0;
+let feedCurrentDeltaX = 0;
+let feedIsHorizontalGesture = false;
+
+function setupGestures() {
+    const feedStage = document.getElementById('feed-stage');
+    if (!feedStage) return;
+
+    feedStage.addEventListener('touchstart', e => {
+        if (!appLoaded) return;
+        const activeModal = document.querySelector('.modal-overlay:not(.hidden)');
+        if (activeModal) return;
+        if (e.target.closest && (e.target.closest('.bookmark-btn') || e.target.closest('.speak-btn') || e.target.closest('.modal-overlay'))) return;
+
+        if (e.touches && e.touches[0]) {
+            isDraggingFeed = true;
+            feedIsHorizontalGesture = false;
+            feedTouchStartX = e.touches[0].clientX;
+            feedTouchStartY = e.touches[0].clientY;
+            feedCurrentDeltaX = 0;
+            touchStartTarget = e.target;
+        }
+    }, { passive: true });
+
+    feedStage.addEventListener('touchmove', e => {
+        if (!isDraggingFeed || !e.touches || !e.touches[0]) return;
+        const currentX = e.touches[0].clientX;
+        const currentY = e.touches[0].clientY;
+        const diffX = currentX - feedTouchStartX;
+        const diffY = currentY - feedTouchStartY;
+
+        if (!feedIsHorizontalGesture) {
+            if (Math.abs(diffX) > 6 && Math.abs(diffX) > Math.abs(diffY)) {
+                feedIsHorizontalGesture = true;
+            } else if (Math.abs(diffY) > 8) {
+                isDraggingFeed = false;
+                return;
+            }
+        }
+
+        if (feedIsHorizontalGesture) {
+            feedCurrentDeltaX = diffX;
+            const currentCard = feedStage.querySelector('.verse-card.card-center');
+            if (currentCard) {
+                currentCard.style.transition = 'none';
+                const scale = Math.max(0.92, 1 - (Math.abs(diffX) / window.innerWidth) * 0.08);
+                currentCard.style.transform = `translateX(${diffX}px) scale(${scale})`;
+            }
+        }
+    }, { passive: true });
+
+    feedStage.addEventListener('touchend', e => {
+        if (!isDraggingFeed) return;
+        isDraggingFeed = false;
+
+        const currentCard = feedStage.querySelector('.verse-card.card-center');
+        if (feedIsHorizontalGesture && currentCard) {
+            currentCard.style.transition = 'transform 0.28s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.28s ease';
+            if (feedCurrentDeltaX < -60) {
+                lastSwipeTime = Date.now();
+                nextCard();
+            } else if (feedCurrentDeltaX > 60 && currentVerseIndex.general > 0) {
+                lastSwipeTime = Date.now();
+                prevCard();
+            } else {
+                currentCard.style.transform = 'translateX(0) scale(1)';
+            }
+        }
+        feedIsHorizontalGesture = false;
+        feedCurrentDeltaX = 0;
+    }, { passive: true });
+
+    feedStage.addEventListener('click', (e) => {
+        if (!appLoaded) return;
+        if (Date.now() - lastSwipeTime < 500) return;
+        if (e.target.closest('.bookmark-btn') || e.target.closest('.speak-btn') || e.target.closest('.card-peek-left') || e.target.closest('.card-peek-right')) return;
+        
+        const width = window.innerWidth;
+        const clickX = e.clientX;
+        const isFeed = document.getElementById('verse-feed').classList.contains('active-section');
+        if (!isFeed) return;
+        
+        if (clickX < width * 0.3) {
+            prevCard();
+            return;
+        }
+        if (clickX > width * 0.7) {
+            nextCard();
+            return;
+        }
+
+        const cardClicked = e.target.closest('.verse-card.card-center');
+        if (cardClicked) {
+            const currentVerse = getVerseAtIndex(currentVerseIndex.general);
+            if (currentVerse) {
+                selectVerse({ ...currentVerse, isManual: true }, 'feed', null);
+            }
+        } else {
+            deselectVerse();
+        }
+    });
+}
+
+function handleGesture() {}
+// --- Piper TTS Audio Initialization ---
+let piperSession = null;
+let piperInitializing = false;
+let piperInitPromise = null;
+let audioContext = null;
+let currentAudioNode = null;
+let currentAudioBuffer = null;
+let currentAudioStartTime = 0;
+let currentAudioPausedAt = 0;
+let currentAudioContextType = null;
+
+function getAudioContext() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioContext;
+}
+
+let voiceDownloadToastTimeout = null;
+function showVoiceInstallingToast(msg = "Installing voice...", percent = null) {
+    const toast = document.getElementById('global-toast');
+    const msgEl = document.getElementById('toast-message');
+    const actionBtn = document.getElementById('toast-action-btn');
+    const progressEl = document.getElementById('toast-progress');
+    if (!toast || !msgEl) return;
+    
+    let displayMsg = "Installing voice...";
+    if (typeof percent === 'number' && percent >= 100) {
+        displayMsg = "Voice ready";
+    } else if (typeof msg === 'string' && msg.toLowerCase().includes('ready')) {
+        displayMsg = "Voice ready";
+    }
+    
+    msgEl.textContent = displayMsg;
+    if (actionBtn) actionBtn.style.display = 'none';
+    
+    if (progressEl) {
+        if (typeof percent === 'number') {
+            progressEl.style.transition = 'transform 0.2s ease-out';
+            const frac = Math.max(0.04, Math.min(1, percent / 100));
+            progressEl.style.transform = `scaleX(${frac})`;
+        } else {
+            progressEl.style.transition = 'none';
+            progressEl.style.transform = 'scaleX(0)';
+            requestAnimationFrame(() => {
+                progressEl.style.transition = 'transform 2500ms cubic-bezier(0.1, 0.5, 0.1, 1)';
+                progressEl.style.transform = 'scaleX(0.9)';
+            });
+        }
+    }
+    
+    toast.classList.add('show');
+    clearTimeout(toastHideTimeout);
+    clearTimeout(voiceDownloadToastTimeout);
+    
+    if (percent !== null && percent >= 100) {
+        if (progressEl) {
+            progressEl.style.transition = 'transform 0.15s ease-out';
+            progressEl.style.transform = 'scaleX(1)';
+        }
+        voiceDownloadToastTimeout = setTimeout(() => {
+            toast.classList.remove('show');
+            if (progressEl) {
+                setTimeout(() => {
+                    progressEl.style.transition = 'none';
+                    progressEl.style.transform = 'scaleX(0)';
+                }, 250);
+            }
+        }, 1200);
+    }
+}
+
+function hideVoiceToast() {
+    if (piperInitializing) return; // Do not hide toast while actively installing voice
+    const toast = document.getElementById('global-toast');
+    if (toast) toast.classList.remove('show');
+    clearTimeout(voiceDownloadToastTimeout);
+}
+
+let piperSessionsCache = {};
+
+async function initPiper(voiceId = "en_US-libritts_r-medium") {
+    if (piperSessionsCache[voiceId]) {
+        piperSession = piperSessionsCache[voiceId];
+        return piperSession;
+    }
+    if (piperSession && piperSession.voiceId === voiceId && piperInitPromise) return piperInitPromise;
+    
+    piperInitPromise = (async () => {
+        piperInitializing = true;
+        
+        try {
+            const isInstalled = localStorage.getItem('piper_voice_installed_' + voiceId) === 'true';
+            let maxPercent = 5;
+            if (!isInstalled) {
+                showVoiceInstallingToast("Installing voice...", maxPercent);
+            }
+            
+            const tts = await import("./libs/piper/piper-bundle.js?v=20");
+            if (tts.TtsSession._instance) {
+                tts.TtsSession._instance = null; // Force reload of ONNX model
+            }
+            console.log("Loading Piper TTS voice:", voiceId);
+            const wasmBase = new URL('libs/piper/', window.location.href).href;
+            
+            let lastProgressUpdate = 0;
+            const newSession = await tts.TtsSession.create({
+                voiceId: voiceId,
+                wasmPaths: {
+                    onnxWasm: wasmBase,
+                    piperData: wasmBase + "piper_phonemize.data",
+                    piperWasm: wasmBase + "piper_phonemize.wasm"
+                },
+                progress: (p) => {
+                    if (p && p.loaded) {
+                        const now = Date.now();
+                        if (now - lastProgressUpdate < 500) return; // Throttle to every 500ms
+                        lastProgressUpdate = now;
+                        const totalBytes = (p.total && p.total > 0) ? p.total : (62 * 1024 * 1024);
+                        const pct = Math.round((p.loaded / totalBytes) * 100);
+                        if (!isInstalled) {
+                            maxPercent = Math.max(maxPercent, Math.min(98, pct));
+                            showVoiceInstallingToast("Installing voice...", maxPercent);
+                        }
+                    }
+                }
+            });
+            localStorage.setItem('piper_voice_installed_' + voiceId, 'true');
+            piperInitializing = false;
+            if (!isInstalled) {
+                showVoiceInstallingToast("Voice ready", 100);
+            } else {
+                hideVoiceToast();
+            }
+            newSession.voiceId = voiceId;
+            let savedSpeed = localStorage.getItem('voiceSpeed_' + voiceId);
+            if (!savedSpeed) {
+                if (voiceId === 'en_GB-alan-medium') savedSpeed = "1.1";
+                else if (voiceId === 'en_GB-alba-medium') savedSpeed = "0.9";
+                else if (voiceId === 'en_US-libritts_r-medium') savedSpeed = "0.6";
+                else savedSpeed = "1.0";
+            }
+            const baseLen = voiceBaseLengths[voiceId] || 1.0;
+            newSession.speedScale = baseLen / parseFloat(savedSpeed);
+            
+            piperSessionsCache[voiceId] = newSession;
+            piperSession = newSession;
+            console.log(`Piper TTS loaded with ${voiceId} via offline WebAssembly.`);
+        } catch (e) {
+            console.error("Piper TTS init failed:", e);
+            piperSession = null;
+            piperInitializing = false;
+            hideVoiceToast();
+            throw e;
+        }
+    })();
+    return piperInitPromise;
+}
+
+function updateMusicVolume() {
+    if (!isPremiumUser) {
+        const slider = document.getElementById('music-volume-slider');
+        if (slider && audio) {
+            slider.value = audio.volume;
+        }
+        openPremiumModal();
+        return;
+    }
+    const slider = document.getElementById('music-volume-slider');
+    const audioEl = document.getElementById('audio');
+    if (slider && audioEl) {
+        const val = parseFloat(slider.value);
+        audioEl.volume = val;
+        localStorage.setItem('musicVolume', slider.value);
+        const pct = Math.round(val * 100);
+        slider.setAttribute('data-tooltip', 'Music Volume (' + pct + '%): Adjust the background music volume.');
+        slider.title = pct + '%';
+        triggerCloudSync();
+    }
+}
+
+function toggleTTSSource() {
+    if (!isPremiumUser) {
+        openPremiumModal();
+        return;
+    }
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
+    ttsAnnounceSource = !ttsAnnounceSource;
+    localStorage.setItem('ttsAnnounceSource', ttsAnnounceSource);
+    updateTogglesUI();
+}
+
+function toggleTTSRandom() {
+    if (!isPremiumUser) {
+        openPremiumModal();
+        return;
+    }
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
+    ttsRandomVoice = !ttsRandomVoice;
+    localStorage.setItem('ttsRandomVoice', ttsRandomVoice);
+    updateTogglesUI();
+}
+
+function updateTogglesUI() {
+    const srcBtn = document.getElementById('tts-source-toggle');
+    const rndBtn = document.getElementById('tts-random-toggle');
+    const allowPremiumToggles = isPremiumUser && (typeof getActiveProfileId === 'function' ? getActiveProfileId() !== 'guest' : false);
+    if (srcBtn) {
+        if (ttsAnnounceSource && allowPremiumToggles) srcBtn.classList.add('active');
+        else srcBtn.classList.remove('active');
+        
+        srcBtn.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M7 9.5 C7 6 9 3 12 3 C15 3 17 6 17 9.5 C17 13 15 16 12 16 H11 C11 19 13 21 15 21 V23.5 C10 23.5 7 20 7 9.5 Z" /></svg>';
+    }
+    if (rndBtn) {
+        if (ttsRandomVoice && allowPremiumToggles) rndBtn.classList.add('active');
+        else rndBtn.classList.remove('active');
+    }
+}
+
+
+
+// --- Audio Handling Functions ---
+let currentGenerationId = 0;
+let audioChunkQueue = [];
+let playingQueueIndex = 0;
+
+function stopAudio(preserveAutoMode = false, keepVisualizer = false, isTransitioning = false) {
+    currentGenerationId++;
+    clearTimeout(playDebounceTimer);
+    clearTimeout(autoNextTimeout);
+    if (currentAudioNode) {
+        try {
+            currentAudioNode.onended = null;
+            currentAudioNode.stop();
+            currentAudioNode.disconnect();
+        } catch (e) { }
+        currentAudioNode = null;
+    }
+    if (currentUtterance) {
+        speechSynthesis.cancel();
+        currentUtterance = null;
+    }
+    audioChunkQueue = [];
+    playingQueueIndex = 0;
+    currentAudioBuffer = null;
+    currentAudioPausedAt = 0;
+    
+    if (!isTransitioning) {
+        isSpeaking = false;
+        isPaused = false;
+        isGenerating = false;
+        isQueueGenerating = false;
+        if (!preserveAutoMode) {
+            autoMode = false;
+            autoNextBook = false;
+        }
+        if (!keepVisualizer && !preserveAutoMode && !autoMode && !autoNextBook) {
+            stopWaveformVisualizer(false);
+        }
+        updateSpeakIcons();
+        const btn = document.getElementById('speak-general');
+        if (btn) btn.classList.remove('loading');
+    }
+}
+
+
+let selectedVerse = null;
+let lastSelectedBookVerse = null;
+let activeSavedVerse = null;
+
+let programmaticScrollTimeout = null;
+
+if (!localStorage.getItem('speed_defaults_set_v8')) {
+    localStorage.removeItem('voiceSpeed_en_GB-alan-medium');
+    localStorage.removeItem('voiceSpeed_en_GB-alba-medium');
+    localStorage.removeItem('voiceSpeed_en_US-libritts_r-medium');
+    localStorage.setItem('voiceSpeed_en_GB-alan-medium', '1.1');
+    localStorage.setItem('voiceSpeed_en_GB-alba-medium', '0.9');
+    localStorage.setItem('voiceSpeed_en_US-libritts_r-medium', '0.9');
+    localStorage.setItem('speed_defaults_set_v8', 'true');
+}
+
+let playDebounceTimer = null;
+let autoNextTimeout = null;
+
+let lastRandomVoiceId = null;
+
+async function playText(text, context) {
+    // Stop any current audio with transition flag so UI remains in continuous generating/playing state
+    stopAudio(true, true, true);
+    // NOW capture the new generationId (after stop bumped it)
+    const generationId = currentGenerationId;
+
+    // Clean text for TTS pronunciation
+    text = text.replace(/son\(s\)/gi, 'sons')
+               .replace(/god's/gi, 'gods')
+               .replace(/god 's/gi, 'gods')
+               .replace(/\(l\d+\)/gi, '')
+               .replace(/\[l\d+\]/gi, '')
+               .replace(/-/g, ' ');
+
+    // Immediately enter generating state with opacity pulse animation on play button
+    isGenerating = true;
+    isSpeaking = true;
+    isPaused = false;
+    currentAudioContextType = context;
+    updateSpeakButton('speak-general');
+
+    // Load the right voice
+    if (ttsRandomVoice) {
+        const available = voicesList.filter(v => v.value !== lastRandomVoiceId);
+        const pool = available.length > 0 ? available : voicesList;
+        const randomVoice = pool[Math.floor(Math.random() * pool.length)].value;
+        lastRandomVoiceId = randomVoice;
+        
+        selectedVoice = randomVoice;
+        localStorage.setItem('selectedVoice', selectedVoice);
+        syncVoiceWheelToCurrent();
+
+        await initPiper(randomVoice);
+        applyAutoSpeed();
+    } else {
+        await initPiper(selectedVoice);
+    }
+
+    if (!piperSession) {
+        isGenerating = false;
+        isSpeaking = false;
+        updateSpeakButton('speak-general');
+        return;
+    }
+
+    // Check if still valid after async initPiper
+    if (generationId !== currentGenerationId) {
+        isGenerating = false;
+        return;
+    }
+
+    // Strip HTML
+    text = text.replace(/<span class='author-attr'>.*?<\/span>/gm, '');
+    text = text.replace(/<[^>]*>?/gm, '');
+
+    isGenerating = true;
+
+    let sanitizedText = text.replace(/may peace be upon him/gi, 'upon him')
+        .replace(/peace be upon him/gi, 'upon him')
+        .replace(/ﷺ/g, 'upon him')
+        .replace(/\(pbuh\)/gi, 'upon him');
+
+    // Convert all-caps words (like GOD, LORD, ALLAH, HEAVEN) to Titlecase so phonemizer reads them as words, but protect |PAUSE|
+    sanitizedText = sanitizedText.replace(/\b[A-Z]{2,}\b/g, (match) => {
+        if (match.toUpperCase() === 'PAUSE') return 'PAUSE';
+        return match.charAt(0) + match.slice(1).toLowerCase();
+    });
+
+    sanitizedText = ", " + sanitizedText
+        .replace(/\b[iI]\.[eE]\./g, 'that is')
+        .replace(/\b[iI],[eE]\b/g, 'that is')
+        .replace(/[:;]/g, '. ');
+
+    const fallbackTTS = () => {
+        console.log("Using browser TTS fallback");
+        if (generationId !== currentGenerationId) return;
+        if (btn) btn.classList.remove('loading');
+        isGenerating = false;
+        isSpeaking = true;
+        isPaused = false;
+        updateSpeakButton('speak-general');
+        
+        window.speechSynthesis.cancel();
+        const fallbackText = sanitizedText.replace(/\|PAUSE\|/gi, '... ');
+        currentUtterance = new SpeechSynthesisUtterance(fallbackText);
+        const speedSlider = document.getElementById('voice-speed-slider');
+        currentUtterance.rate = speedSlider ? parseFloat(speedSlider.value) : 0.5;
+        currentUtterance.onend = () => {
+            if (isPaused) return;
+            const wasAutoMode = autoMode;
+            const currentContext = currentAudioContextType;
+            const isAutoContinuing = (currentContext === 'feed' && wasAutoMode) ||
+                                     (currentContext === 'book' && autoNextBook) ||
+                                     (currentContext === 'saved' && wasAutoMode) ||
+                                     (currentContext === 'search' && wasAutoMode);
+
+            if (!isAutoContinuing) {
+                isSpeaking = false;
+                updateSpeakButton('speak-general');
+                stopWaveformVisualizer(false);
+            }
+
+            clearTimeout(autoNextTimeout);
+            autoNextTimeout = setTimeout(() => {
+                if (currentContext === 'feed' && wasAutoMode) nextCard(true);
+                else if (currentContext === 'book' && autoNextBook) advanceBookVerse();
+                else if (currentContext === 'saved' && wasAutoMode) advanceSavedVerse();
+                else if (currentContext === 'search' && wasAutoMode) advanceSearchVerse();
+                else {
+                    if (!isSpeaking) stopWaveformVisualizer(false);
+                }
+            }, 400);
+        };
+        currentUtterance.onerror = (e) => {
+            console.log("SpeechSynthesis error:", e);
+            if (!isPaused) {
+                isSpeaking = false;
+                updateSpeakButton('speak-general');
+            }
+        };
+        window.speechSynthesis.speak(currentUtterance);
+    };
+
+    // Split text into sentence chunks and pause markers
+    let chunks = sanitizedText.split(/([.!?,;:]+[\s]+|\|PAUSE\|\s*)/i).filter(Boolean);
+    let combinedChunks = [];
+    let tempChunk = "";
+    for(let i = 0; i < chunks.length; i++) {
+        tempChunk += chunks[i];
+        if (chunks[i].match(/[.!?,;:]+[\s]+/i) || chunks[i].match(/\|PAUSE\|/i)) {
+            let ch = tempChunk.replace(/\|PAUSE\|/gi, '').trim();
+            if (ch) combinedChunks.push(ch);
+            if (chunks[i].match(/\|PAUSE\|/i)) combinedChunks.push("|PAUSE|");
+            tempChunk = "";
+        }
+    }
+    if (tempChunk.trim()) {
+        let ch = tempChunk.replace(/\|PAUSE\|/gi, '').trim();
+        if (ch) combinedChunks.push(ch);
+    }
+    if (combinedChunks.length === 0) combinedChunks = [sanitizedText.replace(/\|PAUSE\|/gi, '')];
+
+    audioChunkQueue = [];
+    playingQueueIndex = 0;
+
+    // Short debounce to avoid double-fires
+    clearTimeout(playDebounceTimer);
+    playDebounceTimer = setTimeout(async () => {
+        if (generationId !== currentGenerationId) {
+            if (btn) btn.classList.remove('loading');
+            return;
+        }
+        if (!piperSession) { fallbackTTS(); return; }
+        isQueueGenerating = true;
+        processAudioQueue(combinedChunks, generationId, fallbackTTS);
+    }, 20);
+}
+
+async function processAudioQueue(chunks, generationId, fallbackTTS) {
+    let playbackStarted = false;
+    
+    for (let i = 0; i < chunks.length; i++) {
+        if (generationId !== currentGenerationId) break;
+        
+        // Yield to let browser paint animation frames BEFORE heavy work
+        await new Promise(r => setTimeout(r, 1));
+        if (generationId !== currentGenerationId) break;
+        
+        try {
+            const ctx = getAudioContext();
+            if (ctx.state === 'suspended') await ctx.resume();
+
+            if (chunks[i] === "|PAUSE|") {
+                const sampleRate = ctx.sampleRate || 22050;
+                const pauseFrames = Math.floor(sampleRate * 0.8);
+                const pauseBuffer = ctx.createBuffer(1, pauseFrames, sampleRate);
+                audioChunkQueue.push(pauseBuffer);
+                continue;
+            }
+
+            const wavBlob = await piperSession.predict(chunks[i]);
+            if (generationId !== currentGenerationId) break;
+
+            // Yield AFTER predict so browser can paint frames between heavy CPU blocks
+            await new Promise(r => setTimeout(r, 1));
+            if (generationId !== currentGenerationId) break;
+
+            const arrayBuffer = await wavBlob.arrayBuffer();
+            const decodedData = await ctx.decodeAudioData(arrayBuffer);
+            
+            if (generationId !== currentGenerationId) break;
+
+            const sampleRate = decodedData.sampleRate;
+            const paddingFrames = Math.floor(sampleRate * 0.2);
+            const paddedBuffer = ctx.createBuffer(
+                decodedData.numberOfChannels, 
+                decodedData.length + paddingFrames, 
+                sampleRate
+            );
+            
+            for (let channel = 0; channel < decodedData.numberOfChannels; channel++) {
+                const channelData = paddedBuffer.getChannelData(channel);
+                channelData.set(decodedData.getChannelData(channel), paddingFrames);
+            }
+
+            audioChunkQueue.push(paddedBuffer);
+            
+            // START PLAYBACK IMMEDIATELY after the first chunk is ready
+            // Don't wait for all chunks — remaining chunks generate while audio plays
+            if (!playbackStarted && generationId === currentGenerationId) {
+                playbackStarted = true;
+                isGenerating = false;
+                const btn = document.getElementById('speak-general');
+                if (btn) btn.classList.remove('loading');
+                startWaveformVisualizer();
+                startAudioPlayback(0, generationId);
+            }
+            
+        } catch (err) {
+            console.error("Piper generation error on chunk " + i, err);
+            if (i === 0 && generationId === currentGenerationId) fallbackTTS();
+            break;
+        }
+    }
+    
+    isQueueGenerating = false;
+    // If playback never started (e.g. single chunk edge case), start it now
+    if (!playbackStarted && generationId === currentGenerationId && audioChunkQueue.length > 0) {
+        isGenerating = false;
+        const btn = document.getElementById('speak-general');
+        if (btn) btn.classList.remove('loading');
+        startWaveformVisualizer();
+        startAudioPlayback(0, generationId);
+    }
+}
+
+function startAudioPlayback(offset, generationId) {
+    if (generationId !== currentGenerationId) return;
+    const btn = document.getElementById('speak-general');
+    if (btn) btn.classList.remove('loading');
+
+    const ctx = getAudioContext();
+    if (ctx.state === 'suspended') {
+        ctx.resume().catch(e => console.error("AudioContext resume failed:", e));
+    }
+
+    if (playingQueueIndex >= audioChunkQueue.length) {
+        if (isQueueGenerating) {
+            isGenerating = true;
+            updateSpeakButton('speak-general');
+            const checkInterval = setInterval(() => {
+                if (generationId !== currentGenerationId || !isSpeaking || isPaused) {
+                    clearInterval(checkInterval);
+                    return;
+                }
+                if (playingQueueIndex < audioChunkQueue.length) {
+                    clearInterval(checkInterval);
+                    isGenerating = false;
+                    startAudioPlayback(0, generationId);
+                } else if (!isQueueGenerating) {
+                    clearInterval(checkInterval);
+                    startAudioPlayback(0, generationId);
+                }
+            }, 100);
+            return;
+        } else {
+            isPaused = false;
+            isGenerating = false;
+            currentAudioPausedAt = 0;
+
+            const isAutoContinuing = (currentAudioContextType === 'feed' && autoMode) ||
+                                     (currentAudioContextType === 'book' && autoNextBook) ||
+                                     (currentAudioContextType === 'saved' && autoMode) ||
+                                     (currentAudioContextType === 'search' && autoMode);
+
+            if (!isAutoContinuing) {
+                isSpeaking = false;
+                updateSpeakButton('speak-general');
+                stopWaveformVisualizer(false);
+            }
+
+            clearTimeout(autoNextTimeout);
+            autoNextTimeout = setTimeout(() => {
+                if (currentAudioContextType === 'feed' && autoMode) {
+                    nextCard(true);
+                } else if (currentAudioContextType === 'book' && autoNextBook) {
+                    advanceBookVerse();
+                } else if (currentAudioContextType === 'saved' && autoMode) {
+                    advanceSavedVerse();
+                } else if (currentAudioContextType === 'search' && autoMode) {
+                    advanceSearchVerse();
+                } else {
+                    if (!isSpeaking) stopWaveformVisualizer(false);
+                }
+            }, 300);
+            return;
+        }
+    }
+
+    currentAudioBuffer = audioChunkQueue[playingQueueIndex];
+    if (!currentAudioBuffer || isPaused) return;
+
+    if (ctx.state === 'suspended') ctx.resume();
+
+    const source = ctx.createBufferSource();
+    source.buffer = currentAudioBuffer;
+
+    const gainNode = ctx.createGain();
+    const voiceId = piperSession ? piperSession.voiceId : "en_US-libritts_r-medium";
+    
+    if (voiceId === "en_GB-alan-medium") {
+        gainNode.gain.value = 0.8;
+    } else if (voiceId === "en_GB-alba-medium") {
+        gainNode.gain.value = 1.6;
+    } else {
+        gainNode.gain.value = 1.0;
+    }
+    
+    source.connect(gainNode);
+    if (!audioAnalyser) { audioAnalyser = ctx.createAnalyser(); audioAnalyser.fftSize = 128; }
+    gainNode.connect(audioAnalyser);
+    audioAnalyser.connect(ctx.destination);
+    startWaveformVisualizer();
+
+    source.onended = () => {
+        if (isPaused || generationId !== currentGenerationId) return;
+        playingQueueIndex++;
+        startAudioPlayback(0, generationId);
+    };
+
+    currentAudioStartTime = ctx.currentTime - offset;
+    source.start(0, offset);
+    currentAudioNode = source;
+    updateSpeakButton('speak-general');
+}
+
+function updateSpeakButton(buttonId) {
+    const btn = document.getElementById(buttonId || 'speak-general');
+    if (!btn) return;
+    if (isGenerating) {
+        btn.classList.add('generating');
+        btn.classList.add('loading');
+        // During generation/buffering, show the Pause icon with breathing pulse animation so there is zero icon flipping
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" class="speak-svg"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+    } else {
+        btn.classList.remove('generating');
+        btn.classList.remove('loading');
+        btn.innerHTML = (isSpeaking && !isPaused) ? '<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" class="speak-svg"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>' : '<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" class="speak-svg"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+    }
+}
+// --- Unified Audio Control ---
+function speakCurrent(type) {
+    const now = Date.now();
+    if (now - lastSpeakClick < 120) return; // Snappy debounce
+    lastSpeakClick = now;
+
+    const ctx = getAudioContext();
+    if (ctx.state === 'suspended') {
+        ctx.resume().catch(e => console.error("AudioContext resume failed:", e));
+    }
+
+    const isBookSection = document.getElementById('read-books').classList.contains('active-section')
+        && !document.getElementById('book-content-view').classList.contains('hidden');
+    const isFeedSection = document.getElementById('verse-feed').classList.contains('active-section');
+
+    if (!isBookSection && !isFeedSection) return;
+
+    if (isGenerating) {
+        // Immediate user cancellation if tapped while generating/loading
+        stopAudio(true);
+        isGenerating = false;
+        isSpeaking = false;
+        isPaused = false;
+        updateSpeakIcons();
+        return;
+    }
+
+    if (isSpeaking) {
+        if (!isPaused) {
+            isPaused = true;
+            if (currentAudioNode) {
+                try {
+                    currentAudioNode.onended = null;
+                    currentAudioNode.stop();
+                } catch (e) { }
+            }
+            stopWaveformVisualizer(false);
+            updateSpeakIcons();
+            return;
+        } else {
+            isPaused = false;
+            startWaveformVisualizer();
+            startAudioPlayback(0, currentGenerationId);
+            updateSpeakIcons();
+            return;
+        }
+    } else {
+        if (isBookSection) {
+            const info = globalVerseMap[bookVoiceCurrentVerse];
+            if (info) {
+                playBookVerse(bookVoiceCurrentVerse);
+                autoNextBook = true;
+            }
+        } else if (isFeedSection) {
+            const curVerse = getVerseAtIndex(currentVerseIndex.general);
+            if (curVerse) {
+                if (curVerse.isAd) {
+                    if (!curVerse.funnyLine) {
+                        curVerse.funnyLine = getNextFunnyLine();
+                    }
+                    const adSpokenText = "VerseFeed Premium. " + curVerse.funnyLine;
+                    playText(adSpokenText, 'feed');
+                    autoMode = true;
+                } else {
+                    let spokenText = curVerse.spoken_text || curVerse.text || '';
+                    if (spokenText) {
+                        if (!spokenText.endsWith('.')) spokenText += '.';
+                        if (ttsAnnounceSource && curVerse.book) {
+                            spokenText += '. ' + curVerse.book + '.';
+                        }
+                        playText(spokenText, 'feed');
+                        autoMode = true;
+                    }
+                }
+            }
+        }
+    }
+}
+// --- Book Audio ---
+function handleVerseClick(index) {
+    const info = globalVerseMap[index];
+    if (info) {
+        selectVerse({ ...info, isManual: true }, 'book', 'book-verse-' + index);
+    }
+}
+function playPauseBook() {
+    // Now just delegates to the main speakCurrent
+    speakCurrent('general');
+}
+function playBookVerse(index) {
+    const info = globalVerseMap[index];
+    if (info) {
+        let textToSpeak = info.spoken_text || info.text;
+
+        if (lastAnnouncedChapter !== info.chapter) {
+            const chapStr = isNaN(info.chapter) ? info.chapter : 'Chapter ' + info.chapter;
+            textToSpeak = chapStr + '. |PAUSE| ' + textToSpeak;
+            lastAnnouncedChapter = info.chapter;
+        }
+        if (!textToSpeak.endsWith('.')) textToSpeak += '.';
+
+        playText(textToSpeak, 'book');
+    }
+};
+function advanceBookVerse() {
+    const nextIndex = (bookVoiceCurrentVerse + 1) % bookVoiceTotalVerses;
+    bookVoiceCurrentVerse = nextIndex;
+    markVerse();
+    scrollToBookVerse(nextIndex);
+    syncWheelsToCurrent();
+    
+    setTimeout(() => {
+        playBookVerse(nextIndex);
+        autoNextBook = true;
+    }, 50);
+}
+// --- Data Loading & Processing ---
+
+function getReligionDataUrls(rel) {
+    if (rel === 'Islam') {
+        const quranFile = (currentAppLanguage === 'bn') ? './data/quran_bn.json?v=35' : './data/quran_v2.json?v=21';
+        return [quranFile, './data/hadiths_v2.json?v=21'];
+    }
+    if (rel === 'Christianity') {
+        const bibleFile = (currentAppLanguage === 'bn') ? './data/bible_bn.json?v=35' : './data/bible.json?v=21';
+        return [bibleFile];
+    }
+    return dataUrls[rel];
+}
+
+async function loadReligionData(rel) {
+    if (loadedReligions.has(rel)) return;
+    try {
+        const urls = getReligionDataUrls(rel);
+        const responses = await Promise.all(urls.map(url => fetch(url).then(res => res.json())));
+        
+        await new Promise(r => setTimeout(r, 5)); // Yield to UI thread
+
+        if (rel === 'Christianity') processBibleData(responses[0]);
+        if (rel === 'Islam') { 
+            processQuranData(responses[0]); 
+            await new Promise(r => setTimeout(r, 5)); // Yield 
+            processHadithData(responses[1]); 
+        }
+        if (rel === 'Hinduism') { 
+            processGitaData(responses[0]); 
+            if (responses[1]) processHinduBooks(responses[1]);
+        }
+        if (rel === 'Judaism') processSefariaData(responses[0]);
+        if (rel === 'Sikhism') processSikhismData(responses[0]);
+        if (rel === 'Buddhism') processBuddhismData(responses[0]);
+        if (rel === 'Philosophy') processGenericData(responses[0], 'Philosophy');
+
+        loadedReligions.add(rel);
+        buildSettings();
+
+        if (document.getElementById('read-books').classList.contains('active-section') && !document.getElementById('library-home').classList.contains('hidden')) {
+            showReligions();
+        }
+    } catch (e) {
+        console.error(`Error loading ${rel}:`, e);
+    }
+}
+async function loadSelectedData() {
+    await loadActiveRankings();
+    if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
+        globalSelectedRels = [...religions];
+    }
+    await Promise.all(globalSelectedRels.map(rel => loadReligionData(rel)));
+    
+    // Defer unselected background loading so initial feed animations and gestures are silky smooth
+    setTimeout(() => {
+        loadUnselectedDataInBackground();
+    }, 2500);
+}
+async function loadUnselectedDataInBackground() {
+    for (const rel of religions) {
+        if (!loadedReligions.has(rel)) {
+            loadReligionData(rel);
+        }
+    }
+}
+function formatVerseRef(v) {
+    if (!v) return '';
+    const rawBook = v.book || v.religion || '';
+    const chap = (v.chapter !== undefined && v.chapter !== null) ? String(v.chapter) : '';
+    const verse = (v.verse !== undefined && v.verse !== null) ? String(v.verse) : '';
+    
+    let chapPart = (chap !== '' && chap !== null && chap !== undefined) ? ' ' + chap : '';
+    let versePart = (verse !== '' && verse !== null && verse !== undefined) ? (chapPart ? ':' + verse : ' ' + verse) : '';
+    
+    // Translate structural English words in chapter label (e.g. Part 9 -> পর্ব ৯ / Partie 9)
+    const structuralKeys = ['Part', 'Book', 'Chapter', 'Section', 'Hymn', 'Discourse'];
+    structuralKeys.forEach(k => {
+        const reg = new RegExp('\\b' + k + '\\b', 'gi');
+        if (reg.test(chapPart)) {
+            const translatedTerm = (typeof t === 'function') ? t(k) : k;
+            chapPart = chapPart.replace(reg, translatedTerm);
+        }
+    });
+
+    // In Bengali mode, convert Western digits to Bengali digits
+    if (currentAppLanguage === 'bn') {
+        const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+        chapPart = chapPart.replace(/\d/g, d => bnDigits[parseInt(d, 10)]);
+        versePart = versePart.replace(/\d/g, d => bnDigits[parseInt(d, 10)]);
+    }
+    
+    // Localize Book Name through universal dictionary & cache
+    let localizedBook = rawBook;
+    if (typeof t === "function") {
+        localizedBook = t(rawBook);
+    }
+    
+    return `${localizedBook}${chapPart}${versePart}`.trim();
+}
+
+function cleanText(text) {
+    if (!text) return '';
+    
+    // Standardize all forms of Islamic honorifics strictly to (pbuh) with single brackets
+    text = text.replace(/[\(\[\{]*\s*(?:may\s+)?peace\s+(?:be\s+)?upon\s+(?:him|them|her)\s*[\)\]\}]*/gi, ' (pbuh) ')
+               .replace(/[\(\[\{]*\s*pbuh\s*[\)\]\}]*/gi, ' (pbuh) ')
+               .replace(/[\(\[\{]*\s*s\.a\.w\.?\s*[\)\]\}]*/gi, ' (pbuh) ')
+               .replace(/[\(\[\{]*\s*saw\s*[\)\]\}]*/gi, ' (pbuh) ')
+               .replace(/ﷺ|\ufdfa/g, ' (pbuh) ');
+    
+    text = text.replace(/[{}[\]\@#*_+=~0-9]/g, '')
+               .replace(/\s+/g, ' ')
+               .replace(/^[\s\-.,:;]+/, '')
+               .trim();
+
+    // Standardize all double/nested brackets to single (pbuh)
+    while (text.includes('((pbuh))')) text = text.replace('((pbuh))', '(pbuh)');
+    while (text.includes('( (pbuh) )')) text = text.replace('( (pbuh) )', '(pbuh)');
+    while (text.includes('(( pbuh ))')) text = text.replace('(( pbuh ))', '(pbuh)');
+    while (text.includes('((pbuh)')) text = text.replace('((pbuh)', '(pbuh)');
+    while (text.includes('(pbuh))')) text = text.replace('(pbuh))', '(pbuh)');
+    text = text.replace(/\(\s*pbuh\s*\)/gi, '(pbuh)').replace(/\s+/g, ' ').trim();
+
+    return text;
+}
+function processBibleData(bible) {
+    let christianVerses = [];
+    let christianBooks = [];
+    Object.keys(bible).forEach(bookName => {
+        const bookContent = bible[bookName];
+        if (typeof bookContent === 'object') {
+            let chapters = {};
+            Object.keys(bookContent).forEach(chapNum => {
+                const verses = bookContent[chapNum];
+                chapters[chapNum] = verses;
+                Object.keys(verses).forEach(verseNum => {
+                    christianVerses.push({
+                        id: `christianity_${bookName}_${chapNum}_${verseNum}`.toLowerCase().replace(/ /g, '_'),
+                        book: bookName,
+                        chapter: chapNum,
+                        verse: verseNum,
+                        text: cleanText(verses[verseNum]),
+                        religion: 'Christianity'
+                    });
+                });
+            });
+            christianBooks.push({ name: bookName, content: chapters });
+        }
+    });
+    religionVerses.Christianity = christianVerses;
+    religionBooks.Christianity = { books: christianBooks };
+}
+function processQuranData(quran) {
+    let islamVerses = [];
+    let quranChapters = {};
+    const isArabic = (currentAppLanguage === 'ar');
+    
+    quran.forEach(surah => {
+        let verses = {};
+        surah.verses.forEach(v => {
+            const raw = (isArabic && v.text) ? v.text : (v.translation || v.text || '');
+            const cleaned = isArabic ? raw.trim() : cleanText(raw);
+            verses[v.id] = cleaned;
+            islamVerses.push({
+                id: `islam_quran_${surah.id}_${v.id}`.toLowerCase().replace(/ /g, '_'),
+                book: 'Quran',
+                chapter: surah.id,
+                verse: v.id,
+                text: cleaned,
+                religion: 'Islam'
+            });
+        });
+        quranChapters[surah.id] = verses;
+    });
+    let islamBooks = [{ name: 'Quran', content: quranChapters }];
+    religionVerses.Islam = islamVerses;
+    religionBooks.Islam = { books: islamBooks };
+}
+function processHadithData(allHadiths) {
+    let islamVerses = religionVerses.Islam || [];
+    let islamBooks = (religionBooks.Islam && religionBooks.Islam.books) ? religionBooks.Islam.books : [];
+    let hadithCollections = {};
+
+    allHadiths.forEach(h => {
+        const collection = h.source;
+        if (!hadithCollections[collection]) {
+            hadithCollections[collection] = { chapters: {}, chapterOrder: [] };
+        }
+
+        const text = h.text_en;
+        if (text && text !== "Missing English text") {
+            const metaPhrases = [
+                "chain of transmitters",
+                "chain of transmission",
+                "variation of wording",
+                "change of words",
+                "rest of the hadith is the same",
+                "similar hadith has been",
+                "same hadith has been",
+                "this hadith has been reported",
+                "this hadith is reported",
+                "this dispatched hadith has been",
+                "this hadith has been transmitted",
+                "exception of these words",
+                "with this addition",
+                "but he made no mention of",
+                "the hadith was narrated"
+            ];
+            const lowerText = text.toLowerCase();
+            const hasMetaPhrase = metaPhrases.some(phrase => lowerText.includes(phrase));
+            if (hasMetaPhrase) return; // Skip this hadith completely to keep feed clean
+
+            const chapter = (h.chapter_no || 1).toString();
+            const verseStr = (h.hadith_no || 1).toString();
+
+            if (!hadithCollections[collection].chapters[chapter]) {
+                hadithCollections[collection].chapters[chapter] = {};
+                hadithCollections[collection].chapterOrder.push(chapter);
+            }
+
+            const cleanedText = cleanText(text);
+            hadithCollections[collection].chapters[chapter][verseStr] = cleanedText;
+            islamVerses.push({
+                id: `islam_${collection}_${chapter}_${verseStr}`.toLowerCase().replace(/ /g, '_'),
+                book: collection,
+                chapter: chapter,
+                verse: verseStr,
+                text: cleanedText,
+                religion: 'Islam'
+            });
+        }
+    });
+
+    Object.keys(hadithCollections).forEach(collection => {
+        islamBooks.push({ 
+            name: collection, 
+            content: hadithCollections[collection].chapters,
+            chapterOrder: hadithCollections[collection].chapterOrder,
+            isNested: false
+        });
+    });
+    religionVerses.Islam = islamVerses;
+    religionBooks.Islam = { books: islamBooks };
+}
+function processGitaData(gita) {
+    const chapterLengths = [47, 72, 43, 42, 29, 47, 30, 28, 34, 42, 55, 20, 35, 27, 20, 24, 28, 78];
+    let hinduVerses = [];
+    let gitaChapters = {};
+    let uniqueVerses = {};
+
+    gita.filter(g => g.lang && g.lang.toLowerCase() === 'english').forEach(g => {
+        if (!uniqueVerses[g.verse_id]) {
+            uniqueVerses[g.verse_id] = g.description;
+        }
+    });
+
+    let currentChapter = 1;
+    let verseInChapter = 1;
+    let chapterEnd = chapterLengths[0];
+
+    for (let vid = 1; vid <= 701; vid++) {
+        if (!uniqueVerses[vid]) continue;
+        const chap = currentChapter.toString();
+        const vers = verseInChapter.toString();
+        const text = cleanText(uniqueVerses[vid]);
+        
+        hinduVerses.push({
+            id: `hinduism_bhagavad_gita_${currentChapter}_${verseInChapter}`.toLowerCase().replace(/ /g, '_'),
+            book: 'Bhagavad Gita',
+            chapter: chap,
+            verse: vers,
+            text: text,
+            religion: 'Hinduism'
+        });
+        
+        if (!gitaChapters[chap]) gitaChapters[chap] = {};
+        gitaChapters[chap][vers] = text;
+
+        verseInChapter++;
+        if (verseInChapter > chapterEnd && currentChapter < 18) {
+            currentChapter++;
+            verseInChapter = 1;
+            chapterEnd = chapterLengths[currentChapter - 1];
+        }
+    }
+
+    let chapterOrder = Array.from({length: 18}, (_, i) => (i + 1).toString());
+    let hinduBooks = [{ name: 'Bhagavad Gita', content: gitaChapters, chapterOrder: chapterOrder, isNested: false }];
+    
+    religionVerses.Hinduism = hinduVerses;
+    religionBooks.Hinduism = { books: hinduBooks };
+}
+function processHinduBooks(data, allowedBooks = null, excludedBooks = null) {
+    let hinduVerses = religionVerses.Hinduism || [];
+    let hinduBooksMap = {};
+    Object.keys(data).forEach(bookName => {
+        if (allowedBooks && !allowedBooks.includes(bookName)) return;
+        if (excludedBooks && excludedBooks.includes(bookName)) return;
+
+        const bookData = data[bookName];
+        let chapters = {};
+        let chapterOrder = [];
+        
+        // Ensure chapter sorting logic handles string/number combinations (e.g., "Book 1", "Mandala 10")
+        const chapKeys = Object.keys(bookData).sort((a, b) => {
+            const numA = parseInt((a.match(/\d+/) || [0])[0]);
+            const numB = parseInt((b.match(/\d+/) || [0])[0]);
+            return numA - numB;
+        });
+
+        chapKeys.forEach((chapName, chapIdx) => {
+            chapterOrder.push(chapName);
+            chapters[chapName] = {};
+            const verses = bookData[chapName];
+            
+            const verseKeys = Object.keys(verses).sort((a, b) => {
+                const numA = parseInt((a.match(/\d+/) || [0])[0]);
+                const numB = parseInt((b.match(/\d+/) || [0])[0]);
+                return numA - numB;
+            });
+            
+            verseKeys.forEach((vKey, vIdx) => {
+                const text = verses[vKey];
+                if (text && text.trim() !== '') {
+                    chapters[chapName][vKey] = text;
+                    
+                    const chapMatch = chapName.match(/\d+/);
+                    const chapNum = chapMatch ? parseInt(chapMatch[0]) : (chapIdx + 1);
+                    
+                    const vMatch = vKey.match(/\d+/);
+                    const verseNum = vMatch ? parseInt(vMatch[0]) : (vIdx + 1);
+                    
+                    hinduVerses.push({
+                        id: `hinduism_${bookName}_${chapName}_${vKey}`.toLowerCase().replace(/ /g, '_'),
+                        book: bookName,
+                        chapter: chapName,
+                        chapterNum: chapNum,
+                        verseNum: verseNum,
+                        verse: verseNum,
+                        text: text,
+                        religion: 'Hinduism'
+                    });
+                }
+            });
+        });
+
+        hinduBooksMap[bookName] = {
+            name: bookName,
+            content: chapters,
+            chapterOrder: chapterOrder,
+            isNested: false
+        };
+    });
+
+    religionVerses.Hinduism = hinduVerses;
+    let existingBooks = religionBooks.Hinduism ? religionBooks.Hinduism.books : [];
+    religionBooks.Hinduism = { books: [...existingBooks, ...Object.values(hinduBooksMap)] };
+}
+
+
+function processSefariaData(sefariaData) {
+    let verses = [];
+    let books = [];
+    const collections = sefariaData.collections || {};
+
+    // Each collection (Torah, Prophets, Writings, Mishnah) becomes a top-level navigable entry
+    // with sub-books inside it (like Hinduism's nested structure)
+    Object.keys(collections).forEach(collectionName => {
+        const collectionBooks = collections[collectionName];
+        if (!collectionBooks || collectionBooks.length === 0) return;
+
+        let subBooks = {};
+        let subBookOrder = [];
+
+        collectionBooks.forEach(book => {
+            const bookName = book.name;
+            const validChapterOrder = book.chapterOrder && book.chapterOrder.length > 0 && book.chapterOrder[0] !== '' 
+                ? book.chapterOrder 
+                : Object.keys(book.content).sort((a, b) => Number(a) - Number(b));
+
+            subBooks[bookName] = {
+                content: book.content,
+                chapterOrder: validChapterOrder
+            };
+            subBookOrder.push(bookName);
+
+            // Add verses to the flat feed pool
+            const chapterOrder = subBooks[bookName].chapterOrder;
+            chapterOrder.forEach(chap => {
+                const chapVerses = book.content[chap];
+                if (!chapVerses) return;
+                Object.keys(chapVerses).forEach(verseNum => {
+                    const text = chapVerses[verseNum];
+                    if (text && text.trim()) {
+                        verses.push({
+                            id: `judaism_${bookName}_${chap}_${verseNum}`.toLowerCase().replace(/ /g, '_'),
+                            book: bookName,
+                            collection: collectionName,
+                            chapter: `${chap}`,
+                            verse: verseNum,
+                            text: cleanText(text),
+                            religion: 'Judaism'
+                        });
+                    }
+                });
+            });
+        });
+
+        books.push({
+            name: collectionName,
+            subBooks: subBooks,
+            subBookOrder: subBookOrder,
+            isNested: true
+        });
+    });
+
+    religionVerses.Judaism = verses;
+    religionBooks.Judaism = { books: books };
+}
+function processSikhismData(data) {
+    let verses = [];
+    let books = [];
+    if (data.books && data.books.length > 0) {
+        data.books.forEach(book => {
+            if (book.name === 'Dasam Granth') return;
+            let processedContent = {};
+            let chapterOrder = [];
+            
+            const chapterKeys = Object.keys(book.content);
+            
+            chapterKeys.forEach(chapNameStr => {
+                processedContent[chapNameStr] = {};
+                chapterOrder.push(chapNameStr);
+                
+                const rawContent = book.content[chapNameStr];
+                const verseKeys = Object.keys(rawContent).sort((a, b) => Number(a) - Number(b));
+                
+                verseKeys.forEach(k => {
+                    processedContent[chapNameStr][k] = rawContent[k];
+                    verses.push({
+                        id: `sikhism_${book.name}_${chapNameStr}_${k}`.toLowerCase().replace(/ /g, '_'),
+                        book: book.name,
+                        chapter: chapNameStr,
+                        verse: k,
+                        text: cleanText(rawContent[k]),
+                        religion: 'Sikhism'
+                    });
+                });
+            });
+
+            books.push({ 
+                name: book.name, 
+                content: processedContent,
+                chapterOrder: chapterOrder,
+                isNested: false
+            });
+        });
+    }
+    religionVerses.Sikhism = verses;
+    religionBooks.Sikhism = { books: books };
+}
+function processBuddhismData(data) {
+    let verses = [];
+    let books = [];
+    
+    if (data && data.books) {
+        Object.keys(data.books).forEach(bookName => {
+            const bookContent = data.books[bookName];
+            let chapters = {};
+            Object.keys(bookContent).forEach(chapNum => {
+                const chapterVerses = bookContent[chapNum];
+                chapters[chapNum] = chapterVerses;
+                Object.keys(chapterVerses).forEach(verseNum => {
+                    const rawText = chapterVerses[verseNum];
+                    const lowerText = rawText.toLowerCase();
+                    const badPhrases = [
+                        'gutenberg', 'copyright', 'ebook', 'translator', 'volume', 
+                        'edition', 'chapter', 'section', 'index', 'preface', 'introduction', 
+                        'footnote', 'indemnity', 'trademark', 'heavens of the middle ages',
+                        'illuminated manuscript', 'astrologia', 'liber floridus'
+                    ];
+                    if (badPhrases.some(phrase => lowerText.includes(phrase))) return;
+                    
+                    verses.push({
+                        id: `buddhism_${bookName}_${chapNum}_${verseNum}`.toLowerCase().replace(/ /g, '_'),
+                        book: bookName,
+                        chapter: chapNum,
+                        verse: verseNum,
+                        text: cleanText(rawText),
+                        religion: 'Buddhism'
+                    });
+                });
+            });
+            books.push({ name: bookName, content: chapters });
+        });
+    }
+
+    religionVerses.Buddhism = verses;
+    religionBooks.Buddhism = { books: books };
+}
+
+function processGenericData(data, relName) {
+    let verses = [];
+    let books = [];
+    let seenVerseTexts = new Set();
+    
+    if (data && data.books) {
+        for (const [bookName, chaptersMap] of Object.entries(data.books)) {
+            let bookChapters = [];
+            let chapterContent = {};
+            
+            for (const [chapterName, versesMap] of Object.entries(chaptersMap)) {
+                bookChapters.push(chapterName);
+                chapterContent[chapterName] = {};
+                
+                for (const [verseNum, verseText] of Object.entries(versesMap)) {
+                    const text = cleanText(verseText);
+                    chapterContent[chapterName][verseNum] = text;
+                    const norm = text.trim().toLowerCase();
+                    if (!seenVerseTexts.has(norm)) {
+                        seenVerseTexts.add(norm);
+                        verses.push({ text: text, religion: relName, book: bookName, chapter: chapterName, verse: verseNum });
+                    }
+                }
+            }
+            
+            books.push({
+                name: bookName,
+                chapterOrder: bookChapters,
+                content: chapterContent
+            });
+        }
+    }
+    
+    religionVerses[relName] = verses;
+    religionBooks[relName] = { books: books };
+}
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+function getAllBooks(rel) {
+    return religionBooks[rel]?.books.map(b => b.name) || [];
+}
+function toggleOnboardingRel(el, rel) {
+    el.classList.toggle('selected');
+    if (onboardingSelection.has(rel)) {
+        onboardingSelection.delete(rel);
+    } else {
+        onboardingSelection.add(rel);
+    }
+}
+async function saveOnboarding() {
+    document.getElementById('loading').style.display = 'flex';
+    document.getElementById('loading').style.opacity = '1';
+
+    const relsToLoad = Array.from(onboardingSelection);
+    await Promise.all(relsToLoad.map(rel => loadReligionData(rel)));
+
+    globalSelectedRels = Array.from(onboardingSelection);
+    localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
+    triggerCloudSync();
+    updateBatchesAfterSettings();
+
+    document.getElementById('onboarding').classList.remove('active-section');
+    document.getElementById('onboarding').classList.add('hidden');
+
+    document.getElementById('loading').style.opacity = '0';
+    setTimeout(() => {
+        document.getElementById('loading').style.display = 'none';
+    }, 500);
+
+    localStorage.setItem('hasOnboarded', 'true');
+    initializeVerseFeed();
+    goTo('verse-feed');
+    setTimeout(() => {
+        initPiper(selectedVoice).catch(err => console.log("Background voice pre-install:", err));
+    }, 200);
+}
+async function skipOnboarding() {
+    document.getElementById('loading').style.display = 'flex';
+    document.getElementById('loading').style.opacity = '1';
+
+    await Promise.all(religions.map(rel => loadReligionData(rel)));
+
+    globalSelectedRels = [...religions];
+    localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
+    triggerCloudSync();
+    updateBatchesAfterSettings();
+
+    document.getElementById('onboarding').classList.remove('active-section');
+    document.getElementById('onboarding').classList.add('hidden');
+
+    document.getElementById('loading').style.opacity = '0';
+    setTimeout(() => {
+        document.getElementById('loading').style.display = 'none';
+    }, 500);
+
+    localStorage.setItem('hasOnboarded', 'true');
+    initializeVerseFeed();
+    goTo('verse-feed');
+    setTimeout(() => {
+        initPiper(selectedVoice).catch(err => console.log("Background voice pre-install:", err));
+    }, 200);
+}
+
+function buildSettings() {
+    suppressFlash(() => {
+        applyRandomPremiumAngle();
+        if (!isPremiumUser || !globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
+            globalSelectedRels = [...religions];
+            localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
+        }
+        document.querySelectorAll('.global-rel-btn').forEach(btn => {
+            if (btn.id === 'dark-mode-toggle' || btn.id === 'language-toggle-btn' || btn.onclick?.toString().includes('openLanguageModal')) return;
+            const canonicalRel = btn.dataset.religion || getCanonicalReligion(btn.textContent);
+            if (canonicalRel) {
+                btn.dataset.religion = canonicalRel;
+                if (typeof t === 'function') {
+                    btn.textContent = t(canonicalRel);
+                }
+            }
+            if (globalSelectedRels.includes(canonicalRel)) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+    });
+}
+async function toggleGlobalReligion(rawRel) {
+    const rel = getCanonicalReligion(rawRel);
+    if (!isPremiumUser) {
+        openPremiumModal();
+        return;
+    }
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
+    if (!globalSelectedRels) globalSelectedRels = [];
+    if (globalSelectedRels.includes(rel)) {
+        if (globalSelectedRels.length === 1) return; // Prevent deselecting last topic
+        globalSelectedRels = globalSelectedRels.filter(r => r !== rel);
+    } else {
+        globalSelectedRels.push(rel);
+        if (!loadedReligions.has(rel)) {
+            await loadReligionData(rel);
+        }
+    }
+    localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
+    triggerCloudSync();
+    buildSettings();
+    updateBatchesAfterSettings();
+    if (typeof showReligions === "function" && document.getElementById('library-home') && !document.getElementById('library-home').classList.contains('hidden')) {
+        showReligions();
+    }
+}
+function addSelectionListeners() {
+    // Legacy function preserved but empty since we removed the book chips
+}
+function updateBatchesAfterSettings() {
+    verseBatches.general = [];
+    currentBatchIndex.general = 0;
+    currentVerseIndex.general = 0;
+    allVersesUsed.general.clear();
+    versesSinceLastAd = 0;
+    nextAdGap = getNextAdGap();
+    const stage = document.getElementById('feed-stage');
+    if (stage) stage.innerHTML = '';
+    initializeVerseFeed();
+}
+function pushVersesWithAdCheck(newBatch) {
+    for (let verse of newBatch) {
+        if (!isPremiumUser) {
+            if (versesSinceLastAd === nextAdGap) {
+                verseBatches.general.push({ isAd: true });
+                versesSinceLastAd = 0;
+                nextAdGap = getNextAdGap();
+            }
+            versesSinceLastAd++;
+        }
+        verseBatches.general.push(verse);
+    }
+}
+
+function preloadUpcomingVerses(currentIndex = currentVerseIndex.general || 0) {
+    // Keep at least 25 verses generated ahead in the pool
+    const targetAhead = currentIndex + 25;
+    while (verseBatches.general.length < targetAhead) {
+        const lastRels = verseBatches.general.length >= 2 ? 
+            [verseBatches.general[verseBatches.general.length - 2].religion, verseBatches.general[verseBatches.general.length - 1].religion] : 
+            [];
+        const newBatch = generateBatch('general', lastRels);
+        if (newBatch.length === 0) break;
+        pushVersesWithAdCheck(newBatch);
+    }
+
+    // Pre-translate upcoming 15 verses in parallel in the background
+    if (currentAppLanguage !== 'en_US' && currentAppLanguage !== 'en') {
+        const end = Math.min(currentIndex + 15, verseBatches.general.length);
+        for (let i = currentIndex; i < end; i++) {
+            const v = verseBatches.general[i];
+            if (v && v.text && !getCachedVerseTranslation(v.text, currentAppLanguage)) {
+                translateTextAsync(v.text, currentAppLanguage);
+            }
+        }
+    }
+}
+
+function initializeVerseFeed(forceRefresh) {
+    const stage = document.getElementById('feed-stage');
+    const emptyState = document.getElementById('feed-empty-state');
+
+    if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
+        globalSelectedRels = [...religions];
+    }
+    
+    if (emptyState) emptyState.classList.add('hidden');
+    if (!forceRefresh && verseBatches.general.length > 0) {
+        if (stage && !stage.querySelector('.card-center')) {
+            renderFeedCard(currentVerseIndex.general);
+        }
+        return;
+    }
+    const newBatch = generateBatch('general', []);
+    if (newBatch.length === 0) {
+        return;
+    }
+    pushVersesWithAdCheck(newBatch);
+    renderFeedCard(0);
+    preloadUpcomingVerses(0);
+}
+const negativeWords = ['smite', 'kill', 'destroy', 'wrath', 'blood', 'sword', 'curse', 'hell', 'fire', 'punish', 'death', 'die', 'slay', 'enemy', 'evil', 'wicked', 'sin', 'weep', 'wail', 'gnash', 'vengeance', 'terror', 'fear', 'plague', 'famine', 'perish', 'slaughter', 'condemn', 'abomination', 'hate', 'despise', 'anger', 'fury', 'saliva', 'spit', 'vomit', 'urine', 'defecate', 'excrement', 'menstruation', 'menses', 'camel', 'slave', 'sexual', 'intercourse', 'naked', 'breast', 'suck', 'suckling', 'semen', 'sperm', 'genital'];
+const positiveWords = ['love', 'peace', 'joy', 'hope', 'faith', 'light', 'grace', 'mercy', 'compassion', 'kindness', 'bless', 'heal', 'forgive', 'comfort', 'strength', 'wisdom', 'truth', 'spirit', 'heart', 'soul', 'heaven', 'glory', 'righteous', 'holy', 'pure', 'good', 'rejoice', 'glad', 'praise', 'worship', 'save', 'deliver', 'guide', 'protect'];
+const filteredPoolCache = {};
+
+function getFilteredPool(rel) {
+    if (filteredPoolCache[rel]) return filteredPoolCache[rel];
+    const fullPool = religionVerses[rel] || [];
+    if (fullPool.length === 0) return [];
+    
+    // Check if activeRankings has scored verses for this religion
+    const hasRankings = Object.keys(activeRankings).length > 0;
+    if (hasRankings) {
+        const rankedPool = fullPool.filter(v => {
+            if (!v || !v.id || !v.text) return false;
+            const textLen = v.text.trim().length;
+            if (textLen < MIN_CHAR_LIMIT || textLen > maxCharLimit) return false;
+            return activeRankings[v.id] !== undefined && activeRankings[v.id] >= 70;
+        });
+        if (rankedPool.length > 0) {
+            filteredPoolCache[rel] = rankedPool;
+            return rankedPool;
+        }
+    }
+    
+    const filteredPool = fullPool.filter(v => {
+        if (!v || !v.text) return false;
+        if (v.text.length < MIN_CHAR_LIMIT || v.text.length > maxCharLimit) return false;
+        if (v.text.trim() === '') return false;
+
+        const textLower = v.text.toLowerCase();
+        const hasNegative = negativeWords.some(word => textLower.includes(word));
+        if (hasNegative) return false;
+
+        const hasPositive = positiveWords.some(word => textLower.includes(word));
+        if (!hasPositive) return false;
+
+        if (textLower.startsWith('and ') || textLower.startsWith('but ') || textLower.startsWith('then ') || textLower.startsWith('therefore ') || textLower.startsWith('for ')) {
+            return false;
+        }
+        return true;
+    });
+    
+    const finalPool = filteredPool.length > 0 ? filteredPool : fullPool.filter(v => {
+        return v && v.text && v.text.length >= MIN_CHAR_LIMIT && v.text.length <= maxCharLimit && v.text.trim() !== '';
+    });
+    
+    filteredPoolCache[rel] = finalPool;
+    return finalPool;
+}
+
+function generateBatch(type, lastRels = []) {
+    const rels = (globalSelectedRels || []).filter(r => religionVerses[r] && religionVerses[r].length > 0);
+    if (rels.length === 0) {
+        return [];
+    }
+    const size = 10;
+    const per = Math.floor(size / rels.length);
+    const extra = size % rels.length;
+    let slots = [];
+    
+    const shuffledForExtra = [...rels].sort(() => Math.random() - 0.5);
+    shuffledForExtra.forEach((r, i) => {
+        const count = per + (i < extra ? 1 : 0);
+        slots.push(...Array(count).fill(r));
+    });
+    let tries = 0;
+    const maxTries = 100;
+    while (tries < maxTries) {
+        slots = slots.sort(() => Math.random() - 0.5);
+        let hasThreeConsec = false;
+        for (let i = 2; i < slots.length; i++) {
+            if (slots[i] === slots[i - 1] && slots[i] === slots[i - 2]) {
+                hasThreeConsec = true;
+                break;
+            }
+        }
+        const extended = [...lastRels, ...slots];
+        for (let i = 2; i < extended.length; i++) {
+            if (extended[i] === extended[i - 1] && extended[i] === extended[i - 2]) {
+                hasThreeConsec = true;
+                break;
+            }
+        }
+        if (!hasThreeConsec) break;
+        tries++;
+    }
+    const batch = slots.map(r => {
+        let pool = getFilteredPool(r);
+
+        if (!pool || pool.length === 0) {
+            return { text: "Debug: Pool is empty for religion " + r + ".", religion: 'System', book: 'Debug', chapter: '1', verse: '1' };
+        }
+        
+        let availablePool = pool.filter(v => v && v.text && !seenVersesSet.has(getVerseSig(v)));
+        if (availablePool.length === 0) {
+            const poolSigs = new Set(pool.map(v => getVerseSig(v)));
+            seenVersesList = seenVersesList.filter(sig => !poolSigs.has(sig));
+            seenVersesSet = new Set(seenVersesList);
+            saveSeenVerses();
+            availablePool = pool;
+        }
+        
+        const selectedVerse = availablePool[Math.floor(Math.random() * availablePool.length)];
+        return selectedVerse;
+    }).filter(v => v !== null);
+
+    // Warm up translations for the batch in the background so cards render with zero delay
+    if (currentAppLanguage !== 'en_US' && currentAppLanguage !== 'en') {
+        batch.forEach(v => {
+            if (v && v.text && !/[\u0980-\u09FF]/.test(v.text) && !getCachedVerseTranslation(v.text, currentAppLanguage)) {
+                translateTextAsync(v.text, currentAppLanguage);
+            }
+        });
+    }
+
+    return batch;
+}
+function getVerseAtIndex(index) {
+    while (index >= verseBatches.general.length) {
+        const lastRels = verseBatches.general.length >= 2 ? 
+            [verseBatches.general[verseBatches.general.length - 2].religion, verseBatches.general[verseBatches.general.length - 1].religion] : 
+            [];
+        const newBatch = generateBatch('general', lastRels);
+        if (newBatch.length === 0) {
+            break;
+        }
+        pushVersesWithAdCheck(newBatch);
+    }
+    return verseBatches.general[index];
+}
+
+const premiumFunnyLines = [
+    "One small tap for you, one giant leap for this starving indie dev.",
+    "Remove ads and fund the developer's 3 AM coffee addiction.",
+    "Ads keep our servers alive. Premium keeps the developer's sanity alive.",
+    "Look, we both hate ads. Just tap the button and let's never speak of this again.",
+    "Upgrade to Premium so I can finally afford actual groceries instead of instant noodles.",
+    "You're reading ancient wisdom while staring at an ad. Let's fix that.",
+    "Tap Remove Ads and an angel will personally bless your WiFi signal.",
+    "Think of Premium as buying the developer a virtual tea. A very appreciative tea.",
+    "No ads, all HD voices, and eternal good karma. Best investment of your week.",
+    "Your spiritual enlightenment shouldn't have a commercial break.",
+    "100% of Premium buyers report feeling 42% more zen and 100% ad-free.",
+    "Help an indie developer survive capitalism. Tap to unlock Premium.",
+    "If you buy Premium, I promise to tell my mom someone actually bought my app.",
+    "Peace, tranquility, and zero banner ads trying to sell you car insurance.",
+    "Upgrade to Premium: Your daily verses deserve better than a low-budget ad.",
+    "Buy Premium and I'll literally do a celebratory backflip in my room.",
+    "Support a solo developer and cleanse your feed of all promotional clutter.",
+    "Zero ads, maximum cozy vibes, and you save a programmer from despair.",
+    "Skip the ads, keep the wisdom, and bless an indie creator's day.",
+    "A cozy, distraction-free sanctuary with all HD neural voices unlocked."
+];
+
+let funnyLinesBag = [];
+function getNextFunnyLine() {
+    if (funnyLinesBag.length === 0) {
+        funnyLinesBag = [...premiumFunnyLines];
+        // Shuffle bag
+        for (let i = funnyLinesBag.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [funnyLinesBag[i], funnyLinesBag[j]] = [funnyLinesBag[j], funnyLinesBag[i]];
+        }
+    }
+    return funnyLinesBag.pop();
+}
+
+function preloadFunnyLines(lang = currentAppLanguage) {
+    if (!lang || lang === 'en_US' || lang === 'en') return;
+    premiumFunnyLines.forEach(line => {
+        if (line && !getCachedVerseTranslation(line, lang)) {
+            translateTextAsync(line, lang);
+        }
+    });
+}
+
+function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
+    const card = document.createElement('div');
+    card.classList.add('verse-card', initialPositionClass);
+
+    if (verse.isAd) {
+        // Persist ad data on this specific verse object so scrolling back retains the same ad!
+        if (!verse.nativeAdData && !verse.funnyLine) {
+            let nativeAdData = null;
+            try {
+                if (window.AppSigner && typeof window.AppSigner.getNextNativeAd === 'function') {
+                    const res = window.AppSigner.getNextNativeAd();
+                    if (res) {
+                        const parsed = JSON.parse(res);
+                        if (parsed && parsed.hasAd) {
+                            nativeAdData = parsed;
+                        }
+                    }
+                }
+            } catch(e) {}
+
+            if (nativeAdData) {
+                verse.nativeAdData = nativeAdData;
+            } else {
+                verse.funnyLine = getNextFunnyLine();
+            }
+        }
+
+        card.classList.add('premium-ad-card');
+        card.style.position = 'relative';
+
+        // Top-Left subtle "Sponsored" tag
+        const tagEl = document.createElement('span');
+        tagEl.style.cssText = 'position: absolute; top: 18px; left: 22px; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.45; font-weight: 600; color: var(--text-color); pointer-events: none;';
+        tagEl.textContent = t('Sponsored');
+        card.appendChild(tagEl);
+
+        // Middle Content Container
+        const textEl = document.createElement('div');
+        textEl.classList.add('verse-text');
+        textEl.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; flex-grow: 1; padding: 36px 18px 12px 18px; width: 100%; box-sizing: border-box;';
+        
+        if (verse.nativeAdData) {
+            const nativeAd = verse.nativeAdData;
+            textEl.style.cursor = 'pointer';
+            textEl.onclick = (e) => {
+                if (e) e.stopPropagation();
+                if (window.AppSigner && typeof window.AppSigner.performNativeAdClick === 'function') {
+                    window.AppSigner.performNativeAdClick();
+                }
+            };
+
+            let iconHtml = '';
+            if (nativeAd.icon) {
+                iconHtml = `<img src="${nativeAd.icon}" alt="App Icon" style="width: 56px; height: 56px; border-radius: 16px; object-fit: cover; box-shadow: 0 4px 16px rgba(0,0,0,0.3); border: 1px solid var(--glass-border); flex-shrink: 0; margin-bottom: 6px;" />`;
+            }
+
+            let authorHtml = '';
+            if (nativeAd.advertiser) {
+                authorHtml = `<span style="font-size: 0.88rem; opacity: 0.65; color: var(--text-color); font-weight: 500; font-family: var(--font-main);">by ${nativeAd.advertiser}</span>`;
+            } else if (nativeAd.rating) {
+                const rounded = Math.round(Number(nativeAd.rating) || 5);
+                const stars = '★'.repeat(Math.min(5, Math.max(1, rounded)));
+                authorHtml = `<span style="font-size: 0.9rem; color: #f59e0b; letter-spacing: 1.5px; margin-right: 4px;">${stars}</span> <span style="font-size: 0.85rem; opacity: 0.7; color: var(--text-color); font-weight: 600;">${Number(nativeAd.rating).toFixed(1)}</span>`;
+            }
+
+            const ctaText = nativeAd.callToAction || 'Open';
+
+            textEl.innerHTML = `
+                <div style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                    ${iconHtml}
+                    <div style="font-size: clamp(1.25rem, 4.5vw, 1.6rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.35; padding: 0 4px;">
+                        ${nativeAd.headline || ''}
+                    </div>
+                    ${authorHtml ? `<div>${authorHtml}</div>` : ''}
+                </div>
+
+                ${nativeAd.body ? `
+                    <div style="font-size: clamp(0.95rem, 3.2vw, 1.1rem); font-weight: 400; color: var(--text-color); opacity: 0.82; font-family: var(--font-main); line-height: 1.6; text-align: center; padding: 8px 4px; max-height: 140px; overflow-y: auto;">
+                        ${nativeAd.body}
+                    </div>
+                ` : '<div style="flex-grow: 1;"></div>'}
+
+                <div style="width: 100%; display: flex; justify-content: center; margin-top: 6px;">
+                    <button id="native-ad-cta-btn" style="background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 12px 36px; border-radius: 24px; font-size: 0.95rem; font-weight: 600; cursor: pointer; font-family: inherit; box-shadow: var(--glass-shadow); display: inline-flex; align-items: center; justify-content: center; gap: 8px; letter-spacing: 0.3px; transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
+                        <span>${ctaText}</span>
+                        <span style="font-size: 0.85rem; opacity: 0.7;">↗</span>
+                    </button>
+                </div>
+            `;
+
+            setTimeout(() => {
+                const ctaBtn = card.querySelector('#native-ad-cta-btn');
+                if (ctaBtn) {
+                    ctaBtn.onclick = (e) => {
+                        if (e) e.stopPropagation();
+                        if (window.AppSigner && typeof window.AppSigner.performNativeAdClick === 'function') {
+                            window.AppSigner.performNativeAdClick();
+                        }
+                    };
+                }
+            }, 0);
+        } else {
+            textEl.style.cursor = 'pointer';
+            textEl.style.justifyContent = 'center';
+            textEl.style.padding = '20px 24px';
+            textEl.onclick = (e) => {
+                if (e) e.stopPropagation();
+                openPremiumModal();
+            };
+            const funnyDiv = document.createElement('div');
+            funnyDiv.style.cssText = 'font-size: clamp(1.2rem, 4.2vw, 1.65rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.55; text-align: center; max-width: 90%;';
+            applyDynamicVerseTranslation(funnyDiv, verse.funnyLine);
+            textEl.appendChild(funnyDiv);
+        }
+        card.appendChild(textEl);
+
+        // Bottom-Middle Remove Ads Button (Direct child of card, centered at bottom)
+        const footer = document.createElement('div');
+        footer.style.cssText = 'width: 100%; display: flex; justify-content: center; padding-bottom: 8px; flex-shrink: 0;';
+        const removeAdsBtn = document.createElement('button');
+        removeAdsBtn.style.cssText = 'background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 12px 36px; border-radius: 24px; font-size: 0.95rem; font-weight: 600; cursor: pointer; font-family: inherit; box-shadow: var(--glass-shadow); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); letter-spacing: 0.3px;';
+        removeAdsBtn.textContent = t('Remove Ads');
+        removeAdsBtn.onclick = () => openPremiumModal();
+        footer.appendChild(removeAdsBtn);
+        card.appendChild(footer);
+
+        return card;
+    }
+
+    const textEl = document.createElement('div');
+    textEl.classList.add('verse-text');
+    applyDynamicVerseTranslation(textEl, verse.text || '');
+
+    const footer = document.createElement('div');
+    footer.classList.add('card-footer');
+    const refEl = document.createElement('div');
+    refEl.classList.add('verse-ref');
+    refEl.textContent = formatVerseRef(verse) || '';
+    footer.appendChild(refEl);
+
+    card.appendChild(textEl);
+    card.appendChild(footer);
+    return card;
+}
+
+let seenDwellTimeout = null;
+function trackVerseDwellTime(verse) {
+    clearTimeout(seenDwellTimeout);
+    if (!verse || verse.isAd || !verse.text) return;
+    const sig = getVerseSig(verse);
+    if (!sig) return;
+    seenDwellTimeout = setTimeout(() => {
+        if (!seenVersesSet.has(sig)) {
+            seenVersesSet.add(sig);
+            seenVersesList.push(sig);
+            if (seenVersesList.length > 3000) {
+                const removed = seenVersesList.shift();
+                seenVersesSet.delete(removed);
+            }
+            saveSeenVerses();
+        }
+    }, 2000);
+}
+
+function renderFeedCard(index, direction = 'none') {
+    preloadUpcomingVerses(index);
+    const stage = document.getElementById('feed-stage');
+    if (!stage) return;
+    const verse = getVerseAtIndex(index);
+    if (!verse) return;
+
+    trackVerseDwellTime(verse);
+
+    const oldCards = Array.from(stage.querySelectorAll('.verse-card'));
+
+    let card = null;
+    if (direction === 'next') card = createFeedCardDOM(verse, 'card-right');
+    else if (direction === 'prev') card = createFeedCardDOM(verse, 'card-left');
+    else card = createFeedCardDOM(verse, 'card-center');
+
+    card.id = 'feed-card-' + index;
+
+    if (direction !== 'none' && oldCards.length > 0) {
+        stage.appendChild(card);
+        oldCards.forEach(oldCard => {
+            oldCard.classList.remove('card-center', 'card-right', 'card-left');
+            if (direction === 'next') oldCard.classList.add('card-left');
+            else oldCard.classList.add('card-right');
+            oldCard.style.pointerEvents = 'none';
+            setTimeout(() => {
+                try { if (oldCard && oldCard.parentNode) oldCard.parentNode.removeChild(oldCard); } catch(e){}
+            }, 360);
+        });
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                card.classList.remove('card-right', 'card-left');
+                card.classList.add('card-center');
+            });
+        });
+    } else {
+        stage.innerHTML = '';
+        card.classList.add('card-center');
+        stage.appendChild(card);
+    }
+}
+
+function nextCard(isAuto = false) {
+    const wasPlaying = (isSpeaking && !isPaused) || isGenerating;
+    if (wasPlaying || isAuto) {
+        stopAudio(true, true, true);
+        isGenerating = true;
+        isSpeaking = true;
+        isPaused = false;
+        updateSpeakButton('speak-general');
+    } else {
+        stopAudio();
+    }
+
+    currentVerseIndex.general++;
+    if (!isAuto && typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
+    renderFeedCard(currentVerseIndex.general, 'next');
+
+    const newVerse = getVerseAtIndex(currentVerseIndex.general);
+
+    if (isAuto || wasPlaying) {
+        if (newVerse && !newVerse.isAd) {
+            let spokenText = newVerse.spoken_text || newVerse.text;
+            if (!spokenText.endsWith('.')) spokenText += '.';
+            
+            if (ttsAnnounceSource) {
+                spokenText += '. ' + newVerse.book + '.';
+            }
+
+            setTimeout(() => {
+                playText(spokenText, 'feed');
+                autoMode = true;
+            }, 100);
+        } else if (newVerse && newVerse.isAd) {
+            if (!newVerse.funnyLine) {
+                newVerse.funnyLine = getNextFunnyLine();
+            }
+            const adSpokenText = "VerseFeed Premium. " + newVerse.funnyLine;
+            setTimeout(() => {
+                playText(adSpokenText, 'feed');
+                autoMode = true;
+            }, 100);
+        }
+    } else {
+        deselectVerse();
+    }
+}
+
+function prevCard() {
+    const wasPlaying = (isSpeaking && !isPaused) || isGenerating;
+    if (wasPlaying) {
+        stopAudio(true, true, true);
+        isGenerating = true;
+        isSpeaking = true;
+        isPaused = false;
+        updateSpeakButton('speak-general');
+    } else {
+        stopAudio();
+    }
+
+    if (currentVerseIndex.general > 0) {
+        currentVerseIndex.general--;
+        if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
+        renderFeedCard(currentVerseIndex.general, 'prev');
+        const newVerse = getVerseAtIndex(currentVerseIndex.general);
+        if (wasPlaying && newVerse && !newVerse.isAd) {
+            let spokenText = newVerse.spoken_text || newVerse.text;
+            if (!spokenText.endsWith('.')) spokenText += '.';
+            
+            if (ttsAnnounceSource) {
+                spokenText += '. ' + newVerse.book + '.';
+            }
+
+            setTimeout(() => {
+                playText(spokenText, 'feed');
+                autoMode = true;
+            }, 100);
+        } else if (wasPlaying && newVerse && newVerse.isAd) {
+            if (!newVerse.funnyLine) {
+                newVerse.funnyLine = getNextFunnyLine();
+            }
+            const adSpokenText = "VerseFeed Premium. " + newVerse.funnyLine;
+            setTimeout(() => {
+                playText(adSpokenText, 'feed');
+                autoMode = true;
+            }, 100);
+        } else {
+            deselectVerse();
+        }
+    }
+}
+function goTo(section) {
+    if (!appLoaded && section !== 'verse-feed') return;
+    const targetEl = document.getElementById(section);
+    if (!targetEl) return;
+    const isAlreadyActive = targetEl.classList.contains('active-section');
+    if (!isAlreadyActive) {
+        if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
+    }
+
+    if (selectedVerse && selectedVerse.type === 'book') {
+        lastSelectedBookVerse = selectedVerse;
+    }
+    
+    stopAudio();
+    suppressFlash(() => {
+    if (!isAlreadyActive) {
+        document.querySelectorAll('.app-section').forEach(s => {
+            if (s !== targetEl) s.classList.remove('active-section');
+        });
+        targetEl.classList.add('active-section');
+    }
+
+    document.querySelectorAll('.nav-icon').forEach(btn => btn.classList.remove('active-nav'));
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    
+    if (section === 'verse-feed') {
+        const n = document.getElementById('nav-feed'); if (n) n.classList.add('active-nav');
+        const t = document.querySelector('.tab-btn[data-target="verse-feed"]'); if (t) t.classList.add('active');
+        if (isAlreadyActive) {
+            verseBatches.general = [];
+            currentFeedIndex = 0;
+            initializeVerseFeed();
+            
+        } else if (verseBatches.general.length === 0) {
+            initializeVerseFeed();
+        }
+        deselectVerse();
+    }
+    if (section === 'read-books') {
+        const n = document.getElementById('nav-books'); if (n) n.classList.add('active-nav');
+        const t = document.querySelector('.tab-btn[data-target="read-books"]'); if (t) t.classList.add('active');
+        const bookList = document.getElementById('book-list-view');
+        const subBookList = document.getElementById('sub-book-list-view');
+        const bookContent = document.getElementById('book-content-view');
+        
+        if (isAlreadyActive || (bookList.classList.contains('hidden') && 
+            subBookList.classList.contains('hidden') && 
+            bookContent.classList.contains('hidden'))) {
+            deselectVerse();
+            showReligions();
+        } else if (!bookContent.classList.contains('hidden') && lastSelectedBookVerse) {
+            selectVerse(lastSelectedBookVerse, 'book', lastSelectedBookVerse.elementId || ('book-verse-' + bookVoiceCurrentVerse), true);
+        } else {
+            deselectVerse();
+        }
+    }
+    if (section === 'saved-verses') {
+        const n = document.getElementById('nav-saved'); if (n) n.classList.add('active-nav');
+        const t = document.querySelector('.tab-btn[data-target="saved-verses"]'); if (t) t.classList.add('active');
+        if (isAlreadyActive && selectedSavedAlbum) {
+            selectedSavedAlbum = null;
+        } else if (!isAlreadyActive) {
+            selectedSavedAlbum = null;
+        }
+        deselectVerse();
+        showSavedVerses(true);
+    }
+    if (section === 'settings') {
+        const n = document.getElementById('nav-settings'); if (n) n.classList.add('active-nav');
+        const t = document.querySelector('.tab-btn[data-target="settings"]'); if (t) t.classList.add('active');
+        deselectVerse();
+        buildSettings();
+        renderVoiceSettings();
+        updateTogglesUI();
+    }
+    }); // end suppressFlash
+}
+window.switchTab = goTo;
+
+function goBack() {
+    const current = document.querySelector('.app-section.active-section').id;
+
+    if (current === 'read-books') {
+        const bookContent = document.getElementById('book-content-view');
+        const bookList = document.getElementById('book-list-view');
+        const subBookList = document.getElementById('sub-book-list-view');
+        
+        if (!bookContent.classList.contains('hidden')) {
+            if (currentBookObj && currentBookObj.isNested && currentBookObj.subBookOrder.length > 1) {
+                // Go back to sub-books list
+                showBookContent(currentReligion, currentBookObj);
+            } else {
+                showBooks(currentReligion);
+            }
+            return;
+        } else if (!subBookList.classList.contains('hidden')) {
+            // Go back to main books list
+            showBooks(currentReligion);
+            return;
+        } else if (!bookList.classList.contains('hidden')) {
+            showReligions();
+            return;
+        }
+    }
+    goTo('verse-feed');
+}
+function isVerseSaved(v) {
+    return savedVerses.some(s => s.book === v.book && String(s.chapter) === String(v.chapter) && String(s.verse) === String(v.verse));
+}
+function toggleBookmark(v, btnElement) {
+    const index = savedVerses.findIndex(s => s.book === v.book && String(s.chapter) === String(v.chapter) && String(s.verse) === String(v.verse));
+    if (index > -1) {
+        savedVerses.splice(index, 1);
+        if (btnElement) btnElement.classList.remove('bookmarked');
+    } else {
+        savedVerses.push(v);
+        if (btnElement) btnElement.classList.add('bookmarked');
+    }
+    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+}
+
+function getAlbumsGrouped() {
+    const albums = {};
+    createdAlbums.forEach(name => {
+        if (name && name !== 'Default' && name !== 'All') {
+            if (!albums[name]) albums[name] = [];
+        }
+    });
+    savedVerses.forEach((v, i) => {
+        if (!v) return;
+        if (v.album && v.album !== 'Default' && v.album !== 'All') {
+            if (!albums[v.album]) albums[v.album] = [];
+            albums[v.album].push({v, i});
+        }
+    });
+    return albums;
+}
+
+function transformAddBtnToDustbin(isDustbin) {
+    const addBtn = document.getElementById('add-folder-btn');
+    if (!addBtn) return;
+    if (isDustbin) {
+        addBtn.classList.add('is-dustbin-target');
+        addBtn.innerHTML = `<svg viewBox="0 0 24 24" stroke="currentColor" style="width: 32px; height: 32px; margin: auto;" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+    } else {
+        addBtn.classList.remove('is-dustbin-target', 'dustbin-hover');
+        addBtn.innerHTML = `<svg viewBox="0 0 24 24" stroke="currentColor" style="width: 32px; height: 32px; opacity: 0.5; margin: auto;" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+    }
+}
+
+function showSavedVerses(rebuildFolders = true) {
+    suppressFlash(() => _showSavedVersesImpl(rebuildFolders));
+}
+function _showSavedVersesImpl(rebuildFolders = true) {
+    const list = document.getElementById('saved-list');
+    if (!list) return;
+    
+    // Create containers if they don't exist
+    let foldersContainer = document.getElementById('saved-folders-container');
+    let versesContainer = document.getElementById('saved-verses-container');
+    
+    if (!foldersContainer) {
+        foldersContainer = document.createElement('div');
+        foldersContainer.id = 'saved-folders-container';
+        list.appendChild(foldersContainer);
+    }
+    
+    if (!versesContainer) {
+        versesContainer = document.createElement('div');
+        versesContainer.id = 'saved-verses-container';
+        list.appendChild(versesContainer);
+    }
+
+    const albums = getAlbumsGrouped();
+    let validVerses = [];
+    savedVerses.forEach((v, i) => {
+        if (!v) return;
+        validVerses.push({v, i});
+    });
+
+    if (rebuildFolders) {
+        // Build in a fragment first, then swap atomically to avoid blank-frame flash
+        const frag = document.createDocumentFragment();
+        const grid = document.createElement('div');
+        grid.className = 'folders-grid-container';
+        grid.style.display = 'flex';
+        grid.style.flexWrap = 'wrap';
+        grid.style.justifyContent = 'center';
+        grid.style.gap = '12px';
+        grid.style.width = '90%';
+        grid.style.maxWidth = '600px';
+        grid.style.margin = '20px auto';
+        grid.style.padding = '10px 0 30px 0';
+        grid.style.borderBottom = '1px solid var(--glass-border)';
+        
+        const addFolder = document.createElement('button');
+        addFolder.className = 'album-square-btn add-folder-btn';
+        addFolder.id = 'add-folder-btn';
+        addFolder.style.width = 'calc(33.333% - 8px)';
+        addFolder.style.aspectRatio = '1';
+        addFolder.style.height = 'auto';
+        addFolder.innerHTML = `<svg viewBox="0 0 24 24" stroke="currentColor" style="width: 32px; height: 32px; opacity: 0.5; margin: auto;" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+        addFolder.onclick = () => {
+            if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
+            openCreateBookmarkModal();
+        };
+        grid.appendChild(addFolder);
+        
+        const albumKeys = Object.keys(albums);
+        albumKeys.forEach((albumName, folderIdx) => {
+            const folder = document.createElement('button');
+            folder.className = 'album-square-btn album-folder-btn';
+            folder.id = 'album-folder-' + folderIdx;
+            folder.dataset.albumName = albumName;
+            folder.dataset.albumIndex = folderIdx;
+            folder.style.width = 'calc(33.333% - 8px)';
+            folder.style.aspectRatio = '1';
+            folder.style.height = 'auto';
+            folder.style.position = 'relative';
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'album-name';
+            nameSpan.textContent = albumName === 'Default' ? t('Default') : albumName;
+            folder.appendChild(nameSpan);
+            
+            const isSelected = (selectedVerse && selectedVerse.type === 'folder' && selectedVerse.name === albumName) || selectedSavedAlbum === albumName;
+            if (isSelected) {
+                folder.classList.add('active');
+            }
+            
+            folder.onclick = (e) => {
+                if (e) e.stopPropagation();
+                if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(err){}
+                if (selectedSavedAlbum === albumName) {
+                    selectedSavedAlbum = null;
+                    selectedVerse = { type: 'folder', name: albumName, elementId: folder.id };
+                    deselectVerse();
+                    showSavedVerses(true);
+                } else {
+                    selectedSavedAlbum = albumName;
+                    selectVerse({ name: albumName }, 'folder', folder.id, true);
+                    showSavedVerses(true);
+                }
+            };
+            
+            grid.appendChild(folder);
+        });
+        frag.appendChild(grid);
+        // Atomic swap: replaces all children at once, no blank frame
+        foldersContainer.replaceChildren(frag);
+    }
+    
+    // Rebuild verses list using a fragment for atomic swap
+    const versesFrag = document.createDocumentFragment();
+    // Show folder header bar: If a custom folder is open, show its name (editable); if viewing all, show "All" (static title)
+    const header = document.createElement('div');
+    header.className = 'selected-folder-header-bar';
+    
+    const titleWrap = document.createElement('div');
+    titleWrap.className = 'folder-title-center-wrap';
+    
+    const titleSpan = document.createElement('span');
+    titleSpan.className = 'selected-folder-title';
+    titleSpan.id = 'selected-folder-title';
+    titleSpan.textContent = selectedSavedAlbum ? (selectedSavedAlbum === 'Default' ? t('Default') : selectedSavedAlbum) : t('All');
+    
+    titleWrap.appendChild(titleSpan);
+    
+    if (selectedSavedAlbum && selectedSavedAlbum !== 'All') {
+        titleWrap.title = 'Click to rename';
+        titleWrap.onclick = (e) => {
+            e.stopPropagation();
+            startFolderInlineRename(selectedSavedAlbum, header);
+        };
+    } else {
+        titleWrap.style.cursor = 'default';
+    }
+    
+    header.appendChild(titleWrap);
+
+    // Minus button on the right side of the section header under the divider
+    if (selectedSavedAlbum && selectedSavedAlbum !== 'All' && selectedSavedAlbum !== 'Default') {
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-folder-btn-sleek';
+        deleteBtn.setAttribute('aria-label', `Delete folder ${selectedSavedAlbum}`);
+        deleteBtn.setAttribute('title', 'Delete Folder');
+        deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(err){}
+            handleFolderDelete(e, selectedSavedAlbum);
+        };
+        header.appendChild(deleteBtn);
+    }
+
+    versesFrag.appendChild(header);
+    
+    let versesToRender = validVerses;
+    if (selectedSavedAlbum && selectedSavedAlbum !== 'All') {
+        versesToRender = albums[selectedSavedAlbum] || [];
+    }
+    
+    window.currentSavedVersesRendered = versesToRender;
+    
+    if (versesToRender.length > 0) {
+        renderVersesList(versesToRender, versesFrag);
+    } else {
+        if (selectedSavedAlbum) {
+            const placeholder = document.createElement('div');
+            placeholder.style.display = 'flex';
+            placeholder.style.alignItems = 'center';
+            placeholder.style.justifyContent = 'center';
+            placeholder.style.height = '30vh';
+            placeholder.style.opacity = '0.6';
+            placeholder.style.fontSize = '1.1rem';
+            placeholder.innerText = 'No verses in this folder';
+            versesFrag.appendChild(placeholder);
+        }
+    }
+    
+    // Atomic swap: replaces all children at once, no blank frame
+    versesContainer.replaceChildren(versesFrag);
+    
+    if (selectedVerse) {
+        highlightSelectedVerseElement(true);
+    }
+}
+
+function startFolderInlineRename(oldName, headerEl) {
+    if (!headerEl) return;
+    
+    headerEl.innerHTML = '';
+    headerEl.className = 'selected-folder-header-bar editing-mode';
+    
+    const titleWrap = document.createElement('div');
+    titleWrap.className = 'folder-title-center-wrap';
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.maxLength = (typeof isPremiumUser !== 'undefined' && isPremiumUser) ? 30 : 10;
+    input.className = 'selected-folder-input-underline';
+    input.value = oldName;
+    titleWrap.appendChild(input);
+    headerEl.appendChild(titleWrap);
+    
+    let finished = false;
+    
+    const finishRename = () => {
+        if (finished) return;
+        finished = true;
+        const newRaw = input.value.trim();
+        const newName = sanitizeFolderName(newRaw);
+        if (newName && newName !== oldName) {
+            const idx = createdAlbums.indexOf(oldName);
+            if (idx > -1) {
+                createdAlbums[idx] = newName;
+            } else if (!createdAlbums.includes(newName)) {
+                createdAlbums.push(newName);
+            }
+            localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
+            
+            savedVerses.forEach(s => {
+                if (s && s.album === oldName) s.album = newName;
+            });
+            localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+            
+            selectedSavedAlbum = newName;
+            if (selectedVerse && selectedVerse.type === 'folder') {
+                selectedVerse.name = newName;
+            }
+            triggerCloudSync();
+            showSavedVerses(true);
+            showToast('Folder renamed to "' + newName + '"');
+        } else {
+            showSavedVerses(false);
+        }
+    };
+
+    input.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            input.blur();
+        } else if (e.key === 'Escape') {
+            finished = true;
+            showSavedVerses(false);
+        }
+    };
+    
+    input.onblur = finishRename;
+    
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+}
+
+function renderVersesList(versesArray, listElement) {
+    versesArray.forEach(({v, i}) => {
+        const container = document.createElement('div');
+        container.classList.add('saved-verse-container');
+        const div = document.createElement('div');
+        div.id = 'saved-verse-' + i;
+        div.classList.add('saved-verse');
+        div.style.borderRadius = '16px';
+        
+        const text = document.createElement('div');
+        text.classList.add('verse-text');
+        let displayVerse = v.text;
+        displayVerse = displayVerse.replace(/<span class='author-attr'>.*?<\/span>/gm, '');
+        displayVerse = displayVerse.replace(/<[^>]*>?/gm, '');
+        applyDynamicVerseTranslation(text, displayVerse);
+        
+        const footer = document.createElement('div');
+        footer.classList.add('saved-verse-footer');
+        footer.style.display = 'flex';
+        footer.style.justifyContent = 'space-between';
+        footer.style.alignItems = 'center';
+        footer.style.marginTop = '12px';
+        
+        const ref = document.createElement('div');
+        ref.classList.add('verse-ref');
+        ref.innerText = formatVerseRef(v);
+        
+        footer.appendChild(ref);
+        div.appendChild(text);
+        div.appendChild(footer);
+        container.appendChild(div);
+
+        let isCurrentlySelected = false;
+        if (selectedVerse && selectedVerse.type === 'saved') {
+            if (selectedVerse.id && v.id) {
+                isCurrentlySelected = (selectedVerse.id === v.id);
+            } else if (selectedVerse.elementId) {
+                isCurrentlySelected = (selectedVerse.elementId === div.id);
+            } else {
+                isCurrentlySelected = (selectedVerse.book === v.book && 
+                                       String(selectedVerse.chapter) === String(v.chapter) && 
+                                       String(selectedVerse.verse) === String(v.verse) && 
+                                       selectedVerse.text === v.text);
+            }
+        }
+        if (isCurrentlySelected) {
+            div.style.background = 'var(--text-color)';
+            div.style.color = 'var(--bg-grad-1)';
+            div.style.opacity = '1';
+            div.style.borderColor = 'var(--text-color)';
+            text.style.color = 'var(--bg-grad-1)';
+            ref.style.color = 'var(--bg-grad-1)';
+            const actions = createActionIconsElement(selectedVerse, 'saved');
+            if (actions) footer.appendChild(actions);
+        }
+
+        div.onclick = (e) => {
+            selectVerse(v, 'saved', div.id, false);
+        };
+
+        listElement.appendChild(container);
+    });
+}
+
+const topicAudiobooks = {
+    'Philosophy': [
+        { title: "The Daily Stoic", author: "Ryan Holiday", asin: "0735211736" },
+        { title: "Atomic Habits", author: "James Clear", asin: "0735211299" },
+        { title: "Man's Search for Meaning", author: "Viktor E. Frankl", asin: "0807014273" },
+        { title: "The Obstacle Is the Way", author: "Ryan Holiday", asin: "1591846358" },
+        { title: "Letters from a Stoic", author: "Seneca", asin: "0140442103" },
+        { title: "The Courage to Be Disliked", author: "Ichiro Kishimi", asin: "1501197274" },
+        { title: "Ego Is the Enemy", author: "Ryan Holiday", asin: "1591847818" },
+        { title: "Meditations", author: "Marcus Aurelius", asin: "0140449336" },
+        { title: "Discourses and Selected Writings", author: "Epictetus", asin: "0140449468" },
+        { title: "Deep Work", author: "Cal Newport", asin: "1455586692" },
+        { title: "The 48 Laws of Power", author: "Robert Greene", asin: "0140280197" },
+        { title: "Thinking, Fast and Slow", author: "Daniel Kahneman", asin: "0374533555" },
+        { title: "The Antidote", author: "Oliver Burkeman", asin: "0865478015" },
+        { title: "A Guide to the Good Life", author: "William B. Irvine", asin: "0195374617" }
+    ],
+    'Buddhism': [
+        { title: "The Power of Now", author: "Eckhart Tolle", asin: "1577314808" },
+        { title: "The Miracle of Mindfulness", author: "Thich Nhat Hanh", asin: "0807012394" },
+        { title: "Zen Mind, Beginner's Mind", author: "Shunryu Suzuki", asin: "1590308492" },
+        { title: "Radical Acceptance", author: "Tara Brach", asin: "0553380990" },
+        { title: "Wherever You Go, There You Are", author: "Jon Kabat-Zinn", asin: "1401307787" },
+        { title: "No Mud, No Lotus", author: "Thich Nhat Hanh", asin: "1937006859" },
+        { title: "Peace Is Every Step", author: "Thich Nhat Hanh", asin: "0553351397" },
+        { title: "When Things Fall Apart", author: "Pema Chodron", asin: "1611803438" },
+        { title: "The Art of Happiness", author: "Dalai Lama", asin: "1573221112" },
+        { title: "The Heart of the Buddha's Teaching", author: "Thich Nhat Hanh", asin: "0767903692" },
+        { title: "Eight Mindful Steps to Happiness", author: "Bhante Henepola Gunaratana", asin: "0861711769" },
+        { title: "Start Where You Are", author: "Pema Chodron", asin: "1570628394" }
+    ],
+    'Islam': [
+        { title: "Secrets of Divine Love", author: "A. Helwa", asin: "1734231203" },
+        { title: "Reclaim Your Heart", author: "Yasmin Mogahed", asin: "0990387682" },
+        { title: "The Holy Quran", author: "M.A.S. Abdel Haleem", asin: "0199535957" },
+        { title: "Don't Be Sad", author: "Dr. Aid al-Qarni", asin: "9960850447" },
+        { title: "In the Footsteps of the Prophet", author: "Tariq Ramadan", asin: "0195374765" },
+        { title: "Healing and Peace in Islam", author: "A. Helwa", asin: "173423122X" },
+        { title: "Muhammad: His Life Based on the Earliest Sources", author: "Martin Lings", asin: "1594771537" },
+        { title: "Purification of the Heart", author: "Hamza Yusuf", asin: "193334315X" },
+        { title: "The Sealed Nectar", author: "Safiur Rahman Mubarakpuri", asin: "1591440718" },
+        { title: "Timeless Seeds of Advice", author: "B.B. Abdulla", asin: "1692930249" },
+        { title: "The Productive Muslim", author: "Mohammed Faris", asin: "1905837681" }
+    ],
+    'Christianity': [
+        { title: "Mere Christianity", author: "C.S. Lewis", asin: "0060652926" },
+        { title: "The Purpose Driven Life", author: "Rick Warren", asin: "031033750X" },
+        { title: "The Practice of the Presence of God", author: "Brother Lawrence", asin: "1603865610" },
+        { title: "The Screwtape Letters", author: "C.S. Lewis", asin: "0060652934" },
+        { title: "Celebration of Discipline", author: "Richard J. Foster", asin: "0062803883" },
+        { title: "The Great Divorce", author: "C.S. Lewis", asin: "0060652950" },
+        { title: "The Cost of Discipleship", author: "Dietrich Bonhoeffer", asin: "0684815001" },
+        { title: "Orthodoxy", author: "G.K. Chesterton", asin: "0801032547" },
+        { title: "The Imitation of Christ", author: "Thomas a Kempis", asin: "0486431851" },
+        { title: "Life Together", author: "Dietrich Bonhoeffer", asin: "0060608528" },
+        { title: "Crazy Love", author: "Francis Chan", asin: "1434705943" }
+    ],
+    'Hinduism': [
+        { title: "Autobiography of a Yogi", author: "Paramahansa Yogananda", asin: "0876120834" },
+        { title: "Inner Engineering: A Yogi's Guide to Joy", author: "Sadhguru", asin: "0143428845" },
+        { title: "The Journey Home", author: "Radhanath Swami", asin: "1601090565" },
+        { title: "The Bhagavad Gita", author: "Eknath Easwaran", asin: "1586380192" },
+        { title: "Living with the Himalayan Masters", author: "Swami Rama", asin: "0893891568" },
+        { title: "Apprenticed to a Himalayan Master", author: "Sri M", asin: "8186219934" },
+        { title: "Death: An Inside Story", author: "Sadhguru", asin: "0143450832" },
+        { title: "Raja Yoga", author: "Swami Vivekananda", asin: "091120623X" },
+        { title: "Jnana Yoga", author: "Swami Vivekananda", asin: "0911206213" },
+        { title: "The Gospel of Sri Ramakrishna", author: "Mahendranath Gupta", asin: "0911206019" }
+    ],
+    'Judaism': [
+        { title: "When Bad Things Happen to Good People", author: "Harold S. Kushner", asin: "1400034728" },
+        { title: "The Sabbath", author: "Abraham Joshua Heschel", asin: "0374529752" },
+        { title: "To Pray as a Jew", author: "Hayim Halevy Donin", asin: "0465086330" },
+        { title: "Man's Search for Meaning", author: "Viktor E. Frankl", asin: "0807014273" },
+        { title: "God in Search of Man", author: "Abraham Joshua Heschel", asin: "0374513317" },
+        { title: "Man Is Not Alone", author: "Abraham Joshua Heschel", asin: "0374513929" },
+        { title: "The Lonely Man of Faith", author: "Joseph B. Soloveitchik", asin: "0385483147" },
+        { title: "This Is My God", author: "Herman Wouk", asin: "0316955140" }
+    ],
+    'Sikhism': [
+        { title: "The Singing Guru", author: "Kamla K. Kapur", asin: "8184006126" },
+        { title: "The Sikhs", author: "Patwant Singh", asin: "0385502060" },
+        { title: "Sikhism: A Very Short Introduction", author: "Eleanor Nesbitt", asin: "0198745578" },
+        { title: "A History of the Sikhs", author: "Khushwant Singh", asin: "0195673085" },
+        { title: "The Japji: The Sikh Morning Prayer", author: "Khushwant Singh", asin: "0140292438" },
+        { title: "Guru Nanak and the Sikh Religion", author: "W.H. McLeod", asin: "0195637356" }
+    ]
+};
+
+function getDailyAudiobook(rel) {
+    const list = topicAudiobooks[rel] || topicAudiobooks['Philosophy'];
+    if (!list || list.length === 0) return null;
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 0);
+    const diff = now - startOfYear;
+    const oneDay = 1000 * 60 * 60 * 24;
+    const dayOfYear = Math.floor(diff / oneDay);
+    const index = dayOfYear % list.length;
+    return list[index];
+}
+
+function openAudibleAudiobook(title, author) {
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
+    const query = encodeURIComponent(`${title} by ${author} book`);
+    const affiliateUrl = `https://www.amazon.com/s?k=${query}&tag=versefeed-20`;
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+        window.open(affiliateUrl, '_system');
+    } else {
+        window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
+    }
+}
+
+function showReligions() {
+    const list = document.getElementById('rel-list');
+    list.innerHTML = '';
+    document.getElementById('library-home').classList.remove('hidden');
+    document.getElementById('book-list-view').classList.add('hidden');
+    document.getElementById('sub-book-list-view').classList.add('hidden');
+    document.getElementById('book-content-view').classList.add('hidden');
+
+    if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
+        globalSelectedRels = [...religions];
+        localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
+    }
+
+    const populationOrder = ['Christianity', 'Islam', 'Hinduism', 'Sikhism', 'Buddhism', 'Judaism', 'Philosophy'];
+    const sortedRels = globalSelectedRels.slice().sort((a, b) => {
+        let idxA = populationOrder.indexOf(a);
+        let idxB = populationOrder.indexOf(b);
+        if (idxA === -1) idxA = 999;
+        if (idxB === -1) idxB = 999;
+        return idxA - idxB;
+    });
+
+    sortedRels.forEach(rel => {
+        const btn = document.createElement('button');
+        applyDynamicVerseTranslation(btn, rel);
+        
+        if (!religionBooks[rel]) {
+            btn.style.opacity = '0.7';
+            if (!loadedReligions.has(rel)) {
+                loadReligionData(rel);
+            }
+        }
+
+        btn.onclick = async () => {
+            if (!religionBooks[rel]) {
+                btn.style.opacity = '0.7';
+                await loadReligionData(rel);
+            }
+            if (religionBooks[rel]) {
+                showBooks(rel);
+            }
+        };
+
+        list.appendChild(btn);
+    });
+}
+function highlightSearchTerms(text, terms) {
+    if (!text) return '';
+    if (!terms || terms.length === 0) return text;
+    
+    let expandTerms = [];
+    terms.forEach(t => {
+        if (t === 'pbuh' || t === 'phub') {
+            expandTerms.push('pbuh', 'peace be upon him', 'ﷺ');
+        } else {
+            expandTerms.push(t);
+        }
+    });
+    
+    let safeTerms = expandTerms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).filter(t => t.length > 0);
+    if (safeTerms.length === 0) return text;
+    const regex = new RegExp(`(${safeTerms.join('|')})`, 'gi');
+    // Using span instead of mark to prevent any weird block styling issues
+    return text.replace(regex, '<span style="background: rgba(var(--loader-rgb), 0.25); color: inherit; font-weight: bold; border-radius: 3px; padding: 0 2px;">$1</span>');
+}
+
+let searchDebounceTimeout = null;
+window.currentSearchResultsMatches = [];
+let currentSearchRenderedCount = 0;
+let currentSearchTermsInfo = [];
+
+function debouncedPerformLibSearch() {
+    clearTimeout(searchDebounceTimeout);
+    searchDebounceTimeout = setTimeout(performLibSearch, 300);
+}
+
+function checkTermMatch(vText, vTrans, term, isExactWord) {
+    if (term === 'pbuh' || term === 'phub') {
+        return vText.includes('pbuh') || vTrans.includes('pbuh') || 
+               vText.includes('peace be upon him') || vTrans.includes('peace be upon him') || 
+               vText.includes('ﷺ') || vTrans.includes('ﷺ');
+    }
+    
+    if (isExactWord) {
+        const pattern = '(?:^|[^a-zA-Z0-9])' + escapeRegExp(term) + '(?:$|[^a-zA-Z0-9])';
+        const regex = new RegExp(pattern, 'i');
+        return regex.test(vText) || regex.test(vTrans);
+    } else {
+        return vText.includes(term) || vTrans.includes(term);
+    }
+}
+
+function performLibSearch() {
+    const input = document.getElementById('lib-search-input');
+    const resultsContainer = document.getElementById('lib-search-results');
+    if (!input || !resultsContainer) return;
+    
+    const rawVal = input.value.toLowerCase();
+    if (rawVal.trim().length < 2) {
+        resultsContainer.innerHTML = '';
+        window.currentSearchResultsMatches = [];
+        currentSearchRenderedCount = 0;
+        currentSearchTermsInfo = [];
+        return;
+    }
+    
+    const hasTrailingSpace = /\s$/.test(rawVal);
+    const tokens = rawVal.trim().split(/\s+/).filter(t => t.length > 0);
+    
+    currentSearchTermsInfo = tokens.map((token, idx) => {
+        const isLast = (idx === tokens.length - 1);
+        const isExactWord = !isLast || hasTrailingSpace;
+        return { token, isExactWord };
+    });
+    
+    const pool = (currentReligion && religionVerses[currentReligion]) ? religionVerses[currentReligion] : Object.values(religionVerses).flat();
+    
+    const matches = [];
+    const seenMatchTexts = new Set();
+    for (let i = 0; i < pool.length; i++) {
+        const v = pool[i];
+        if (!v) continue;
+        const vText = (v.text || '').toLowerCase();
+        const vTrans = (v.translation || '').toLowerCase();
+        
+        const matchesAll = currentSearchTermsInfo.every(info => {
+            return checkTermMatch(vText, vTrans, info.token, info.isExactWord);
+        });
+        
+        if (matchesAll) {
+            const normText = (vText || vTrans).trim().replace(/\s+/g, ' ');
+            if (!seenMatchTexts.has(normText)) {
+                seenMatchTexts.add(normText);
+                matches.push(v);
+            }
+        }
+    }
+    
+    window.currentSearchResultsMatches = matches;
+    currentSearchRenderedCount = 0;
+    
+    const currHeight = resultsContainer.offsetHeight;
+    if (currHeight > 0) {
+        resultsContainer.style.minHeight = currHeight + 'px';
+    }
+    
+    resultsContainer.innerHTML = '';
+    
+    if (matches.length === 0) {
+        resultsContainer.style.minHeight = '';
+        resultsContainer.innerHTML = '<div style="text-align: center; padding: 20px; opacity: 0.6;">No verses found</div>';
+        return;
+    }
+    
+    renderSearchBatch(20);
+    setupSearchScrollListener();
+    
+    requestAnimationFrame(() => {
+        resultsContainer.style.minHeight = '';
+    });
+    
+    renderSearchBatch(20);
+    setupSearchScrollListener();
+}
+
+function renderSearchBatch(batchSize = 20) {
+    const resultsContainer = document.getElementById('lib-search-results');
+    if (!resultsContainer || !window.currentSearchResultsMatches) return;
+    
+    const matches = window.currentSearchResultsMatches;
+    const startIndex = currentSearchRenderedCount;
+    const endIndex = Math.min(startIndex + batchSize, matches.length);
+    
+    if (startIndex >= matches.length) return;
+    
+    for (let idx = startIndex; idx < endIndex; idx++) {
+        const match = matches[idx];
+        const card = document.createElement('div');
+        card.className = 'saved-verse';
+        card.id = 'search-verse-' + idx;
+        card.style.marginBottom = '15px';
+        card.style.textAlign = 'left';
+        card.style.cursor = 'pointer';
+        card.style.animation = 'sectionFadeIn 0.20s ease-out forwards';
+        
+        let refStr = formatVerseRef(match);
+        
+        const highlightedText = highlightSearchTerms(match.text, currentSearchTermsInfo.map(t => t.token));
+        let html = `<div style="font-size: 1.1em; line-height: 1.6; margin-bottom: 8px; display: block; word-break: break-word;">${highlightedText}</div>`;
+        if (match.translation && match.translation !== match.text) {
+            const highlightedTrans = highlightSearchTerms(match.translation, currentSearchTermsInfo.map(t => t.token));
+            html += `<div style="font-size: 0.9em; opacity: 0.8; line-height: 1.5; font-style: italic; margin-bottom: 10px;">${highlightedTrans}</div>`;
+        }
+        
+        html += `<div class="saved-verse-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;"><div class="verse-ref" style="font-size: 0.8em; opacity: 0.6; text-align: left;">${refStr}</div></div>`;
+        
+        card.innerHTML = html;
+        card.onclick = (e) => {
+            if (e) e.stopPropagation();
+            selectVerse(match, 'search', card.id, false);
+        };
+        resultsContainer.appendChild(card);
+    }
+    
+    currentSearchRenderedCount = endIndex;
+}
+
+let isSearchScrollListenerAttached = false;
+function setupSearchScrollListener() {
+    if (isSearchScrollListenerAttached) return;
+    isSearchScrollListenerAttached = true;
+    
+    const container = document.getElementById('read-books');
+    if (!container) return;
+    
+    container.addEventListener('scroll', () => {
+        if (!window.currentSearchResultsMatches || window.currentSearchResultsMatches.length === 0) return;
+        if (currentSearchRenderedCount >= window.currentSearchResultsMatches.length) return;
+        
+        if (container.scrollTop + container.clientHeight >= container.scrollHeight - 300) {
+            renderSearchBatch(20);
+        }
+    });
+}
+function showBooks(rel) {
+    currentReligion = rel;
+    document.getElementById('library-home').classList.add('hidden');
+    document.getElementById('book-list-view').classList.remove('hidden');
+    document.getElementById('sub-book-list-view').classList.add('hidden');
+    document.getElementById('book-content-view').classList.add('hidden');
+
+    const searchInput = document.getElementById('lib-search-input');
+    const resultsContainer = document.getElementById('lib-search-results');
+    
+    if (searchInput && searchInput.value.trim().length >= 2) {
+        performLibSearch();
+    } else {
+        if (searchInput) searchInput.value = '';
+        if (resultsContainer) resultsContainer.innerHTML = '';
+        window.currentSearchResultsMatches = [];
+        currentSearchRenderedCount = 0;
+    }
+    
+    const bookListContainer = document.getElementById('book-list');
+
+    const list = document.getElementById('book-list');
+    list.innerHTML = '';
+    
+    const h2 = document.createElement('h2');
+    applyDynamicVerseTranslation(h2, rel);
+    list.appendChild(h2);
+
+    // Render Daily Curated Audiobook at Top (Hidden if user is premium)
+    const isUserPremium = (typeof isPremiumUser !== 'undefined' && isPremiumUser) || localStorage.getItem('isPremiumUser') === 'true';
+    const dailyBook = getDailyAudiobook(rel);
+    if (dailyBook && !isUserPremium) {
+        const adBtn = document.createElement('button');
+        adBtn.className = 'audiobook-minimal-btn';
+        adBtn.innerHTML = `
+            <span class="audiobook-ad-tag">Ad</span>
+            <span class="audiobook-min-title">${dailyBook.title}</span>
+            <span class="audiobook-min-author">by ${dailyBook.author}</span>
+        `;
+        adBtn.onclick = () => openAudibleAudiobook(dailyBook.title, dailyBook.author);
+        list.appendChild(adBtn);
+    }
+
+    if (religionBooks[rel] && religionBooks[rel].books) {
+        religionBooks[rel].books.forEach(book => {
+            const btn = document.createElement('button');
+            applyDynamicVerseTranslation(btn, book.name);
+            btn.onclick = () => showBookContent(rel, book);
+            list.appendChild(btn);
+        });
+    }
+}
+
+let currentBookObj = null;
+let currentSubBook = null;
+
+
+
+function showBookContent(rel, book) {
+    stopAudio();
+    deactivatePillUI();
+    currentBookName = book.name;
+    currentReligion = rel;
+    currentBookObj = book;
+
+    document.getElementById('book-list-view').classList.add('hidden');
+
+    if (book.isNested && book.subBookOrder.length > 1) {
+        // Show Sub-Book List
+        document.getElementById('book-content-view').classList.add('hidden');
+        document.getElementById('sub-book-list-view').classList.remove('hidden');
+        
+        const list = document.getElementById('sub-book-list');
+        list.innerHTML = '';
+        
+        const h2 = document.createElement('h2');
+        applyDynamicVerseTranslation(h2, book.name);
+        list.appendChild(h2);
+        
+        book.subBookOrder.forEach(sub => {
+            const btn = document.createElement('button');
+            applyDynamicVerseTranslation(btn, sub);
+            btn.onclick = () => showSubBookContent(sub);
+            list.appendChild(btn);
+        });
+    } else {
+        // Direct to Book Content
+        document.getElementById('sub-book-list-view').classList.add('hidden');
+        document.getElementById('book-content-view').classList.remove('hidden');
+        currentSubBook = book.isNested ? book.subBookOrder[0] : null;
+        
+        const content = book.isNested ? book.subBooks[currentSubBook].content : book.content;
+        const chapterOrder = book.isNested ? book.subBooks[currentSubBook].chapterOrder : book.chapterOrder;
+        
+        currentBookContent = content;
+        initializeChapterView(content, chapterOrder);
+    }
+}
+
+function showSubBookContent(subBookName) {
+    stopAudio();
+    deactivatePillUI();
+    currentSubBook = subBookName;
+    document.getElementById('sub-book-list-view').classList.add('hidden');
+    document.getElementById('book-content-view').classList.remove('hidden');
+    
+    const subBookData = currentBookObj.subBooks[subBookName];
+    currentBookContent = subBookData.content;
+    initializeChapterView(subBookData.content, subBookData.chapterOrder);
+}
+
+function initializeChapterView(content, chapterOrder) {
+    // Reset State
+    currentRenderedChapter = null;
+    chapterStartIndices = {};
+    globalVerseMap = [];
+    let globalIndex = 0;
+    chapterList = chapterOrder || Object.keys(content).sort((a, b) => {
+        const numA = Number(a.replace(/[^0-9]/g, '')) || 0;
+        const numB = Number(b.replace(/[^0-9]/g, '')) || 0;
+        return numA - numB;
+    });
+
+    // Defensive: some datasets accidentally include duplicate chapter keys in the order list.
+    // Dedupe while preserving order so the scrollwheel doesn't show repeating numbers endlessly.
+    if (Array.isArray(chapterList)) {
+        const seen = new Set();
+        chapterList = chapterList.filter(ch => {
+            if (seen.has(ch)) return false;
+            seen.add(ch);
+            return true;
+        });
+    }
+    // Build Global Map
+    chapterList.forEach(chap => {
+        chapterStartIndices[chap] = globalIndex;
+        const verses = Object.keys(content[chap]).sort((a, b) => {
+            const numA = Number(a.replace(/[^0-9.]/g, '')) || 0;
+            const numB = Number(b.replace(/[^0-9.]/g, '')) || 0;
+            return numA - numB;
+        });
+        verses.forEach(vers => {
+            globalVerseMap.push({
+                chapter: chap,
+                verse: vers,
+                text: content[chap][vers],
+                globalIndex: globalIndex,
+                religion: currentReligion,
+                book: currentBookName
+            });
+            globalIndex++;
+        });
+    });
+    bookVoiceTotalVerses = globalIndex;
+    const key = currentReligion + '_' + currentBookName + (currentSubBook ? '_' + currentSubBook : '');
+    const marked = bookMarkedVerse[key];
+    bookVoiceCurrentVerse = marked !== undefined ? marked : 0;
+
+    populateChapterWheel();
+
+    // Initial Render
+    const targetInfo = globalVerseMap[bookVoiceCurrentVerse];
+    if (targetInfo) {
+        renderChapter(targetInfo.chapter);
+        scrollToBookVerse(bookVoiceCurrentVerse);
+    } else if (chapterList.length > 0) {
+        renderChapter(chapterList[0]);
+    }
+    updatePillUI();
+}
+let currentBookChapterState = null;
+let currentBookChapterRenderedCount = 0;
+
+function renderChapter(chapter) {
+    if (currentRenderedChapter === chapter && currentBookChapterRenderedCount > 0) return;
+
+    const container = document.getElementById('book-content-text');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const verses = currentBookContent[chapter];
+    if (!verses) return;
+    
+    const sortedKeys = Object.keys(verses).sort((a, b) => {
+        const numA = Number(a.replace(/[^0-9.]/g, '')) || 0;
+        const numB = Number(b.replace(/[^0-9.]/g, '')) || 0;
+        return numA - numB;
+    });
+    
+    const startIndex = chapterStartIndices[chapter];
+    
+    currentBookChapterState = { chapter, sortedKeys, verses, startIndex };
+    currentBookChapterRenderedCount = 0;
+    currentRenderedChapter = chapter;
+    
+    // Pre-warm translations for the entire chapter in background
+    if (currentAppLanguage !== 'en_US' && currentAppLanguage !== 'en') {
+        sortedKeys.forEach(vKey => {
+            const raw = verses[vKey];
+            if (raw && !getCachedVerseTranslation(raw, currentAppLanguage)) {
+                translateTextAsync(raw, currentAppLanguage);
+            }
+        });
+    }
+    
+    renderBookChapterBatch(30);
+    setupBookChapterScrollListener();
+}
+
+function renderBookChapterBatch(batchSize = 30) {
+    const container = document.getElementById('book-content-text');
+    if (!container || !currentBookChapterState) return;
+    
+    const { sortedKeys, verses, startIndex } = currentBookChapterState;
+    const start = currentBookChapterRenderedCount;
+    const end = Math.min(start + batchSize, sortedKeys.length);
+    
+    if (start >= sortedKeys.length) return;
+    
+    const frag = document.createDocumentFragment();
+    for (let i = start; i < end; i++) {
+        const vKey = sortedKeys[i];
+        const gIndex = startIndex + i;
+        const text = verses[vKey];
+        const p = document.createElement('p');
+        p.className = 'book-verse';
+        p.id = 'book-verse-' + gIndex;
+        p.style.cursor = 'pointer';
+        p.style.animation = 'sectionFadeIn 0.20s ease-out forwards';
+        
+        let displayVerse = text;
+        if (displayVerse.endsWith('.')) displayVerse = displayVerse.slice(0, -1);
+        applyDynamicVerseTranslation(p, displayVerse);
+        p.onclick = (e) => {
+            e.stopPropagation();
+            handleVerseClick(gIndex);
+        };
+        frag.appendChild(p);
+    }
+    container.appendChild(frag);
+    currentBookChapterRenderedCount = end;
+    updatePillUI();
+}
+
+let isBookChapterScrollAttached = false;
+function setupBookChapterScrollListener() {
+    if (isBookChapterScrollAttached) return;
+    isBookChapterScrollAttached = true;
+    
+    const scrollContainer = document.getElementById('read-books');
+    if (!scrollContainer) return;
+    
+    scrollContainer.addEventListener('scroll', () => {
+        const bookContent = document.getElementById('book-content-view');
+        if (!bookContent || bookContent.classList.contains('hidden')) return;
+        if (!currentBookChapterState) return;
+        
+        if (currentBookChapterRenderedCount >= currentBookChapterState.sortedKeys.length) return;
+        
+        if (scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 400) {
+            renderBookChapterBatch(30);
+        }
+    });
+}
+function populateChapterWheel() {
+    const wheel = document.getElementById('chapter-scroll-wheel');
+    if (!wheel) return;
+    wheel.style.maskImage = 'none';
+    wheel.style.webkitMaskImage = 'none';
+    wheel.innerHTML = '';
+
+    const frag = document.createDocumentFragment();
+    chapterList.forEach((chap, index) => {
+        const div = document.createElement('div');
+        div.className = 'chap-wheel-item';
+        div.innerText = (currentAppLanguage === 'bn') ? (index + 1).toString().replace(/\d/g, d => ['০','১','২','৩','৪','৫','৬','৭','৮','৯'][parseInt(d, 10)]) : (index + 1).toString();
+        div.dataset.val = chap;
+        div.onclick = () => {
+            const target = div.offsetLeft + div.offsetWidth / 2 - wheel.clientWidth / 2;
+            wheel.scrollTo({ left: target, behavior: 'smooth' });
+        };
+        frag.appendChild(div);
+    });
+    wheel.appendChild(frag);
+
+    updateChapterWheelActiveStyle();
+    setupChapterWheelListeners();
+    requestAnimationFrame(() => syncChapterWheelToCurrent());
+}
+
+let wheelTargetScroll = null;
+let wheelScrollTimeout = null;
+
+function setupChapterWheelListeners() {
+    const wheel = document.getElementById('chapter-scroll-wheel');
+    if (!wheel || wheel.dataset.listened) return;
+    wheel.dataset.listened = 'true';
+
+    wheel.addEventListener('scroll', () => {
+        updateChapterWheelActiveStyle();
+        if (isProgrammaticScroll) return;
+        clearTimeout(chapScrollTimeout);
+        chapScrollTimeout = setTimeout(() => {
+            const active = getActiveChapterWheelItem();
+            if (active) chapWheelSelectChapter(active.dataset.val);
+        }, 550); // High debounce to eliminate heavy DOM lag while wheel is in motion
+    }, { passive: true });
+
+    wheel.addEventListener('wheel', e => {
+        if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+        e.preventDefault();
+        
+        const items = getChapterWheelItems();
+        let itemWidth = items[0] ? items[0].offsetWidth : 50;
+        if (items.length > 1) {
+            itemWidth = items[1].offsetLeft - items[0].offsetLeft;
+        }
+        
+        const scrollAmount = -e.deltaY * (itemWidth / 100);
+        
+        if (wheelTargetScroll === null) {
+            wheelTargetScroll = wheel.scrollLeft;
+        }
+        
+        wheelTargetScroll += scrollAmount;
+        const maxScroll = wheel.scrollWidth - wheel.clientWidth;
+        wheelTargetScroll = Math.max(0, Math.min(maxScroll, wheelTargetScroll));
+        
+        wheel.scrollTo({ left: wheelTargetScroll, behavior: 'smooth' });
+        
+        clearTimeout(wheelScrollTimeout);
+        wheelScrollTimeout = setTimeout(() => {
+            wheelTargetScroll = null;
+        }, 400);
+    }, { passive: false });
+}
+
+
+function updateChapterWheelActiveStyle() {
+    const wheel = document.getElementById('chapter-scroll-wheel');
+    if (!wheel) return;
+    const items = getChapterWheelItems();
+    if (!items.length) return;
+    const containerCenter = wheel.scrollLeft + wheel.clientWidth / 2;
+    
+    // READ PHASE - Eliminate layout thrashing by reading all offsets before modifying any styles
+    const metrics = items.map((item, i) => {
+        return item.offsetLeft + item.offsetWidth / 2;
+    });
+
+    let itemWidth = items.length > 1 ? (metrics[1] - metrics[0]) : (wheel.clientWidth / 3 || 80);
+    if (itemWidth === 0) itemWidth = 80;
+
+    let closestIdx = 0, closestDist = Infinity;
+    
+    // COMPUTE PHASE
+    const stylesToApply = items.map((item, i) => {
+        const itemCenter = metrics[i];
+        const dist = itemCenter - containerCenter;
+        const normDist = dist / itemWidth;
+        const absNormDist = Math.abs(normDist);
+
+        if (Math.abs(dist) < closestDist) {
+            closestDist = Math.abs(dist);
+            closestIdx = i;
+        }
+
+        if (absNormDist < 1.5) {
+            const opacity = 1 - absNormDist * 0.65;
+            const scale = 1.15 - absNormDist * 0.3;
+            const angle = normDist * 40; 
+            return {
+                opacity: Math.max(0, opacity),
+                transform: `rotateY(${-angle}deg) scale(${scale}) translateZ(0)`,
+                fontWeight: absNormDist < 0.5 ? '700' : '500',
+                pointerEvents: 'auto',
+                active: absNormDist < 0.5
+            };
+        } else {
+            return {
+                opacity: 0,
+                transform: 'scale(0.1) translateZ(0)',
+                pointerEvents: 'none',
+                active: false
+            };
+        }
+    });
+
+    // WRITE PHASE
+    items.forEach((item, i) => {
+        const s = stylesToApply[i];
+        if (item.style.opacity !== String(s.opacity)) {
+            item.style.opacity = s.opacity;
+            item.style.transform = s.transform;
+            if (s.fontWeight) item.style.fontWeight = s.fontWeight;
+            item.style.pointerEvents = s.pointerEvents;
+        }
+        if (s.active && !item.classList.contains('active')) {
+            item.classList.add('active');
+        } else if (!s.active && item.classList.contains('active')) {
+            item.classList.remove('active');
+        }
+    });
+
+    if (lastActiveChapterIdx !== -1 && lastActiveChapterIdx !== closestIdx) {
+        if (wheel.offsetParent !== null) {
+            playScrollSound();
+        }
+    }
+    lastActiveChapterIdx = closestIdx;
+}
+
+function getChapterWheelItems() {
+    const wheel = document.getElementById('chapter-scroll-wheel');
+    return wheel ? Array.from(wheel.querySelectorAll('.chap-wheel-item[data-val]')) : [];
+}
+
+function getActiveChapterWheelItem() {
+    const wheel = document.getElementById('chapter-scroll-wheel');
+    if (!wheel) return null;
+    const items = getChapterWheelItems();
+    const containerCenter = wheel.scrollLeft + wheel.clientWidth / 2;
+    let closest = null, closestDist = Infinity;
+    items.forEach(item => {
+        const itemCenter = item.offsetLeft + item.offsetWidth / 2;
+        const dist = Math.abs(containerCenter - itemCenter);
+        if (dist < closestDist) { closestDist = dist; closest = item; }
+    });
+    return closest;
+}
+
+function chapWheelSelectChapter(chap) {
+    const currentInfo = globalVerseMap[bookVoiceCurrentVerse];
+    if (currentInfo && currentInfo.chapter === chap) return;
+    const newIndex = chapterStartIndices[chap];
+    if (newIndex !== undefined) {
+        selectAndPlayVerse(newIndex);
+    }
+}
+
+function syncChapterWheelToCurrent() {
+    let info = globalVerseMap[bookVoiceCurrentVerse];
+    if (!info) info = globalVerseMap[0];
+    if (!info) {
+        updateChapterWheelActiveStyle();
+        return;
+    }
+    const wheel = document.getElementById('chapter-scroll-wheel');
+    if (!wheel) return;
+    const items = getChapterWheelItems();
+    const idx = items.findIndex(i => i.dataset.val === info.chapter);
+    if (idx !== -1) {
+        isProgrammaticScroll = true;
+        const item = items[idx];
+        const targetScroll = item.offsetLeft + item.offsetWidth / 2 - wheel.clientWidth / 2;
+        wheel.scrollTo({ left: targetScroll, behavior: 'smooth' });
+        setTimeout(() => { isProgrammaticScroll = false; updateChapterWheelActiveStyle(); }, 350);
+    }
+}
+
+// Keep syncWheelsToCurrent as alias for back-compat
+function syncWheelsToCurrent() {
+    syncChapterWheelToCurrent();
+}
+
+function setupWheelListeners() {
+    // Mouse wheel scrolling for home feed verse cards disabled per user request
+}
+function scrollToBookVerse(verseIndex) {
+    const info = globalVerseMap[verseIndex];
+    if (!info) return;
+    if (info.chapter !== currentRenderedChapter) {
+        renderChapter(info.chapter);
+    }
+    const el = document.getElementById('book-verse-' + verseIndex);
+    if (el) {
+        const container = document.getElementById('read-books');
+        const rect = el.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const currentScroll = container.scrollTop;
+        const relativeTop = rect.top - containerRect.top + currentScroll;
+        const targetScroll = relativeTop - (container.clientHeight * 0.35);
+
+        container.scrollTo({
+            top: targetScroll,
+            behavior: 'smooth'
+        });
+        markVerse();
+    }
+}
+function selectAndPlayVerse(verseIndex) {
+    const wasPlaying = isSpeaking && !isPaused;
+
+    const info = globalVerseMap[verseIndex];
+    if (info && info.chapter !== lastAnnouncedChapter) {
+        lastAnnouncedChapter = info.chapter;
+    }
+    bookVoiceCurrentVerse = verseIndex;
+    
+    // Scroll and render first
+    scrollToBookVerse(bookVoiceCurrentVerse);
+    
+    if (info) {
+        selectVerse({ ...info, isManual: true }, 'book', 'book-verse-' + verseIndex);
+    }
+
+    if (wasPlaying) {
+        const isFirstVerse = chapterStartIndices[info.chapter] === verseIndex;
+        if (isFirstVerse) lastAnnouncedChapter = null;
+        playBookVerse(verseIndex);
+        autoNextBook = true;
+    } else {
+        stopAudio();
+    }
+}
+function markVerse() {
+    document.querySelectorAll('.book-verse.marked').forEach(el => el.classList.remove('marked'));
+
+    const verse = document.getElementById('book-verse-' + bookVoiceCurrentVerse);
+    if (verse) {
+        verse.classList.add('marked');
+    }
+    const info = globalVerseMap && globalVerseMap[bookVoiceCurrentVerse];
+    if (info) {
+        highlightSelectedVerseElement(false);
+        selectedVerse = { ...info, type: 'book', elementId: 'book-verse-' + bookVoiceCurrentVerse };
+        highlightSelectedVerseElement(true);
+        updatePillUI();
+    }
+    const key = currentReligion + '_' + currentBookName + (currentSubBook ? '_' + currentSubBook : '');
+    bookMarkedVerse[key] = bookVoiceCurrentVerse;
+    localStorage.setItem('bookMarkedVerse', JSON.stringify(bookMarkedVerse));
+}
+function toggleMusic() {
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
+    const btn = document.getElementById('music-toggle');
+    if (audio.paused) {
+        audio.play().catch(e => console.log(e));
+        btn.classList.add('active');
+        localStorage.setItem('musicEnabled', 'true');
+    } else {
+        audio.pause();
+        btn.classList.remove('active');
+        localStorage.setItem('musicEnabled', 'false');
+    }
+}
+function nextTrack() {
+    if (!isPremiumUser) {
+        openPremiumModal();
+        return;
+    }
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
+    currentTrack = getRandomMusicTrackIndex(currentTrack);
+    localStorage.setItem('currentMusicTrack', currentTrack);
+    triggerCloudSync();
+    audio.src = musicTracks[currentTrack];
+    audio.load();
+    if (document.getElementById('music-toggle').classList.contains('active')) {
+        audio.play().catch(e => console.log("Audio play error:", e));
+    }
+}
+function prevTrack() {
+    if (!isPremiumUser) {
+        openPremiumModal();
+        return;
+    }
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
+    currentTrack = (currentTrack - 1 + musicTracks.length) % musicTracks.length;
+    localStorage.setItem('currentMusicTrack', currentTrack);
+    triggerCloudSync();
+    audio.src = musicTracks[currentTrack];
+    audio.load();
+    if (document.getElementById('music-toggle').classList.contains('active')) {
+        audio.play().catch(e => console.log("Audio play error:", e));
+    }
+}
+function toggleAccordion(header) {
+    const religion = header.parentElement.parentElement;
+    religion.classList.toggle('expanded');
+}
+
+function applyAutoSpeed() {
+    let voiceId = selectedVoice;
+    if (typeof piperSession !== 'undefined' && piperSession && ttsRandomVoice) {
+        voiceId = piperSession.voiceId;
+    }
+
+    let speed = 0.9; // Default 4 steps (Alba & Libri)
+    if (voiceId === 'en_GB-alan-medium') speed = 1.1; // 6 steps
+    
+    if (typeof piperSession !== 'undefined' && piperSession && piperSession.voiceId === voiceId) {
+        const baseLen = voiceBaseLengths[voiceId] || 1.0;
+        piperSession.speedScale = baseLen / speed;
+    }
+}
+
+// Clamp any old saved voice IDs to the supported Piper voice list.
+if (!voicesList.some(v => v.value === selectedVoice)) {
+    selectedVoice = 'en_GB-alan-medium';
+    localStorage.setItem('selectedVoice', selectedVoice);
+    applyAutoSpeed();
+}
+
+let isDraggingVoiceWheel = false;
+
+function renderVoiceSettings() {
+    const wheel = document.getElementById('voice-scroll-wheel');
+    if (!wheel) return;
+    if (wheel.children.length === 0) {
+        voicesList.forEach(v => {
+        const div = document.createElement('div');
+        div.className = 'voice-wheel-item';
+        div.innerText = v.label;
+        div.dataset.val = v.value;
+        div.onclick = () => {
+            const targetScroll = div.offsetTop + div.offsetHeight / 2 - wheel.clientHeight / 2;
+            wheel.scrollTo({ top: targetScroll, behavior: 'smooth' });
+        };
+        wheel.appendChild(div);
+    });
+    setupVoiceWheelListeners();
+    }
+    setTimeout(syncVoiceWheelToCurrent, 40);
+}
+
+function getVoiceWheelItems() {
+    const wheel = document.getElementById('voice-scroll-wheel');
+    return wheel ? Array.from(wheel.querySelectorAll('.voice-wheel-item[data-val]')) : [];
+}
+
+function voiceWheelSelect(val) {
+    if (!isPremiumUser && val !== 'en_GB-alan-medium') {
+        openPremiumModal();
+        const wheel = document.getElementById('voice-scroll-wheel');
+        if (wheel) {
+            const alanDiv = Array.from(wheel.querySelectorAll('.voice-wheel-item')).find(d => d.dataset.val === 'en_GB-alan-medium');
+            if (alanDiv) {
+                const targetScroll = alanDiv.offsetTop + alanDiv.offsetHeight / 2 - wheel.clientHeight / 2;
+                wheel.scrollTo({ top: targetScroll, behavior: 'smooth' });
+            }
+        }
+        return;
+    }
+
+    if (selectedVoice === val) return;
+    selectedVoice = val;
+    localStorage.setItem('selectedVoice', val);
+
+    if (ttsRandomVoice) {
+        ttsRandomVoice = false;
+        localStorage.setItem('ttsRandomVoice', ttsRandomVoice);
+        updateTogglesUI();
+    }
+
+    applyAutoSpeed();
+    const items = getVoiceWheelItems();
+    items.forEach(el => {
+        if (el.dataset.val === val) el.classList.add('selected');
+        else el.classList.remove('selected');
+    });
+}
+
+function updateVoiceWheelActiveStyle() {
+    const wheel = document.getElementById('voice-scroll-wheel');
+    if (!wheel) return;
+    const clientHeight = wheel.clientHeight || 120;
+    const items = getVoiceWheelItems();
+    if (!items.length) return;
+    const containerCenter = wheel.scrollTop + clientHeight / 2;
+    const itemHeight = 30;
+
+    const metrics = items.map((item, i) => {
+        if (!item._cachedCenter) {
+            item._cachedCenter = item.offsetTop + (item.offsetHeight || itemHeight) / 2;
+        }
+        return item._cachedCenter;
+    });
+
+    let closestIdx = 0, closestDist = Infinity;
+    
+    const stylesToApply = items.map((item, i) => {
+        const itemCenter = metrics[i];
+        const dist = itemCenter - containerCenter;
+        const normDist = dist / itemHeight;
+        const absNormDist = Math.abs(normDist);
+
+        if (Math.abs(dist) < closestDist) {
+            closestDist = Math.abs(dist);
+            closestIdx = i;
+        }
+
+        if (absNormDist < 2.5) {
+            const opacity = 1 - absNormDist * 0.4;
+            const scale = 1.0 - absNormDist * 0.15;
+            const angle = normDist * 40;
+            return {
+                opacity: Math.max(0.1, opacity),
+                transform: `rotateX(${angle}deg) scale(${scale}) translateZ(0)`,
+                fontWeight: absNormDist < 0.5 ? '600' : '400',
+                pointerEvents: 'auto',
+                selected: absNormDist < 0.5
+            };
+        } else {
+            return {
+                opacity: 0,
+                transform: 'scale(0.5)',
+                pointerEvents: 'none',
+                selected: false
+            };
+        }
+    });
+
+    items.forEach((item, i) => {
+        const s = stylesToApply[i];
+        if (item.style.opacity !== String(s.opacity)) {
+            item.style.opacity = s.opacity;
+            item.style.transform = s.transform;
+            if (s.fontWeight) item.style.fontWeight = s.fontWeight;
+            item.style.pointerEvents = s.pointerEvents;
+        }
+        if (s.selected && !item.classList.contains('selected')) {
+            item.classList.add('selected');
+        } else if (!s.selected && item.classList.contains('selected')) {
+            item.classList.remove('selected');
+        }
+    });
+
+    if (lastActiveVoiceIdx !== -1 && lastActiveVoiceIdx !== closestIdx) {
+        if (!isProgrammaticScroll && wheel.offsetParent !== null) {
+            playScrollSound();
+        }
+    }
+    lastActiveVoiceIdx = closestIdx;
+
+    const activeItem = items[closestIdx];
+    if (activeItem) {
+        const newVal = activeItem.dataset.val;
+        if (selectedVoice !== newVal) {
+            if (!isPremiumUser) {
+                // Not premium, revert to Alan
+                selectedVoice = 'en_GB-alan-medium';
+                localStorage.setItem('selectedVoice', selectedVoice);
+                syncVoiceWheelToCurrent();
+                openPremiumModal();
+                return;
+            }
+            selectedVoice = newVal;
+            localStorage.setItem('selectedVoice', newVal);
+
+            if (!isProgrammaticScroll && ttsRandomVoice) {
+                ttsRandomVoice = false;
+                localStorage.setItem('ttsRandomVoice', ttsRandomVoice);
+                updateTogglesUI();
+            }
+
+            applyAutoSpeed();
+        }
+    }
+}
+
+function syncVoiceWheelToCurrent() {
+    const wheel = document.getElementById('voice-scroll-wheel');
+    if (!wheel || wheel.clientHeight === 0) return;
+    const items = getVoiceWheelItems();
+    const idx = items.findIndex(i => i.dataset.val === selectedVoice);
+    if (idx !== -1) {
+        const item = items[idx];
+        const targetScroll = item.offsetTop + item.offsetHeight / 2 - wheel.clientHeight / 2;
+        isProgrammaticScroll = true;
+        wheel.scrollTo({ top: targetScroll, behavior: 'auto' });
+        updateVoiceWheelActiveStyle();
+        clearTimeout(programmaticScrollTimeout);
+        programmaticScrollTimeout = setTimeout(() => {
+            isProgrammaticScroll = false;
+            updateVoiceWheelActiveStyle();
+        }, 300);
+    } else {
+        updateVoiceWheelActiveStyle();
+    }
+}
+
+function getActiveVoiceWheelItem() {
+    const wheel = document.getElementById('voice-scroll-wheel');
+    if (!wheel || wheel.clientHeight === 0) return null;
+    const items = getVoiceWheelItems();
+    const containerCenter = wheel.scrollTop + wheel.clientHeight / 2;
+    let closest = null, closestDist = Infinity;
+    items.forEach(item => {
+        const itemCenter = item.offsetTop + item.offsetHeight / 2;
+        const dist = Math.abs(containerCenter - itemCenter);
+        if (dist < closestDist) { closestDist = dist; closest = item; }
+    });
+    return closest;
+}
+
+function setupVoiceWheelListeners() {
+    const wheel = document.getElementById('voice-scroll-wheel');
+    if (!wheel) return;
+
+    wheel.addEventListener('scroll', () => {
+        updateVoiceWheelActiveStyle();
+        clearTimeout(voiceScrollTimeout);
+        voiceScrollTimeout = setTimeout(() => {
+            const active = getActiveVoiceWheelItem();
+            if (active) {
+                const newVal = active.dataset.val;
+                if (selectedVoice !== newVal) {
+                    selectedVoice = newVal;
+                    localStorage.setItem('selectedVoice', newVal);
+
+                    if (!isProgrammaticScroll && ttsRandomVoice) {
+                        ttsRandomVoice = false;
+                        localStorage.setItem('ttsRandomVoice', ttsRandomVoice);
+                        updateTogglesUI();
+                    }
+
+                    applyAutoSpeed();
+                }
+            }
+        }, 150);
+    }, { passive: true });
+
+    // Mouse wheel: scroll proportionally, direction normal based on request
+    wheel.addEventListener('wheel', e => {
+        // Let native horizontal scrolling through (trackpad)
+        if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+
+        e.preventDefault();
+        
+        // Calculate items per tick for perfect scaling
+        const items = getVoiceWheelItems();
+        let itemHeight = items[0] ? items[0].offsetHeight : 30;
+        if (items.length > 1) {
+            itemHeight = items[1].offsetTop - items[0].offsetTop;
+        }
+
+        // deltaY is typically 100 per tick on Windows/mice. Scale it so 1 tick = 1 itemHeight.
+        // Use normal scroll delta Y based on user feedback 
+        // ("going down and it's going up ... which should be in reverse")
+        const scrollAmount = e.deltaY * (itemHeight / 100); 
+        
+        wheel.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+    }, { passive: false });
+}
+
+function onVoiceChange(val) {
+    voiceWheelSelect(val);
+}
+
+// --- Credits Modal ---
+function openCreditsModal() {
+    openModal(document.getElementById('credits-modal'));
+}
+
+function closeCreditsModal(event) {
+    if (event && event.type === 'click' && event.target !== event.currentTarget) return;
+    closeModal(document.getElementById('credits-modal'));
+}
+
+initApp();
+
+// --- Tooltips Logic ---
+document.addEventListener('DOMContentLoaded', () => {
+    const tooltip = document.getElementById('global-tooltip');
+    let tooltipTimeout;
+
+    function showTooltip(el) {
+        let text = el.getAttribute('data-tooltip');
+        if (!text || !tooltip) return;
+        
+        if (text.includes(': ')) {
+            text = text.substring(text.indexOf(': ') + 2);
+        }
+        
+        tooltip.innerText = text;
+        tooltip.classList.remove('hidden');
+        
+        const rect = el.getBoundingClientRect();
+        let top = rect.bottom + 10;
+        let left = rect.left + rect.width / 2 - tooltip.offsetWidth / 2;
+        
+        if (left < 10) left = 10;
+        if (left + tooltip.offsetWidth > window.innerWidth - 10) left = window.innerWidth - tooltip.offsetWidth - 10;
+        if (top + tooltip.offsetHeight > window.innerHeight - 10) top = rect.top - tooltip.offsetHeight - 10;
+        
+        tooltip.style.left = left + 'px';
+        tooltip.style.top = top + 'px';
+    }
+
+    function hideTooltip() {
+        if (tooltip) tooltip.classList.add('hidden');
+        clearTimeout(tooltipTimeout);
+    }
+
+    document.addEventListener('mouseover', (e) => {
+        const target = e.target.closest('[data-tooltip]');
+        if (target) {
+            clearTimeout(tooltipTimeout);
+            tooltipTimeout = setTimeout(() => showTooltip(target), 1000);
+        }
+    });
+
+    document.addEventListener('mouseout', (e) => {
+        const target = e.target.closest('[data-tooltip]');
+        if (target) hideTooltip();
+    });
+
+    document.addEventListener('touchstart', (e) => {
+        const target = e.target.closest('[data-tooltip]');
+        if (target) {
+            clearTimeout(tooltipTimeout);
+            tooltipTimeout = setTimeout(() => showTooltip(target), 1000);
+        } else {
+            hideTooltip();
+        }
+    }, {passive: true});
+
+    document.addEventListener('touchend', hideTooltip);
+    document.addEventListener('touchmove', hideTooltip, {passive: true});
+    document.addEventListener('mousedown', hideTooltip, {passive: true});
+    document.addEventListener('input', hideTooltip, {passive: true});
+});
+
+/* --- Pinterest-style Radial Menu --- */
+let radialTimeout = null;
+let radialActive = false;
+let radialStartPos = { x: 0, y: 0 };
+let currentTargetVerse = null;
+let activeRadialId = null;
+let currentRadialContext = null;
+let currentRadialElement = null;
+
+const RADIAL_ACTIONS = {
+    bookmark: { id: 'bookmark', icon: '??', color: '#ffb300' },
+    share: { id: 'share', icon: '??', color: '#4caf50' },
+    delete: { id: 'delete', icon: '???', color: '#f44336' }
+};
+
+function getCurrentActiveVerse() {
+    const isBookSection = document.getElementById('read-books').classList.contains('active-section') && !document.getElementById('book-content-view').classList.contains('hidden');
+    const isFeedSection = document.getElementById('verse-feed').classList.contains('active-section');
+    if (isFeedSection) return getVerseAtIndex(currentVerseIndex.general);
+    if (isBookSection && globalVerseMap[bookVoiceCurrentVerse]) return globalVerseMap[bookVoiceCurrentVerse];
+    return null;
+}
+
+function bindRadialMenu(element, getVerseFn, actionIds, onClickFn) {
+    element.style.touchAction = 'none'; // Prevent scrolling while holding
+    element.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return; // only left click
+        radialStartPos = { x: e.clientX, y: e.clientY };
+        currentTargetVerse = getVerseFn();
+        currentRadialContext = actionIds;
+        currentRadialElement = element;
+        
+        radialTimeout = setTimeout(() => {
+            if (currentTargetVerse) {
+                radialActive = true;
+                showRadialMenu(radialStartPos, actionIds);
+            }
+        }, 300);
+    });
+}
+
+window.addEventListener('pointermove', (e) => {
+    if (!radialActive) {
+        // Cancel hold if moved too far before timeout
+        if (radialTimeout && currentRadialElement) {
+            const dist = Math.hypot(e.clientX - radialStartPos.x, e.clientY - radialStartPos.y);
+            if (dist > 15) {
+                clearTimeout(radialTimeout);
+                radialTimeout = null;
+            }
+        }
+        return;
+    }
+    updateRadialMenu(e.clientX, e.clientY);
+});
+
+window.addEventListener('pointerup', (e) => {
+    if (radialTimeout) {
+        clearTimeout(radialTimeout);
+        radialTimeout = null;
+    }
+    if (radialActive) {
+        executeRadialAction();
+        hideRadialMenu();
+        radialActive = false;
+        currentRadialElement = null;
+    } else if (currentRadialElement && ((currentRadialElement.id && e.target.closest('#' + currentRadialElement.id)) || currentRadialElement.contains(e.target))) {
+        // It was a short click
+        if (currentRadialElement.id === 'speak-general') {
+            speakCurrent('general');
+        }
+        currentRadialElement = null;
+    }
+});
+
+function showRadialMenu(pos, actionIds) {
+    const overlay = document.getElementById('radial-overlay');
+    overlay.innerHTML = '';
+    
+    const angleStep = Math.PI / (actionIds.length - 1 || 1); // Arc distribution
+    const radius = 70;
+    let startAngle = -Math.PI; // default arc
+    
+    if (actionIds.length === 1) startAngle = -Math.PI / 2;
+    
+    actionIds.forEach((id, index) => {
+        const action = RADIAL_ACTIONS[id];
+        if (!action) return;
+        
+        const item = document.createElement('div');
+        item.className = 'radial-item';
+        item.innerHTML = action.icon;
+        item.dataset.id = action.id;
+        
+        const angle = actionIds.length === 1 ? startAngle : startAngle + (index * angleStep);
+        const x = pos.x + Math.cos(angle) * radius;
+        const y = pos.y + Math.sin(angle) * radius;
+        
+        item.style.left = x + 'px';
+        item.style.top = y + 'px';
+        
+        overlay.appendChild(item);
+        setTimeout(() => item.classList.add('active'), 10);
+    });
+}
+
+function updateRadialMenu(mouseX, mouseY) {
+    const items = document.querySelectorAll('.radial-item');
+    let minDistance = Infinity;
+    activeRadialId = null;
+    
+    items.forEach(item => {
+        item.classList.remove('highlighted');
+        const rect = item.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const dist = Math.hypot(mouseX - centerX, mouseY - centerY);
+        if (dist < minDistance) {
+            minDistance = dist;
+            activeRadialId = item.dataset.id;
+        }
+    });
+    
+    if (minDistance < 50) {
+        document.querySelector(`.radial-item[data-id="${activeRadialId}"]`).classList.add('highlighted');
+    } else {
+        activeRadialId = null;
+    }
+}
+
+function executeRadialAction() {
+    if (!activeRadialId || !currentTargetVerse) return;
+    
+    if (activeRadialId === 'bookmark') {
+        const index = savedVerses.findIndex(s => s.book === currentTargetVerse.book && s.chapter === currentTargetVerse.chapter && s.verse === currentTargetVerse.verse);
+        if (index > -1) {
+            savedVerses.splice(index, 1);
+            localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+            showSavedVerses();
+            showToast('Removed Bookmark');
+        } else {
+            openAlbumModal(currentTargetVerse);
+        }
+    } else if (activeRadialId === 'share') {
+        generateAndShareImage(currentTargetVerse, currentTargetVerse.elementId);
+    } else if (activeRadialId === 'delete') {
+        const index = savedVerses.findIndex(s => s.book === currentTargetVerse.book && s.chapter === currentTargetVerse.chapter && s.verse === currentTargetVerse.verse);
+        if (index > -1) {
+            savedVerses.splice(index, 1);
+            localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+            if (document.getElementById('saved-verses').classList.contains('active-section')) {
+                showSavedVerses();
+            }
+            showToast('Deleted from saved.');
+        }
+    }
+}
+
+function hideRadialMenu() {
+    const overlay = document.getElementById('radial-overlay');
+    overlay.innerHTML = '';
+}
+
+let toastHideTimeout = null;
+
+function isToastAllowed(msg) {
+    if (!msg) return false;
+    return true; // Allow all toasts so the user always gets clear visual feedback
+}
+
+function showToast(msg, duration = 2200) {
+    if (piperInitializing) return; // Do not overwrite active voice download progress
+    if (!isToastAllowed(msg)) return;
+
+    const toast = document.getElementById('global-toast');
+    const msgEl = document.getElementById('toast-message');
+    const actionBtn = document.getElementById('toast-action-btn');
+    const progressEl = document.getElementById('toast-progress');
+    if (!toast || !msgEl) return;
+    
+    msgEl.textContent = msg;
+    if (actionBtn) actionBtn.style.display = 'none';
+    
+    if (progressEl) {
+        progressEl.style.transition = 'none';
+        progressEl.style.transform = 'scaleX(0)';
+        requestAnimationFrame(() => {
+            progressEl.style.transition = `transform ${duration}ms linear`;
+            progressEl.style.transform = 'scaleX(1)';
+        });
+    }
+    
+    toast.classList.add('show');
+    clearTimeout(toastHideTimeout);
+    toastHideTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+        if (progressEl) {
+            setTimeout(() => {
+                progressEl.style.transition = 'none';
+                progressEl.style.transform = 'scaleX(0)';
+            }, 200);
+        }
+    }, duration);
+}
+
+
+// Initialize Radial on main buttons
+document.addEventListener('DOMContentLoaded', () => {
+    const playBtn = document.getElementById('speak-general');
+    if (playBtn) {
+        // playBtn no longer uses radial menu
+    }
+});
+
+
+
+function advanceSearchVerse() {
+    if (!window.currentSearchResultsMatches || window.currentSearchResultsMatches.length === 0) return;
+    if (!selectedVerse || selectedVerse.type !== 'search') return;
+    
+    let currentIndex = window.currentSearchResultsMatches.findIndex((match, idx) => {
+        return 'search-verse-' + idx === selectedVerse.elementId;
+    });
+    
+    if (currentIndex >= 0 && currentIndex < window.currentSearchResultsMatches.length - 1) {
+        let nextIndex = currentIndex + 1;
+        let nextMatch = window.currentSearchResultsMatches[nextIndex];
+        let cardId = 'search-verse-' + nextIndex;
+        
+        if (nextIndex >= currentSearchRenderedCount) {
+            renderSearchBatch(10);
+        }
+        
+        selectVerse(nextMatch, 'search', cardId, true);
+        
+        setTimeout(() => {
+            const card = document.getElementById(cardId);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 50);
+        
+        setTimeout(() => {
+            let textToSpeak = nextMatch.spoken_text || nextMatch.text;
+            playText(textToSpeak, 'search');
+            autoMode = true;
+        }, 50);
+    } else {
+        stopAudio();
+    }
+}
+
+function advanceSavedVerse() {
+    if (!window.currentSavedVersesRendered || window.currentSavedVersesRendered.length === 0) return;
+    if (!selectedVerse || selectedVerse.type !== 'saved') return;
+    
+    let currentIndex = window.currentSavedVersesRendered.findIndex(item => {
+        let v = item.v;
+        if (v.id && selectedVerse.id) return v.id === selectedVerse.id;
+        return v.book === selectedVerse.book && String(v.chapter) === String(selectedVerse.chapter) && String(v.verse) === String(selectedVerse.verse);
+    });
+    
+    if (currentIndex >= 0 && currentIndex < window.currentSavedVersesRendered.length - 1) {
+        let nextItem = window.currentSavedVersesRendered[currentIndex + 1];
+        let cardId = 'saved-verse-' + nextItem.i;
+        selectVerse(nextItem.v, 'saved', cardId, true);
+        
+        setTimeout(() => {
+            const card = document.getElementById(cardId);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 50);
+        
+        setTimeout(() => {
+            let textToSpeak = nextItem.v.spoken_text || nextItem.v.text;
+            playText(textToSpeak, 'saved');
+            autoMode = true;
+        }, 50);
+    } else {
+        stopAudio();
+    }
+}
+
+/* --- Audio Waveform Visualizer --- */
+
+function updateVisualizerThemeCache() {
+    try {
+        const isDark = document.body.getAttribute('data-theme') === 'dark';
+        const rootStyle = getComputedStyle(document.body);
+        const defaultRgb = isDark ? '238, 204, 180' : '48, 40, 34';
+        cachedVisualizerRgb = (rootStyle && rootStyle.getPropertyValue('--visualizer-rgb').trim()) || defaultRgb;
+        rebuildVisualizerGradients();
+    } catch(e) {}
+}
+
+function rebuildVisualizerGradients() {
+    if (!waveformCanvasCtx) return;
+    try {
+        const isDark = document.body.getAttribute('data-theme') === 'dark';
+        const alphas = [0.3, 0.55, 0.85];
+        cachedGradLayers = alphas.map(alpha => {
+            const grad = waveformCanvasCtx.createLinearGradient(0, visualizerLogicalHeight, 0, visualizerLogicalHeight - 120);
+            const layerAlpha = isDark ? Math.min(1.0, alpha * 1.35) : alpha;
+            grad.addColorStop(0, `rgba(${cachedVisualizerRgb}, ${layerAlpha})`);
+            grad.addColorStop(0.6, `rgba(${cachedVisualizerRgb}, ${layerAlpha * 0.4})`);
+            grad.addColorStop(1, `rgba(${cachedVisualizerRgb}, 0.0)`);
+            return grad;
+        });
+    } catch(e) {}
+}
+
+function initVisualizerWorker() {
+    updateVisualizerThemeCache();
+    resizeWaveformCanvas();
+}
+
+function resizeWaveformCanvas() {
+    const canvas = document.getElementById('waveform-canvas');
+    if (!canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    visualizerLogicalWidth = Math.max(window.innerWidth, canvas.clientWidth || 0);
+    visualizerLogicalHeight = 380;
+    const targetWidth = Math.round(visualizerLogicalWidth * dpr);
+    const targetHeight = Math.round(visualizerLogicalHeight * dpr);
+
+    if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        canvas.style.width = '100vw';
+        canvas.style.height = visualizerLogicalHeight + 'px';
+    }
+    waveformCanvasCtx = canvas.getContext('2d', { alpha: true });
+    if (waveformCanvasCtx) {
+        waveformCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
+        waveformCanvasCtx.scale(dpr, dpr);
+    }
+    rebuildVisualizerGradients();
+}
+window.addEventListener('resize', resizeWaveformCanvas, { passive: true });
+
+let visualizerDrawGeneration = 0;
+let visualizerDataArray = null;
+
+function startWaveformVisualizer() {
+    clearTimeout(visualizerFadeTimeout);
+    const canvas = document.getElementById('waveform-canvas');
+    if (!canvas) return;
+    if (!waveformCanvasCtx) resizeWaveformCanvas();
+    canvas.style.display = 'block';
+    
+    // Double rAF ensures the browser paints display:block before starting the opacity transition
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            canvas.classList.add('active');
+        });
+    });
+
+    // Bump generation to kill any orphaned draw loops
+    visualizerDrawGeneration++;
+    const myGeneration = visualizerDrawGeneration;
+
+    if (waveformAnimFrame) {
+        cancelAnimationFrame(waveformAnimFrame);
+        waveformAnimFrame = null;
+    }
+
+    const ctx = waveformCanvasCtx || canvas.getContext('2d', { alpha: true });
+    if (!ctx) return;
+
+    updateVisualizerThemeCache();
+
+    const bufferLength = (audioAnalyser && audioAnalyser.frequencyBinCount) || 64;
+    if (!visualizerDataArray || visualizerDataArray.length !== bufferLength) {
+        visualizerDataArray = new Uint8Array(bufferLength);
+    }
+
+    let lastDrawTime = 0;
+    function draw(timestamp) {
+        // Kill this loop if a newer generation started
+        if (myGeneration !== visualizerDrawGeneration) return;
+
+        waveformAnimFrame = requestAnimationFrame(draw);
+
+        // Throttle to ~30fps to save CPU (especially during voice download)
+        if (timestamp - lastDrawTime < 33) return;
+        lastDrawTime = timestamp;
+
+        // Clear entire physical buffer
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+
+        if (audioAnalyser && isSpeaking && !isPaused) {
+            audioAnalyser.getByteFrequencyData(visualizerDataArray);
+            let sum = 0;
+            const len = visualizerDataArray.length;
+            for (let i = 0; i < len; i++) sum += visualizerDataArray[i];
+            const avgVolume = sum / len / 255.0;
+            visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.28;
+        } else {
+            visualizerSmoothedVol *= 0.85;
+        }
+
+        const cw = visualizerLogicalWidth;
+        const ch = visualizerLogicalHeight;
+        const np = Math.max(40, Math.floor(cw / 8));
+        const sw = (cw + 20) / (np - 1);
+        const time = Date.now() * 0.001;
+
+        for (let layerIdx = 0; layerIdx < 3; layerIdx++) {
+            const speed = [1.5, 1.8, 2.2][layerIdx];
+            const frequency = [0.005, 0.007, 0.009][layerIdx];
+            const amplitudeBase = [8, 12, 16][layerIdx];
+            const audioMult = [95, 140, 195][layerIdx];
+
+            ctx.beginPath();
+            ctx.moveTo(-10, ch);
+            for (let i = 0; i < np; i++) {
+                const x = -10 + (i * sw);
+                const wave1 = Math.sin(x * frequency + time * speed);
+                const wave2 = Math.sin((cw - x) * frequency + time * (speed * 0.85));
+                const height = amplitudeBase + (wave1 * 6) + (wave2 * 6) + (visualizerSmoothedVol * audioMult);
+                const y = ch - Math.max(4, height);
+                ctx.lineTo(x, y);
+            }
+            ctx.lineTo(cw + 10, ch);
+            ctx.closePath();
+            ctx.fillStyle = (cachedGradLayers && cachedGradLayers[layerIdx]) || 'rgba(238, 204, 180, 0.3)';
+            ctx.fill();
+        }
+    }
+
+    waveformAnimFrame = requestAnimationFrame(draw);
+}
+
+function stopWaveformVisualizer(forceHide = false) {
+    const canvas = document.getElementById('waveform-canvas');
+    if (!canvas) return;
+
+    canvas.classList.remove('active');
+    clearTimeout(visualizerFadeTimeout);
+
+    if (forceHide) {
+        visualizerDrawGeneration++;
+        if (waveformAnimFrame) {
+            cancelAnimationFrame(waveformAnimFrame);
+            waveformAnimFrame = null;
+        }
+        if (waveformCanvasCtx) {
+            try {
+                waveformCanvasCtx.save();
+                waveformCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
+                waveformCanvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+                waveformCanvasCtx.restore();
+            } catch(e) {}
+        }
+        canvas.style.display = 'none';
+        return;
+    }
+
+    // Smooth slide out: keep drawing undulating wave frames during the 650ms downward transition
+    visualizerFadeTimeout = setTimeout(() => {
+        if (!canvas.classList.contains('active')) {
+            visualizerDrawGeneration++;
+            if (waveformAnimFrame) {
+                cancelAnimationFrame(waveformAnimFrame);
+                waveformAnimFrame = null;
+            }
+            if (waveformCanvasCtx) {
+                try {
+                    waveformCanvasCtx.save();
+                    waveformCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
+                    waveformCanvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+                    waveformCanvasCtx.restore();
+                } catch(e) {}
+            }
+            canvas.style.display = 'none';
+        }
+    }, 650);
+}
+
+function applyRandomPremiumAngle() {
+    if (sessionUserPremiumAngle === null) {
+        // 60% straight (0deg), 40% angled randomly between -3deg and +3deg
+        const isAngled = Math.random() > 0.60;
+        if (isAngled) {
+            const sign = Math.random() > 0.5 ? 1 : -1;
+            const mag = (Math.random() * 1.8 + 1.2); // between 1.2deg and 3.0deg
+            sessionUserPremiumAngle = (sign * mag).toFixed(1);
+        } else {
+            sessionUserPremiumAngle = '0';
+        }
+    }
+
+    const btn = document.getElementById('user-premium-btn');
+    if (btn) {
+        btn.style.setProperty('--prem-angle', `${sessionUserPremiumAngle}deg`);
+        btn.style.transform = `rotate(${sessionUserPremiumAngle}deg)`;
+        btn.style.transition = 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
+    }
+}
+
+function renderLanguageList(filterQuery = '') {
+    const container = document.getElementById('language-list-container');
+    if (!container) return;
+    container.innerHTML = '';
+    const query = (filterQuery || '').toLowerCase().trim();
+    
+    const filtered = supportedLanguages.filter(l => 
+        l.name.toLowerCase().includes(query) || 
+        l.native.toLowerCase().includes(query) ||
+        l.code.toLowerCase().includes(query)
+    );
+
+    if (filtered.length === 0) {
+        container.innerHTML = `<div style="text-align: center; padding: 24px; opacity: 0.6; font-size: 0.9rem; color: var(--text-color);">No languages found matching "${filterQuery}"</div>`;
+        return;
+    }
+
+    filtered.forEach(lang => {
+        const item = document.createElement('div');
+        const isSelected = currentAppLanguage === lang.code;
+        
+        // Exact same selection style as topic and verse selection (inverted colors, no tick mark)
+        item.style.cssText = `display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-radius: 14px; border: 2px solid ${isSelected ? 'var(--text-color)' : 'var(--glass-border)'}; background: ${isSelected ? 'var(--text-color)' : 'transparent'}; color: ${isSelected ? 'var(--bg-grad-1)' : 'var(--text-color)'}; cursor: pointer; transition: all 0.2s ease; opacity: ${isSelected ? '1' : '0.6'}; font-weight: ${isSelected ? '600' : '500'};`;
+        
+        const isSameName = lang.native.toLowerCase() === lang.name.toLowerCase();
+
+        item.innerHTML = `
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+                <span style="font-size: 1.02rem; font-weight: 600; color: inherit;">${lang.native}</span>
+                ${!isSameName ? `<span style="font-size: 0.84rem; opacity: 0.75; color: inherit; font-weight: 400;">(${lang.name})</span>` : ''}
+            </div>
+        `;
+
+        item.onclick = () => {
+            selectAppLanguage(lang);
+        };
+        container.appendChild(item);
+    });
+}
+
+function filterLanguages(query) {
+    renderLanguageList(query);
+}
+
+function selectAppLanguage(lang) {
+    if (!lang || !lang.code) return;
+    const prevLang = currentAppLanguage;
+    currentAppLanguage = lang.code;
+    localStorage.setItem('versefeed_user_language', lang.code);
+    localStorage.setItem('user_language_selected', 'true');
+    
+    // Immediate visual selection update in modal
+    const searchVal = document.getElementById('lang-search-input')?.value || '';
+    renderLanguageList(searchVal);
+    
+    // Reload religion datasets if switching between native packs (Arabic, Bengali, English)
+    const nativeLangs = ['ar', 'bn', 'en_US', 'en'];
+    if (nativeLangs.includes(prevLang) || nativeLangs.includes(lang.code)) {
+        loadedReligions.clear();
+        if (religionBooks.Islam) delete religionBooks.Islam;
+        if (religionBooks.Christianity) delete religionBooks.Christianity;
+        loadSelectedData().then(() => {
+            if (typeof showReligions === 'function') showReligions();
+            if (typeof renderCurrentSection === 'function') renderCurrentSection();
+        });
+    }
+    
+    applyLanguageTranslations(lang.code);
+    preloadFunnyLines(lang.code);
+    if (typeof renderCards === 'function') {
+        renderCards();
+    }
+
+    if (!lang.hasVoice) {
+        showToast((lang.native || lang.name) + ' (Text only)');
+    } else {
+        showToast(lang.native || lang.name);
+    }
+}
+function openLanguageModal(isFirstLaunch = false) {
+    const modal = document.getElementById('language-modal');
+    if (!modal) return;
+    const searchInput = document.getElementById('lang-search-input');
+    if (searchInput) searchInput.value = '';
+    renderLanguageList('');
+    modal.classList.remove('hidden');
+    requestAnimationFrame(() => modal.classList.add('show'));
+}
+
+function closeLanguageModal(e) {
+    if (e) e.stopPropagation();
+    const modal = document.getElementById('language-modal');
+    if (!modal) return;
+    modal.classList.remove('show');
+    setTimeout(() => modal.classList.add('hidden'), 250);
+}
+
+function initLanguageSettings() {
+    const saved = localStorage.getItem('versefeed_user_language') || 'en_US';
+    applyLanguageTranslations(saved);
+}
+
+
+
+
+
+/* --- Album Logic --- */
+let pendingBookmarkVerse = null;
+let albumScrollTimeout = null;
+let isDraggingAlbumWheel = false;
+let isProgrammaticAlbumScroll = false;
+let programmaticAlbumScrollTimeout = null;
+let lastActiveAlbumIdx = -1;
+
+function openAlbumModal(verseObj) {
+    pendingBookmarkVerse = verseObj;
+    const modal = document.getElementById('album-modal');
+    if (!modal) return;
+    populateAlbumWheel();
+    openModal(modal);
+}
+
+function closeAlbumModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    closeModal(document.getElementById('album-modal'));
+    pendingBookmarkVerse = null;
+}
+
+function saveToAlbum(albumName) {
+    if (!pendingBookmarkVerse) return;
+    
+    // Check if it already exists
+    const existingIdx = savedVerses.findIndex(s => {
+        if (s && s.id && pendingBookmarkVerse.id) return s.id === pendingBookmarkVerse.id;
+        return s && s.book === pendingBookmarkVerse.book && String(s.chapter) === String(pendingBookmarkVerse.chapter) && String(s.verse) === String(pendingBookmarkVerse.verse);
+    });
+    
+    let isSameAlbum = false;
+    
+    if (existingIdx > -1) {
+        if (savedVerses[existingIdx].album === albumName) {
+            isSameAlbum = true;
+        } else {
+            savedVerses[existingIdx].album = albumName;
+        }
+    } else {
+        const v = { ...pendingBookmarkVerse, album: albumName };
+        if (!v.id) v.id = 'sv_' + Date.now() + '_' + Math.floor(Math.random()*100000);
+        savedVerses.unshift(v);
+    }
+    
+    if (!isSameAlbum) {
+        localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+        showToast(existingIdx > -1 ? ('Moved to ' + albumName) : ('Saved to ' + albumName));
+    }
+    
+    closeAlbumModal();
+    // Don't deselect verse in book section — keep the verse selected after bookmarking
+    const isBookSection = document.getElementById('read-books') && document.getElementById('read-books').classList.contains('active-section');
+    if (!isBookSection) {
+        deselectVerse();
+    }
+    if (document.getElementById('saved-verses').classList.contains('active-section')) {
+        showSavedVerses(true);
+    }
+    updatePillUI();
+}
+
+function getAlbumWheelItems() { return []; }
+function getActiveAlbumWheelItem() { return null; }
+function setupAlbumWheelListeners() {}
+
+function populateAlbumWheel() {
+    const grid = document.getElementById('album-grid');
+    if (!grid) return false;
+    
+    // Determine current folder of pendingBookmarkVerse if saved
+    let currentAlbum = null;
+    if (pendingBookmarkVerse) {
+        const existing = savedVerses.find(s => {
+            if (!s) return false;
+            if (s.id && pendingBookmarkVerse.id) return s.id === pendingBookmarkVerse.id;
+            return s.book === pendingBookmarkVerse.book && 
+                   String(s.chapter) === String(pendingBookmarkVerse.chapter) && 
+                   String(s.verse) === String(pendingBookmarkVerse.verse);
+        });
+        if (existing && existing.album && existing.album !== 'Default' && existing.album !== 'All') {
+            currentAlbum = existing.album;
+        } else if (pendingBookmarkVerse.album && pendingBookmarkVerse.album !== 'Default' && pendingBookmarkVerse.album !== 'All') {
+            currentAlbum = pendingBookmarkVerse.album;
+        }
+    }
+
+    const albums = new Set();
+    createdAlbums.forEach(name => {
+        if (name && name !== 'Default' && name !== 'All') albums.add(name);
+    });
+    savedVerses.forEach(v => {
+        if (v && v.album && v.album !== 'Default' && v.album !== 'All') albums.add(v.album);
+    });
+    
+    let albumList = Array.from(albums);
+    
+    // Exclude currentAlbum if verse is already in that folder
+    if (currentAlbum) {
+        albumList = albumList.filter(name => name !== currentAlbum);
+    }
+    
+    grid.innerHTML = '';
+    
+    // Show 'All' option if currently in a custom folder
+    if (currentAlbum) {
+        const allBtn = document.createElement('button');
+        allBtn.className = 'album-create-btn';
+        allBtn.style.width = '100%';
+        allBtn.style.fontSize = '0.95rem';
+        allBtn.innerText = 'All';
+        allBtn.onclick = () => saveToAlbum('All');
+        grid.appendChild(allBtn);
+    }
+
+    albumList.forEach(name => {
+        const btn = document.createElement('button');
+        btn.className = 'album-create-btn';
+        btn.style.width = '100%';
+        btn.style.fontSize = '0.95rem';
+        btn.innerText = name;
+        btn.onclick = () => saveToAlbum(name);
+        grid.appendChild(btn);
+    });
+    
+    return true;
+}
+
+function updateAlbumWheelActiveStyle() {}
+
+function updateSpeakIcons() {
+    updateSpeakButton('speak-general');
+}
+
+/* --- Create Bookmark / Album Modal --- */
+function openCreateBookmarkModal() {
+    if (createdAlbums.length >= 3 && !isPremiumUser) {
+        showToast("Upgrade to Premium for unlimited folders");
+        openPremiumModal();
+        return;
+    }
+    const modal = document.getElementById('create-bookmark-modal');
+    if (!modal) return;
+    const input = document.getElementById('create-album-name');
+    if (input) input.value = '';
+    openModal(modal);
+    setTimeout(() => { if (input) input.focus(); }, 50);
+}
+
+function closeCreateBookmarkModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    closeModal(document.getElementById('create-bookmark-modal'));
+}
+
+let lastDeletedItem = null;
+let undoTimeout = null;
+
+function showDeleteToast(msg, undoCallback) {
+    if (piperInitializing) return; // Do not overwrite active voice download progress
+    const toast = document.getElementById('global-toast');
+    const msgEl = document.getElementById('toast-message');
+    const actionBtn = document.getElementById('toast-action-btn');
+    const progressEl = document.getElementById('toast-progress');
+    if (!toast || !msgEl) return;
+    
+    msgEl.textContent = msg;
+    if (actionBtn) {
+        actionBtn.style.display = 'inline-block';
+        actionBtn.innerText = 'Undo';
+        actionBtn.onclick = () => {
+            clearTimeout(undoTimeout);
+            toast.classList.remove('show');
+            if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
+            if (undoCallback) undoCallback();
+        };
+    }
+    
+    const duration = 4000;
+    if (progressEl) {
+        progressEl.style.transition = 'none';
+        progressEl.style.transform = 'scaleX(0)';
+        requestAnimationFrame(() => {
+            progressEl.style.transition = `transform ${duration}ms linear`;
+            progressEl.style.transform = 'scaleX(1)';
+        });
+    }
+    
+    toast.classList.add('show');
+    clearTimeout(toastHideTimeout);
+    clearTimeout(undoTimeout);
+    undoTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+        if (progressEl) {
+            setTimeout(() => {
+                progressEl.style.transition = 'none';
+                progressEl.style.transform = 'scaleX(0)';
+            }, 200);
+        }
+        lastDeletedItem = null;
+    }, duration);
+}
+
+function toRomanNumeral(num, max = 20) {
+    if (num < 1 || num > max) return '';
+    const vals = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+    const syms = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
+    let result = '';
+    for (let i = 0; i < vals.length; i++) {
+        while (num >= vals[i]) {
+            result += syms[i];
+            num -= vals[i];
+        }
+    }
+    return result;
+}
+
+function sanitizeFolderName(raw) {
+    if (!raw) return '';
+    const maxNum = (typeof isPremiumUser !== 'undefined' && isPremiumUser) ? 49 : 9;
+    const maxChars = (typeof isPremiumUser !== 'undefined' && isPremiumUser) ? 30 : 10;
+    
+    // Convert numbers to Roman numerals (1-9 for free, 1-49 for premium)
+    let name = raw.replace(/\d+/g, (match) => {
+        const num = parseInt(match, 10);
+        if (num < 1 || num > maxNum) return '';
+        return toRomanNumeral(num, maxNum);
+    });
+    // Trim and limit to max characters using Unicode character slice
+    name = Array.from(name.trim()).slice(0, maxChars).join('');
+    return name;
+}
+
+function submitCreateAlbum() {
+    const input = document.getElementById('create-album-name');
+    if (!input) return;
+    let name = sanitizeFolderName(input.value);
+    if (!name) return;
+    
+    // Premium Lock: Max 3 albums for free users
+    if (createdAlbums.length >= 3 && !isPremiumUser) {
+        closeCreateBookmarkModal();
+        openPremiumModal();
+        return;
+    }
+    
+    if (!createdAlbums.includes(name)) {
+        createdAlbums.push(name);
+        localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
+    }
+    
+    input.value = '';
+    closeCreateBookmarkModal();
+    showSavedVerses();
+    showToast('Folder "' + name + '" created');
+}
+
+
+function handleFolderDelete(e, albumName) {
+    if (e) e.stopPropagation();
+    const name = albumName || (selectedVerse && selectedVerse.name) || selectedSavedAlbum;
+    if (!name) return;
+    
+    const idx = createdAlbums.indexOf(name);
+    const deletedVerses = savedVerses.filter(s => s && s.album === name);
+    
+    if (idx > -1) {
+        createdAlbums.splice(idx, 1);
+        localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
+    }
+    savedVerses = savedVerses.filter(s => s && s.album !== name);
+    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+    selectedSavedAlbum = null;
+    deselectVerse();
+    showSavedVerses(true);
+    
+    showDeleteToast('Folder deleted', () => {
+        if (!createdAlbums.includes(name)) {
+            createdAlbums.splice(idx > -1 ? idx : createdAlbums.length, 0, name);
+            localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
+        }
+        deletedVerses.forEach(v => savedVerses.unshift(v));
+        localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+        showSavedVerses(true);
+        showToast('Folder restored');
+    });
+}
+
+function handlePillMoveFolder(e) {
+    if (e) e.stopPropagation();
+    if (!selectedVerse) return;
+    openAlbumModal(selectedVerse);
+}
+
+function handlePillDeleteVerse(e) {
+    if (e) e.stopPropagation();
+    if (!selectedVerse) return;
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(err){}
+    
+    const index = savedVerses.findIndex(s => {
+        if (s.id && selectedVerse.id) return s.id === selectedVerse.id;
+        return s.book === selectedVerse.book && String(s.chapter) === String(selectedVerse.chapter) && String(s.verse) === String(selectedVerse.verse);
+    });
+    if (index > -1) {
+        const deletedVerse = { ...savedVerses[index] };
+        const deletedIndex = index;
+        savedVerses.splice(index, 1);
+        localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+        if (isSpeaking && !isPaused) stopAudio(true);
+        deselectVerse();
+        showSavedVerses(false);
+        
+        showDeleteToast('Verse deleted', () => {
+            savedVerses.splice(deletedIndex, 0, deletedVerse);
+            localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+            showSavedVerses(false);
+            showToast('Verse restored');
+        });
+    }
+}
+
+function deselectVerse() {
+    if (!isSpeaking || isPaused) {
+        stopWaveformVisualizer(false);
+    }
+    if (!selectedVerse) return;
+    const wasFolder = selectedVerse.type === 'folder';
+    highlightSelectedVerseElement(false);
+    
+    if (!wasFolder && selectedSavedAlbum) {
+        selectedVerse = null;
+        const folders = document.querySelectorAll('.album-folder-btn');
+        let folderId = null;
+        folders.forEach(f => {
+            if (f.innerText === selectedSavedAlbum) {
+                folderId = f.id;
+            }
+        });
+        selectVerse({ name: selectedSavedAlbum }, 'folder', folderId, true);
+        return;
+    }
+    
+    selectedVerse = null;
+    deactivatePillUI();
+    if (wasFolder) {
+        selectedSavedAlbum = null;
+        showSavedVerses(false);
+    }
+}
+
+function getVerseFolderState(verseObj) {
+    if (!verseObj) return { isSaved: false, label: '', album: null };
+    const v = verseObj.v || verseObj;
+    const index = savedVerses.findIndex(s => {
+        if (s.id && v.id) return s.id === v.id;
+        return s.book === v.book && String(s.chapter) === String(v.chapter) && String(s.verse) === String(v.verse);
+    });
+    if (index === -1) {
+        return { isSaved: false, label: '', album: null };
+    }
+    const album = savedVerses[index].album || 'All';
+    if (album === 'All' || album === 'Default') {
+        return { isSaved: true, label: 'A', album: 'All' };
+    }
+    const customFolders = createdAlbums.filter(n => n && n !== 'Default' && n !== 'All');
+    const fIdx = customFolders.indexOf(album);
+    const roman = fIdx > -1 ? toRomanNumeral(fIdx + 1) : 'I';
+    return { isSaved: true, label: roman || 'I', album: album };
+}
+
+function createActionIconsElement(verseObj, type) {
+    const isFolder = type === 'folder' || (verseObj && verseObj.type === 'folder');
+    if (isFolder) return null;
+
+    const container = document.createElement('div');
+    container.className = 'verse-actions';
+
+    const vState = getVerseFolderState(verseObj);
+    let cycleIconHtml = '';
+    if (!vState.isSaved) {
+        cycleIconHtml = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>`;
+    } else {
+        cycleIconHtml = `<span class="folder-cycle-badge">${vState.label}</span>`;
+    }
+
+    if (type === 'saved') {
+        const isInsideCustomFolder = selectedSavedAlbum && selectedSavedAlbum !== 'All';
+        const cycleBtnHtml = isInsideCustomFolder ? '' : `
+            <button class="va-btn va-cycle-btn" onclick="cycleVerseFolder(selectedVerse, event)" aria-label="Change Folder" title="Change Folder">
+                ${cycleIconHtml}
+            </button>
+        `;
+        container.innerHTML = `
+            ${cycleBtnHtml}
+            <button class="va-btn" onclick="handlePillShare(event)" aria-label="Share" title="Share">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
+            </button>
+            <button class="va-btn" onclick="handlePillDeleteVerse(event)" aria-label="Delete Bookmark" title="Delete Bookmark">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
+        `;
+        return container;
+    }
+
+    // Default for Feed, Book, Search
+    container.innerHTML = `
+        <button class="va-btn va-cycle-btn" onclick="cycleVerseFolder(selectedVerse, event)" aria-label="Save or Change Folder" title="Save / Change Folder">
+            ${cycleIconHtml}
+        </button>
+        <button class="va-btn" onclick="handlePillShare(event)" aria-label="Share" title="Share">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
+        </button>
+    `;
+    return container;
+}
+
+function deactivatePillUI() {
+    document.querySelectorAll('.verse-card .verse-actions, .saved-verse .verse-actions, .saved-verse-container .verse-actions, .book-verse .verse-actions, .album-square-btn .verse-actions').forEach(el => el.remove());
+    document.querySelectorAll('.selected-verse-active').forEach(el => el.classList.remove('selected-verse-active'));
+}
+
+function highlightSelectedVerseElement(active) {
+    deactivatePillUI();
+    if (!selectedVerse) return;
+    const el = document.getElementById(selectedVerse.elementId);
+    
+    if (selectedVerse.type === 'saved' || selectedVerse.type === 'search') {
+        if (el) {
+            if (active) {
+                el.style.background = 'var(--text-color)';
+                el.style.color = 'var(--bg-grad-1)';
+                el.style.opacity = '1';
+                el.style.borderColor = 'var(--text-color)';
+                const t = el.querySelector('.verse-text');
+                if (t) t.style.color = 'var(--bg-grad-1)';
+                const r = el.querySelector('.verse-ref');
+                if (r) r.style.color = 'var(--bg-grad-1)';
+                
+                const footer = el.querySelector('.saved-verse-footer') || el;
+                const actions = createActionIconsElement(selectedVerse, selectedVerse.type);
+                if (actions) footer.appendChild(actions);
+            } else {
+                el.style.background = '';
+                el.style.color = '';
+                el.style.opacity = '';
+                el.style.borderColor = '';
+                const t = el.querySelector('.verse-text');
+                if (t) t.style.color = '';
+                const r = el.querySelector('.verse-ref');
+                if (r) r.style.color = '';
+            }
+        }
+    } else if (selectedVerse.type === 'folder') {
+        if (el) {
+            if (active) {
+                el.classList.add('active');
+            } else {
+                if (selectedSavedAlbum !== selectedVerse.name) {
+                    el.classList.remove('active');
+                }
+            }
+        }
+    } else if (selectedVerse.type === 'book') {
+        if (el) {
+            if (active) {
+                document.querySelectorAll('.book-verse.marked').forEach(e => e.classList.remove('marked'));
+                el.classList.add('marked');
+                const actions = createActionIconsElement(selectedVerse, 'book');
+                if (actions) el.appendChild(actions);
+            } else {
+                el.classList.remove('marked');
+            }
+        }
+    } else if (selectedVerse.type === 'feed') {
+        const card = document.querySelector('.verse-card.card-center');
+        if (card) {
+            if (active) {
+                card.style.background = 'var(--text-color)';
+                card.style.color = 'var(--bg-grad-1)';
+                card.style.borderColor = 'var(--text-color)';
+                card.style.boxShadow = '0 0 15px rgba(var(--loader-rgb), 0.3)';
+                const t = card.querySelector('.verse-text');
+                if (t) t.style.color = 'var(--bg-grad-1)';
+                const r = card.querySelector('.verse-ref');
+                if (r) r.style.color = 'var(--bg-grad-1)';
+                const f = card.querySelector('.card-footer');
+                if (f) {
+                    f.style.color = 'var(--bg-grad-1)';
+                    const actions = createActionIconsElement(selectedVerse, 'feed');
+                    if (actions) f.appendChild(actions);
+                }
+            } else {
+                card.style.background = '';
+                card.style.color = '';
+                card.style.borderColor = '';
+                card.style.boxShadow = '';
+                const t = card.querySelector('.verse-text');
+                if (t) t.style.color = '';
+                const r = card.querySelector('.verse-ref');
+                if (r) r.style.color = '';
+                const f = card.querySelector('.card-footer');
+                if (f) f.style.color = '';
+            }
+        }
+    }
+}
+
+function updateVerseActions() {
+    updateSpeakButton('speak-general');
+}
+
+function updatePillUI() {
+    updateVerseActions();
+}
+
+function selectVerse(verseObj, type, elementId, forceSelect = false) {
+    if (verseObj && verseObj.isAd) return;
+    // Clear all existing saved verse element highlights to prevent multi-selection
+    document.querySelectorAll('.saved-verse').forEach(el => {
+        el.style.background = '';
+        el.style.color = '';
+        el.style.opacity = '';
+        el.style.borderColor = '';
+        const t = el.querySelector('.verse-text');
+        if (t) t.style.color = '';
+        const r = el.querySelector('.verse-ref');
+        if (r) r.style.color = '';
+    });
+    let isDifferentVerse = false;
+    if (!selectedVerse) {
+        isDifferentVerse = true;
+    } else if (selectedVerse.type !== type) {
+        isDifferentVerse = true;
+    } else if (type === 'folder' || verseObj.type === 'folder') {
+        isDifferentVerse = selectedVerse.name !== verseObj.name;
+    } else if (verseObj.id) {
+        isDifferentVerse = selectedVerse.id !== verseObj.id;
+    } else {
+        isDifferentVerse = selectedVerse.book !== verseObj.book || 
+                           String(selectedVerse.chapter) !== String(verseObj.chapter) || 
+                           String(selectedVerse.verse) !== String(verseObj.verse);
+    }
+
+    if (!forceSelect && !isDifferentVerse) {
+        if (type === 'book') return; // Prevent deselection in book section
+        if (isSpeaking && !isPaused) return; // Don't deselect while voice is actively playing
+        deselectVerse();
+        return;
+    }
+
+    highlightSelectedVerseElement(false);
+    selectedVerse = { ...verseObj, type, elementId };
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
+    highlightSelectedVerseElement(true);
+
+    // Immediate play on selection ONLY if actively playing (isSpeaking is true AND isPaused is false)
+    if (isSpeaking && !isPaused && isDifferentVerse && !forceSelect) {
+        let isSameAsCurrentlyPlaying = false;
+        if (type === 'feed' && verseBatches.general && verseBatches.general[currentVerseIndex.general]) {
+            const curPlaying = verseBatches.general[currentVerseIndex.general];
+            if (curPlaying.id && verseObj.id && curPlaying.id === verseObj.id) isSameAsCurrentlyPlaying = true;
+            else if (curPlaying.text && verseObj.text && curPlaying.text === verseObj.text) isSameAsCurrentlyPlaying = true;
+        } else if (type === 'book' && verseObj.globalIndex !== undefined && verseObj.globalIndex === bookVoiceCurrentVerse) {
+            isSameAsCurrentlyPlaying = true;
+        }
+
+        if (!isSameAsCurrentlyPlaying) {
+            stopAudio(true);
+            if (type === 'book') {
+                if (selectedVerse.globalIndex !== undefined) {
+                    const targetIdx = selectedVerse.globalIndex;
+                    bookVoiceCurrentVerse = targetIdx;
+                    syncWheelsToCurrent();
+                    scrollToBookVerse(targetIdx);
+                    markVerse();
+                    playBookVerse(targetIdx);
+                    autoNextBook = true;
+                }
+            } else if (type === 'saved') {
+                playText(selectedVerse.text, 'saved');
+                autoMode = true;
+            } else if (type === 'feed') {
+                playText(selectedVerse.text, 'feed');
+                autoMode = true;
+            }
+        }
+    } else if (isSpeaking && isPaused && isDifferentVerse && !forceSelect) {
+        // If voice session is paused, select/highlight it and update indices, but do NOT autoplay!
+        stopAudio(true);
+        if (type === 'book') {
+            if (selectedVerse.globalIndex !== undefined) {
+                bookVoiceCurrentVerse = selectedVerse.globalIndex;
+                syncWheelsToCurrent();
+                scrollToBookVerse(selectedVerse.globalIndex);
+                markVerse();
+            }
+        }
+    } else {
+        if (type === 'book') {
+            if (selectedVerse.globalIndex !== undefined) {
+                bookVoiceCurrentVerse = selectedVerse.globalIndex;
+                syncWheelsToCurrent();
+                scrollToBookVerse(selectedVerse.globalIndex);
+                markVerse();
+            }
+        }
+    }
+    updatePillUI();
+}
+
+function handlePillLeftAction(e) {
+    if (e) e.stopPropagation();
+    
+    // Auto-select current feed or book verse if selectedVerse is null
+    if (!selectedVerse) {
+        const isFeed = document.getElementById('verse-feed').classList.contains('active-section');
+        const isBook = document.getElementById('read-books').classList.contains('active-section');
+        if (isFeed && typeof currentFeedIndex !== 'undefined' && verseBatches.general && verseBatches.general[currentFeedIndex]) {
+            selectedVerse = verseBatches.general[currentFeedIndex];
+        } else if (isBook && typeof currentBookObj !== 'undefined' && lastSelectedBookVerse) {
+            selectedVerse = lastSelectedBookVerse;
+        }
+    }
+    
+    if (!selectedVerse) {
+        openCreateBookmarkModal();
+        return;
+    }
+    
+    // Safety check just in case
+    if (!Array.isArray(savedVerses)) savedVerses = [];
+    
+    if (selectedVerse.type === 'folder') {
+        const albumName = selectedVerse.name;
+        if (!albumName) return;
+        
+        // Remove from createdAlbums
+        const albumIndex = createdAlbums.indexOf(albumName);
+        if (albumIndex > -1) {
+            createdAlbums.splice(albumIndex, 1);
+            localStorage.setItem('createdAlbums', JSON.stringify(createdAlbums));
+        }
+        
+        // Remove album tag from savedVerses (or delete verses in this folder)
+        savedVerses.forEach(s => {
+            if (s && s.album === albumName) {
+                delete s.album;
+            }
+        });
+        localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+        
+        selectedSavedAlbum = null;
+        deselectVerse();
+        showSavedVerses(true);
+        
+        return;
+    }
+    
+    if (selectedVerse.type === 'saved' || selectedVerse.type === 'search') {
+        if (!selectedSavedAlbum) {
+            // In "All" view: this is a bookmark button, open album modal
+            openAlbumModal(selectedVerse);
+            return;
+        }
+        
+        // Delete action
+        const index = savedVerses.findIndex(s => {
+            if (s.id && selectedVerse.id) return s.id === selectedVerse.id;
+            return s.book === selectedVerse.book && String(s.chapter) === String(selectedVerse.chapter) && String(s.verse) === String(selectedVerse.verse);
+        });
+        if (index > -1) {
+            savedVerses.splice(index, 1);
+            localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+            
+            if (isSpeaking && !isPaused) {
+                stopAudio(true);
+            }
+            
+            deselectVerse();
+            activeSavedVerse = null;
+            showSavedVerses(false);
+            showToast('Bookmark removed');
+        }
+    } else {
+        // Bookmark/Save action
+        const index = savedVerses.findIndex(s => s.book === selectedVerse.book && String(s.chapter) === String(selectedVerse.chapter) && String(s.verse) === String(selectedVerse.verse));
+        if (index > -1) {
+            savedVerses.splice(index, 1);
+            localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+            showToast('Bookmark removed');
+        } else {
+            openAlbumModal(selectedVerse);
+        }
+    }
+    updatePillUI();
+}
+
+function handlePillPlay(e) {
+    if (e) e.stopPropagation();
+    if (selectedVerse && selectedVerse.type === 'folder') {
+        selectedSavedAlbum = selectedVerse.name;
+        showSavedVerses(false);
+        return;
+    }
+    
+    // Synchronously resume audio context on user gesture to avoid browser block
+    const ctx = getAudioContext();
+    if (ctx.state === 'suspended') {
+        ctx.resume().catch(err => console.error("AudioContext resume failed:", err));
+    }
+
+    const isBookSection = document.getElementById('read-books').classList.contains('active-section')
+        && !document.getElementById('book-content-view').classList.contains('hidden');
+    const isFeedSection = document.getElementById('verse-feed').classList.contains('active-section');
+
+    if (isGenerating) {
+        console.log("Audio generating, ignoring extra clicks...");
+        return;
+    }
+
+    if (isSpeaking) {
+        const btn = document.getElementById('speak-general');
+        if (btn) btn.classList.remove('loading');
+        if (!isPaused) {
+            isPaused = true;
+            if (currentAudioNode) {
+                try {
+                    currentAudioNode.onended = null;
+                    currentAudioNode.stop();
+                } catch (err) { }
+            }
+            stopWaveformVisualizer(true);
+            updateSpeakIcons();
+            updatePillUI();
+        } else {
+            isPaused = false;
+            startWaveformVisualizer();
+            startAudioPlayback(0, currentGenerationId);
+            updateSpeakIcons();
+            updatePillUI();
+        }
+    } else {
+        if (selectedVerse) {
+            if (selectedVerse.type === 'book') {
+                bookVoiceCurrentVerse = selectedVerse.globalIndex;
+                markVerse();
+                syncWheelsToCurrent();
+                playBookVerse(bookVoiceCurrentVerse);
+                autoNextBook = true;
+            } else if (selectedVerse.type === 'feed') {
+                playText(selectedVerse.text, 'feed');
+                autoMode = false; // Only play this selected verse and stop
+            } else if (selectedVerse.type === 'search') {
+                let textToSpeak = selectedVerse.text;
+                playText(textToSpeak, 'search');
+                autoMode = true;
+            } else if (selectedVerse.type === 'saved') {
+                const idx = window.currentSavedVersesRendered ? window.currentSavedVersesRendered.findIndex(item => {
+                    let v = item.v;
+                    if (v.id && selectedVerse.id) return v.id === selectedVerse.id;
+                    return v.book === selectedVerse.book && String(v.chapter) === String(selectedVerse.chapter) && String(v.verse) === String(selectedVerse.verse);
+                }) : -1;
+                savedVoiceCurrentIndex = idx !== -1 ? idx : 0;
+                playText(selectedVerse.text, 'saved');
+                autoMode = true;
+            }
+        } else {
+            // Nothing explicitly selected, play contextual default
+            if (isFeedSection) {
+                const currentVerseObj = getVerseAtIndex(currentVerseIndex.general);
+                if (currentVerseObj) {
+                    if (currentVerseObj.isAd) {
+                        if (!currentVerseObj.funnyLine) {
+                            currentVerseObj.funnyLine = getNextFunnyLine();
+                        }
+                        const adSpokenText = "VerseFeed Premium. " + currentVerseObj.funnyLine;
+                        playText(adSpokenText, 'feed');
+                        autoMode = true;
+                    } else {
+                        let spokenText = currentVerseObj.spoken_text || currentVerseObj.text || '';
+                        if (spokenText) {
+                            if (!spokenText.endsWith('.')) spokenText += '.';
+                            if (ttsAnnounceSource && currentVerseObj.book) {
+                                spokenText += '. ' + currentVerseObj.book + '.';
+                            }
+                            playText(spokenText, 'feed');
+                            autoMode = true; // Auto advance to next verse
+                        }
+                    }
+                }
+            } else if (isBookSection) {
+                playBookVerse(bookVoiceCurrentVerse || 0);
+                autoNextBook = true;
+            }
+        }
+        updatePillUI();
+    }
+}
+
+function cycleVerseFolder(verseObj, e) {
+    if (e) e.stopPropagation();
+    const v = verseObj ? (verseObj.v || verseObj) : (selectedVerse ? (selectedVerse.v || selectedVerse) : getCurrentActiveVerse() || getVerseAtIndex(currentVerseIndex.general));
+    if (!v) return;
+
+    if (typeof playScrollSound === 'function') {
+        try { playScrollSound(); } catch(err){}
+    } else if (typeof playTapSound === 'function') {
+        try { playTapSound(); } catch(err){}
+    }
+
+    const isSavedSection = (verseObj && verseObj.type === 'saved') || (selectedVerse && selectedVerse.type === 'saved') || (document.getElementById('saved-verses') && document.getElementById('saved-verses').classList.contains('active-section'));
+
+    const customFolders = createdAlbums.filter(n => n && n !== 'Default' && n !== 'All');
+    const index = savedVerses.findIndex(s => {
+        if (s.id && v.id) return s.id === v.id;
+        return s.book === v.book && String(s.chapter) === String(v.chapter) && String(s.verse) === String(v.verse);
+    });
+
+    if (index === -1) {
+        // Currently unsaved -> Save to 'All'
+        const newSaved = {
+            book: v.book,
+            chapter: v.chapter,
+            verse: v.verse,
+            text: v.text,
+            translation: v.translation || '',
+            album: 'All',
+            timestamp: Date.now(),
+            id: v.id || `${v.book}_${v.chapter}_${v.verse}_${Date.now()}`
+        };
+        savedVerses.unshift(newSaved);
+        localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+        triggerCloudSync();
+        showToast('Saved to Bookmarks (All)');
+    } else {
+        const currentAlbum = savedVerses[index].album || 'All';
+        if (currentAlbum === 'All' || currentAlbum === 'Default') {
+            if (customFolders.length > 0) {
+                // Move to 1st custom folder (Roman I)
+                const nextFolder = customFolders[0];
+                savedVerses[index].album = nextFolder;
+                localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                triggerCloudSync();
+                showToast(`Moved to ${nextFolder} (I)`);
+            } else {
+                if (isSavedSection) {
+                    showToast('In Bookmarks (All)');
+                } else {
+                    // Loop back to unsaved in Feed/Book/Search
+                    savedVerses.splice(index, 1);
+                    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                    triggerCloudSync();
+                    showToast('Bookmark removed');
+                }
+            }
+        } else {
+            const curFolderIdx = customFolders.indexOf(currentAlbum);
+            if (curFolderIdx > -1 && curFolderIdx + 1 < customFolders.length) {
+                // Move to next custom folder (II, III...)
+                const nextFolder = customFolders[curFolderIdx + 1];
+                savedVerses[index].album = nextFolder;
+                localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                triggerCloudSync();
+                showToast(`Moved to ${nextFolder} (${toRomanNumeral(curFolderIdx + 2)})`);
+            } else {
+                if (isSavedSection) {
+                    // In Bookmark section: Loop back to 'All'
+                    savedVerses[index].album = 'All';
+                    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                    triggerCloudSync();
+                    showToast('Moved to Bookmarks (All)');
+                } else {
+                    // In Feed/Book/Search: Loop back to unsaved
+                    savedVerses.splice(index, 1);
+                    localStorage.setItem('savedVerses', JSON.stringify(savedVerses));
+                    triggerCloudSync();
+                    showToast('Bookmark removed');
+                }
+            }
+        }
+    }
+
+    if (typeof showSavedVerses === 'function') showSavedVerses(false);
+    updatePillUI();
+    if (selectedVerse) highlightSelectedVerseElement(true);
+}
+
+function handlePillBookmark(e) {
+    cycleVerseFolder(selectedVerse, e);
+}
+
+function handlePillShare(e) {
+    if (e) e.stopPropagation();
+    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(err){}
+    const verseToShare = selectedVerse || getCurrentActiveVerse() || getVerseAtIndex(currentVerseIndex.general);
+    if (!verseToShare) return;
+    
+    if (verseToShare.type === 'folder') {
+        const input = document.getElementById('rename-album-input');
+        if (input) input.value = verseToShare.name || '';
+        const modal = document.getElementById('rename-modal');
+        if (modal) {
+            openModal(modal);
+            if (input) {
+                setTimeout(() => {
+                    input.focus();
+                    input.select();
+                }, 50);
+            }
+        }
+        return;
+    }
+    
+    generateAndShareImage(verseToShare, verseToShare.elementId);
+}
+
 function getLocalizedVerseText(verseObj) {
     if (!verseObj) return '';
-    let rawText = verseObj.spoken_text || verseObj.text || '';
-    rawText = rawText.replace(/<span class='author-attr'>.*?<\/span>/gm, '');
-    rawText = rawText.replace(/<[^>]*>?/gm, '').trim();
+    let raw = verseObj.spoken_text || verseObj.text || '';
+    raw = raw.replace(/<span class='author-attr'>.*?<\/span>/gm, '');
+    raw = raw.replace(/<[^>]*>?/gm, '').trim();
     if (currentAppLanguage !== 'en_US' && currentAppLanguage !== 'en') {
-        const cached = getCachedVerseTranslation(rawText, currentAppLanguage);
+        const cached = getCachedVerseTranslation(raw, currentAppLanguage);
         if (cached && !isGarbageTranslation(cached)) return cached;
     }
-    return rawText;
+    return raw;
 }
 
 function formatVerseForShare(verseObj) {
@@ -18,14 +8708,57 @@ function formatVerseForShare(verseObj) {
     return `${text}\n\n${ref}\n\nVerseFeed`;
 }
 
-function drawVersePosterToCanvas(verseObj, isDark = true) {
-    const width = 1080;
-    const height = 1920;
+async function shareTextFallback(text) {
+    try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share) {
+            try {
+                await window.Capacitor.Plugins.Share.share({ title: 'VerseFeed', text: text, dialogTitle: 'Share Verse' });
+            } catch (shareErr) {
+                if (shareErr && (shareErr.message || '').toLowerCase().includes('cancel')) return;
+                if (shareErr && (shareErr.message || '').toLowerCase().includes('dismiss')) return;
+                throw shareErr;
+            }
+            return;
+        }
+        if (navigator.share) {
+            await navigator.share({ title: 'VerseFeed', text: text });
+        } else if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+            showToast('Verse copied');
+        } else {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('Verse copied');
+        }
+    } catch (e) {
+        const msg = (e && e.message) ? e.message.toLowerCase() : '';
+        if (msg.includes('cancel') || msg.includes('dismiss') || msg.includes('abort')) return;
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+                showToast('Verse copied');
+            }
+        } catch (e2) {
+            showToast('Could not share');
+        }
+    }
+}
+
+function drawVersePosterToCanvas(verseObj, isDark) {
     const canvas = document.createElement('canvas');
+    const width = 1080;
+    const height = 1080;
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
     
+    // Background gradient (clean borderless poster)
     const grad = ctx.createLinearGradient(0, 0, width, height);
     if (isDark) {
         grad.addColorStop(0, '#1F1D1B');
@@ -37,8 +8770,10 @@ function drawVersePosterToCanvas(verseObj, isDark = true) {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, width, height);
     
-    // Localized Verse Text
+    // Verse Text
     let rawText = getLocalizedVerseText(verseObj);
+    rawText = rawText.replace(/<span class='author-attr'>.*?<\/span>/gm, '');
+    rawText = rawText.replace(/<[^>]*>?/gm, '').trim();
     
     ctx.fillStyle = isDark ? '#f7e7ce' : '#1E1D1B';
     ctx.textAlign = 'center';
@@ -1442,6 +10177,7 @@ function renderPremiumPackages() {
         }
     }
 }
+
 async function handlePremiumSubscribeClick(e) {
     if (e && e.stopPropagation) e.stopPropagation();
     if (e && e.preventDefault) e.preventDefault();
