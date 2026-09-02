@@ -791,6 +791,53 @@ const supportedLanguages = [
 ];
 
 const i18nDict = {
+    "Ad": {
+        "ar": "إعلان",
+        "bn": "বিজ্ঞাপন",
+        "hi": "विज्ञापन",
+        "es": "Anuncio",
+        "fr": "Publicité",
+        "it": "Pubblicità",
+        "de": "Anzeige",
+        "ru": "Реклама",
+        "ja": "広告",
+        "pt": "Anúncio",
+        "tr": "Reklam"
+    },
+    "by": {
+        "ar": "بقلم",
+        "bn": "রচয়িতা",
+        "hi": "द्वारा",
+        "es": "por",
+        "fr": "par",
+        "it": "di",
+        "de": "von",
+        "ru": "автор",
+        "ja": "著者",
+        "pt": "por",
+        "tr": "tarafından"
+    },
+    "Guru Granth Sahib": {
+        "ar": "جورو جرانث صاحب",
+        "bn": "গুরু গ্রন্থ সাহিব",
+        "hi": "गुरु ग्रंथ साहिब",
+        "es": "Gurú Granth Sahib",
+        "fr": "Guru Granth Sahib",
+        "it": "Guru Granth Sahib",
+        "de": "Guru Granth Sahib",
+        "ru": "Гуру Грантх Сахиб"
+    },
+    "Guru Nanak and the Sikh Religion": {
+        "ar": "غورو ناناك والديانة السيخية",
+        "bn": "গুরু নানক ও শিখ ধর্ম",
+        "hi": "गुरु नानक और सिख धर्म",
+        "es": "Guru Nanak y la religión sij",
+        "fr": "Guru Nanak et la religion sikhe",
+        "it": "Guru Nanak e la religione sikh",
+        "de": "Guru Nanak und die Sikh-Religion",
+        "ru": "Гуру Нанак и религия сикхов"
+    },
+
     "Existentialism": {
         "ar": "الوجودية",
         "bn": "অস্তিত্ববাদ",
@@ -6322,18 +6369,28 @@ function renderSearchBatch(batchSize = 20) {
         card.style.cursor = 'pointer';
         card.style.animation = 'sectionFadeIn 0.20s ease-out forwards';
         
-        let refStr = formatVerseRef(match);
+        const textDiv = document.createElement('div');
+        textDiv.style.cssText = 'font-size: 1.1em; line-height: 1.6; margin-bottom: 8px; display: block; word-break: break-word;';
+        applyDynamicVerseTranslation(textDiv, match.text);
+        card.appendChild(textDiv);
         
-        const highlightedText = highlightSearchTerms(match.text, currentSearchTermsInfo.map(t => t.token));
-        let html = `<div style="font-size: 1.1em; line-height: 1.6; margin-bottom: 8px; display: block; word-break: break-word;">${highlightedText}</div>`;
         if (match.translation && match.translation !== match.text) {
-            const highlightedTrans = highlightSearchTerms(match.translation, currentSearchTermsInfo.map(t => t.token));
-            html += `<div style="font-size: 0.9em; opacity: 0.8; line-height: 1.5; font-style: italic; margin-bottom: 10px;">${highlightedTrans}</div>`;
+            const transDiv = document.createElement('div');
+            transDiv.style.cssText = 'font-size: 0.9em; opacity: 0.8; line-height: 1.5; font-style: italic; margin-bottom: 10px;';
+            applyDynamicVerseTranslation(transDiv, match.translation);
+            card.appendChild(transDiv);
         }
         
-        html += `<div class="saved-verse-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;"><div class="verse-ref" style="font-size: 0.8em; opacity: 0.6; text-align: left;">${refStr}</div></div>`;
+        const footer = document.createElement('div');
+        footer.className = 'saved-verse-footer';
+        footer.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-top: 15px;';
+        const refEl = document.createElement('div');
+        refEl.className = 'verse-ref';
+        refEl.style.cssText = 'font-size: 0.8em; opacity: 0.6; text-align: left;';
+        applyDynamicRefTranslation(refEl, match);
+        footer.appendChild(refEl);
+        card.appendChild(footer);
         
-        card.innerHTML = html;
         card.onclick = (e) => {
             if (e) e.stopPropagation();
             selectVerse(match, 'search', card.id, false);
@@ -6343,7 +6400,6 @@ function renderSearchBatch(batchSize = 20) {
     
     currentSearchRenderedCount = endIndex;
 }
-
 let isSearchScrollListenerAttached = false;
 function setupSearchScrollListener() {
     if (isSearchScrollListenerAttached) return;
