@@ -5119,7 +5119,10 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
                 if (e) e.stopPropagation();
                 openPremiumModal();
             };
-            textEl.innerHTML = `<div style="font-size: clamp(1.2rem, 4.2vw, 1.65rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.55; text-align: center; max-width: 90%;">${t(verse.funnyLine)}</div>`;
+            const funnyDiv = document.createElement('div');
+            funnyDiv.style.cssText = 'font-size: clamp(1.2rem, 4.2vw, 1.65rem); font-weight: 600; color: var(--text-color); font-family: var(--font-main); line-height: 1.55; text-align: center; max-width: 90%;';
+            applyDynamicVerseTranslation(funnyDiv, verse.funnyLine);
+            textEl.appendChild(funnyDiv);
         }
         card.appendChild(textEl);
 
@@ -5895,11 +5898,9 @@ function showReligions() {
 
     sortedRels.forEach(rel => {
         const btn = document.createElement('button');
-        const locRel = typeof t === 'function' ? t(rel) : rel;
-        btn.innerText = locRel;
+        applyDynamicVerseTranslation(btn, rel);
         
         if (!religionBooks[rel]) {
-            btn.innerText = locRel + ' (Loading...)';
             btn.style.opacity = '0.7';
             if (!loadedReligions.has(rel)) {
                 loadReligionData(rel);
@@ -5908,7 +5909,6 @@ function showReligions() {
 
         btn.onclick = async () => {
             if (!religionBooks[rel]) {
-                btn.innerText = locRel + ' (Loading...)';
                 btn.style.opacity = '0.7';
                 await loadReligionData(rel);
             }
@@ -6120,7 +6120,11 @@ function showBooks(rel) {
     const bookListContainer = document.getElementById('book-list');
 
     const list = document.getElementById('book-list');
-    list.innerHTML = '<h2>' + (typeof t === 'function' ? t(rel) : rel) + '</h2>';
+    list.innerHTML = '';
+    
+    const h2 = document.createElement('h2');
+    applyDynamicVerseTranslation(h2, rel);
+    list.appendChild(h2);
 
     // Render Daily Curated Audiobook at Top (Hidden if user is premium)
     const isUserPremium = (typeof isPremiumUser !== 'undefined' && isPremiumUser) || localStorage.getItem('isPremiumUser') === 'true';
@@ -6137,12 +6141,14 @@ function showBooks(rel) {
         list.appendChild(adBtn);
     }
 
-    religionBooks[rel].books.forEach(book => {
-        const btn = document.createElement('button');
-        btn.innerText = (typeof t === 'function' ? t(book.name) : book.name);
-        btn.onclick = () => showBookContent(rel, book);
-        list.appendChild(btn);
-    });
+    if (religionBooks[rel] && religionBooks[rel].books) {
+        religionBooks[rel].books.forEach(book => {
+            const btn = document.createElement('button');
+            applyDynamicVerseTranslation(btn, book.name);
+            btn.onclick = () => showBookContent(rel, book);
+            list.appendChild(btn);
+        });
+    }
 }
 
 let currentBookObj = null;
@@ -6165,11 +6171,15 @@ function showBookContent(rel, book) {
         document.getElementById('sub-book-list-view').classList.remove('hidden');
         
         const list = document.getElementById('sub-book-list');
-        list.innerHTML = `<h2>${typeof t === 'function' ? t(book.name) : book.name}</h2>`;
+        list.innerHTML = '';
+        
+        const h2 = document.createElement('h2');
+        applyDynamicVerseTranslation(h2, book.name);
+        list.appendChild(h2);
         
         book.subBookOrder.forEach(sub => {
             const btn = document.createElement('button');
-            btn.innerText = (typeof t === 'function' ? t(sub) : sub);
+            applyDynamicVerseTranslation(btn, sub);
             btn.onclick = () => showSubBookContent(sub);
             list.appendChild(btn);
         });
