@@ -825,7 +825,8 @@ const i18nDict = {
         "fr": "Guru Granth Sahib",
         "it": "Guru Granth Sahib",
         "de": "Guru Granth Sahib",
-        "ru": "Гуру Грантх Сахиб"
+        "ru": "Гуру Грантх Сахиб",
+        "pa": "ਗੁਰੂ ਗ੍ਰੰਥ ਸਾਹਿਬ"
     },
     "Guru Nanak and the Sikh Religion": {
         "ar": "غورو ناناك والديانة السيخية",
@@ -837,7 +838,6 @@ const i18nDict = {
         "de": "Guru Nanak und die Sikh-Religion",
         "ru": "Гуру Нанак и религия сикхов"
     },
-
     "Existentialism": {
         "ar": "الوجودية",
         "bn": "অস্তিত্ববাদ",
@@ -927,7 +927,12 @@ const i18nDict = {
         "ru": "Философия",
         "ja": "哲学",
         "pt": "Filosofia",
-        "tr": "Felsefe"
+        "tr": "Felsefe",
+        "id": "Filsafat",
+        "ur": "فلسفہ",
+        "zh": "哲学",
+        "ko": "철학",
+        "fa": "فلسفه"
     },
     "Psychology": {
         "ar": "علم النفس",
@@ -942,7 +947,6 @@ const i18nDict = {
         "pt": "Psicologia",
         "tr": "Psikoloji"
     },
-
     "Folder deleted": {
         "bn": "ফোল্ডার মুছে ফেলা হয়েছে",
         "hi": "फ़ोल्डर हटा दिया गया",
@@ -954,7 +958,12 @@ const i18nDict = {
         "ru": "Папка удалена",
         "ja": "フォルダを削除しました",
         "pt": "Pasta excluída",
-        "tr": "Klasör silindi"
+        "tr": "Klasör silindi",
+        "id": "Folder dihapus",
+        "ur": "فولڈر حذف کر دیا گیا",
+        "zh": "文件夹已删除",
+        "ko": "폴더 삭제됨",
+        "fa": "پوشه حذف شد"
     },
     "Verse deleted": {
         "bn": "আয়াত মুছে ফেলা হয়েছে",
@@ -967,7 +976,12 @@ const i18nDict = {
         "ru": "Стих удален",
         "ja": "詩を削除しました",
         "pt": "Versículo excluído",
-        "tr": "Ayet silindi"
+        "tr": "Ayet silindi",
+        "id": "Ayat dihapus",
+        "ur": "آیت حذف کر دی گئی",
+        "zh": "经文已删除",
+        "ko": "구절 삭제됨",
+        "fa": "آیه حذف شد"
     },
     "Folder restored": {
         "bn": "ফোল্ডার পুনরুদ্ধার করা হয়েছে",
@@ -980,7 +994,12 @@ const i18nDict = {
         "ru": "Папка восстановлена",
         "ja": "フォルダを復元しました",
         "pt": "Pasta restaurada",
-        "tr": "Klasör geri yüklendi"
+        "tr": "Klasör geri yüklendi",
+        "id": "Folder dipulihkan",
+        "ur": "فولڈر بحال کر دیا گیا",
+        "zh": "文件夹已恢复",
+        "ko": "폴더 복원됨",
+        "fa": "پوشه بازیابی شد"
     },
     "Verse restored": {
         "bn": "আয়াত পুনরুদ্ধার করা হয়েছে",
@@ -993,7 +1012,12 @@ const i18nDict = {
         "ru": "Стих восстановлен",
         "ja": "詩を復元しました",
         "pt": "Versículo restaurado",
-        "tr": "Ayet geri yüklendi"
+        "tr": "Ayet geri yüklendi",
+        "id": "Ayat dipulihkan",
+        "ur": "آیت بحال کر دی گئی",
+        "zh": "经文已恢复",
+        "ko": "구절 복원됨",
+        "fa": "آیه بازیابی شد"
     },
     "Verse copied": {
         "bn": "আয়াত কপি করা হয়েছে",
@@ -1045,36 +1069,218 @@ const i18nDict = {
         "ru": "Отменить",
         "ja": "元に戻す",
         "pt": "Desfazer",
-        "tr": "Geri Al"
+        "tr": "Geri Al",
+        "id": "Urungkan",
+        "ur": "واپس",
+        "zh": "撤销",
+        "ko": "실행 취소",
+        "fa": "واگرد"
     },
-
-    "Meditations": {"bn":"মেডিটেশনস","hi":"मेडिटेशन","es":"Meditaciones"},
-    "Talmud": {"bn":"তালমুদ","hi":"तालमूड","ar":"التلمود","he":"תלמוד"},
-    "Tanakh": {"bn":"তানখ","hi":"तनाख","ar":"تناخ","he":"תנ״ך"},
-    "Torah": {"bn":"তোরাহ","hi":"तोराह","ar":"التوراة","he":"תורה"},
-    "Proverbs": {"bn":"হিতোপদেশ","hi":"नीतिवचन","ar":"الأمثال","es":"Proverbios"},
-    "Psalms": {"bn":"গীতসংহিতা","hi":"भजन संहिता","ar":"المزامير","es":"Salmos"},
-    "John": {"bn":"যোহন","hi":"यूहन्ना","ar":"يوحنا","es":"Juan"},
-    "Luke": {"bn":"লূক","hi":"लूका","ar":"لوقا","es":"Lucas"},
-    "Mark": {"bn":"মার্ক","hi":"मरकुस","ar":"مرقس","es":"Marcos"},
-    "Matthew": {"bn":"মথি","hi":"मत्ती","ar":"متى","es":"Mateo"},
-    "Deuteronomy": {"bn":"দ্বিতীয় বিবরণ","hi":"व्यवस्थाविवरण","ar":"التثنية","es":"Deuteronomio"},
-    "Numbers": {"bn":"গণনা পুস্তক","hi":"गिनती","ar":"العدد","es":"Números"},
-    "Leviticus": {"bn":"লেবীয় পুস্তক","hi":"लैव्यव्यवस्था","ar":"اللاويين","es":"Levítico"},
-    "Exodus": {"bn":"যাত্রাপুস্তক","hi":"निर्गमन","ar":"الخروج","es":"Éxodo"},
-    "Genesis": {"bn":"আদিপুস্তক","hi":"उत्पत्ति","ar":"التكوين","es":"Génesis"},
-    "New Testament": {"bn":"নতুন নিয়ম","hi":"नया नियम","ar":"العهد الجديد","es":"Nuevo Testamento"},
-    "Old Testament": {"bn":"পুরাতন নিয়ম","hi":"पुराना नियम","ar":"العهد القديم","es":"Antiguo Testamento"},
-    "Granth Sahib": {"bn":"গ্রন্থ সাহিব","hi":"ग्रंथ साहिब","pa":"ਗ੍ਰੰਥ ਸਾਹਿਬ"},
-    "Dhammapada": {"bn":"ধম্মপদ","hi":"धम्मपद"},
-    "Bhagavad Gita": {"bn":"ভগবদ্গীতা","hi":"भगवद्गीता"},
-    "Sunan Ibn Majah": {"bn":"সুনান ইবনে মাজাহ","hi":"सुनन इब्न माजाह","ar":"سنن ابن ماجه","ur":"سنن ابن ماجہ"},
-    "Sunan an-Nasai": {"bn":"সুনান আন-নাসায়ী","hi":"सुनन अन-नसाई","ar":"سنن النسائي","ur":"سنن نسائی"},
-    "Jami At Tirmidhi": {"bn":"জামে তিরমিযী","hi":"जामी अत-तिर्मिज़ी","ar":"جامع الترمذي","ur":"جامع ترمذی"},
-    "Sunan Abu Dawud": {"bn":"সুনান আবু দাউদ","hi":"सुनन अबू दाऊद","ar":"سنن أبي داود","ur":"سنن ابو داؤد"},
-    "Sahih Muslim": {"bn":"সহীহ মুসলিম","hi":"सहीह मुस्लिम","ar":"صحيح مسلم","ur":"صحیح مسلم"},
-    "Sahih Bukhari": {"bn":"সহীহ বুখারী","hi":"सहीह बुखारी","ar":"صحيح البخاري","ur":"صحیح بخاری"},
-    "Quran": {"bn":"কোরআন","hi":"क़ुरआन","ar":"القرآن","ur":"قرآن"},
+    "Meditations": {
+        "bn": "মেডিটেশনস",
+        "hi": "मेडिटेशन",
+        "es": "Meditaciones"
+    },
+    "Talmud": {
+        "bn": "তালমুদ",
+        "hi": "तालमूड",
+        "ar": "التلمود",
+        "he": "תלמוד",
+        "es": "Talmud"
+    },
+    "Tanakh": {
+        "bn": "তানখ",
+        "hi": "तनाख",
+        "ar": "تناخ",
+        "he": "תנ״ך",
+        "es": "Tanaj"
+    },
+    "Torah": {
+        "bn": "তোরাহ",
+        "hi": "तोराह",
+        "ar": "التوراة",
+        "he": "תורה",
+        "es": "Torá"
+    },
+    "Proverbs": {
+        "bn": "হিতোপদেশ",
+        "hi": "नीतिवचन",
+        "ar": "الأمثال",
+        "es": "Proverbios",
+        "fr": "Proverbes",
+        "it": "Proverbi",
+        "de": "Sprüche",
+        "ru": "Притчи"
+    },
+    "Psalms": {
+        "bn": "গীতসংহিতা",
+        "hi": "भजन संहिता",
+        "ar": "المزامير",
+        "es": "Salmos",
+        "fr": "Psaumes",
+        "it": "Salmi",
+        "de": "Psalmen",
+        "ru": "Псалтирь"
+    },
+    "John": {
+        "bn": "যোহন",
+        "hi": "यूहन्ना",
+        "ar": "يوحنا",
+        "es": "Juan",
+        "fr": "Jean",
+        "it": "Giovanni",
+        "de": "Johannes",
+        "ru": "Иоанн"
+    },
+    "Luke": {
+        "bn": "লূক",
+        "hi": "लूका",
+        "ar": "لوقا",
+        "es": "Lucas",
+        "fr": "Luc",
+        "it": "Luca",
+        "de": "Lukas",
+        "ru": "Лука"
+    },
+    "Mark": {
+        "bn": "মার্ক",
+        "hi": "मरकुस",
+        "ar": "مرقس",
+        "es": "Marcos",
+        "fr": "Marc",
+        "it": "Marco",
+        "de": "Markus",
+        "ru": "Марк"
+    },
+    "Matthew": {
+        "bn": "মথি",
+        "hi": "मत्ती",
+        "ar": "متى",
+        "es": "Mateo",
+        "fr": "Matthieu",
+        "it": "Matteo",
+        "de": "Matthäus",
+        "ru": "Матфей"
+    },
+    "Deuteronomy": {
+        "bn": "দ্বিতীয় বিবরণ",
+        "hi": "व्यवस्थाविवरण",
+        "ar": "التثنية",
+        "es": "Deuteronomio",
+        "fr": "Deutéronome",
+        "it": "Deuteronomio",
+        "de": "Deuteronomium",
+        "ru": "Второзаконие"
+    },
+    "Numbers": {
+        "bn": "গণনা পুস্তক",
+        "hi": "गिनती",
+        "ar": "العدد",
+        "es": "Números",
+        "fr": "Nombres",
+        "it": "Numeri",
+        "de": "Numeri",
+        "ru": "Числа"
+    },
+    "Leviticus": {
+        "bn": "লেবীয় পুস্তক",
+        "hi": "लैव्यव्यवस्था",
+        "ar": "اللاويين",
+        "es": "Levítico",
+        "fr": "Lévitique",
+        "it": "Levitico",
+        "de": "Levitikus",
+        "ru": "Левит"
+    },
+    "Exodus": {
+        "bn": "যাত্রাপুস্তক",
+        "hi": "निर्गमन",
+        "ar": "الخروج",
+        "es": "Éxodo",
+        "fr": "Exode",
+        "it": "Esodo",
+        "de": "Exodus",
+        "ru": "Исход"
+    },
+    "Genesis": {
+        "bn": "আদিপুস্তক",
+        "hi": "उत्पत्ति",
+        "ar": "التكوين",
+        "es": "Génesis",
+        "fr": "Genèse",
+        "it": "Genesi",
+        "de": "Genesis",
+        "ru": "Бытие"
+    },
+    "New Testament": {
+        "bn": "নতুন নিয়ম",
+        "hi": "नया नियम",
+        "ar": "العهد الجديد",
+        "es": "Nuevo Testamento"
+    },
+    "Old Testament": {
+        "bn": "পুরাতন নিয়ম",
+        "hi": "पुराना नियम",
+        "ar": "العهد القديم",
+        "es": "Antiguo Testamento"
+    },
+    "Granth Sahib": {
+        "bn": "গ্রন্থ সাহিব",
+        "hi": "ग्रंथ साहिब",
+        "pa": "ਗ੍ਰੰਥ ਸਾਹਿਬ"
+    },
+    "Dhammapada": {
+        "bn": "ধম্মপদ",
+        "hi": "धम्मपद",
+        "es": "Dhammapada"
+    },
+    "Bhagavad Gita": {
+        "bn": "ভগবদ্গীতা",
+        "hi": "भगवद्गीता",
+        "es": "Bhagavad Gita"
+    },
+    "Sunan Ibn Majah": {
+        "bn": "সুনান ইবনে মাজাহ",
+        "hi": "सुनन इब्न माजाह",
+        "ar": "سنن ابن ماجه",
+        "ur": "سنن ابن ماجہ"
+    },
+    "Sunan an-Nasai": {
+        "bn": "সুনান আন-নাসায়ী",
+        "hi": "सुनन अन-नसाई",
+        "ar": "سنن النسائي",
+        "ur": "سنن نسائی"
+    },
+    "Jami At Tirmidhi": {
+        "bn": "জামে তিরমিযী",
+        "hi": "जामी अत-तिर्मिज़ी",
+        "ar": "جامع الترمذي",
+        "ur": "جامع ترمذی"
+    },
+    "Sunan Abu Dawud": {
+        "bn": "সুনান আবু দাউদ",
+        "hi": "सुनन अबू दाऊद",
+        "ar": "سنن أبي داود",
+        "ur": "سنن ابو داؤد"
+    },
+    "Sahih Muslim": {
+        "bn": "সহীহ মুসলিম",
+        "hi": "सहीह मुस्लिम",
+        "ar": "صحيح مسلم",
+        "ur": "صحیح مسلم"
+    },
+    "Sahih Bukhari": {
+        "bn": "সহীহ বুখারী",
+        "hi": "सहीह बुखारी",
+        "ar": "صحيح البخاري",
+        "ur": "صحیح بخاری"
+    },
+    "Quran": {
+        "bn": "কোরআন",
+        "hi": "क़ुरआन",
+        "ar": "القرآن",
+        "ur": "قرآن"
+    },
     "Christianity": {
         "bn": "খ্রিস্টধর্ম",
         "hi": "ईसाई धर्म",
@@ -1182,24 +1388,6 @@ const i18nDict = {
         "zh": "犹太教",
         "ko": "유대교",
         "fa": "یهودیت"
-    },
-    "Philosophy": {
-        "bn": "দর্শন",
-        "hi": "दर्शनशास्त्र",
-        "ar": "الفلسفة",
-        "es": "Filosofía",
-        "fr": "Philosophie",
-        "de": "Philosophie",
-        "ja": "哲学",
-        "tr": "Felsefe",
-        "ru": "Философия",
-        "pt": "Filosofia",
-        "id": "Filsafat",
-        "ur": "فلسفہ",
-        "it": "Filosofia",
-        "zh": "哲学",
-        "ko": "철학",
-        "fa": "فلسفه"
     },
     "Feed": {
         "bn": "ফিড",
@@ -1560,96 +1748,6 @@ const i18nDict = {
         "zh": "默认",
         "ko": "기본",
         "fa": "پیش‌فرض"
-    },
-    "Folder deleted": {
-        "bn": "ফোল্ডার মুছে ফেলা হয়েছে",
-        "hi": "फ़ोल्डर हटा दिया गया",
-        "ar": "تم حذف المجلد",
-        "es": "Carpeta eliminada",
-        "fr": "Dossier supprimé",
-        "de": "Ordner gelöscht",
-        "ja": "フォルダを削除しました",
-        "tr": "Klasör silindi",
-        "ru": "Папка удалена",
-        "pt": "Pasta excluída",
-        "id": "Folder dihapus",
-        "ur": "فولڈر حذف کر دیا گیا",
-        "it": "Cartella eliminata",
-        "zh": "文件夹已删除",
-        "ko": "폴더 삭제됨",
-        "fa": "پوشه حذف شد"
-    },
-    "Folder restored": {
-        "bn": "ফোল্ডার পুনরুদ্ধার করা হয়েছে",
-        "hi": "फ़ोल्डर पुनर्स्थापित किया गया",
-        "ar": "تمت استعادة المجلد",
-        "es": "Carpeta restaurada",
-        "fr": "Dossier restauré",
-        "de": "Ordner wiederhergestellt",
-        "ja": "フォルダを復元しました",
-        "tr": "Klasör geri yüklendi",
-        "ru": "Папка восстановлена",
-        "pt": "Pasta restaurada",
-        "id": "Folder dipulihkan",
-        "ur": "فولڈر بحال کر دیا گیا",
-        "it": "Cartella ripristinata",
-        "zh": "文件夹已恢复",
-        "ko": "폴더 복원됨",
-        "fa": "پوشه بازیابی شد"
-    },
-    "Verse deleted": {
-        "bn": "আয়াত মুছে ফেলা হয়েছে",
-        "hi": "श्लोक हटा दिया गया",
-        "ar": "تم حذف الآية",
-        "es": "Verso eliminado",
-        "fr": "Verset supprimé",
-        "de": "Vers gelöscht",
-        "ja": "詩句を削除しました",
-        "tr": "Ayet silindi",
-        "ru": "Стих удален",
-        "pt": "Versículo excluído",
-        "id": "Ayat dihapus",
-        "ur": "آیت حذف کر دی گئی",
-        "it": "Versetto eliminato",
-        "zh": "经文已删除",
-        "ko": "구절 삭제됨",
-        "fa": "آیه حذف شد"
-    },
-    "Verse restored": {
-        "bn": "আয়াত পুনরুদ্ধার করা হয়েছে",
-        "hi": "श्लोक पुनर्स्थापित किया गया",
-        "ar": "تمت استعادة الآية",
-        "es": "Verso restaurado",
-        "fr": "Verset restauré",
-        "de": "Vers wiederhergestellt",
-        "ja": "詩句を復元しました",
-        "tr": "Ayet geri yüklendi",
-        "ru": "Стих восстановлен",
-        "pt": "Versículo restaurado",
-        "id": "Ayat dipulihkan",
-        "ur": "آیت بحال کر دی گئی",
-        "it": "Versetto ripristinato",
-        "zh": "经文已恢复",
-        "ko": "구절 복원됨",
-        "fa": "آیه بازیابی شد"
-    },
-    "Undo": {
-        "bn": "বাতিল",
-        "hi": "पूर्ववत करें",
-        "ar": "تراجع",
-        "es": "Deshacer",
-        "fr": "Annuler",
-        "de": "Rückgängig",
-        "ja": "元に戻す",
-        "tr": "Geri Al",
-        "ru": "Отмена",
-        "pt": "Desfazer",
-        "id": "Urungkan",
-        "ur": "واپس",
-        "it": "Annulla",
-        "zh": "撤销",
-        "ko": "실행 취소",
-        "fa": "واگرد"
     },
     "Chapter": {
         "bn": "অধ্যায়",
@@ -2173,173 +2271,868 @@ const i18nDict = {
         "ko": "Google로 계속하기",
         "fa": "ادامه با Google"
     },
-    "Quran": {
-        "bn": "কোরআন",
-        "hi": "क़ुरआन",
-        "ar": "القرآن",
-        "ur": "قرآن"
+    "Sutras": {
+        "bn": "সূত্র",
+        "hi": "सूत्र",
+        "es": "Sutras"
     },
-    "Bhagavad Gita": {
-        "bn": "ভগবদ্গীতা",
-        "hi": "भगवद्गीता"
+    "SUTRAS": {
+        "bn": "সূত্র",
+        "hi": "सूत्र",
+        "es": "Sutras"
     },
-    "Dhammapada": {
-        "bn": "ধম্মপদ",
-        "hi": "धम्मपद"
+    "sutras": {
+        "bn": "সূত্র",
+        "hi": "सूत्र",
+        "es": "Sutras"
     },
-    "Granth Sahib": {
-        "bn": "গ্রন্থ সাহিব",
-        "hi": "ग्रंथ साहिब",
-        "pa": "ਗ੍ਰੰਥ ਸਾਹਿਬ"
+    "Zen": {
+        "bn": "জেন",
+        "hi": "ज़ेन",
+        "es": "Zen"
+    },
+    "Jatakas & Legends": {
+        "bn": "জাতক ও উপাখ্যান",
+        "hi": "जातक और कथाएं",
+        "es": "Jatakas y Leyendas"
+    },
+    "Ancient Greek": {
+        "bn": "প্রাচীন গ্রিক দর্শন",
+        "hi": "प्राचीन यूनानी दर्शन",
+        "es": "Griego Antiguo"
+    },
+    "Rationalism": {
+        "bn": "যুক্তিবাদ",
+        "hi": "तर्कवाद",
+        "es": "Racionalismo"
+    },
+    "Empiricism": {
+        "bn": "অভিজ্ঞতাবাদ",
+        "hi": "अनुभववाद",
+        "es": "Empirismo"
+    },
+    "Enlightenment": {
+        "bn": "আলোকায়ন",
+        "hi": "प्रबोधन",
+        "es": "Ilustración"
+    },
+    "Analytic": {
+        "bn": "বিশ্লেষণমূলক দর্শন",
+        "hi": "विश्लेषणात्मक",
+        "es": "Analítica"
+    },
+    "Pragmatism": {
+        "bn": "প্রয়োগবাদ",
+        "hi": "व्यावहारिकतावाद",
+        "es": "Pragmatismo"
+    },
+    "Letters from a Stoic": {
+        "bn": "এক স্টোয়িকের পত্রাবলী",
+        "hi": "एक स्टोइक के पत्र",
+        "es": "Cartas de un Estoico"
+    },
+    "Enchiridion": {
+        "bn": "এনকিরিডিয়ন",
+        "hi": "एनचिरिडियन",
+        "es": "Manual de Vida"
+    },
+    "Discourses": {
+        "bn": "প্রবচন",
+        "hi": "प्रवचन",
+        "es": "Discursos"
+    },
+    "Republic": {
+        "bn": "প্রজাতন্ত্র (রিপাবলিক)",
+        "hi": "गणतंत्र",
+        "es": "La República"
+    },
+    "Nicomachean Ethics": {
+        "bn": "নিকোমেকিয়ান নীতিবিদ্যা",
+        "hi": "नीतिशास्त्र",
+        "es": "Ética a Nicómaco"
+    },
+    "Beyond Good and Evil": {
+        "bn": "ভালো ও মন্দের ওপারে",
+        "hi": "अच्छाई और बुराई से परे",
+        "es": "Más allá del bien y del mal"
+    },
+    "Gurbani": {
+        "bn": "গুরবাণী",
+        "hi": "गुरबाणी",
+        "pa": "ਗੁਰਬਾਣੀ"
+    },
+    "Japji Sahib": {
+        "bn": "জপজী সাহিব",
+        "hi": "जपजी साहिब",
+        "pa": "ਜਪੁਜੀ ਸਾਹਿਬ"
+    },
+    "Mishnah": {
+        "bn": "মিশনাহ",
+        "hi": "मिशनाह",
+        "es": "Mishná"
+    },
+    "Midrash": {
+        "bn": "মিদরাশ",
+        "hi": "मिद्रश",
+        "es": "Midrash"
+    },
+    "Halakhah": {
+        "bn": "হালাখা",
+        "hi": "हालाखा",
+        "es": "Halajá"
+    },
+    "Kabbalah": {
+        "bn": "কাব্বালাহ",
+        "hi": "कब्बालाह",
+        "es": "Cábala"
+    },
+    "Jewish Thought": {
+        "bn": "ইহুদি দর্শন",
+        "hi": "यहूदी विचार",
+        "es": "Pensamiento Judío"
+    },
+    "Gita": {
+        "bn": "গীতা",
+        "hi": "गीता",
+        "es": "Gita"
+    },
+    "Rigveda": {
+        "bn": "ঋগ্বেদ",
+        "hi": "ऋग्वेद",
+        "es": "Rigveda"
+    },
+    "AtharvaVeda": {
+        "bn": "অথর্ববেদ",
+        "hi": "अथर्ववेद",
+        "es": "Atharvaveda"
+    },
+    "Yajurveda": {
+        "bn": "যজুর্বেদ",
+        "hi": "यजुर्वेद",
+        "es": "Yajurveda"
+    },
+    "Ramayana": {
+        "bn": "রামায়ণ",
+        "hi": "रामायण",
+        "es": "Ramayana"
+    },
+    "Mahabharata": {
+        "bn": "মহাভারত",
+        "hi": "महाभारत",
+        "es": "Mahabharata"
+    },
+    "Ramcharitmanas": {
+        "bn": "রামচরিতমানস",
+        "hi": "रामचरितमानस",
+        "es": "Ramcharitmanas"
+    },
+    "Upanishads": {
+        "bn": "উপনিষদ",
+        "hi": "उपनिषद",
+        "es": "Upanishads"
+    },
+    "Sahih al-Bukhari": {
+        "bn": "সহীহ বুখারী",
+        "hi": "सहीह बुखारी",
+        "ar": "صحيح البخاري"
+    },
+    "Sunan Abi Dawud": {
+        "bn": "সুনান আবু দাউদ",
+        "hi": "सुनन अबी दाऊद",
+        "ar": "سنن أبي داود"
+    },
+    "Jami at-Tirmidhi": {
+        "bn": "জামে তিরমিযী",
+        "hi": "जामी अत-तिर्मिज़ी",
+        "ar": "جامع الترمذي"
+    },
+    "Sunan an-Nasa'i": {
+        "bn": "সুনান আন-নাসায়ী",
+        "hi": "सुनन अन-नसाई",
+        "ar": "سنن النسائي"
+    },
+    "Muwatta Malik": {
+        "bn": "মুওয়াত্তা মালিক",
+        "hi": "मुवत्ता मालिक",
+        "ar": "موطأ مالك"
+    },
+    "Musnad Ahmad": {
+        "bn": "মুসনাদ আহমাদ",
+        "hi": "मुसनद अहमद",
+        "ar": "مسند أحمد"
+    },
+    "Joshua": {
+        "bn": "যিহোশূয়",
+        "hi": "यहोशू",
+        "es": "Josué",
+        "ar": "يشوع",
+        "fr": "Josué",
+        "it": "Giosuè",
+        "de": "Josua",
+        "ru": "Иисус Навин"
+    },
+    "Judges": {
+        "bn": "বিচারকর্ত্তৃগণ",
+        "hi": "न्यायियों",
+        "es": "Jueces",
+        "ar": "القضاة",
+        "fr": "Juges",
+        "it": "Giudici",
+        "de": "Richter",
+        "ru": "Судьи"
+    },
+    "Ruth": {
+        "bn": "রূথ",
+        "hi": "रूत",
+        "es": "Rut",
+        "ar": "راعوث",
+        "fr": "Ruth",
+        "it": "Rut",
+        "de": "Rut",
+        "ru": "Руфь"
+    },
+    "1 Samuel": {
+        "bn": "১ শমূয়েল",
+        "hi": "1 शमूएल",
+        "es": "1 Samuel",
+        "ar": "صموئيل الأول",
+        "fr": "1 Samuel",
+        "it": "1 Samuele",
+        "de": "1. Samuel",
+        "ru": "1 Царств"
+    },
+    "2 Samuel": {
+        "bn": "২ শমূয়েল",
+        "hi": "2 शमूएल",
+        "es": "2 Samuel",
+        "ar": "صموئيل الثاني",
+        "fr": "2 Samuel",
+        "it": "2 Samuele",
+        "de": "2. Samuel",
+        "ru": "2 Царств"
+    },
+    "1 Kings": {
+        "bn": "১ রাজাবলি",
+        "hi": "1 राजा",
+        "es": "1 Reyes",
+        "ar": "الملوك الأول",
+        "fr": "1 Rois",
+        "it": "1 Re",
+        "de": "1. Könige",
+        "ru": "3 Царств"
+    },
+    "2 Kings": {
+        "bn": "২ রাজাবলি",
+        "hi": "2 राजा",
+        "es": "2 Reyes",
+        "ar": "الملوك الثاني",
+        "fr": "2 Rois",
+        "it": "2 Re",
+        "de": "2. Könige",
+        "ru": "4 Царств"
+    },
+    "1 Chronicles": {
+        "bn": "১ বংশাবলি",
+        "hi": "1 इतिहास",
+        "es": "1 Crónicas",
+        "ar": "أخبار الأيام الأول",
+        "fr": "1 Chroniques",
+        "it": "1 Cronache",
+        "de": "1. Chronik",
+        "ru": "1 Паралипоменон"
+    },
+    "2 Chronicles": {
+        "bn": "২ বংশাবলি",
+        "hi": "2 इतिहास",
+        "es": "2 Crónicas",
+        "ar": "أخبار الأيام الثاني",
+        "fr": "2 Chroniques",
+        "it": "2 Cronache",
+        "de": "2. Chronik",
+        "ru": "2 Паралипоменон"
+    },
+    "Ezra": {
+        "bn": "ইষ্রা",
+        "hi": "एज्रा",
+        "es": "Esdras",
+        "ar": "عزرا",
+        "fr": "Esdras",
+        "it": "Esdra",
+        "de": "Esra",
+        "ru": "Ездра"
+    },
+    "Nehemiah": {
+        "bn": "নহিমিয়",
+        "hi": "नहेमायाह",
+        "es": "Nehemías",
+        "ar": "نحميا",
+        "fr": "Néhémie",
+        "it": "Neemia",
+        "de": "Nehemia",
+        "ru": "Неемия"
+    },
+    "Esther": {
+        "bn": "ইষ্টের",
+        "hi": "एस्तेर",
+        "es": "Ester",
+        "ar": "أستير",
+        "fr": "Esther",
+        "it": "Ester",
+        "de": "Ester",
+        "ru": "Есфирь"
+    },
+    "Job": {
+        "bn": "ইয়োব",
+        "hi": "अय्यूब",
+        "es": "Job",
+        "ar": "أيوب",
+        "fr": "Job",
+        "it": "Giobbe",
+        "de": "Hiob",
+        "ru": "Иов"
+    },
+    "Ecclesiastes": {
+        "bn": "উপদেশক",
+        "hi": "सभोपदेशक",
+        "es": "Eclesiastés",
+        "ar": "الجامعة",
+        "fr": "Ecclésiaste",
+        "it": "Ecclesiaste",
+        "de": "Prediger",
+        "ru": "Екклесиаст"
+    },
+    "Song of Solomon": {
+        "bn": "পরমগীত",
+        "hi": "श्रेष्ठगीत",
+        "es": "Cantares",
+        "ar": "نشيد الأنشاد",
+        "fr": "Cantique des Cantiques",
+        "it": "Cantico dei Cantici",
+        "de": "Hohelied",
+        "ru": "Песнь Песней"
+    },
+    "Isaiah": {
+        "bn": "যিশাইয়",
+        "hi": "यशायाह",
+        "es": "Isaías",
+        "ar": "إشعياء",
+        "fr": "Ésaïe",
+        "it": "Isaia",
+        "de": "Jesaja",
+        "ru": "Исаия"
+    },
+    "Jeremiah": {
+        "bn": "যিরমিয়",
+        "hi": "यिर्मयाह",
+        "es": "Jeremías",
+        "ar": "إرميا",
+        "fr": "Jérémie",
+        "it": "Geremia",
+        "de": "Jeremia",
+        "ru": "Иеремия"
+    },
+    "Lamentations": {
+        "bn": "বিলাপ",
+        "hi": "विलापगीत",
+        "es": "Lamentaciones",
+        "ar": "مراثي إرميا",
+        "fr": "Lamentations",
+        "it": "Lamentazioni",
+        "de": "Klagelieder",
+        "ru": "Плач Иеремии"
+    },
+    "Ezekiel": {
+        "bn": "যিহিষ্কেল",
+        "hi": "यहेजकेल",
+        "es": "Ezequiel",
+        "ar": "حزقيال",
+        "fr": "Ézéchiel",
+        "it": "Ezechiele",
+        "de": "Hesekiel",
+        "ru": "Иезекииль"
+    },
+    "Daniel": {
+        "bn": "দানিয়েল",
+        "hi": "दानिय्येल",
+        "es": "Daniel",
+        "ar": "دانيال",
+        "fr": "Daniel",
+        "it": "Daniele",
+        "de": "Daniel",
+        "ru": "Даниил"
+    },
+    "Hosea": {
+        "bn": "হোশেয়",
+        "hi": "होशे",
+        "es": "Oseas",
+        "ar": "هوشع",
+        "fr": "Osée",
+        "it": "Osea",
+        "de": "Hosea",
+        "ru": "Осия"
+    },
+    "Joel": {
+        "bn": "যোয়েল",
+        "hi": "योएल",
+        "es": "Joel",
+        "ar": "يوئيل",
+        "fr": "Joël",
+        "it": "Gioele",
+        "de": "Joel",
+        "ru": "Иоиль"
+    },
+    "Amos": {
+        "bn": "আমোষ",
+        "hi": "आमोस",
+        "es": "Amós",
+        "ar": "عاموس",
+        "fr": "Amos",
+        "it": "Amos",
+        "de": "Amos",
+        "ru": "Амос"
+    },
+    "Obadiah": {
+        "bn": "ওবদিয়",
+        "hi": "ओबद्याह",
+        "es": "Abdías",
+        "ar": "عوبديا",
+        "fr": "Abdias",
+        "it": "Abdia",
+        "de": "Obadja",
+        "ru": "Авдий"
+    },
+    "Jonah": {
+        "bn": "যোনা",
+        "hi": "योना",
+        "es": "Jonás",
+        "ar": "يونان",
+        "fr": "Jonas",
+        "it": "Giona",
+        "de": "Jona",
+        "ru": "Иона"
+    },
+    "Micah": {
+        "bn": "মীখা",
+        "hi": "मीका",
+        "es": "Miqueas",
+        "ar": "ميخا",
+        "fr": "Michée",
+        "it": "Michea",
+        "de": "Micha",
+        "ru": "Михей"
+    },
+    "Nahum": {
+        "bn": "নহূম",
+        "hi": "नहूम",
+        "es": "Nahúm",
+        "ar": "ناحوم",
+        "fr": "Nahum",
+        "it": "Naum",
+        "de": "Nahum",
+        "ru": "Наум"
+    },
+    "Habakkuk": {
+        "bn": "হবক্‌কূক",
+        "hi": "हबक्कूक",
+        "es": "Habacuc",
+        "ar": "حبقوق",
+        "fr": "Habacuc",
+        "it": "Abacuc",
+        "de": "Habakuk",
+        "ru": "Аввакум"
+    },
+    "Zephaniah": {
+        "bn": "সফনিয়",
+        "hi": "सपन्याह",
+        "es": "Sofonías",
+        "ar": "صفنيا",
+        "fr": "Sophonie",
+        "it": "Sofonia",
+        "de": "Zefanja",
+        "ru": "Софония"
+    },
+    "Haggai": {
+        "bn": "হগয়",
+        "hi": "हाग्गै",
+        "es": "Hageo",
+        "ar": "حجي",
+        "fr": "Aggée",
+        "it": "Aggeo",
+        "de": "Haggai",
+        "ru": "Аггей"
+    },
+    "Zechariah": {
+        "bn": "সখরিয়",
+        "hi": "जकर्याह",
+        "es": "Zacarías",
+        "ar": "زكريا",
+        "fr": "Zacharie",
+        "it": "Zaccaria",
+        "de": "Sacharja",
+        "ru": "Захария"
+    },
+    "Malachi": {
+        "bn": "মালাখি",
+        "hi": "मलाकी",
+        "es": "Malaquías",
+        "ar": "ملاخي",
+        "fr": "Malachie",
+        "it": "Malachia",
+        "de": "Maleachi",
+        "ru": "Малахия"
+    },
+    "Acts": {
+        "bn": "প্রেরিতদের কার্য",
+        "hi": "प्रेरितों के काम",
+        "es": "Hechos",
+        "ar": "أعمال الرسل",
+        "fr": "Actes",
+        "it": "Atti",
+        "de": "Apostelgeschichte",
+        "ru": "Деяния"
+    },
+    "Romans": {
+        "bn": "রোমীয়",
+        "hi": "रोमियों",
+        "es": "Romanos",
+        "ar": "رومية",
+        "fr": "Romains",
+        "it": "Romani",
+        "de": "Römer",
+        "ru": "Римлянам"
+    },
+    "1 Corinthians": {
+        "bn": "১ করিন্থীয়",
+        "hi": "1 कुरिन्थियों",
+        "es": "1 Corintios",
+        "ar": "كورنثوس الأولى",
+        "fr": "1 Corinthiens",
+        "it": "1 Corinzi",
+        "de": "1. Korinther",
+        "ru": "1 Коринфянам"
+    },
+    "2 Corinthians": {
+        "bn": "২ করিন্থীয়",
+        "hi": "2 कुरिन्थियों",
+        "es": "2 Corintios",
+        "ar": "كورنثوس الثانية",
+        "fr": "2 Corinthiens",
+        "it": "2 Corinzi",
+        "de": "2. Korinther",
+        "ru": "2 Коринфянам"
+    },
+    "Galatians": {
+        "bn": "গালাতীয়",
+        "hi": "गलातियों",
+        "es": "Gálatas",
+        "ar": "غلاطية",
+        "fr": "Galates",
+        "it": "Galati",
+        "de": "Galater",
+        "ru": "Галатам"
+    },
+    "Ephesians": {
+        "bn": "ইফিষীয়",
+        "hi": "इफिसियों",
+        "es": "Efesios",
+        "ar": "أفسس",
+        "fr": "Éphésiens",
+        "it": "Efesini",
+        "de": "Epheser",
+        "ru": "Ефесянам"
+    },
+    "Philippians": {
+        "bn": "ফিলিপীয়",
+        "hi": "फिलिप्पियों",
+        "es": "Filipenses",
+        "ar": "فيلبي",
+        "fr": "Philippiens",
+        "it": "Filippesi",
+        "de": "Philipper",
+        "ru": "Филиппийцам"
+    },
+    "Colossians": {
+        "bn": "কলসীয়",
+        "hi": "कुलुस्सियों",
+        "es": "Colosenses",
+        "ar": "كولوسي",
+        "fr": "Colossiens",
+        "it": "Colossesi",
+        "de": "Kolosser",
+        "ru": "Колоссянам"
+    },
+    "1 Thessalonians": {
+        "bn": "১ থিষলনীকীয়",
+        "hi": "1 थिस्सलुनीकियों",
+        "es": "1 Tesalonicenses",
+        "ar": "تسالونيكي الأولى",
+        "fr": "1 Thessaloniciens",
+        "it": "1 Tessalonicesi",
+        "de": "1. Thessalonicher",
+        "ru": "1 Фессалоникийцам"
+    },
+    "2 Thessalonians": {
+        "bn": "২ থিষলনীকীয়",
+        "hi": "2 थिस्सलुनीकियों",
+        "es": "2 Tesalonicenses",
+        "ar": "تسالونيكي الثانية",
+        "fr": "2 Thessaloniciens",
+        "it": "2 Tessalonicesi",
+        "de": "2. Thessalonicher",
+        "ru": "2 Фессалоникийцам"
+    },
+    "1 Timothy": {
+        "bn": "১ তীমথিয়",
+        "hi": "1 तीमुथियुस",
+        "es": "1 Timoteo",
+        "ar": "تيموثاوس الأولى",
+        "fr": "1 Timothée",
+        "it": "1 Timoteo",
+        "de": "1. Timotheus",
+        "ru": "1 Тимофею"
+    },
+    "2 Timothy": {
+        "bn": "২ তীমথিয়",
+        "hi": "2 तीमुथियुस",
+        "es": "2 Timoteo",
+        "ar": "تيموثاوس الثانية",
+        "fr": "2 Timothée",
+        "it": "2 Timoteo",
+        "de": "2. Timotheus",
+        "ru": "2 Тимофею"
+    },
+    "Titus": {
+        "bn": "তীত",
+        "hi": "तीतुस",
+        "es": "Tito",
+        "ar": "تيطس",
+        "fr": "Tite",
+        "it": "Tito",
+        "de": "Titus",
+        "ru": "Титу"
+    },
+    "Philemon": {
+        "bn": "ফিলীমন",
+        "hi": "फिलेमोन",
+        "es": "Filemón",
+        "ar": "فليمون",
+        "fr": "Philémon",
+        "it": "Filemone",
+        "de": "Philemon",
+        "ru": "Филимону"
+    },
+    "Hebrews": {
+        "bn": "ইব্রীয়",
+        "hi": "इब्रानियों",
+        "es": "Hebreos",
+        "ar": "العبرانيين",
+        "fr": "Hébreux",
+        "it": "Ebrei",
+        "de": "Hebräer",
+        "ru": "Евреям"
+    },
+    "James": {
+        "bn": "যাকোব",
+        "hi": "याकूब",
+        "es": "Santiago",
+        "ar": "يعقوب",
+        "fr": "Jacques",
+        "it": "Giacomo",
+        "de": "Jakobus",
+        "ru": "Иакова"
+    },
+    "1 Peter": {
+        "bn": "১ পিতর",
+        "hi": "1 पतरस",
+        "es": "1 Pedro",
+        "ar": "بطرس الأولى",
+        "fr": "1 Pierre",
+        "it": "1 Pietro",
+        "de": "1. Petrus",
+        "ru": "1 Петра"
+    },
+    "2 Peter": {
+        "bn": "২ পিতর",
+        "hi": "2 पतरस",
+        "es": "2 Pedro",
+        "ar": "بطرس الثانية",
+        "fr": "2 Peter",
+        "it": "2 Pietro",
+        "de": "2. Petrus",
+        "ru": "2 Петра"
+    },
+    "1 John": {
+        "bn": "১ যোহন",
+        "hi": "1 यूहन्ना",
+        "es": "1 Juan",
+        "ar": "يوحنا الأولى",
+        "fr": "1 Jean",
+        "it": "1 Giovanni",
+        "de": "1. Johannes",
+        "ru": "1 Иоанна"
+    },
+    "2 John": {
+        "bn": "২ যোহন",
+        "hi": "2 यूहन्ना",
+        "es": "2 Juan",
+        "ar": "يوحنا الثانية",
+        "fr": "2 Jean",
+        "it": "2 Giovanni",
+        "de": "2. Johannes",
+        "ru": "2 Иоанна"
+    },
+    "3 John": {
+        "bn": "৩ যোহন",
+        "hi": "3 यूहन्ना",
+        "es": "3 Juan",
+        "ar": "يوحنا الثالثة",
+        "fr": "3 Jean",
+        "it": "3 Giovanni",
+        "de": "3. Johannes",
+        "ru": "3 Иоанна"
+    },
+    "Jude": {
+        "bn": "যিহূদা",
+        "hi": "यहूदा",
+        "es": "Judas",
+        "ar": "يهوذا",
+        "fr": "Jude",
+        "it": "Giuda",
+        "de": "Judas",
+        "ru": "Иуды"
+    },
+    "Revelation": {
+        "bn": "প্রকাশিত বাক্য",
+        "hi": "प्रकाशितवाक्य",
+        "es": "Apocalipsis",
+        "ar": "الرؤيا",
+        "fr": "Apocalypse",
+        "it": "Apocalisse",
+        "de": "Offenbarung",
+        "ru": "Откровение"
+    },
+    "One small tap for you, one giant leap for this starving indie dev.": {
+        "bn": "আপনার জন্য একটি ছোট ট্যাপ, এই পরিশ্রমী নির্মাতার জন্য এক বিশাল পদক্ষেপ।"
+    },
+    "Remove ads and fund the developer's 3 AM coffee addiction.": {
+        "bn": "বিজ্ঞাপন সরান এবং নির্মাতাকে রাত ৩টার কফির যোগান দিন।"
+    },
+    "Ads keep our servers alive. Premium keeps the developer's sanity alive.": {
+        "bn": "বিজ্ঞাপন সার্ভার বাঁচিয়ে রাখে। প্রিমিয়াম নির্মাতাকে বাঁচিয়ে রাখে।"
+    },
+    "Look, we both hate ads. Just tap the button and let's never speak of this again.": {
+        "bn": "আমরা দুজনই বিজ্ঞাপন অপছন্দ করি। বোতামে চাপ দিন এবং শান্তিতে পড়ুন।"
+    },
+    "Upgrade to Premium so I can finally afford actual groceries instead of instant noodles.": {
+        "bn": "প্রিমিয়ামে আপগ্রেড করুন যাতে এই স্বাধীন ডেভেলপার নুডলসের বদলে ভালো খাবার খেতে পারে।"
+    },
+    "You're reading ancient wisdom while staring at an ad. Let's fix that.": {
+        "bn": "আপনি প্রাচীন প্রজ্ঞা পড়ার মাঝে বিজ্ঞাপন দেখছেন। চলুন এটি দূর করি।"
+    },
+    "Tap Remove Ads and an angel will personally bless your WiFi signal.": {
+        "bn": "বিজ্ঞাপন সরান বাটনে ট্যাপ করুন এবং প্রশান্তিময় অভিজ্ঞতা উপভোগ করুন।"
+    },
+    "Think of Premium as buying the developer a virtual tea. A very appreciative tea.": {
+        "bn": "প্রিমিয়াম নিয়ে নির্মাতাকে এক কাপ প্রশংসার চা উপহার দিন।"
+    },
+    "No ads, all HD voices, and eternal good karma. Best investment of your week.": {
+        "bn": "কোনো বিজ্ঞাপন নেই, সব এইচডি কণ্ঠস্বর এবং নিখুঁত আধ্যাত্মিক প্রশান্তি।"
+    },
+    "Your spiritual enlightenment shouldn't have a commercial break.": {
+        "bn": "আপনার আধ্যাত্মিক পাঠে কোনো বিজ্ঞাপনের বিরতি থাকা উচিত নয়।"
+    },
+    "100% of Premium buyers report feeling 42% more zen and 100% ad-free.": {
+        "bn": "প্রিমিয়াম সদস্যরা উপভোগ করেন ১০০% বিজ্ঞাপনমুক্ত নিরবচ্ছিন্ন অভিজ্ঞতা।"
+    },
+    "Help an indie developer survive capitalism. Tap to unlock Premium.": {
+        "bn": "একক নির্মাতাকে সমর্থন করুন। প্রিমিয়াম আনলক করতে ট্যাপ করুন।"
+    },
+    "If you buy Premium, I promise to tell my mom someone actually bought my app.": {
+        "bn": "প্রিমিয়াম নিলে আমি মাকে গর্ব করে বলতে পারব কেউ আমার অ্যাপ ভালোবেসেছে!"
+    },
+    "Peace, tranquility, and zero banner ads trying to sell you car insurance.": {
+        "bn": "শান্তি, স্থিরতা এবং কোনো অবাঞ্ছিত বাণিজ্যিক বিজ্ঞাপন ছাড়া পবিত্র পাঠ।"
+    },
+    "Upgrade to Premium: Your daily verses deserve better than a low-budget ad.": {
+        "bn": "প্রিমিয়াম নিন: আপনার দৈনিক বাণীগুলো বিজ্ঞাপনের চেয়ে অনেক বেশি মূল্যবান।"
+    },
+    "Buy Premium and I'll literally do a celebratory backflip in my room.": {
+        "bn": "প্রিমিয়াম নিলে এই ডেভেলপার পরম আনন্দে কৃতজ্ঞ থাকবে!"
+    },
+    "Support a solo developer and cleanse your feed of all promotional clutter.": {
+        "bn": "একক নির্মাতাকে সমর্থন করুন এবং আপনার ফিড সম্পূর্ণ পরিচ্ছন্ন রাখুন।"
+    },
+    "Zero ads, maximum cozy vibes, and you save a programmer from despair.": {
+        "bn": "শূন্য বিজ্ঞাপন, সর্বোচ্চ প্রশান্তি এবং একটি সুন্দর আধ্যাত্মিক পরিবেশ।"
+    },
+    "Skip the ads, keep the wisdom, and bless an indie creator's day.": {
+        "bn": "বিজ্ঞাপন এড়িয়ে চলুন, প্রজ্ঞা ধরে রাখুন এবং নির্মাতাকে উৎসাহিত করুন।"
+    },
+    "A cozy, distraction-free sanctuary with all HD neural voices unlocked.": {
+        "bn": "সব এইচডি কণ্ঠস্বর সহ এক শান্ত, নিরবচ্ছিন্ন পবিত্র অভিজ্ঞতার আশ্রয়।"
+    },
+    "Part": {
+        "bn": "পর্ব",
+        "hi": "भाग",
+        "fr": "Partie",
+        "es": "Parte",
+        "ar": "الجزء",
+        "de": "Teil",
+        "it": "Parte",
+        "pt": "Parte",
+        "ru": "Часть",
+        "tr": "Bölüm"
+    },
+    "Book": {
+        "bn": "খণ্ড",
+        "hi": "किताब",
+        "fr": "Livre",
+        "es": "Libro",
+        "ar": "الكتاب",
+        "de": "Buch",
+        "it": "Libro",
+        "pt": "Livro",
+        "ru": "Книга",
+        "tr": "Kitap"
+    },
+    "Section": {
+        "bn": "অনুচ্ছেদ",
+        "hi": "अनुभाग",
+        "fr": "Section",
+        "es": "Sección",
+        "ar": "القسم",
+        "de": "Abschnitt",
+        "it": "Sezione",
+        "pt": "Seção",
+        "ru": "Раздел",
+        "tr": "Kısım"
+    },
+    "Hymn": {
+        "bn": "স্তোত্র",
+        "hi": "सूक्त",
+        "fr": "Hymne",
+        "es": "Himno",
+        "ar": "ترنيمة",
+        "de": "Hymne",
+        "it": "Inno",
+        "pt": "Hino",
+        "ru": "Гимн",
+        "tr": "İlahi"
+    },
+    "Discourse": {
+        "bn": "প্রবচন",
+        "hi": "प्रवचन",
+        "fr": "Discours",
+        "es": "Discurso",
+        "ar": "خطاب",
+        "de": "Diskurs",
+        "it": "Discorso",
+        "pt": "Discurso",
+        "ru": "Беседа",
+        "tr": "Söylem"
     }
-,
-    "Sutras": {"bn":"সূত্র","hi":"सूत्र","es":"Sutras"},
-    "SUTRAS": {"bn":"সূত্র","hi":"सूत्र","es":"Sutras"},
-    "sutras": {"bn":"সূত্র","hi":"सूत्र","es":"Sutras"},
-    "Dhammapada": {"bn":"ধম্মপদ","hi":"धम्मपद","es":"Dhammapada"},
-    "Zen": {"bn":"জেন","hi":"ज़ेन","es":"Zen"},
-    "Jatakas & Legends": {"bn":"জাতক ও উপাখ্যান","hi":"जातक और कथाएं","es":"Jatakas y Leyendas"},
-    "Stoicism": {"bn":"স্টোয়িক দর্শন","hi":"स्टोइक दर्शन","es":"Estoicismo"},
-    "Ancient Greek": {"bn":"প্রাচীন গ্রিক দর্শন","hi":"प्राचीन यूनानी दर्शन","es":"Griego Antiguo"},
-    "Rationalism": {"bn":"যুক্তিবাদ","hi":"तर्कवाद","es":"Racionalismo"},
-    "Empiricism": {"bn":"অভিজ্ঞতাবাদ","hi":"अनुभववाद","es":"Empirismo"},
-    "Enlightenment": {"bn":"আলোকায়ন","hi":"प्रबोधन","es":"Ilustración"},
-    "Existentialism": {"bn":"অস্তিত্ববাদ","hi":"अस्तित्ववाद","es":"Existencialismo"},
-    "Analytic": {"bn":"বিশ্লেষণমূলক দর্শন","hi":"विश्लेषणात्मक","es":"Analítica"},
-    "Pragmatism": {"bn":"প্রয়োগবাদ","hi":"व्यावहारिकतावाद","es":"Pragmatismo"},
-    "Meditations": {"bn":"আত্মচিন্তা (ধ্যান)","hi":"आत्मचिंतन","es":"Meditaciones"},
-    "Letters from a Stoic": {"bn":"এক স্টোয়িকের পত্রাবলী","hi":"एक स्टोइक के पत्र","es":"Cartas de un Estoico"},
-    "Enchiridion": {"bn":"এনকিরিডিয়ন","hi":"एनचिरिडियन","es":"Manual de Vida"},
-    "Discourses": {"bn":"প্রবচন","hi":"प्रवचन","es":"Discursos"},
-    "Republic": {"bn":"প্রজাতন্ত্র (রিপাবলিক)","hi":"गणतंत्र","es":"La República"},
-    "Nicomachean Ethics": {"bn":"নিকোমেকিয়ান নীতিবিদ্যা","hi":"नीतिशास्त्र","es":"Ética a Nicómaco"},
-    "Beyond Good and Evil": {"bn":"ভালো ও মন্দের ওপারে","hi":"अच्छाई और बुराई से परे","es":"Más allá del bien y del mal"},
-    "Guru Granth Sahib": {"bn":"গুরু গ্রন্থ সাহিব","hi":"गुरु ग्रंथ साहिब","pa":"ਗੁਰੂ ਗ੍ਰੰਥ ਸਾਹਿਬ"},
-    "Granth Sahib": {"bn":"গ্রন্থ সাহিব","hi":"ग्रंथ साहिब","pa":"ਗ੍ਰੰਥ ਸਾਹਿਬ"},
-    "Gurbani": {"bn":"গুরবাণী","hi":"गुरबाणी","pa":"ਗੁਰਬਾਣੀ"},
-    "Japji Sahib": {"bn":"জপজী সাহিব","hi":"जपजी साहिब","pa":"ਜਪੁਜੀ ਸਾਹਿਬ"},
-    "Torah": {"bn":"তৌরাত","hi":"तोराह","es":"Torá"},
-    "Tanakh": {"bn":"তানাক","hi":"तनाख","es":"Tanaj"},
-    "Talmud": {"bn":"তালমুদ","hi":"तालमुद","es":"Talmud"},
-    "Mishnah": {"bn":"মিশনাহ","hi":"मिशनाह","es":"Mishná"},
-    "Midrash": {"bn":"মিদরাশ","hi":"मिद्रश","es":"Midrash"},
-    "Halakhah": {"bn":"হালাখা","hi":"हालाखा","es":"Halajá"},
-    "Kabbalah": {"bn":"কাব্বালাহ","hi":"कब्बालाह","es":"Cábala"},
-    "Jewish Thought": {"bn":"ইহুদি দর্শন","hi":"यहूदी विचार","es":"Pensamiento Judío"},
-    "Bhagavad Gita": {"bn":"শ্রীমদ্ভগবদ্গীতা","hi":"श्रीमद्भगवद्गीता","es":"Bhagavad Gita"},
-    "Gita": {"bn":"গীতা","hi":"गीता","es":"Gita"},
-    "Rigveda": {"bn":"ঋগ্বেদ","hi":"ऋग्वेद","es":"Rigveda"},
-    "AtharvaVeda": {"bn":"অথর্ববেদ","hi":"अथर्ववेद","es":"Atharvaveda"},
-    "Yajurveda": {"bn":"যজুর্বেদ","hi":"यजुर्वेद","es":"Yajurveda"},
-    "Ramayana": {"bn":"রামায়ণ","hi":"रामायण","es":"Ramayana"},
-    "Mahabharata": {"bn":"মহাভারত","hi":"महाभारत","es":"Mahabharata"},
-    "Ramcharitmanas": {"bn":"রামচরিতমানস","hi":"रामचरितमानस","es":"Ramcharitmanas"},
-    "Upanishads": {"bn":"উপনিষদ","hi":"उपनिषद","es":"Upanishads"},
-    "Quran": {"bn":"পবিত্র কুরআন","hi":"पवित्र क़ुरआन","ar":"القرآن الكريم"},
-    "Sahih al-Bukhari": {"bn":"সহীহ বুখারী","hi":"सहीह बुखारी","ar":"صحيح البخاري"},
-    "Sahih Muslim": {"bn":"সহীহ মুসলিম","hi":"सहीह मुस्लिम","ar":"صحيح مسلم"},
-    "Sunan Abi Dawud": {"bn":"সুনান আবু দাউদ","hi":"सुनन अबी दाऊद","ar":"سنن أبي داود"},
-    "Jami at-Tirmidhi": {"bn":"জামে তিরমিযী","hi":"जामी अत-तिर्मिज़ी","ar":"جامع الترمذي"},
-    "Sunan an-Nasa'i": {"bn":"সুনান আন-নাসায়ী","hi":"सुनन अन-नसाई","ar":"سنن النسائي"},
-    "Sunan Ibn Majah": {"bn":"সুনান ইবনে মাজাহ","hi":"सुनन इब्न माजाह","ar":"سنن ابن ماجه"},
-    "Muwatta Malik": {"bn":"মুওয়াত্তা মালিক","hi":"मुवत्ता मालिक","ar":"موطأ مالك"},
-    "Musnad Ahmad": {"bn":"মুসনাদ আহমাদ","hi":"मुसनद अहमद","ar":"مسند أحمد"},
-    "Genesis": {"bn":"আদিপুস্তক","hi":"उत्पत्ति","es":"Génesis"},
-    "Exodus": {"bn":"যাত্রাপুস্তক","hi":"निर्गमन","es":"Éxodo"},
-    "Leviticus": {"bn":"লেবীয় পুস্তক","hi":"लैव्यव्यवस्था","es":"Levítico"},
-    "Numbers": {"bn":"গণনা পুস্তক","hi":"गिनती","es":"Números"},
-    "Deuteronomy": {"bn":"দ্বিতীয় বিবরণ","hi":"व्यवस्थाविवरण","es":"Deuteronomio"},
-    "Joshua": {"bn":"যিহোশূয়","hi":"यहोशू","es":"Josué"},
-    "Judges": {"bn":"বিচারকচরিত","hi":"न्यायियों","es":"Jueces"},
-    "Ruth": {"bn":"রূতের বিবরণ","hi":"रूत","es":"Rut"},
-    "1 Samuel": {"bn":"১ শমূয়েল","hi":"१ शमूएल","es":"1 Samuel"},
-    "2 Samuel": {"bn":"২ শমূয়েল","hi":"२ शमूएल","es":"2 Samuel"},
-    "1 Kings": {"bn":"১ রাজাবলি","hi":"१ राजा","es":"1 Reyes"},
-    "2 Kings": {"bn":"২ রাজাবলি","hi":"२ राजा","es":"2 Reyes"},
-    "1 Chronicles": {"bn":"১ বংশাবলি","hi":"१ इतिहास","es":"1 Crónicas"},
-    "2 Chronicles": {"bn":"২ বংশাবলি","hi":"२ इतिहास","es":"2 Crónicas"},
-    "Ezra": {"bn":"ইষ্রা","hi":"एज्रा","es":"Esdras"},
-    "Nehemiah": {"bn":"নহিমিয়","hi":"नहेमायाह","es":"Nehemías"},
-    "Esther": {"bn":"ইষ্টের","hi":"एस्तेर","es":"Ester"},
-    "Job": {"bn":"ইয়োব","hi":"अय्यूब","es":"Job"},
-    "Psalms": {"bn":"সামসংগীত","hi":"भजन संहिता","es":"Salmos"},
-    "Proverbs": {"bn":"হিতোপদেশ","hi":"नीतिवचन","es":"Proverbios"},
-    "Ecclesiastes": {"bn":"উপদেশক","hi":"सभोपदेशक","es":"Eclesiastés"},
-    "Song of Solomon": {"bn":"পরমগীত","hi":"श्रेष्ठगीत","es":"Cantares"},
-    "Isaiah": {"bn":"যিশাইয়","hi":"यशायाह","es":"Isaías"},
-    "Jeremiah": {"bn":"যিরমিয়","hi":"यिर्मयाह","es":"Jeremías"},
-    "Lamentations": {"bn":"বিলাপ গান","hi":"विलापगीत","es":"Lamentaciones"},
-    "Ezekiel": {"bn":"যিহিষ্কেল","hi":"यहेजकेल","es":"Ezequiel"},
-    "Daniel": {"bn":"দানিয়েল","hi":"दानिय्येल","es":"Daniel"},
-    "Hosea": {"bn":"হোশেয়","hi":"होशे","es":"Oseas"},
-    "Joel": {"bn":"যোয়েল","hi":"योएल","es":"Joel"},
-    "Amos": {"bn":"আমোষ","hi":"आमोस","es":"Amós"},
-    "Obadiah": {"bn":"ওবদিয়","hi":"ओबद्याह","es":"Abdías"},
-    "Jonah": {"bn":"যূনস","hi":"योना","es":"Jonás"},
-    "Micah": {"bn":"মীখা","hi":"मीका","es":"Miqueas"},
-    "Nahum": {"bn":"নাহূম","hi":"नहूम","es":"Nahúm"},
-    "Habakkuk": {"bn":"হবক্‌কূক","hi":"हबक्कूक","es":"Habacuc"},
-    "Zephaniah": {"bn":"সফনিয়","hi":"सपन्याह","es":"Sofonías"},
-    "Haggai": {"bn":"হগয়","hi":"हाग्गै","es":"Hageo"},
-    "Zechariah": {"bn":"সখরিয়","hi":"जकर्याह","es":"Zacarías"},
-    "Malachi": {"bn":"মালাখি","hi":"मलाकी","es":"Malaquías"},
-    "Matthew": {"bn":"মথি","hi":"मत्ती","es":"Mateo"},
-    "Mark": {"bn":"মার্ক","hi":"मरकुस","es":"Marcos"},
-    "Luke": {"bn":"লূক","hi":"लूका","es":"Lucas"},
-    "John": {"bn":"যোহন","hi":"यूहन्ना","es":"Juan"},
-    "Acts": {"bn":"প্রেরিতদের কার্য","hi":"प्रेरितों के काम","es":"Hechos"},
-    "Romans": {"bn":"রোমীয়","hi":"रोमियों","es":"Romanos"},
-    "1 Corinthians": {"bn":"১ করিন্থীয়","hi":"१ कुरिन्थियों","es":"1 Corintios"},
-    "2 Corinthians": {"bn":"২ করিন্থীয়","hi":"२ कुरिन्थियों","es":"2 Corintios"},
-    "Galatians": {"bn":"গালাতীয়","hi":"गलातियों","es":"Gálatas"},
-    "Ephesians": {"bn":"ইফিষীয়","hi":"इफिसियों","es":"Efesios"},
-    "Philippians": {"bn":"ফিলিপীয়","hi":"फिलिप्पियों","es":"Filipenses"},
-    "Colossians": {"bn":"কলসীয়","hi":"कुलुस्सियों","es":"Colosenses"},
-    "1 Thessalonians": {"bn":"১ থিষলনীকীয়","hi":"१ थिस्सलुनीकियों","es":"1 Tesalonicenses"},
-    "2 Thessalonians": {"bn":"২ থিষলনীকীয়","hi":"२ थिस्सलुनीकियों","es":"2 Tesalonicenses"},
-    "1 Timothy": {"bn":"১ তীমথিয়","hi":"१ तीमुथियुस","es":"1 Timoteo"},
-    "2 Timothy": {"bn":"২ তীমথিয়","hi":"२ तीमुथियुस","es":"2 Timoteo"},
-    "Titus": {"bn":"তীত","hi":"तीतुस","es":"Tito"},
-    "Philemon": {"bn":"ফিলীমন","hi":"फिलेमोन","es":"Filemón"},
-    "Hebrews": {"bn":"ইব্রীয়","hi":"इब्रानियों","es":"Hebreos"},
-    "James": {"bn":"যাকোব","hi":"याकूब","es":"Santiago"},
-    "1 Peter": {"bn":"১ পিতর","hi":"१ पतरस","es":"1 Pedro"},
-    "2 Peter": {"bn":"২ পিতর","hi":"२ पतरस","es":"2 Pedro"},
-    "1 John": {"bn":"১ যোহন","hi":"१ यूहन्ना","es":"1 Juan"},
-    "2 John": {"bn":"২ যোহন","hi":"२ यूहन्ना","es":"2 Juan"},
-    "3 John": {"bn":"৩ যোহন","hi":"३ यूहन्ना","es":"3 Juan"},
-    "Jude": {"bn":"যিহূদা","hi":"यहूदा","es":"Judas"},
-    "Revelation": {"bn":"প্রকাশিত বাক্য","hi":"प्रकाशितवाक्य","es":"Apocalipsis"},
-    "One small tap for you, one giant leap for this starving indie dev.": {"bn":"আপনার জন্য একটি ছোট ট্যাপ, এই পরিশ্রমী নির্মাতার জন্য এক বিশাল পদক্ষেপ।"},
-    "Remove ads and fund the developer's 3 AM coffee addiction.": {"bn":"বিজ্ঞাপন সরান এবং নির্মাতাকে রাত ৩টার কফির যোগান দিন।"},
-    "Ads keep our servers alive. Premium keeps the developer's sanity alive.": {"bn":"বিজ্ঞাপন সার্ভার বাঁচিয়ে রাখে। প্রিমিয়াম নির্মাতাকে বাঁচিয়ে রাখে।"},
-    "Look, we both hate ads. Just tap the button and let's never speak of this again.": {"bn":"আমরা দুজনই বিজ্ঞাপন অপছন্দ করি। বোতামে চাপ দিন এবং শান্তিতে পড়ুন।"},
-    "Upgrade to Premium so I can finally afford actual groceries instead of instant noodles.": {"bn":"প্রিমিয়ামে আপগ্রেড করুন যাতে এই স্বাধীন ডেভেলপার নুডলসের বদলে ভালো খাবার খেতে পারে।"},
-    "You're reading ancient wisdom while staring at an ad. Let's fix that.": {"bn":"আপনি প্রাচীন প্রজ্ঞা পড়ার মাঝে বিজ্ঞাপন দেখছেন। চলুন এটি দূর করি।"},
-    "Tap Remove Ads and an angel will personally bless your WiFi signal.": {"bn":"বিজ্ঞাপন সরান বাটনে ট্যাপ করুন এবং প্রশান্তিময় অভিজ্ঞতা উপভোগ করুন।"},
-    "Think of Premium as buying the developer a virtual tea. A very appreciative tea.": {"bn":"প্রিমিয়াম নিয়ে নির্মাতাকে এক কাপ প্রশংসার চা উপহার দিন।"},
-    "No ads, all HD voices, and eternal good karma. Best investment of your week.": {"bn":"কোনো বিজ্ঞাপন নেই, সব এইচডি কণ্ঠস্বর এবং নিখুঁত আধ্যাত্মিক প্রশান্তি।"},
-    "Your spiritual enlightenment shouldn't have a commercial break.": {"bn":"আপনার আধ্যাত্মিক পাঠে কোনো বিজ্ঞাপনের বিরতি থাকা উচিত নয়।"},
-    "100% of Premium buyers report feeling 42% more zen and 100% ad-free.": {"bn":"প্রিমিয়াম সদস্যরা উপভোগ করেন ১০০% বিজ্ঞাপনমুক্ত নিরবচ্ছিন্ন অভিজ্ঞতা।"},
-    "Help an indie developer survive capitalism. Tap to unlock Premium.": {"bn":"একক নির্মাতাকে সমর্থন করুন। প্রিমিয়াম আনলক করতে ট্যাপ করুন।"},
-    "If you buy Premium, I promise to tell my mom someone actually bought my app.": {"bn":"প্রিমিয়াম নিলে আমি মাকে গর্ব করে বলতে পারব কেউ আমার অ্যাপ ভালোবেসেছে!"},
-    "Peace, tranquility, and zero banner ads trying to sell you car insurance.": {"bn":"শান্তি, স্থিরতা এবং কোনো অবাঞ্ছিত বাণিজ্যিক বিজ্ঞাপন ছাড়া পবিত্র পাঠ।"},
-    "Upgrade to Premium: Your daily verses deserve better than a low-budget ad.": {"bn":"প্রিমিয়াম নিন: আপনার দৈনিক বাণীগুলো বিজ্ঞাপনের চেয়ে অনেক বেশি মূল্যবান।"},
-    "Buy Premium and I'll literally do a celebratory backflip in my room.": {"bn":"প্রিমিয়াম নিলে এই ডেভেলপার পরম আনন্দে কৃতজ্ঞ থাকবে!"},
-    "Support a solo developer and cleanse your feed of all promotional clutter.": {"bn":"একক নির্মাতাকে সমর্থন করুন এবং আপনার ফিড সম্পূর্ণ পরিচ্ছন্ন রাখুন।"},
-    "Zero ads, maximum cozy vibes, and you save a programmer from despair.": {"bn":"শূন্য বিজ্ঞাপন, সর্বোচ্চ প্রশান্তি এবং একটি সুন্দর আধ্যাত্মিক পরিবেশ।"},
-    "Skip the ads, keep the wisdom, and bless an indie creator's day.": {"bn":"বিজ্ঞাপন এড়িয়ে চলুন, প্রজ্ঞা ধরে রাখুন এবং নির্মাতাকে উৎসাহিত করুন।"},
-    "A cozy, distraction-free sanctuary with all HD neural voices unlocked.": {"bn":"সব এইচডি কণ্ঠস্বর সহ এক শান্ত, নিরবচ্ছিন্ন পবিত্র অভিজ্ঞতার আশ্রয়।"}
-,
-    "Part": {"bn":"পর্ব","hi":"भाग","fr":"Partie","es":"Parte","ar":"الجزء","de":"Teil","it":"Parte","pt":"Parte","ru":"Часть","tr":"Bölüm"},
-    "Book": {"bn":"খণ্ড","hi":"किताब","fr":"Livre","es":"Libro","ar":"الكتاب","de":"Buch","it":"Libro","pt":"Livro","ru":"Книга","tr":"Kitap"},
-    "Chapter": {"bn":"অধ্যায়","hi":"अध्याय","fr":"Chapitre","es":"Capítulo","ar":"الفصل","de":"Kapitel","it":"Capitolo","pt":"Capítulo","ru":"Глава","tr":"Bölüm"},
-    "Section": {"bn":"অনুচ্ছেদ","hi":"अनुभाग","fr":"Section","es":"Sección","ar":"القسم","de":"Abschnitt","it":"Sezione","pt":"Seção","ru":"Раздел","tr":"Kısım"},
-    "Hymn": {"bn":"স্তোত্র","hi":"सूक्त","fr":"Hymne","es":"Himno","ar":"ترنيمة","de":"Hymne","it":"Inno","pt":"Hino","ru":"Гимн","tr":"İlahi"},
-    "Discourse": {"bn":"প্রবচন","hi":"प्रवचन","fr":"Discours","es":"Discurso","ar":"خطاب","de":"Diskurs","it":"Discorso","pt":"Discurso","ru":"Беседа","tr":"Söylem"}
 };
 
-// --- Universal Neural Verse Translation & Cache Engine ---
 const verseTranslationMemoryCache = {};
 
 function isGarbageTranslation(str, targetLang = currentAppLanguage) {
@@ -4493,6 +5286,12 @@ function formatVerseRef(v) {
     let localizedBook = rawBook;
     if (typeof t === "function") {
         localizedBook = t(rawBook);
+    }
+    if (currentAppLanguage !== 'en_US' && currentAppLanguage !== 'en') {
+        const cachedBook = getCachedVerseTranslation(rawBook, currentAppLanguage);
+        if (cachedBook && !isGarbageTranslation(cachedBook)) {
+            localizedBook = cachedBook;
+        }
     }
     
     return `${localizedBook}${chapPart}${versePart}`.trim();
