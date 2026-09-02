@@ -2864,3 +2864,14 @@ h2 {
 }
 
 
+
+
+.search-highlight {
+    background: rgba(212, 175, 55, 0.35) !important;
+    color: inherit !important;
+    font-weight: 700 !important;
+    border-radius: 4px;
+    padding: 1px 4px;
+    box-shadow: 0 0 6px rgba(212, 175, 55, 0.25);
+    display: inline;
+}

@@ -3726,10 +3726,18 @@ async function translateTextAsync(text, targetLang) {
     return text;
 }
 
-function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLanguage) {
+function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLanguage, highlightTerms = null) {
     if (!domElement || !rawText) return;
+    
+    const applyHighlight = (txt) => {
+        if (!highlightTerms || highlightTerms.length === 0) return txt;
+        return highlightSearchTerms(txt, highlightTerms);
+    };
+
     if (lang === 'en_US' || lang === 'en') {
-        domElement.innerText = rawText;
+        const existingActions = domElement.querySelector('.verse-actions');
+        domElement.innerHTML = applyHighlight(rawText);
+        if (existingActions) domElement.appendChild(existingActions);
         domElement.style.opacity = '1';
         return;
     }
@@ -3739,7 +3747,7 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
         const dictTrans = t(rawText);
         if (dictTrans && dictTrans.toLowerCase() !== rawText.toLowerCase()) {
             const existingActions = domElement.querySelector('.verse-actions');
-            domElement.innerText = dictTrans;
+            domElement.innerHTML = applyHighlight(dictTrans);
             if (existingActions) domElement.appendChild(existingActions);
             domElement.style.opacity = '1';
             return;
@@ -3747,18 +3755,12 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
     }
     
     // 2. If rawText already contains target language script, render directly
-    if (lang === 'bn' && /[\u0980-\u09FF]/.test(rawText)) {
-        domElement.innerText = rawText;
-        domElement.style.opacity = '1';
-        return;
-    }
-    if (lang === 'ar' && /[\u0600-\u06FF]/.test(rawText)) {
-        domElement.innerText = rawText;
-        domElement.style.opacity = '1';
-        return;
-    }
-    if (lang === 'he' && /[\u0590-\u05FF]/.test(rawText)) {
-        domElement.innerText = rawText;
+    if ((lang === 'bn' && /[\u0980-\u09FF]/.test(rawText)) ||
+        (lang === 'ar' && /[\u0600-\u06FF]/.test(rawText)) ||
+        (lang === 'he' && /[\u0590-\u05FF]/.test(rawText))) {
+        const existingActions = domElement.querySelector('.verse-actions');
+        domElement.innerHTML = applyHighlight(rawText);
+        if (existingActions) domElement.appendChild(existingActions);
         domElement.style.opacity = '1';
         return;
     }
@@ -3767,7 +3769,7 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
     const cached = getCachedVerseTranslation(rawText, lang);
     if (cached && !isGarbageTranslation(cached, lang)) {
         const existingActions = domElement.querySelector('.verse-actions');
-        domElement.innerText = cached;
+        domElement.innerHTML = applyHighlight(cached);
         if (existingActions) domElement.appendChild(existingActions);
         domElement.style.opacity = '1';
         return;
@@ -3775,7 +3777,7 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
     
     // 4. Render text with subtle opacity during background neural translation
     const existingActions = domElement.querySelector('.verse-actions');
-    domElement.innerText = rawText;
+    domElement.innerHTML = applyHighlight(rawText);
     if (existingActions) domElement.appendChild(existingActions);
     domElement.style.transition = 'opacity 0.25s ease';
     domElement.style.opacity = '0.7';
@@ -3784,14 +3786,14 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
         if (domElement && domElement.isConnected) {
             const finalTxt = (translated && !isGarbageTranslation(translated, lang)) ? translated : rawText;
             const actions = domElement.querySelector('.verse-actions');
-            domElement.innerText = finalTxt;
+            domElement.innerHTML = applyHighlight(finalTxt);
             if (actions) domElement.appendChild(actions);
             domElement.style.opacity = '1';
         }
     }).catch(() => {
         if (domElement && domElement.isConnected) {
             const actions = domElement.querySelector('.verse-actions');
-            domElement.innerText = rawText;
+            domElement.innerHTML = applyHighlight(rawText);
             if (actions) domElement.appendChild(actions);
             domElement.style.opacity = '1';
         }
@@ -7628,6 +7630,7 @@ function highlightSearchTerms(text, terms) {
     
     let expandTerms = [];
     terms.forEach(t => {
+        if (!t) return;
         if (t === 'pbuh' || t === 'phub') {
             expandTerms.push('pbuh', 'peace be upon him', 'ﷺ');
         } else {
@@ -7635,61 +7638,64 @@ function highlightSearchTerms(text, terms) {
         }
     });
     
-    let safeTerms = expandTerms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).filter(t => t.length > 0);
+    let safeTerms = expandTerms
+        .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        .filter(t => t.length > 0)
+        .sort((a, b) => b.length - a.length);
+        
     if (safeTerms.length === 0) return text;
     const regex = new RegExp(`(${safeTerms.join('|')})`, 'gi');
-    // Using span instead of mark to prevent any weird block styling issues
-    return text.replace(regex, '<span style="background: rgba(var(--loader-rgb), 0.25); color: inherit; font-weight: bold; border-radius: 3px; padding: 0 2px;">$1</span>');
+    return text.replace(regex, '<span class="search-highlight">$1</span>');
 }
 
 let searchDebounceTimeout = null;
 window.currentSearchResultsMatches = [];
 let currentSearchRenderedCount = 0;
-let currentSearchTermsInfo = [];
+let currentSearchHighlightTerms = [];
 
 function debouncedPerformLibSearch() {
     clearTimeout(searchDebounceTimeout);
-    searchDebounceTimeout = setTimeout(performLibSearch, 300);
+    searchDebounceTimeout = setTimeout(performLibSearch, 250);
 }
 
-function checkTermMatch(vText, vTrans, term, isExactWord) {
+function checkTermMatch(vText, vTrans, term) {
     if (term === 'pbuh' || term === 'phub') {
         return vText.includes('pbuh') || vTrans.includes('pbuh') || 
                vText.includes('peace be upon him') || vTrans.includes('peace be upon him') || 
                vText.includes('ﷺ') || vTrans.includes('ﷺ');
     }
-    
-    if (isExactWord) {
-        const pattern = '(?:^|[^a-zA-Z0-9])' + escapeRegExp(term) + '(?:$|[^a-zA-Z0-9])';
-        const regex = new RegExp(pattern, 'i');
-        return regex.test(vText) || regex.test(vTrans);
-    } else {
-        return vText.includes(term) || vTrans.includes(term);
-    }
+    return vText.includes(term) || vTrans.includes(term);
 }
 
-function performLibSearch() {
+async function performLibSearch() {
     const input = document.getElementById('lib-search-input');
     const resultsContainer = document.getElementById('lib-search-results');
     if (!input || !resultsContainer) return;
     
-    const rawVal = input.value.toLowerCase();
-    if (rawVal.trim().length < 2) {
+    const rawVal = input.value.toLowerCase().trim();
+    if (rawVal.length < 2) {
         resultsContainer.innerHTML = '';
         window.currentSearchResultsMatches = [];
         currentSearchRenderedCount = 0;
-        currentSearchTermsInfo = [];
+        currentSearchHighlightTerms = [];
         return;
     }
     
-    const hasTrailingSpace = /\s$/.test(rawVal);
-    const tokens = rawVal.trim().split(/\s+/).filter(t => t.length > 0);
+    const tokens = rawVal.split(/\s+/).filter(t => t.length > 0);
+    let allSearchTerms = [...tokens, rawVal];
     
-    currentSearchTermsInfo = tokens.map((token, idx) => {
-        const isLast = (idx === tokens.length - 1);
-        const isExactWord = !isLast || hasTrailingSpace;
-        return { token, isExactWord };
-    });
+    // Cross-language search: If user searches in English while in another language (or vice-versa), translate query!
+    if (currentAppLanguage !== 'en_US' && currentAppLanguage !== 'en') {
+        try {
+            const transTerm = await translateTextAsync(rawVal, currentAppLanguage);
+            if (transTerm && transTerm.toLowerCase() !== rawVal) {
+                const transTokens = transTerm.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+                allSearchTerms.push(transTerm.toLowerCase(), ...transTokens);
+            }
+        } catch(e) {}
+    }
+    
+    currentSearchHighlightTerms = Array.from(new Set(allSearchTerms.filter(t => t && t.length > 1)));
     
     const pool = (currentReligion && religionVerses[currentReligion]) ? religionVerses[currentReligion] : Object.values(religionVerses).flat();
     
@@ -7701,11 +7707,11 @@ function performLibSearch() {
         const vText = (v.text || '').toLowerCase();
         const vTrans = (v.translation || '').toLowerCase();
         
-        const matchesAll = currentSearchTermsInfo.every(info => {
-            return checkTermMatch(vText, vTrans, info.token, info.isExactWord);
+        const isMatch = currentSearchHighlightTerms.some(term => {
+            return checkTermMatch(vText, vTrans, term);
         });
         
-        if (matchesAll) {
+        if (isMatch) {
             const normText = (vText || vTrans).trim().replace(/\s+/g, ' ');
             if (!seenMatchTexts.has(normText)) {
                 seenMatchTexts.add(normText);
@@ -7717,25 +7723,12 @@ function performLibSearch() {
     window.currentSearchResultsMatches = matches;
     currentSearchRenderedCount = 0;
     
-    const currHeight = resultsContainer.offsetHeight;
-    if (currHeight > 0) {
-        resultsContainer.style.minHeight = currHeight + 'px';
-    }
-    
     resultsContainer.innerHTML = '';
     
     if (matches.length === 0) {
-        resultsContainer.style.minHeight = '';
-        resultsContainer.innerHTML = '<div style="text-align: center; padding: 20px; opacity: 0.6;">No verses found</div>';
+        resultsContainer.innerHTML = '<div style="text-align: center; padding: 20px; opacity: 0.6;">' + (typeof t === 'function' ? t('No verses found') : 'No verses found') + '</div>';
         return;
     }
-    
-    renderSearchBatch(20);
-    setupSearchScrollListener();
-    
-    requestAnimationFrame(() => {
-        resultsContainer.style.minHeight = '';
-    });
     
     renderSearchBatch(20);
     setupSearchScrollListener();
@@ -7763,13 +7756,13 @@ function renderSearchBatch(batchSize = 20) {
         
         const textDiv = document.createElement('div');
         textDiv.style.cssText = 'font-size: 1.1em; line-height: 1.6; margin-bottom: 8px; display: block; word-break: break-word;';
-        applyDynamicVerseTranslation(textDiv, match.text);
+        applyDynamicVerseTranslation(textDiv, match.text, currentAppLanguage, currentSearchHighlightTerms);
         card.appendChild(textDiv);
         
         if (match.translation && match.translation !== match.text) {
             const transDiv = document.createElement('div');
             transDiv.style.cssText = 'font-size: 0.9em; opacity: 0.8; line-height: 1.5; font-style: italic; margin-bottom: 10px;';
-            applyDynamicVerseTranslation(transDiv, match.translation);
+            applyDynamicVerseTranslation(transDiv, match.translation, currentAppLanguage, currentSearchHighlightTerms);
             card.appendChild(transDiv);
         }
         
