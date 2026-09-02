@@ -2229,10 +2229,10 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
         return;
     }
     
-    // Smooth transition
+    // Render text with subtle opacity during background neural translation
+    domElement.innerText = rawText;
     domElement.style.transition = 'opacity 0.25s ease';
-    domElement.style.opacity = '0.35';
-    domElement.innerText = '...';
+    domElement.style.opacity = '0.7';
     
     translateTextAsync(rawText, lang).then(translated => {
         if (domElement && domElement.isConnected) {
@@ -2315,11 +2315,11 @@ function applyLanguageTranslations(langCode = currentAppLanguage) {
         }
     });
 
-    // 2. Update Settings Language Button Label
+    // 2. Update Settings Language Button Label (Display in authentic native script)
     const selectedLangObj = supportedLanguages.find(l => l.code === langCode) || supportedLanguages[0];
     const settingsLabel = document.getElementById('settings-current-lang-label');
     if (settingsLabel) {
-        settingsLabel.textContent = selectedLangObj.name;
+        settingsLabel.textContent = selectedLangObj.native || selectedLangObj.name;
     }
 
     // 3. Update Settings Links
@@ -4244,7 +4244,7 @@ function processBibleData(bible) {
     religionBooks.Christianity = { books: christianBooks };
 }
 function processQuranData(quran) {
-    let islamVerses = religionVerses.Islam || [];
+    let islamVerses = [];
     let quranChapters = {};
     const isArabic = (currentAppLanguage === 'ar');
     
@@ -7778,6 +7778,7 @@ function toRomanNumeral(num, max = 20) {
 }
 
 function sanitizeFolderName(raw) {
+    if (!raw) return '';
     const maxNum = (typeof isPremiumUser !== 'undefined' && isPremiumUser) ? 49 : 9;
     const maxChars = (typeof isPremiumUser !== 'undefined' && isPremiumUser) ? 30 : 10;
     
@@ -7787,8 +7788,8 @@ function sanitizeFolderName(raw) {
         if (num < 1 || num > maxNum) return '';
         return toRomanNumeral(num, maxNum);
     });
-    // Trim and limit to max characters
-    name = name.trim().substring(0, maxChars);
+    // Trim and limit to max characters using Unicode character slice
+    name = Array.from(name.trim()).slice(0, maxChars).join('');
     return name;
 }
 
@@ -8290,7 +8291,7 @@ function handlePillPlay(e) {
                     currentAudioNode.stop();
                 } catch (err) { }
             }
-            stopWaveformVisualizer(false);
+            stopWaveformVisualizer(true);
             updateSpeakIcons();
             updatePillUI();
         } else {
