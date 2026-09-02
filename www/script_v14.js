@@ -932,7 +932,8 @@ const i18nDict = {
         "ur": "فلسفہ",
         "zh": "哲学",
         "ko": "철학",
-        "fa": "فلسفه"
+        "fa": "فلسفه",
+        "he": "פילוסופיה"
     },
     "Psychology": {
         "ar": "علم النفس",
@@ -1303,7 +1304,8 @@ const i18nDict = {
         "it": "Cristianesimo",
         "zh": "基督教",
         "ko": "기독교",
-        "fa": "مسیحیت"
+        "fa": "مسیحیت",
+        "he": "נצרות"
     },
     "Islam": {
         "bn": "ইসলাম",
@@ -1321,7 +1323,8 @@ const i18nDict = {
         "it": "Islam",
         "zh": "伊斯兰教",
         "ko": "이슬람교",
-        "fa": "اسلام"
+        "fa": "اسلام",
+        "he": "אסלאם"
     },
     "Hinduism": {
         "bn": "হিন্দুধর্ম",
@@ -1339,7 +1342,8 @@ const i18nDict = {
         "it": "Induismo",
         "zh": "印度教",
         "ko": "힌두교",
-        "fa": "هندوئیسم"
+        "fa": "هندوئیسم",
+        "he": "הינדואיזם"
     },
     "Sikhism": {
         "bn": "শিখধর্ম",
@@ -1357,7 +1361,8 @@ const i18nDict = {
         "it": "Sikhismo",
         "zh": "锡克教",
         "ko": "시크교",
-        "fa": "সیکیسم"
+        "fa": "সیکیسم",
+        "he": "סיקיזם"
     },
     "Buddhism": {
         "bn": "বৌদ্ধধর্ম",
@@ -1375,7 +1380,8 @@ const i18nDict = {
         "it": "Buddismo",
         "zh": "佛教",
         "ko": "불교",
-        "fa": "بودیسم"
+        "fa": "بودیسم",
+        "he": "בודהיזם"
     },
     "Judaism": {
         "bn": "ইহুদিধর্ম",
@@ -1393,7 +1399,8 @@ const i18nDict = {
         "it": "Ebraismo",
         "zh": "犹太教",
         "ko": "유대교",
-        "fa": "یهودیت"
+        "fa": "یهودیت",
+        "he": "יהדות"
     },
     "Feed": {
         "bn": "ফিড",
@@ -3367,6 +3374,7 @@ const i18nDict = {
 };
 
 
+
 const verseTranslationMemoryCache = {};
 
 function isGarbageTranslation(str, targetLang = currentAppLanguage) {
@@ -3501,7 +3509,19 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
         return;
     }
     
-    // If rawText already contains target language script, render directly
+    // 1. Instant Dictionary Match
+    if (typeof t === 'function') {
+        const dictTrans = t(rawText);
+        if (dictTrans && dictTrans.toLowerCase() !== rawText.toLowerCase()) {
+            const existingActions = domElement.querySelector('.verse-actions');
+            domElement.innerText = dictTrans;
+            if (existingActions) domElement.appendChild(existingActions);
+            domElement.style.opacity = '1';
+            return;
+        }
+    }
+    
+    // 2. If rawText already contains target language script, render directly
     if (lang === 'bn' && /[\u0980-\u09FF]/.test(rawText)) {
         domElement.innerText = rawText;
         domElement.style.opacity = '1';
@@ -3512,9 +3532,15 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
         domElement.style.opacity = '1';
         return;
     }
+    if (lang === 'he' && /[\u0590-\u05FF]/.test(rawText)) {
+        domElement.innerText = rawText;
+        domElement.style.opacity = '1';
+        return;
+    }
     
+    // 3. Memory & Disk Cache Lookup
     const cached = getCachedVerseTranslation(rawText, lang);
-    if (cached && !isGarbageTranslation(cached)) {
+    if (cached && !isGarbageTranslation(cached, lang)) {
         const existingActions = domElement.querySelector('.verse-actions');
         domElement.innerText = cached;
         if (existingActions) domElement.appendChild(existingActions);
@@ -3522,7 +3548,7 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
         return;
     }
     
-    // Render text with subtle opacity during background neural translation
+    // 4. Render text with subtle opacity during background neural translation
     const existingActions = domElement.querySelector('.verse-actions');
     domElement.innerText = rawText;
     if (existingActions) domElement.appendChild(existingActions);
@@ -3531,7 +3557,7 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
     
     translateTextAsync(rawText, lang).then(translated => {
         if (domElement && domElement.isConnected) {
-            const finalTxt = (translated && !isGarbageTranslation(translated)) ? translated : rawText;
+            const finalTxt = (translated && !isGarbageTranslation(translated, lang)) ? translated : rawText;
             const actions = domElement.querySelector('.verse-actions');
             domElement.innerText = finalTxt;
             if (actions) domElement.appendChild(actions);
