@@ -840,6 +840,15 @@ async function initApp() {
                 setTimeout(() => {
                     initPiper(selectedVoice).catch(err => console.log("Background voice pre-install:", err));
                 }, 300);
+
+                initLanguageSettings();
+
+                // On first app launch, present the language picker
+                if (localStorage.getItem('user_language_selected') !== 'true') {
+                    setTimeout(() => {
+                        openLanguageModal(true);
+                    }, 650);
+                }
             }
 
             // Safety Watchdog: Guarantee loading overlay is dismissed even on slowest devices
@@ -1269,9 +1278,6 @@ async function playText(text, context) {
     isPaused = false;
     currentAudioContextType = context;
     updateSpeakButton('speak-general');
-    
-    // Start visualizer immediately so waves are already animating before any TTS blocking
-    startWaveformVisualizer();
 
     // Load the right voice
     if (ttsRandomVoice) {
@@ -4965,7 +4971,7 @@ function startWaveformVisualizer() {
             const len = visualizerDataArray.length;
             for (let i = 0; i < len; i++) sum += visualizerDataArray[i];
             const avgVolume = sum / len / 255.0;
-            visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.18;
+            visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.28;
         } else {
             visualizerSmoothedVol *= 0.85;
         }
@@ -4979,8 +4985,8 @@ function startWaveformVisualizer() {
         for (let layerIdx = 0; layerIdx < 3; layerIdx++) {
             const speed = [1.5, 1.8, 2.2][layerIdx];
             const frequency = [0.005, 0.007, 0.009][layerIdx];
-            const amplitudeBase = [10, 15, 20][layerIdx];
-            const audioMult = [65, 90, 120][layerIdx];
+            const amplitudeBase = [8, 12, 16][layerIdx];
+            const audioMult = [95, 140, 195][layerIdx];
 
             ctx.beginPath();
             ctx.moveTo(-10, ch);
@@ -4988,7 +4994,7 @@ function startWaveformVisualizer() {
                 const x = -10 + (i * sw);
                 const wave1 = Math.sin(x * frequency + time * speed);
                 const wave2 = Math.sin((cw - x) * frequency + time * (speed * 0.85));
-                const height = amplitudeBase + (wave1 * 8) + (wave2 * 8) + (visualizerSmoothedVol * audioMult);
+                const height = amplitudeBase + (wave1 * 6) + (wave2 * 6) + (visualizerSmoothedVol * audioMult);
                 const y = ch - Math.max(4, height);
                 ctx.lineTo(x, y);
             }
@@ -5066,6 +5072,117 @@ function applyRandomPremiumAngle() {
         btn.style.setProperty('--prem-angle', `${sessionUserPremiumAngle}deg`);
         btn.style.transform = `rotate(${sessionUserPremiumAngle}deg)`;
         btn.style.transition = 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
+    }
+}
+
+// --- Multi-Language Selector System ---
+const supportedLanguages = [
+    { code: 'en_US', name: 'English (US)', native: 'English (US)', hasVoice: true, voiceLabel: '🎙️ Neural Voice Available' },
+    { code: 'en_GB', name: 'English (UK)', native: 'English (UK)', hasVoice: true, voiceLabel: '🎙️ Neural Voice Available' },
+    { code: 'bn', name: 'Bengali', native: 'বাংলা', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'hi', name: 'Hindi', native: 'हिन्दी', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'ar', name: 'Arabic', native: 'العربية', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'es', name: 'Spanish', native: 'Español', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'fr', name: 'French', native: 'Français', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'de', name: 'German', native: 'Deutsch', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'ja', name: 'Japanese', native: '日本語', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'tr', name: 'Turkish', native: 'Türkçe', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'ru', name: 'Russian', native: 'Русский', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'pt', name: 'Portuguese', native: 'Português', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'id', name: 'Indonesian', native: 'Bahasa Indonesia', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'ur', name: 'Urdu', native: 'اردو', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'it', name: 'Italian', native: 'Italiano', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'zh', name: 'Chinese', native: '中文', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'ko', name: 'Korean', native: '한국어', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' },
+    { code: 'fa', name: 'Persian', native: 'فارسی', hasVoice: false, voiceLabel: '📝 Text Only (Voice Unavailable)' }
+];
+
+let currentAppLanguage = localStorage.getItem('versefeed_user_language') || 'en_US';
+
+function renderLanguageList(filterQuery = '') {
+    const container = document.getElementById('language-list-container');
+    if (!container) return;
+    container.innerHTML = '';
+    const query = (filterQuery || '').toLowerCase().trim();
+    
+    const filtered = supportedLanguages.filter(l => 
+        l.name.toLowerCase().includes(query) || 
+        l.native.toLowerCase().includes(query) ||
+        l.code.toLowerCase().includes(query)
+    );
+
+    if (filtered.length === 0) {
+        container.innerHTML = `<div style="text-align: center; padding: 24px; opacity: 0.6; font-size: 0.9rem; color: var(--text-color);">No languages found matching "${filterQuery}"</div>`;
+        return;
+    }
+
+    filtered.forEach(lang => {
+        const item = document.createElement('div');
+        const isSelected = currentAppLanguage === lang.code;
+        item.style.cssText = `display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-radius: 14px; border: 1px solid ${isSelected ? 'var(--p-gold)' : 'var(--glass-border)'}; background: ${isSelected ? 'rgba(188, 174, 158, 0.15)' : 'rgba(255,255,255,0.03)'}; cursor: pointer; transition: all 0.2s ease;`;
+        
+        item.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+                <span style="font-size: 0.98rem; font-weight: 600; color: var(--text-color);">${lang.native} <span style="font-size: 0.85rem; opacity: 0.7; font-weight: 400;">(${lang.name})</span></span>
+                <span style="font-size: 0.75rem; color: ${lang.hasVoice ? '#10b981' : '#f59e0b'}; opacity: 0.85; font-weight: 500;">${lang.voiceLabel}</span>
+            </div>
+            ${isSelected ? '<span style="color: var(--p-gold); font-weight: bold; font-size: 1.1rem;">✓</span>' : ''}
+        `;
+
+        item.onclick = () => {
+            selectAppLanguage(lang);
+        };
+        container.appendChild(item);
+    });
+}
+
+function filterLanguages(query) {
+    renderLanguageList(query);
+}
+
+function selectAppLanguage(lang) {
+    currentAppLanguage = lang.code;
+    localStorage.setItem('versefeed_user_language', lang.code);
+    localStorage.setItem('user_language_selected', 'true');
+    
+    const settingsLabel = document.getElementById('settings-current-lang-label');
+    if (settingsLabel) settingsLabel.textContent = 'Language: ' + lang.name;
+
+    closeLanguageModal();
+
+    if (!lang.hasVoice) {
+        showToast('Selected ' + lang.name + '. Voice narration is unavailable for this language (Text only).');
+    } else {
+        showToast('Language set to ' + lang.name);
+    }
+}
+
+function openLanguageModal(isFirstLaunch = false) {
+    const modal = document.getElementById('language-modal');
+    if (!modal) return;
+    const searchInput = document.getElementById('lang-search-input');
+    if (searchInput) searchInput.value = '';
+    renderLanguageList('');
+    modal.classList.remove('hidden');
+    requestAnimationFrame(() => modal.classList.add('show'));
+}
+
+function closeLanguageModal(e) {
+    if (e) e.stopPropagation();
+    const modal = document.getElementById('language-modal');
+    if (!modal) return;
+    modal.classList.remove('show');
+    setTimeout(() => modal.classList.add('hidden'), 250);
+}
+
+function initLanguageSettings() {
+    const saved = localStorage.getItem('versefeed_user_language');
+    if (saved) {
+        const lang = supportedLanguages.find(l => l.code === saved);
+        if (lang) {
+            const settingsLabel = document.getElementById('settings-current-lang-label');
+            if (settingsLabel) settingsLabel.textContent = 'Language: ' + lang.name;
+        }
     }
 }
 

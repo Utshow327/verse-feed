@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Minimalistic Religion App</title>
-    <link rel="stylesheet" href="style_v5.css?v=344">
+    <link rel="stylesheet" href="style_v5.css?v=345">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -214,6 +214,12 @@
                 <button class="global-rel-btn active" onclick="toggleGlobalReligion('Philosophy')">Philosophy</button>
         </div>
 
+        <div style="display: flex; justify-content: center; margin-top: 18px; margin-bottom: 6px;">
+            <button onclick="openLanguageModal()" class="global-rel-btn" style="width: auto; padding: 10px 24px; border-radius: 20px; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px; font-weight: 600;">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                <span id="settings-current-lang-label">Language: English (US)</span>
+            </button>
+        </div>
 
         <div style="display: flex; justify-content: center; align-items: center; gap: 14px; margin: 24px auto 10px auto; font-size: 0.82rem;">
             <a href="https://utshow327.github.io/verse-feed/privacy.html" target="_blank" rel="noopener noreferrer" style="color: var(--text-color); opacity: 0.75; text-decoration: underline; font-weight: 500;">Privacy Policy</a>
@@ -225,6 +231,22 @@
         </div> <!-- Closes the 90% width container -->
     </div> <!-- Closes #settings-content -->
 </div> <!-- Closes #settings -->
+
+    <!-- Language Selection Modal -->
+    <div id="language-modal" class="modal-overlay hidden" onclick="closeLanguageModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()" style="width: 90%; max-width: 360px; max-height: 82vh; display: flex; flex-direction: column; padding: 22px 18px; border-radius: 24px; box-sizing: border-box; background: var(--card-bg); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding: 0 4px;">
+                <h3 style="margin: 0; font-size: 1.25rem; font-family: var(--font-main); color: var(--text-color); font-weight: 600;">Choose Language</h3>
+                <button onclick="closeLanguageModal(event)" style="background: none; border: none; color: var(--text-color); font-size: 1.5rem; cursor: pointer; opacity: 0.6; line-height: 1; padding: 4px;">&times;</button>
+            </div>
+            <div style="position: relative; margin-bottom: 12px;">
+                <input type="text" id="lang-search-input" oninput="filterLanguages(this.value)" placeholder="Search language..." style="width: 100%; padding: 11px 14px; border-radius: 14px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: var(--text-color); font-size: 0.95rem; font-family: inherit; box-sizing: border-box; outline: none;" />
+            </div>
+            <div id="language-list-container" style="overflow-y: auto; display: flex; flex-direction: column; gap: 8px; flex-grow: 1; padding-right: 4px; max-height: 52vh;">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+    </div>
 
     <!-- Credits Modal -->
     <div id="credits-modal" class="modal-overlay hidden" onclick="closeCreditsModal(event)">
@@ -447,7 +469,7 @@
     <div id="radial-overlay" class="radial-overlay"></div>
     <script src="libs/localforage.min.js"></script>
     <script src="libs/html2canvas.min.js"></script>
-    <script src="script_v14.js?v=444"></script>
+    <script src="script_v14.js?v=445"></script>
 
 
 
