@@ -1118,7 +1118,8 @@ const i18nDict = {
         "fr": "Proverbes",
         "it": "Proverbi",
         "de": "Sprüche",
-        "ru": "Притчи"
+        "ru": "Притчи",
+        "he": "משלי"
     },
     "Psalms": {
         "bn": "গীতসংহিতা",
@@ -1128,7 +1129,8 @@ const i18nDict = {
         "fr": "Psaumes",
         "it": "Salmi",
         "de": "Psalmen",
-        "ru": "Псалтирь"
+        "ru": "Псалтирь",
+        "he": "תהילים"
     },
     "John": {
         "bn": "যোহন",
@@ -1138,7 +1140,8 @@ const i18nDict = {
         "fr": "Jean",
         "it": "Giovanni",
         "de": "Johannes",
-        "ru": "Иоанн"
+        "ru": "Иоанн",
+        "he": "יוחנן"
     },
     "Luke": {
         "bn": "লূক",
@@ -1148,7 +1151,8 @@ const i18nDict = {
         "fr": "Luc",
         "it": "Luca",
         "de": "Lukas",
-        "ru": "Лука"
+        "ru": "Лука",
+        "he": "לוקאס"
     },
     "Mark": {
         "bn": "মার্ক",
@@ -1158,7 +1162,8 @@ const i18nDict = {
         "fr": "Marc",
         "it": "Marco",
         "de": "Markus",
-        "ru": "Марк"
+        "ru": "Марк",
+        "he": "מרקוס"
     },
     "Matthew": {
         "bn": "মথি",
@@ -1168,7 +1173,8 @@ const i18nDict = {
         "fr": "Matthieu",
         "it": "Matteo",
         "de": "Matthäus",
-        "ru": "Матфей"
+        "ru": "Матфей",
+        "he": "מתי"
     },
     "Deuteronomy": {
         "bn": "দ্বিতীয় বিবরণ",
@@ -1178,7 +1184,8 @@ const i18nDict = {
         "fr": "Deutéronome",
         "it": "Deuteronomio",
         "de": "Deuteronomium",
-        "ru": "Второзаконие"
+        "ru": "Второзаконие",
+        "he": "דברים"
     },
     "Numbers": {
         "bn": "গণনা পুস্তক",
@@ -1188,7 +1195,8 @@ const i18nDict = {
         "fr": "Nombres",
         "it": "Numeri",
         "de": "Numeri",
-        "ru": "Числа"
+        "ru": "Числа",
+        "he": "במדבר"
     },
     "Leviticus": {
         "bn": "লেবীয় পুস্তক",
@@ -1198,7 +1206,8 @@ const i18nDict = {
         "fr": "Lévitique",
         "it": "Levitico",
         "de": "Levitikus",
-        "ru": "Левит"
+        "ru": "Левит",
+        "he": "ויקרא"
     },
     "Exodus": {
         "bn": "যাত্রাপুস্তক",
@@ -1208,7 +1217,8 @@ const i18nDict = {
         "fr": "Exode",
         "it": "Esodo",
         "de": "Exodus",
-        "ru": "Исход"
+        "ru": "Исход",
+        "he": "שמות"
     },
     "Genesis": {
         "bn": "আদিপুস্তক",
@@ -1218,7 +1228,8 @@ const i18nDict = {
         "fr": "Genèse",
         "it": "Genesi",
         "de": "Genesis",
-        "ru": "Бытие"
+        "ru": "Бытие",
+        "he": "בראשית"
     },
     "New Testament": {
         "bn": "নতুন নিয়ম",
@@ -2510,7 +2521,8 @@ const i18nDict = {
         "fr": "Josué",
         "it": "Giosuè",
         "de": "Josua",
-        "ru": "Иисус Навин"
+        "ru": "Иисус Навин",
+        "he": "יהושע"
     },
     "Judges": {
         "bn": "বিচারকর্ত্তৃগণ",
@@ -2520,7 +2532,8 @@ const i18nDict = {
         "fr": "Juges",
         "it": "Giudici",
         "de": "Richter",
-        "ru": "Судьи"
+        "ru": "Судьи",
+        "he": "שופטים"
     },
     "Ruth": {
         "bn": "রূথ",
@@ -2530,7 +2543,8 @@ const i18nDict = {
         "fr": "Ruth",
         "it": "Rut",
         "de": "Rut",
-        "ru": "Руфь"
+        "ru": "Руфь",
+        "he": "רות"
     },
     "1 Samuel": {
         "bn": "১ শমূয়েল",
@@ -2540,7 +2554,8 @@ const i18nDict = {
         "fr": "1 Samuel",
         "it": "1 Samuele",
         "de": "1. Samuel",
-        "ru": "1 Царств"
+        "ru": "1 Царств",
+        "he": "שמואל א'"
     },
     "2 Samuel": {
         "bn": "২ শমূয়েল",
@@ -2550,7 +2565,8 @@ const i18nDict = {
         "fr": "2 Samuel",
         "it": "2 Samuele",
         "de": "2. Samuel",
-        "ru": "2 Царств"
+        "ru": "2 Царств",
+        "he": "שמואל ב'"
     },
     "1 Kings": {
         "bn": "১ রাজাবলি",
@@ -2560,7 +2576,8 @@ const i18nDict = {
         "fr": "1 Rois",
         "it": "1 Re",
         "de": "1. Könige",
-        "ru": "3 Царств"
+        "ru": "3 Царств",
+        "he": "מלכים א'"
     },
     "2 Kings": {
         "bn": "২ রাজাবলি",
@@ -2570,7 +2587,8 @@ const i18nDict = {
         "fr": "2 Rois",
         "it": "2 Re",
         "de": "2. Könige",
-        "ru": "4 Царств"
+        "ru": "4 Царств",
+        "he": "מלכים ב'"
     },
     "1 Chronicles": {
         "bn": "১ বংশাবলি",
@@ -2580,7 +2598,8 @@ const i18nDict = {
         "fr": "1 Chroniques",
         "it": "1 Cronache",
         "de": "1. Chronik",
-        "ru": "1 Паралипоменон"
+        "ru": "1 Паралипоменон",
+        "he": "דברי הימים א'"
     },
     "2 Chronicles": {
         "bn": "২ বংশাবলি",
@@ -2590,7 +2609,8 @@ const i18nDict = {
         "fr": "2 Chroniques",
         "it": "2 Cronache",
         "de": "2. Chronik",
-        "ru": "2 Паралипоменон"
+        "ru": "2 Паралипоменон",
+        "he": "דברי הימים ב'"
     },
     "Ezra": {
         "bn": "ইষ্রা",
@@ -2600,7 +2620,8 @@ const i18nDict = {
         "fr": "Esdras",
         "it": "Esdra",
         "de": "Esra",
-        "ru": "Ездра"
+        "ru": "Ездра",
+        "he": "עזרא"
     },
     "Nehemiah": {
         "bn": "নহিমিয়",
@@ -2610,7 +2631,8 @@ const i18nDict = {
         "fr": "Néhémie",
         "it": "Neemia",
         "de": "Nehemia",
-        "ru": "Неемия"
+        "ru": "Неемия",
+        "he": "נחמיה"
     },
     "Esther": {
         "bn": "ইষ্টের",
@@ -2620,7 +2642,8 @@ const i18nDict = {
         "fr": "Esther",
         "it": "Ester",
         "de": "Ester",
-        "ru": "Есфирь"
+        "ru": "Есфирь",
+        "he": "אסתר"
     },
     "Job": {
         "bn": "ইয়োব",
@@ -2630,7 +2653,8 @@ const i18nDict = {
         "fr": "Job",
         "it": "Giobbe",
         "de": "Hiob",
-        "ru": "Иов"
+        "ru": "Иов",
+        "he": "איוב"
     },
     "Ecclesiastes": {
         "bn": "উপদেশক",
@@ -2640,7 +2664,8 @@ const i18nDict = {
         "fr": "Ecclésiaste",
         "it": "Ecclesiaste",
         "de": "Prediger",
-        "ru": "Екклесиаст"
+        "ru": "Екклесиаст",
+        "he": "קהלת"
     },
     "Song of Solomon": {
         "bn": "পরমগীত",
@@ -2650,7 +2675,8 @@ const i18nDict = {
         "fr": "Cantique des Cantiques",
         "it": "Cantico dei Cantici",
         "de": "Hohelied",
-        "ru": "Песнь Песней"
+        "ru": "Песнь Песней",
+        "he": "שיר השירים"
     },
     "Isaiah": {
         "bn": "যিশাইয়",
@@ -2660,7 +2686,8 @@ const i18nDict = {
         "fr": "Ésaïe",
         "it": "Isaia",
         "de": "Jesaja",
-        "ru": "Исаия"
+        "ru": "Исаия",
+        "he": "ישעיהו"
     },
     "Jeremiah": {
         "bn": "যিরমিয়",
@@ -2670,7 +2697,8 @@ const i18nDict = {
         "fr": "Jérémie",
         "it": "Geremia",
         "de": "Jeremia",
-        "ru": "Иеремия"
+        "ru": "Иеремия",
+        "he": "ירמיהו"
     },
     "Lamentations": {
         "bn": "বিলাপ",
@@ -2680,7 +2708,8 @@ const i18nDict = {
         "fr": "Lamentations",
         "it": "Lamentazioni",
         "de": "Klagelieder",
-        "ru": "Плач Иеремии"
+        "ru": "Плач Иеремии",
+        "he": "איכה"
     },
     "Ezekiel": {
         "bn": "যিহিষ্কেল",
@@ -2690,7 +2719,8 @@ const i18nDict = {
         "fr": "Ézéchiel",
         "it": "Ezechiele",
         "de": "Hesekiel",
-        "ru": "Иезекииль"
+        "ru": "Иезекииль",
+        "he": "יחזקאל"
     },
     "Daniel": {
         "bn": "দানিয়েল",
@@ -2700,7 +2730,8 @@ const i18nDict = {
         "fr": "Daniel",
         "it": "Daniele",
         "de": "Daniel",
-        "ru": "Даниил"
+        "ru": "Даниил",
+        "he": "דניאל"
     },
     "Hosea": {
         "bn": "হোশেয়",
@@ -2710,7 +2741,8 @@ const i18nDict = {
         "fr": "Osée",
         "it": "Osea",
         "de": "Hosea",
-        "ru": "Осия"
+        "ru": "Осия",
+        "he": "הושע"
     },
     "Joel": {
         "bn": "যোয়েল",
@@ -2720,7 +2752,8 @@ const i18nDict = {
         "fr": "Joël",
         "it": "Gioele",
         "de": "Joel",
-        "ru": "Иоиль"
+        "ru": "Иоиль",
+        "he": "יואל"
     },
     "Amos": {
         "bn": "আমোষ",
@@ -2730,7 +2763,8 @@ const i18nDict = {
         "fr": "Amos",
         "it": "Amos",
         "de": "Amos",
-        "ru": "Амос"
+        "ru": "Амос",
+        "he": "עמוס"
     },
     "Obadiah": {
         "bn": "ওবদিয়",
@@ -2740,7 +2774,8 @@ const i18nDict = {
         "fr": "Abdias",
         "it": "Abdia",
         "de": "Obadja",
-        "ru": "Авдий"
+        "ru": "Авдий",
+        "he": "עובדיה"
     },
     "Jonah": {
         "bn": "যোনা",
@@ -2750,7 +2785,8 @@ const i18nDict = {
         "fr": "Jonas",
         "it": "Giona",
         "de": "Jona",
-        "ru": "Иона"
+        "ru": "Иона",
+        "he": "יונה"
     },
     "Micah": {
         "bn": "মীখা",
@@ -2760,7 +2796,8 @@ const i18nDict = {
         "fr": "Michée",
         "it": "Michea",
         "de": "Micha",
-        "ru": "Михей"
+        "ru": "Михей",
+        "he": "מיכה"
     },
     "Nahum": {
         "bn": "নহূম",
@@ -2770,7 +2807,8 @@ const i18nDict = {
         "fr": "Nahum",
         "it": "Naum",
         "de": "Nahum",
-        "ru": "Наум"
+        "ru": "Наум",
+        "he": "נחום"
     },
     "Habakkuk": {
         "bn": "হবক্‌কূক",
@@ -2780,7 +2818,8 @@ const i18nDict = {
         "fr": "Habacuc",
         "it": "Abacuc",
         "de": "Habakuk",
-        "ru": "Аввакум"
+        "ru": "Аввакум",
+        "he": "חבקוק"
     },
     "Zephaniah": {
         "bn": "সফনিয়",
@@ -2790,7 +2829,8 @@ const i18nDict = {
         "fr": "Sophonie",
         "it": "Sofonia",
         "de": "Zefanja",
-        "ru": "Софония"
+        "ru": "Софония",
+        "he": "צפניה"
     },
     "Haggai": {
         "bn": "হগয়",
@@ -2800,7 +2840,8 @@ const i18nDict = {
         "fr": "Aggée",
         "it": "Aggeo",
         "de": "Haggai",
-        "ru": "Аггей"
+        "ru": "Аггей",
+        "he": "חגי"
     },
     "Zechariah": {
         "bn": "সখরিয়",
@@ -2810,7 +2851,8 @@ const i18nDict = {
         "fr": "Zacharie",
         "it": "Zaccaria",
         "de": "Sacharja",
-        "ru": "Захария"
+        "ru": "Захария",
+        "he": "זכריה"
     },
     "Malachi": {
         "bn": "মালাখি",
@@ -2820,7 +2862,8 @@ const i18nDict = {
         "fr": "Malachie",
         "it": "Malachia",
         "de": "Maleachi",
-        "ru": "Малахия"
+        "ru": "Малахия",
+        "he": "מלאכי"
     },
     "Acts": {
         "bn": "প্রেরিতদের কার্য",
@@ -2830,7 +2873,8 @@ const i18nDict = {
         "fr": "Actes",
         "it": "Atti",
         "de": "Apostelgeschichte",
-        "ru": "Деяния"
+        "ru": "Деяния",
+        "he": "מעשי השליחים"
     },
     "Romans": {
         "bn": "রোমীয়",
@@ -2840,7 +2884,8 @@ const i18nDict = {
         "fr": "Romains",
         "it": "Romani",
         "de": "Römer",
-        "ru": "Римлянам"
+        "ru": "Римлянам",
+        "he": "אל הרומים"
     },
     "1 Corinthians": {
         "bn": "১ করিন্থীয়",
@@ -2850,7 +2895,8 @@ const i18nDict = {
         "fr": "1 Corinthiens",
         "it": "1 Corinzi",
         "de": "1. Korinther",
-        "ru": "1 Коринфянам"
+        "ru": "1 Коринфянам",
+        "he": "הראשונה לקורינתים"
     },
     "2 Corinthians": {
         "bn": "২ করিন্থীয়",
@@ -2860,7 +2906,8 @@ const i18nDict = {
         "fr": "2 Corinthiens",
         "it": "2 Corinzi",
         "de": "2. Korinther",
-        "ru": "2 Коринфянам"
+        "ru": "2 Коринфянам",
+        "he": "השנייה לקורינתים"
     },
     "Galatians": {
         "bn": "গালাতীয়",
@@ -2870,7 +2917,8 @@ const i18nDict = {
         "fr": "Galates",
         "it": "Galati",
         "de": "Galater",
-        "ru": "Галатам"
+        "ru": "Галатам",
+        "he": "אל הגלטים"
     },
     "Ephesians": {
         "bn": "ইফিষীয়",
@@ -2880,7 +2928,8 @@ const i18nDict = {
         "fr": "Éphésiens",
         "it": "Efesini",
         "de": "Epheser",
-        "ru": "Ефесянам"
+        "ru": "Ефесянам",
+        "he": "אל האפסים"
     },
     "Philippians": {
         "bn": "ফিলিপীয়",
@@ -2890,7 +2939,8 @@ const i18nDict = {
         "fr": "Philippiens",
         "it": "Filippesi",
         "de": "Philipper",
-        "ru": "Филиппийцам"
+        "ru": "Филиппийцам",
+        "he": "אל הפיליפים"
     },
     "Colossians": {
         "bn": "কলসীয়",
@@ -2900,7 +2950,8 @@ const i18nDict = {
         "fr": "Colossiens",
         "it": "Colossesi",
         "de": "Kolosser",
-        "ru": "Колоссянам"
+        "ru": "Колоссянам",
+        "he": "אל הקולוסים"
     },
     "1 Thessalonians": {
         "bn": "১ থিষলনীকীয়",
@@ -2910,7 +2961,8 @@ const i18nDict = {
         "fr": "1 Thessaloniciens",
         "it": "1 Tessalonicesi",
         "de": "1. Thessalonicher",
-        "ru": "1 Фессалоникийцам"
+        "ru": "1 Фессалоникийцам",
+        "he": "הראשונה לתסלוניקים"
     },
     "2 Thessalonians": {
         "bn": "২ থিষলনীকীয়",
@@ -2920,7 +2972,8 @@ const i18nDict = {
         "fr": "2 Thessaloniciens",
         "it": "2 Tessalonicesi",
         "de": "2. Thessalonicher",
-        "ru": "2 Фессалоникийцам"
+        "ru": "2 Фессалоникийцам",
+        "he": "השנייה לתסלוניקים"
     },
     "1 Timothy": {
         "bn": "১ তীমথিয়",
@@ -2930,7 +2983,8 @@ const i18nDict = {
         "fr": "1 Timothée",
         "it": "1 Timoteo",
         "de": "1. Timotheus",
-        "ru": "1 Тимофею"
+        "ru": "1 Тимофею",
+        "he": "הראשונה לטימותיוס"
     },
     "2 Timothy": {
         "bn": "২ তীমথিয়",
@@ -2940,7 +2994,8 @@ const i18nDict = {
         "fr": "2 Timothée",
         "it": "2 Timoteo",
         "de": "2. Timotheus",
-        "ru": "2 Тимофею"
+        "ru": "2 Тимофею",
+        "he": "השנייה לטימותיוס"
     },
     "Titus": {
         "bn": "তীত",
@@ -2950,7 +3005,8 @@ const i18nDict = {
         "fr": "Tite",
         "it": "Tito",
         "de": "Titus",
-        "ru": "Титу"
+        "ru": "Титу",
+        "he": "אל טיטוס"
     },
     "Philemon": {
         "bn": "ফিলীমন",
@@ -2960,7 +3016,8 @@ const i18nDict = {
         "fr": "Philémon",
         "it": "Filemone",
         "de": "Philemon",
-        "ru": "Филимону"
+        "ru": "Филимону",
+        "he": "אל פילימון"
     },
     "Hebrews": {
         "bn": "ইব্রীয়",
@@ -2970,7 +3027,8 @@ const i18nDict = {
         "fr": "Hébreux",
         "it": "Ebrei",
         "de": "Hebräer",
-        "ru": "Евреям"
+        "ru": "Евреям",
+        "he": "אל העברים"
     },
     "James": {
         "bn": "যাকোব",
@@ -2980,7 +3038,8 @@ const i18nDict = {
         "fr": "Jacques",
         "it": "Giacomo",
         "de": "Jakobus",
-        "ru": "Иакова"
+        "ru": "Иакова",
+        "he": "איגרת יעקב"
     },
     "1 Peter": {
         "bn": "১ পিতর",
@@ -2990,7 +3049,8 @@ const i18nDict = {
         "fr": "1 Pierre",
         "it": "1 Pietro",
         "de": "1. Petrus",
-        "ru": "1 Петра"
+        "ru": "1 Петра",
+        "he": "איגרת פטרוס הראשונה"
     },
     "2 Peter": {
         "bn": "২ পিতর",
@@ -3000,7 +3060,8 @@ const i18nDict = {
         "fr": "2 Peter",
         "it": "2 Pietro",
         "de": "2. Petrus",
-        "ru": "2 Петра"
+        "ru": "2 Петра",
+        "he": "איגרת פטרוס השנייה"
     },
     "1 John": {
         "bn": "১ যোহন",
@@ -3010,7 +3071,8 @@ const i18nDict = {
         "fr": "1 Jean",
         "it": "1 Giovanni",
         "de": "1. Johannes",
-        "ru": "1 Иоанна"
+        "ru": "1 Иоанна",
+        "he": "איגרת יוחנן הראשונה"
     },
     "2 John": {
         "bn": "২ যোহন",
@@ -3020,7 +3082,8 @@ const i18nDict = {
         "fr": "2 Jean",
         "it": "2 Giovanni",
         "de": "2. Johannes",
-        "ru": "2 Иоанна"
+        "ru": "2 Иоанна",
+        "he": "איגרת יוחנן השנייה"
     },
     "3 John": {
         "bn": "৩ যোহন",
@@ -3030,7 +3093,8 @@ const i18nDict = {
         "fr": "3 Jean",
         "it": "3 Giovanni",
         "de": "3. Johannes",
-        "ru": "3 Иоанна"
+        "ru": "3 Иоанна",
+        "he": "איגרת יוחנן השלישית"
     },
     "Jude": {
         "bn": "যিহূদা",
@@ -3040,7 +3104,8 @@ const i18nDict = {
         "fr": "Jude",
         "it": "Giuda",
         "de": "Judas",
-        "ru": "Иуды"
+        "ru": "Иуды",
+        "he": "איגרת יהודה"
     },
     "Revelation": {
         "bn": "প্রকাশিত বাক্য",
@@ -3050,7 +3115,8 @@ const i18nDict = {
         "fr": "Apocalypse",
         "it": "Apocalisse",
         "de": "Offenbarung",
-        "ru": "Откровение"
+        "ru": "Откровение",
+        "he": "חזון יוחנן"
     },
     "One small tap for you, one giant leap for this starving indie dev.": {
         "bn": "আপনার জন্য একটি ছোট ট্যাপ, এই পরিশ্রমী নির্মাতার জন্য এক বিশাল পদক্ষেপ।"
@@ -3222,7 +3288,8 @@ const i18nDict = {
         "fr": "Cantique des Cantiques",
         "it": "Cantico dei Cantici",
         "de": "Hohelied",
-        "ru": "Песнь Песней"
+        "ru": "Песнь Песней",
+        "he": "שיר השירים"
     },
     "Pirkei Avot": {
         "ar": "أقوال الآباء",
@@ -3521,6 +3588,7 @@ const i18nDict = {
         "fr": "Jâtakas"
     }
 };
+
 
 
 
@@ -5681,13 +5749,26 @@ async function loadUnselectedDataInBackground() {
 
 function toHebrewNumeral(num) {
     const n = parseInt(num, 10);
-    if (isNaN(n) || n <= 0 || n > 999) return String(num);
+    if (isNaN(n) || n <= 0) return String(num);
+    
     const units = ['', 'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט'];
     const tens = ['', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ'];
     const hundreds = ['', 'ק', 'ר', 'ש', 'ת'];
 
-    let h = Math.floor(n / 100);
-    let rem = n % 100;
+    let thousands = Math.floor(n / 1000);
+    let remThousands = n % 1000;
+    
+    let th_str = '';
+    if (thousands > 0) {
+        if (thousands < 10) {
+            th_str = units[thousands] + "\'";
+        } else {
+            th_str = toHebrewNumeral(thousands) + "\'";
+        }
+    }
+    
+    let h = Math.floor(remThousands / 100);
+    let rem = remThousands % 100;
     
     let t_str = '';
     if (rem === 15) {
@@ -5709,7 +5790,7 @@ function toHebrewNumeral(num) {
         h_str += hundreds[h];
     }
     
-    return h_str + t_str;
+    return th_str + h_str + t_str;
 }
 
 function localizeDigits(str, lang = currentAppLanguage) {
