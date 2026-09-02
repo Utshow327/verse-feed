@@ -85,36 +85,1222 @@ const supportedLanguages = [
 ];
 
 const i18nDict = {
-    'Christianity': { bn: 'খ্রিস্টধর্ম', hi: 'ईसाई धर्म', ar: 'المسيحية', es: 'Cristianismo', fr: 'Christianisme', de: 'Christentum', ja: 'キリスト教', tr: 'Hristiyanlık', ru: 'Христианство', pt: 'Cristianismo', id: 'Kristen', ur: 'عیسائیت', it: 'Cristianesimo', zh: '基督教', ko: '기독교', fa: 'مسیحیت' },
-    'Islam': { bn: 'ইসলাম', hi: 'इस्लाम', ar: 'الإسلام', es: 'Islam', fr: 'Islam', de: 'Islam', ja: 'イスラム教', tr: 'İslam', ru: 'Ислам', pt: 'Islã', id: 'Islam', ur: 'اسلام', it: 'Islam', zh: '伊斯兰教', ko: '이슬람교', fa: 'اسلام' },
-    'Hinduism': { bn: 'হিন্দুধর্ম', hi: 'हिन्दू धर्म', ar: 'الهندوسية', es: 'Hinduismo', fr: 'Hindouisme', de: 'Hinduismus', ja: 'ヒンドゥー教', tr: 'Hinduizm', ru: 'Индуизм', pt: 'Hinduismo', id: 'Hindu', ur: 'ہندومت', it: 'Induismo', zh: '印度教', ko: '힌두교', fa: 'هندوئیسم' },
-    'Sikhism': { bn: 'শিখধর্ম', hi: 'सिख धर्म', ar: 'السيخية', es: 'Sijismo', fr: 'Sikhisme', de: 'Sikhismus', ja: 'シーク教', tr: 'Sihizm', ru: 'Сикхизм', pt: 'Sikhismo', id: 'Sikhisme', ur: 'سکھ مت', it: 'Sikhismo', zh: '锡克教', ko: '시크교', fa: 'سیکیسم' },
-    'Buddhism': { bn: 'বৌদ্ধধর্ম', hi: 'बौद्ध धर्म', ar: 'البوذية', es: 'Budismo', fr: 'Bouddhisme', de: 'Buddhismus', ja: '仏教', tr: 'Budizm', ru: 'Буддизм', pt: 'Budismo', id: 'Buddha', ur: 'بدھ مت', it: 'Buddismo', zh: '佛教', ko: '불교', fa: 'بودیسم' },
-    'Judaism': { bn: 'ইহুদিধর্ম', hi: 'यहूदी धर्म', ar: 'اليهودية', es: 'Judaísmo', fr: 'Judaïsme', de: 'Judentum', ja: 'ユダヤ教', tr: 'Musevilik', ru: 'Иудаизм', pt: 'Judaísmo', id: 'Yudaisme', ur: 'یہودیت', it: 'Ebraismo', zh: '犹太教', ko: '유대교', fa: 'یهودیت' },
-    'Philosophy': { bn: 'দর্শন', hi: 'दर्शनशास्त्र', ar: 'الفلسفة', es: 'Filosofía', fr: 'Philosophie', de: 'Philosophie', ja: '哲学', tr: 'Felsefe', ru: 'Философия', pt: 'Filosofia', id: 'Filsafat', ur: 'فلسفہ', it: 'Filosofia', zh: '哲学', ko: '철학', fa: 'فلسفه' },
-    'Remove Ads': { bn: 'বিজ্ঞাপন সরান', hi: 'विज्ञापन हटाएं', ar: 'إزالة الإعلانات', es: 'Quitar anuncios', fr: 'Supprimer les pubs', de: 'Werbung entfernen', ja: '広告を非表示', tr: 'Reklamları Kaldır', ru: 'Убрать рекламу', pt: 'Remover Anúncios', id: 'Hapus Iklan', ur: 'اشتہارات ہٹائیں', it: 'Rimuovi Annunci', zh: '去除广告', ko: '광고 제거', fa: 'حذف تبلیغات' },
-    'Sponsored': { bn: 'স্পনসরড', hi: 'प्रायोजित', ar: 'برعاية', es: 'Patrocinado', fr: 'Sponsorisé', de: 'Gesponsert', ja: 'スポンサー', tr: 'Sponsorlu', ru: 'Реклама', pt: 'Patrocinado', id: 'Disponsori', ur: 'اسپانسر شدہ', it: 'Sponsorizzato', zh: '赞助', ko: '스폰서', fa: 'حمایت شده' },
-    'Premium': { bn: 'প্রিমিয়াম', hi: 'प्रीमियम', ar: 'بريميوم', es: 'Premium', fr: 'Premium', de: 'Premium', ja: 'プレミアム', tr: 'Premium', ru: 'Премиум', pt: 'Premium', id: 'Premium', ur: 'پریمیم', it: 'Premium', zh: '高级版', ko: '프리미엄', fa: 'ویژه' },
-    'Language': { bn: 'ভাষা', hi: 'भाषा', ar: 'اللغة', es: 'Idioma', fr: 'Langue', de: 'Sprache', ja: '言語', tr: 'Dil', ru: 'Язык', pt: 'Idioma', id: 'Bahasa', ur: 'زبان', it: 'Lingua', zh: '语言', ko: '언어', fa: 'زبان' },
-    'Choose Language': { bn: 'ভাষা নির্বাচন করুন', hi: 'भाषा चुनें', ar: 'اختر اللغة', es: 'Elegir idioma', fr: 'Choisir la langue', de: 'Sprache wählen', ja: '言語を選択', tr: 'Dil Seçin', ru: 'Выберите язык', pt: 'Escolher Idioma', id: 'Pilih Bahasa', ur: 'زبان منتخب کریں', it: 'Scegli la lingua', zh: '选择语言', ko: '언어 선택', fa: 'انتخاب زبان' },
-    'Search language...': { bn: 'ভাষা খুঁজুন...', hi: 'भाषा खोजें...', ar: 'ابحث عن لغة...', es: 'Buscar idioma...', fr: 'Rechercher une langue...', de: 'Sprache suchen...', ja: '言語を検索...', tr: 'Dil ara...', ru: 'Поиск языка...', pt: 'Buscar idioma...', id: 'Cari bahasa...', ur: 'زبان تلاش کریں...', it: 'Cerca lingua...', zh: '搜索语言...', ko: '언어 검색...', fa: 'جستجوی زبان...' },
-    'Privacy Policy': { bn: 'গোপনীয়তা নীতি', hi: 'गोपनीयता नीति', ar: 'سياسة الخصوصية', es: 'Política de privacidad', fr: 'Politique de confidentialité', de: 'Datenschutz', ja: 'プライバシーポリシー', tr: 'Gizlilik Politikası', ru: 'Политика конфиденциальности', pt: 'Política de Privacidade', id: 'Kebijakan Privasi', ur: 'رازداری کی پالیسی', it: 'Informativa sulla privacy', zh: '隐私政策', ko: '개인정보처리방침', fa: 'سیاست حفظ حریم خصوصی' },
-    'Terms of Service': { bn: 'ব্যবহারের শর্তাবলী', hi: 'सेवा की शर्तें', ar: 'شروط الخدمة', es: 'Términos del servicio', fr: 'Conditions d\'utilisation', de: 'Nutzungsbedingungen', ja: '利用規約', tr: 'Kullanım Koşulları', ru: 'Условия использования', pt: 'Termos de Serviço', id: 'Ketentuan Layanan', ur: 'خدمات کی شرائط', it: 'Termini di servizio', zh: '服务条款', ko: '이용약관', fa: 'شرایط خدمات' },
-    'Credits': { bn: 'স্বীকৃতি ও কৃতজ্ঞতা', hi: 'আভার एवं श्रेय', ar: 'المصادر والاعتمادات', es: 'Créditos', fr: 'Crédits', de: 'Credits', ja: 'クレジット', tr: 'Katkıda Bulunanlar', ru: 'Благодарности', pt: 'Créditos', id: 'Kredit', ur: 'کریڈٹس', it: 'Crediti', zh: '致谢', ko: '크레딧', fa: 'اعتبارات' },
-    'Continue as Guest': { bn: 'অতিথি হিসেবে চালিয়ে যান', hi: 'अतिथि के रूप में जारी रखें', ar: 'المتابعة كضيف', es: 'Continuar como invitado', fr: 'Continuer en tant qu\'invité', de: 'Als Gast fortfahren', ja: 'ゲストとして続行', tr: 'Misafir Olarak Devam Et', ru: 'Продолжить как гость', pt: 'Continuar como Convidado', id: 'Lanjutkan sebagai Tamu', ur: 'بطور مہمان جاری رکھیں', it: 'Continua come ospite', zh: '以访客身份继续', ko: '게스트로 계속', fa: 'ادامه به عنوان مهمان' },
-    'Sign in with Google': { bn: 'Google দিয়ে সাইন ইন করুন', hi: 'Google से साइन इन करें', ar: 'تسجيل الدخول باستخدام Google', es: 'Iniciar sesión con Google', fr: 'Se connecter avec Google', de: 'Mit Google anmelden', ja: 'Googleでログイン', tr: 'Google ile Giriş Yap', ru: 'Войти через Google', pt: 'Entrar com o Google', id: 'Masuk dengan Google', ur: 'گوگل کے ساتھ سائن ان کریں', it: 'Accedi con Google', zh: '使用 Google 登录', ko: 'Google로 로그인', fa: 'ورود با Google' },
-    'Search verses or authors...': { bn: 'আয়াত বা গ্রন্থ খুঁজুন...', hi: 'श्लोक या लेखक खोजें...', ar: 'ابحث عن الآيات أو الكتب...', es: 'Buscar versos o libros...', fr: 'Rechercher des versets...', de: 'Verse oder Bücher suchen...', ja: '詩句や本を検索...', tr: 'Ayet veya kitap ara...', ru: 'Поиск стихов или книг...', pt: 'Buscar versículos...', id: 'Cari ayat atau buku...', ur: 'آیات یا کتب تلاش کریں...', it: 'Cerca versetti o libri...', zh: '搜索经文或书籍...', ko: '구절 또는 책 검색...', fa: 'جستجوی آیات یا کتاب‌ها...' },
-    'All': { bn: 'সকল', hi: 'सभी', ar: 'الكل', es: 'Todos', fr: 'Tous', de: 'Alle', ja: 'すべて', tr: 'Tümü', ru: 'Все', pt: 'Todos', id: 'Semua', ur: 'تمام', it: 'Tutti', zh: '全部', ko: '전체', fa: 'همه' },
-    'Default': { bn: 'ডিফল্ট', hi: 'डिफ़ॉल्ट', ar: 'الافتراضي', es: 'Predeterminado', fr: 'Par défaut', de: 'Standard', ja: 'デフォルト', tr: 'Varsayılan', ru: 'По умолчанию', pt: 'Padrão', id: 'Default', ur: 'ڈیفالٹ', it: 'Predefinito', zh: '默认', ko: '기본', fa: 'پیش‌فرض' },
-    'Folder deleted': { bn: 'ফোল্ডার মুছে ফেলা হয়েছে', hi: 'फ़ोल्डर हटा दिया गया', ar: 'تم حذف المجلد', es: 'Carpeta eliminada', fr: 'Dossier supprimé', de: 'Ordner gelöscht', ja: 'フォルダを削除しました', tr: 'Klasör silindi', ru: 'Папка удалена', pt: 'Pasta excluída', id: 'Folder dihapus', ur: 'فولڈر حذف کر دیا گیا', it: 'Cartella eliminata', zh: '文件夹已删除', ko: '폴더 삭제됨', fa: 'پوشه حذف شد' },
-    'Folder restored': { bn: 'ফোল্ডার পুনরুদ্ধার করা হয়েছে', hi: 'फ़ोल्डर पुनर्स्थापित किया गया', ar: 'تمت استعادة المجلد', es: 'Carpeta restaurada', fr: 'Dossier restauré', de: 'Ordner wiederhergestellt', ja: 'フォルダを復元しました', tr: 'Klasör geri yüklendi', ru: 'Папка восстановлена', pt: 'Pasta restaurada', id: 'Folder dipulihkan', ur: 'فولڈر بحال کر دیا گیا', it: 'Cartella ripristinata', zh: '文件夹已恢复', ko: '폴더 복원됨', fa: 'пошه بازیابی شد' },
-    'Verse deleted': { bn: 'আয়াত মুছে ফেলা হয়েছে', hi: 'श्लोक हटा दिया गया', ar: 'تم حذف الآية', es: 'Verso eliminado', fr: 'Verset supprimé', de: 'Vers gelöscht', ja: '詩句を削除しました', tr: 'Ayet silindi', ru: 'Стих удален', pt: 'Versículo excluído', id: 'Ayat dihapus', ur: 'آیت حذف کر دی گئی', it: 'Versetto eliminato', zh: '经文已删除', ko: '구절 삭제됨', fa: 'آیه حذف شد' },
-    'Verse restored': { bn: 'আয়াত পুনরুদ্ধার করা হয়েছে', hi: 'श्लोक पुनर्स्थापित किया गया', ar: 'تمت استعادة الآية', es: 'Verso restaurado', fr: 'Verset restauré', de: 'Vers wiederhergestellt', ja: '詩句を復元しました', tr: 'Ayet geri yüklendi', ru: 'Стих восстановлен', pt: 'Versículo restaurado', id: 'Ayat dipulihkan', ur: 'آیت بحال کر دی گئی', it: 'Versetto ripristinato', zh: '经文已恢复', ko: '구절 복원됨', fa: 'آیه بازیابی شد' },
-    'Undo': { bn: 'বাতিল', hi: 'पूर्ववत करें', ar: 'تراجع', es: 'Deshacer', fr: 'Annuler', de: 'Rückgängig', ja: '元に戻す', tr: 'Geri Al', ru: 'Отмена', pt: 'Desfazer', id: 'Urungkan', ur: 'واپس', it: 'Annulla', zh: '撤销', ko: '실행 취소', fa: 'واگرد' },
-    'Chapter': { bn: 'অধ্যায়', hi: 'अध्याय', ar: 'الفصل', es: 'Capítulo', fr: 'Chapitre', de: 'Kapitel', ja: '章', tr: 'Bölüm', ru: 'Глава', pt: 'Capítulo', id: 'Bab', ur: 'باب', it: 'Capitolo', zh: '章', ko: '장', fa: 'فصل' },
-    'Verse': { bn: 'আয়াত', hi: 'श्लोक', ar: 'الآية', es: 'Verso', fr: 'Verset', de: 'Vers', ja: '節', tr: 'Ayet', ru: 'Стих', pt: 'Versículo', id: 'Ayat', ur: 'آیت', it: 'Versetto', zh: '节', ko: '절', fa: 'آیه' },
-    'Back': { bn: 'পেছনে', hi: 'वापस', ar: 'رجوع', es: 'Volver', fr: 'Retour', de: 'Zurück', ja: '戻る', tr: 'Geri', ru: 'Назад', pt: 'Voltar', id: 'Kembali', ur: 'پیچھے', it: 'Indietro', zh: '返回', ko: '뒤로', fa: 'بازگشت' }
+    "Christianity": {
+        "bn": "খ্রিস্টধর্ম",
+        "hi": "ईसाई धर्म",
+        "ar": "المسيحية",
+        "es": "Cristianismo",
+        "fr": "Christianisme",
+        "de": "Christentum",
+        "ja": "キリスト教",
+        "tr": "Hristiyanlık",
+        "ru": "Христианство",
+        "pt": "Cristianismo",
+        "id": "Kristen",
+        "ur": "عیسائیت",
+        "it": "Cristianesimo",
+        "zh": "基督教",
+        "ko": "기독교",
+        "fa": "مسیحیت"
+    },
+    "Islam": {
+        "bn": "ইসলাম",
+        "hi": "इस्लाम",
+        "ar": "الإسلام",
+        "es": "Islam",
+        "fr": "Islam",
+        "de": "Islam",
+        "ja": "イスラム教",
+        "tr": "İslam",
+        "ru": "Ислам",
+        "pt": "Islã",
+        "id": "Islam",
+        "ur": "اسلام",
+        "it": "Islam",
+        "zh": "伊斯兰教",
+        "ko": "이슬람교",
+        "fa": "اسلام"
+    },
+    "Hinduism": {
+        "bn": "হিন্দুধর্ম",
+        "hi": "हिन्दू धर्म",
+        "ar": "الهندوسية",
+        "es": "Hinduismo",
+        "fr": "Hindouisme",
+        "de": "Hinduismus",
+        "ja": "ヒンドゥー教",
+        "tr": "Hinduizm",
+        "ru": "Индуизм",
+        "pt": "Hinduismo",
+        "id": "Hindu",
+        "ur": "ہندومت",
+        "it": "Induismo",
+        "zh": "印度教",
+        "ko": "힌두교",
+        "fa": "هندوئیسم"
+    },
+    "Sikhism": {
+        "bn": "শিখধর্ম",
+        "hi": "सिख धर्म",
+        "ar": "السيخية",
+        "es": "Sijismo",
+        "fr": "Sikhisme",
+        "de": "Sikhismus",
+        "ja": "シーク教",
+        "tr": "Sihizm",
+        "ru": "Сикхизм",
+        "pt": "Sikhismo",
+        "id": "Sikhisme",
+        "ur": "سکھ مت",
+        "it": "Sikhismo",
+        "zh": "锡克教",
+        "ko": "시크교",
+        "fa": "সیکیسم"
+    },
+    "Buddhism": {
+        "bn": "বৌদ্ধধর্ম",
+        "hi": "बौद्ध धर्म",
+        "ar": "البوذية",
+        "es": "Budismo",
+        "fr": "Bouddhisme",
+        "de": "Buddhismus",
+        "ja": "仏教",
+        "tr": "Budizm",
+        "ru": "Буддизм",
+        "pt": "Budismo",
+        "id": "Buddha",
+        "ur": "بدھ مت",
+        "it": "Buddismo",
+        "zh": "佛教",
+        "ko": "불교",
+        "fa": "بودیسم"
+    },
+    "Judaism": {
+        "bn": "ইহুদিধর্ম",
+        "hi": "यहूदी धर्म",
+        "ar": "اليهودية",
+        "es": "Judaísmo",
+        "fr": "Judaïsme",
+        "de": "Judentum",
+        "ja": "ユダヤ教",
+        "tr": "Musevilik",
+        "ru": "Иудаизм",
+        "pt": "Judaísmo",
+        "id": "Yudaisme",
+        "ur": "یہودیت",
+        "it": "Ebraismo",
+        "zh": "犹太教",
+        "ko": "유대교",
+        "fa": "یهودیت"
+    },
+    "Philosophy": {
+        "bn": "দর্শন",
+        "hi": "दर्शनशास्त्र",
+        "ar": "الفلسفة",
+        "es": "Filosofía",
+        "fr": "Philosophie",
+        "de": "Philosophie",
+        "ja": "哲学",
+        "tr": "Felsefe",
+        "ru": "Философия",
+        "pt": "Filosofia",
+        "id": "Filsafat",
+        "ur": "فلسفہ",
+        "it": "Filosofia",
+        "zh": "哲学",
+        "ko": "철학",
+        "fa": "فلسفه"
+    },
+    "Feed": {
+        "bn": "ফিড",
+        "hi": "फ़ीड",
+        "ar": "الرئيسية",
+        "es": "Inicio",
+        "fr": "Flux",
+        "de": "Feed",
+        "ja": "フィード",
+        "tr": "Akış",
+        "ru": "Лента",
+        "pt": "Feed",
+        "id": "Feed",
+        "ur": "فیڈ",
+        "it": "Feed",
+        "zh": "信息流",
+        "ko": "피드",
+        "fa": "فید"
+    },
+    "Books": {
+        "bn": "গ্রন্থসমূহ",
+        "hi": "पुस्तकें",
+        "ar": "الكتب",
+        "es": "Libros",
+        "fr": "Livres",
+        "de": "Bücher",
+        "ja": "書籍",
+        "tr": "Kitaplar",
+        "ru": "Книги",
+        "pt": "Livros",
+        "id": "Buku",
+        "ur": "کتب",
+        "it": "Libri",
+        "zh": "经书",
+        "ko": "서적",
+        "fa": "کتاب‌ها"
+    },
+    "Saved": {
+        "bn": "সংরক্ষিত",
+        "hi": "सहेजे गए",
+        "ar": "المحفوظات",
+        "es": "Guardados",
+        "fr": "Enregistrés",
+        "de": "Gespeichert",
+        "ja": "保存済み",
+        "tr": "Kaydedilenler",
+        "ru": "Сохраненные",
+        "pt": "Salvos",
+        "id": "Tersimpan",
+        "ur": "محفوظ",
+        "it": "Salvati",
+        "zh": "已收藏",
+        "ko": "저장됨",
+        "fa": "ذخیره شده"
+    },
+    "Settings": {
+        "bn": "সেটিংস",
+        "hi": "सेटिंग्स",
+        "ar": "الإعدادات",
+        "es": "Ajustes",
+        "fr": "Paramètres",
+        "de": "Einstellungen",
+        "ja": "設定",
+        "tr": "Ayarlar",
+        "ru": "Настройки",
+        "pt": "Configurações",
+        "id": "Pengaturan",
+        "ur": "ترتیبات",
+        "it": "Impostazioni",
+        "zh": "设置",
+        "ko": "설정",
+        "fa": "تنظیمات"
+    },
+    "Spiritual Wisdom": {
+        "bn": "আধ্যাত্মিক জ্ঞান",
+        "hi": "आध्यात्मिक ज्ञान",
+        "ar": "الحكمة الروحية",
+        "es": "Sabiduría Espiritual",
+        "fr": "Sagesse Spirituelle",
+        "de": "Spirituelle Weisheit",
+        "ja": "精神の知恵",
+        "tr": "Manevi Bilgelik",
+        "ru": "Духовная Мудрость",
+        "pt": "Sabedoria Espiritual",
+        "id": "Kebijaksanaan Spiritual",
+        "ur": "روحانی حکمت",
+        "it": "Saggezza Spirituale",
+        "zh": "心灵智慧",
+        "ko": "영적 지혜",
+        "fa": "حکمت معنوی"
+    },
+    "Access scriptures, curated ambient tracks, and personalized daily verses.": {
+        "bn": "ধর্মগ্রন্থ, মননশীল সুর এবং প্রতিদিনের অনুপ্রেরণামূলক বাণী উপভোগ করুন।",
+        "hi": "धर्मग्रंथों, परिवेशी धुनों और दैनिक श्लोकों का अनुभव करें।",
+        "ar": "استمتع بالكتب المقدسة، والمقاطع الهادئة، والآيات اليومية المخصصة.",
+        "es": "Accede a escrituras, pistas ambientales y versos diarios personalizados.",
+        "fr": "Accédez aux écritures, morceaux d'ambiance et versets quotidiens personnalisés.",
+        "de": "Greifen Sie auf Schriften, Ambient-Tracks und tägliche Verse zu.",
+        "ja": "聖典、厳選されたアンビエント音楽、パーソナライズされた聖句にアクセス。",
+        "tr": "Kutsal metinlere, huzurlu müziklere ve günlük ayetlere erişin.",
+        "ru": "Читайте священные тексты, слушайте медитативную музыку и стихи на каждый день.",
+        "pt": "Acesse escrituras, faixas ambientes e versículos diários personalizados.",
+        "id": "Akses kitab suci, musik latar yang menenangkan, dan ayat harian pilihan.",
+        "ur": "مقدس کتب، پرسکون موسیقی اور روزانہ کی آیات تک رسائی حاصل کریں۔",
+        "it": "Accedi alle scritture, tracce ambientali e versetti giornalieri personalizzati.",
+        "zh": "探索神圣经典、精选环境音效和每日个性化经文。",
+        "ko": "경전, 엄선된 명상 음악, 맞춤형 일일 구절을 만나보세요.",
+        "fa": "به متون مقدس، آهنگ‌های آرامش‌بخش و آیات روزانه دسترسی پیدا کنید."
+    },
+    "Remove Ads": {
+        "bn": "বিজ্ঞাপন সরান",
+        "hi": "विज्ञापन हटाएं",
+        "ar": "إزالة الإعلانات",
+        "es": "Quitar anuncios",
+        "fr": "Supprimer les pubs",
+        "de": "Werbung entfernen",
+        "ja": "広告を非表示",
+        "tr": "Reklamları Kaldır",
+        "ru": "Убрать рекламу",
+        "pt": "Remover Anúncios",
+        "id": "Hapus Iklan",
+        "ur": "اشتہارات ہٹائیں",
+        "it": "Rimuovi Annunci",
+        "zh": "去除广告",
+        "ko": "광고 제거",
+        "fa": "حذف تبلیغات"
+    },
+    "Sponsored": {
+        "bn": "স্পনসরড",
+        "hi": "प्रायोजित",
+        "ar": "برعاية",
+        "es": "Patrocinado",
+        "fr": "Sponsorisé",
+        "de": "Gesponsert",
+        "ja": "スポンサー",
+        "tr": "Sponsorlu",
+        "ru": "Реклама",
+        "pt": "Patrocinado",
+        "id": "Disponsori",
+        "ur": "اسپانسر شدہ",
+        "it": "Sponsorizzato",
+        "zh": "赞助",
+        "ko": "스폰서",
+        "fa": "حمایت شده"
+    },
+    "Premium": {
+        "bn": "প্রিমিয়াম",
+        "hi": "प्रीमियम",
+        "ar": "بريميوم",
+        "es": "Premium",
+        "fr": "Premium",
+        "de": "Premium",
+        "ja": "プレミアム",
+        "tr": "Premium",
+        "ru": "Премиум",
+        "pt": "Premium",
+        "id": "Premium",
+        "ur": "پریمیم",
+        "it": "Premium",
+        "zh": "高级版",
+        "ko": "프리미엄",
+        "fa": "ویژه"
+    },
+    "Language": {
+        "bn": "ভাষা",
+        "hi": "भाषा",
+        "ar": "اللغة",
+        "es": "Idioma",
+        "fr": "Langue",
+        "de": "Sprache",
+        "ja": "言語",
+        "tr": "Dil",
+        "ru": "Язык",
+        "pt": "Idioma",
+        "id": "Bahasa",
+        "ur": "زبان",
+        "it": "Lingua",
+        "zh": "语言",
+        "ko": "언어",
+        "fa": "زبان"
+    },
+    "Choose Language": {
+        "bn": "ভাষা নির্বাচন করুন",
+        "hi": "भाषा चुनें",
+        "ar": "اختر اللغة",
+        "es": "Elegir idioma",
+        "fr": "Choisir la langue",
+        "de": "Sprache wählen",
+        "ja": "言語を選択",
+        "tr": "Dil Seçin",
+        "ru": "Выберите язык",
+        "pt": "Escolher Idioma",
+        "id": "Pilih Bahasa",
+        "ur": "زبان منتخب کریں",
+        "it": "Scegli la lingua",
+        "zh": "选择语言",
+        "ko": "언어 선택",
+        "fa": "انتخاب زبان"
+    },
+    "Search language...": {
+        "bn": "ভাষা খুঁজুন...",
+        "hi": "भाषा खोजें...",
+        "ar": "ابحث عن لغة...",
+        "es": "Buscar idioma...",
+        "fr": "Rechercher une langue...",
+        "de": "Sprache suchen...",
+        "ja": "言語を検索...",
+        "tr": "Dil ara...",
+        "ru": "Поиск языка...",
+        "pt": "Buscar idioma...",
+        "id": "Cari bahasa...",
+        "ur": "زبان تلاش کریں...",
+        "it": "Cerca lingua...",
+        "zh": "搜索语言...",
+        "ko": "언어 검색...",
+        "fa": "جستجوی زبان..."
+    },
+    "Privacy Policy": {
+        "bn": "গোপনীয়তা নীতি",
+        "hi": "गोपनीयता नीति",
+        "ar": "سياسة الخصوصية",
+        "es": "Política de privacidad",
+        "fr": "Politique de confidentialité",
+        "de": "Datenschutz",
+        "ja": "プライバシーポリシー",
+        "tr": "Gizlilik Politikası",
+        "ru": "Политика конфиденциальности",
+        "pt": "Política de Privacidade",
+        "id": "Kebijakan Privasi",
+        "ur": "رازداری کی پالیسی",
+        "it": "Informativa sulla privacy",
+        "zh": "隐私政策",
+        "ko": "개인정보처리방침",
+        "fa": "سیاست حفظ حریم خصوصی"
+    },
+    "Terms of Service": {
+        "bn": "ব্যবহারের শর্তাবলী",
+        "hi": "सेवा की शर्तें",
+        "ar": "شروط الخدمة",
+        "es": "Términos del servicio",
+        "fr": "Conditions d'utilisation",
+        "de": "Nutzungsbedingungen",
+        "ja": "利用規約",
+        "tr": "Kullanım Koşulları",
+        "ru": "Условия использования",
+        "pt": "Termos de Serviço",
+        "id": "Ketentuan Layanan",
+        "ur": "خدمات کی شرائط",
+        "it": "Termini di servizio",
+        "zh": "服务条款",
+        "ko": "이용약관",
+        "fa": "شرایط خدمات"
+    },
+    "Credits": {
+        "bn": "স্বীকৃতি ও কৃতজ্ঞতা",
+        "hi": "आभार एवं श्रेय",
+        "ar": "المصادر والاعتمادات",
+        "es": "Créditos",
+        "fr": "Crédits",
+        "de": "Credits",
+        "ja": "クレジット",
+        "tr": "Katkıda Bulunanlar",
+        "ru": "Благодарности",
+        "pt": "Créditos",
+        "id": "Kredit",
+        "ur": "کریڈٹس",
+        "it": "Crediti",
+        "zh": "致谢",
+        "ko": "크레딧",
+        "fa": "اعتبارات"
+    },
+    "Continue as Guest": {
+        "bn": "অতিথি হিসেবে চালান",
+        "hi": "अतिथि के रूप में जारी रखें",
+        "ar": "المتابعة كضيف",
+        "es": "Continuar como invitado",
+        "fr": "Continuer en tant qu'invité",
+        "de": "Als Gast fortfahren",
+        "ja": "ゲストとして続行",
+        "tr": "Misafir Olarak Devam Et",
+        "ru": "Продолжить как гость",
+        "pt": "Continuar como Convidado",
+        "id": "Lanjutkan হিসেবে Tamu",
+        "ur": "بطور مہمان جاری رکھیں",
+        "it": "Continua come ospite",
+        "zh": "以访客身份继续",
+        "ko": "게스트로 계속",
+        "fa": "ادامه به عنوان مهمان"
+    },
+    "Sign in with Google": {
+        "bn": "Google দিয়ে সাইন ইন",
+        "hi": "Google से साइन इन करें",
+        "ar": "تسجيل الدخول باستخدام Google",
+        "es": "Iniciar sesión con Google",
+        "fr": "Se connecter avec Google",
+        "de": "Mit Google anmelden",
+        "ja": "Googleでログイン",
+        "tr": "Google ile Giriş Yap",
+        "ru": "Войти через Google",
+        "pt": "Entrar com o Google",
+        "id": "Masuk dengan Google",
+        "ur": "گوگل کے ساتھ سائن ان کریں",
+        "it": "Accedi con Google",
+        "zh": "使用 Google 登录",
+        "ko": "Google로 로그인",
+        "fa": "ورود با Google"
+    },
+    "Search verses or authors...": {
+        "bn": "আয়াত বা গ্রন্থ খুঁজুন...",
+        "hi": "श्लोक या लेखक खोजें...",
+        "ar": "ابحث عن الآيات أو الكتب...",
+        "es": "Buscar versos o libros...",
+        "fr": "Rechercher des versets...",
+        "de": "Verse oder Bücher suchen...",
+        "ja": "詩句や本を検索...",
+        "tr": "Ayet veya kitap ara...",
+        "ru": "Поиск стихов или книг...",
+        "pt": "Buscar versículos...",
+        "id": "Cari ayat বা buku...",
+        "ur": "آیات یا کتب تلاش کریں...",
+        "it": "Cerca versetti o libri...",
+        "zh": "搜索经文或书籍...",
+        "ko": "구절 또는 책 검색...",
+        "fa": "جستجوی آیات یا کتاب‌ها..."
+    },
+    "All": {
+        "bn": "সকল",
+        "hi": "सभी",
+        "ar": "الكل",
+        "es": "Todos",
+        "fr": "Tous",
+        "de": "Alle",
+        "ja": "すべて",
+        "tr": "Tümü",
+        "ru": "Все",
+        "pt": "Todos",
+        "id": "Semua",
+        "ur": "تمام",
+        "it": "Tutti",
+        "zh": "全部",
+        "ko": "전체",
+        "fa": "همه"
+    },
+    "Default": {
+        "bn": "ডিফল্ট",
+        "hi": "डिफ़ॉल्ट",
+        "ar": "الافتراضي",
+        "es": "Predeterminado",
+        "fr": "Par défaut",
+        "de": "Standard",
+        "ja": "デフォルト",
+        "tr": "Varsayılan",
+        "ru": "По умолчанию",
+        "pt": "Padrão",
+        "id": "Default",
+        "ur": "ڈیفالٹ",
+        "it": "Predefinito",
+        "zh": "默认",
+        "ko": "기본",
+        "fa": "پیش‌فرض"
+    },
+    "Folder deleted": {
+        "bn": "ফোল্ডার মুছে ফেলা হয়েছে",
+        "hi": "फ़ोल्डर हटा दिया गया",
+        "ar": "تم حذف المجلد",
+        "es": "Carpeta eliminada",
+        "fr": "Dossier supprimé",
+        "de": "Ordner gelöscht",
+        "ja": "フォルダを削除しました",
+        "tr": "Klasör silindi",
+        "ru": "Папка удалена",
+        "pt": "Pasta excluída",
+        "id": "Folder dihapus",
+        "ur": "فولڈر حذف کر دیا گیا",
+        "it": "Cartella eliminata",
+        "zh": "文件夹已删除",
+        "ko": "폴더 삭제됨",
+        "fa": "پوشه حذف شد"
+    },
+    "Folder restored": {
+        "bn": "ফোল্ডার পুনরুদ্ধার করা হয়েছে",
+        "hi": "फ़ोल्डर पुनर्स्थापित किया गया",
+        "ar": "تمت استعادة المجلد",
+        "es": "Carpeta restaurada",
+        "fr": "Dossier restauré",
+        "de": "Ordner wiederhergestellt",
+        "ja": "フォルダを復元しました",
+        "tr": "Klasör geri yüklendi",
+        "ru": "Папка восстановлена",
+        "pt": "Pasta restaurada",
+        "id": "Folder dipulihkan",
+        "ur": "فولڈر بحال کر دیا گیا",
+        "it": "Cartella ripristinata",
+        "zh": "文件夹已恢复",
+        "ko": "폴더 복원됨",
+        "fa": "پوشه بازیابی شد"
+    },
+    "Verse deleted": {
+        "bn": "আয়াত মুছে ফেলা হয়েছে",
+        "hi": "श्लोक हटा दिया गया",
+        "ar": "تم حذف الآية",
+        "es": "Verso eliminado",
+        "fr": "Verset supprimé",
+        "de": "Vers gelöscht",
+        "ja": "詩句を削除しました",
+        "tr": "Ayet silindi",
+        "ru": "Стих удален",
+        "pt": "Versículo excluído",
+        "id": "Ayat dihapus",
+        "ur": "آیت حذف کر دی گئی",
+        "it": "Versetto eliminato",
+        "zh": "经文已删除",
+        "ko": "구절 삭제됨",
+        "fa": "آیه حذف شد"
+    },
+    "Verse restored": {
+        "bn": "আয়াত পুনরুদ্ধার করা হয়েছে",
+        "hi": "श्लोक पुनर्स्थापित किया गया",
+        "ar": "تمت استعادة الآية",
+        "es": "Verso restaurado",
+        "fr": "Verset restauré",
+        "de": "Vers wiederhergestellt",
+        "ja": "詩句を復元しました",
+        "tr": "Ayet geri yüklendi",
+        "ru": "Стих восстановлен",
+        "pt": "Versículo restaurado",
+        "id": "Ayat dipulihkan",
+        "ur": "آیت بحال کر دی گئی",
+        "it": "Versetto ripristinato",
+        "zh": "经文已恢复",
+        "ko": "구절 복원됨",
+        "fa": "آیه بازیابی شد"
+    },
+    "Undo": {
+        "bn": "বাতিল",
+        "hi": "पूर्ववत करें",
+        "ar": "تراجع",
+        "es": "Deshacer",
+        "fr": "Annuler",
+        "de": "Rückgängig",
+        "ja": "元に戻す",
+        "tr": "Geri Al",
+        "ru": "Отмена",
+        "pt": "Desfazer",
+        "id": "Urungkan",
+        "ur": "واپس",
+        "it": "Annulla",
+        "zh": "撤销",
+        "ko": "실행 취소",
+        "fa": "واگرد"
+    },
+    "Chapter": {
+        "bn": "অধ্যায়",
+        "hi": "अध्याय",
+        "ar": "الفصل",
+        "es": "Capítulo",
+        "fr": "Chapitre",
+        "de": "Kapitel",
+        "ja": "章",
+        "tr": "Bölüm",
+        "ru": "Глава",
+        "pt": "Capítulo",
+        "id": "Bab",
+        "ur": "باب",
+        "it": "Capitolo",
+        "zh": "章",
+        "ko": "장",
+        "fa": "فصل"
+    },
+    "Verse": {
+        "bn": "আয়াত",
+        "hi": "श्लोक",
+        "ar": "الآية",
+        "es": "Verso",
+        "fr": "Verset",
+        "de": "Vers",
+        "ja": "節",
+        "tr": "Ayet",
+        "ru": "Стих",
+        "pt": "Versículo",
+        "id": "Ayat",
+        "ur": "آیت",
+        "it": "Versetto",
+        "zh": "节",
+        "ko": "절",
+        "fa": "آیه"
+    },
+    "Back": {
+        "bn": "পেছনে",
+        "hi": "वापस",
+        "ar": "رجوع",
+        "es": "Volver",
+        "fr": "Retour",
+        "de": "Zurück",
+        "ja": "戻る",
+        "tr": "Geri",
+        "ru": "Назад",
+        "pt": "Voltar",
+        "id": "Kembali",
+        "ur": "پیچھے",
+        "it": "Indietro",
+        "zh": "返回",
+        "ko": "뒤로",
+        "fa": "بازگشت"
+    },
+    "No verses in this folder": {
+        "bn": "এই ফোল্ডারে কোনো সংরক্ষিত আয়াত নেই",
+        "hi": "इस फ़ोल्डर में कोई श्लोक नहीं है",
+        "ar": "لا توجد آيات في هذا المجلد",
+        "es": "No hay versos en esta carpeta",
+        "fr": "Aucun verset dans ce dossier",
+        "de": "Keine Verse in diesem Ordner",
+        "ja": "このフォルダには詩句がありません",
+        "tr": "Bu klasörde ayet yok",
+        "ru": "В этой папке нет стихов",
+        "pt": "Nenhum versículo nesta pasta",
+        "id": "Tidak ada ayat di folder ini",
+        "ur": "اس فولڈر میں کوئی آیت نہیں ہے",
+        "it": "Nessun versetto in questa cartella",
+        "zh": "此文件夹中没有经文",
+        "ko": "이 폴더에 구절이 없습니다",
+        "fa": "هیچ آیه‌ای در این پوشه نیست"
+    },
+    "Create Folder": {
+        "bn": "নতুন ফোল্ডার",
+        "hi": "फ़ोल्डर बनाएं",
+        "ar": "إنشاء مجلد",
+        "es": "Crear carpeta",
+        "fr": "Créer un dossier",
+        "de": "Ordner erstellen",
+        "ja": "フォルダを作成",
+        "tr": "Klasör Oluştur",
+        "ru": "Создать папку",
+        "pt": "Criar Pasta",
+        "id": "Buat Folder",
+        "ur": "فولڈر بنائیں",
+        "it": "Crea cartella",
+        "zh": "创建文件夹",
+        "ko": "폴더 생성",
+        "fa": "ایجاد پوشه"
+    },
+    "Folder Name": {
+        "bn": "ফোল্ডারের নাম",
+        "hi": "फ़ोल्डर का नाम",
+        "ar": "اسم المجلد",
+        "es": "Nombre de carpeta",
+        "fr": "Nom du dossier",
+        "de": "Ordnername",
+        "ja": "フォルダ名",
+        "tr": "Klasör Adı",
+        "ru": "Имя папки",
+        "pt": "Nome da Pasta",
+        "id": "Nama Folder",
+        "ur": "فولڈر کا نام",
+        "it": "Nome cartella",
+        "zh": "文件夹名称",
+        "ko": "폴더 이름",
+        "fa": "نام پوشه"
+    },
+    "New Name": {
+        "bn": "নতুন নাম",
+        "hi": "नया नाम",
+        "ar": "الاسم الجديد",
+        "es": "Nuevo nombre",
+        "fr": "Nouveau nom",
+        "de": "Neuer Name",
+        "ja": "新しい名前",
+        "tr": "Yeni Ad",
+        "ru": "Новое имя",
+        "pt": "Novo Nome",
+        "id": "Nama Baru",
+        "ur": "نیا نام",
+        "it": "Nuovo nome",
+        "zh": "新名称",
+        "ko": "새 이름",
+        "fa": "نام جدید"
+    },
+    "Rename": {
+        "bn": "নাম পরিবর্তন",
+        "hi": "নাম बदलें",
+        "ar": "إعادة تسمية",
+        "es": "Renombrar",
+        "fr": "Renommer",
+        "de": "Umbenennen",
+        "ja": "名前変更",
+        "tr": "Yeniden Adlandır",
+        "ru": "Переименовать",
+        "pt": "Renomear",
+        "id": "Ubah Nama",
+        "ur": "نام تبدیل کریں",
+        "it": "Rinomina",
+        "zh": "重命名",
+        "ko": "이름 변경",
+        "fa": "تغییر نام"
+    },
+    "Delete Account": {
+        "bn": "অ্যাকাউন্ট মুছুন",
+        "hi": "खाता हटाएं",
+        "ar": "حذف الحساب",
+        "es": "Eliminar cuenta",
+        "fr": "Supprimer le compte",
+        "de": "Konto löschen",
+        "ja": "アカウント削除",
+        "tr": "Hesabı Sil",
+        "ru": "Удалить аккаунт",
+        "pt": "Excluir Conta",
+        "id": "Hapus Akun",
+        "ur": "اکاؤنٹ حذف کریں",
+        "it": "Elimina account",
+        "zh": "删除账户",
+        "ko": "계정 삭제",
+        "fa": "حذف حساب"
+    },
+    "Sign Out": {
+        "bn": "সাইন আউট",
+        "hi": "साइन आउट",
+        "ar": "تسجيل الخروج",
+        "es": "Cerrar sesión",
+        "fr": "Se déconnecter",
+        "de": "Abmelden",
+        "ja": "サインアウト",
+        "tr": "Çıkış Yap",
+        "ru": "Выйти",
+        "pt": "Sair",
+        "id": "Keluar",
+        "ur": "سائن آؤٹ",
+        "it": "Esci",
+        "zh": "退出登录",
+        "ko": "로그아웃",
+        "fa": "خروج"
+    },
+    "Cancel": {
+        "bn": "বাতিল",
+        "hi": "रद्द करें",
+        "ar": "إلغاء",
+        "es": "Cancelar",
+        "fr": "Annuler",
+        "de": "Abbrechen",
+        "ja": "キャンセル",
+        "tr": "İptal",
+        "ru": "Отмена",
+        "pt": "Cancelar",
+        "id": "Batal",
+        "ur": "منسوخ",
+        "it": "Annulla",
+        "zh": "取消",
+        "ko": "취소",
+        "fa": "لغو"
+    },
+    "AD Free": {
+        "bn": "বিজ্ঞাপনমুক্ত অভিজ্ঞতা",
+        "hi": "विज्ञापन मुक्त",
+        "ar": "خالٍ من الإعلانات",
+        "es": "Sin anuncios",
+        "fr": "Sans publicité",
+        "de": "Werbefrei",
+        "ja": "広告なし",
+        "tr": "Reklamsız",
+        "ru": "Без рекламы",
+        "pt": "Sem anúncios",
+        "id": "Bebas Iklan",
+        "ur": "اشتہارات سے پاک",
+        "it": "Senza pubblicità",
+        "zh": "无广告体验",
+        "ko": "광고 없음",
+        "fa": "بدون تبلیغات"
+    },
+    "All HD Offline Voices": {
+        "bn": "সকল এইচডি অফলাইন ভয়েস",
+        "hi": "सभी एचडी ऑफ़लाइन आवाज़ें",
+        "ar": "جميع الأصوات فائقة الجودة بدون إنترنت",
+        "es": "Todas las voces HD sin conexión",
+        "fr": "Toutes les voix HD hors ligne",
+        "de": "Alle HD-Offline-Stimmen",
+        "ja": "すべてのHDオフライン音声",
+        "tr": "Tüm HD Çevrimdışı Sesler",
+        "ru": "Все HD голоса офлайн",
+        "pt": "Todas as vozes HD offline",
+        "id": "Semua Suara HD Offline",
+        "ur": "تمام ایچ ڈی آف لائن آوازیں",
+        "it": "Tutte le voci HD offline",
+        "zh": "所有高清离线语音",
+        "ko": "모든 HD 오프라인 음성",
+        "fa": "تمام صداهای HD آفلاین"
+    },
+    "Unlimited Folders 30 Char": {
+        "bn": "সীমাহীন বুকমার্ক ফোল্ডার",
+        "hi": "असीमित फ़ोल्डर",
+        "ar": "مجلدات غير محدودة",
+        "es": "Carpetas ilimitadas",
+        "fr": "Dossiers illimités",
+        "de": "Unbegrenzte Ordner",
+        "ja": "無制限のフォルダ",
+        "tr": "Sınırsız Klasör",
+        "ru": "Неограниченное количество папок",
+        "pt": "Pastas ilimitadas",
+        "id": "Folder Tanpa Batas",
+        "ur": "لامحدود فولڈرز",
+        "it": "Cartelle illimitate",
+        "zh": "无限收藏文件夹",
+        "ko": "무제한 폴더",
+        "fa": "پوشه‌های نامحدود"
+    },
+    "Custom Topic Filters": {
+        "bn": "কাস্টম টপিক ফিল্টার",
+        "hi": "कस्टम विषय फ़िल्टर",
+        "ar": "فلاتر مخصصة للمواضيع",
+        "es": "Filtros de temas personalizados",
+        "fr": "Filtres de sujets personnalisés",
+        "de": "Benutzerdefinierte Themenfilter",
+        "ja": "カスタムトピックフィルター",
+        "tr": "Özel Konu Filtreleri",
+        "ru": "Фильтры по темам",
+        "pt": "Filtros de tópicos personalizados",
+        "id": "Filter Topik Kustom",
+        "ur": "اپنی مرضی کے موضوعاتی فلٹرز",
+        "it": "Filtri tematici personalizzati",
+        "zh": "自定义主题筛选",
+        "ko": "맞춤형 주제 필터",
+        "fa": "فیلترهای موضوعی سفارشی"
+    },
+    "Source Narration": {
+        "bn": "গ্রন্থের নামসহ পাঠ",
+        "hi": "स्रोत का उच्चारण",
+        "ar": "قراءة اسم المصدر",
+        "es": "Narración de la fuente",
+        "fr": "Narration de la source",
+        "de": "Quellenangabe-Sprachausgabe",
+        "ja": "出典名の読み上げ",
+        "tr": "Kaynak Seslendirmesi",
+        "ru": "Озвучивание источника",
+        "pt": "Narração da fonte",
+        "id": "Pengucapan Sumber",
+        "ur": "ماخذ کی آواز",
+        "it": "Narrazione della fonte",
+        "zh": "来源播报",
+        "ko": "출처 음성 안내",
+        "fa": "اعلام منبع"
+    },
+    "Ambient Audio Controls": {
+        "bn": "মননশীল ব্যাকগ্রাউন্ড সুর নিয়ন্ত্রণ",
+        "hi": "परिवेशी ऑडियो नियंत्रण",
+        "ar": "التحكم بالصوت الهادئ",
+        "es": "Controles de audio ambiental",
+        "fr": "Contrôles audio d'ambiance",
+        "de": "Ambient-Audio-Steuerung",
+        "ja": "アンビエント音響コントロール",
+        "tr": "Ortam Sesi Kontrolleri",
+        "ru": "Управление фоновым звуком",
+        "pt": "Controles de áudio ambiente",
+        "id": "Kontrol Audio Ambience",
+        "ur": "پرسکون آواز کے کنٹرول",
+        "it": "Controlli audio ambiente",
+        "zh": "环境背景音调节",
+        "ko": "배경음 조절",
+        "fa": "کنترل صدای محیط"
+    },
+    "Random Voice Rotation": {
+        "bn": "স্বয়ংক্রিয় ভয়েস পরিবর্তন",
+        "hi": "रैंडम वॉयस रोटेशन",
+        "ar": "تبديل عشوائي للأصوات",
+        "es": "Rotación aleatoria de voces",
+        "fr": "Rotation aléatoire des voix",
+        "de": "Zufällige Stimmenrotation",
+        "ja": "ランダム音声ローテーション",
+        "tr": "Rastgele Ses Döndürme",
+        "ru": "Случайная смена голосов",
+        "pt": "Rotação aleatória de vozes",
+        "id": "Rotasi Suara Acak",
+        "ur": "خودکار آواز کی تبدیلی",
+        "it": "Rotazione casuale delle voci",
+        "zh": "随机声音轮换",
+        "ko": "랜덤 음성 순환",
+        "fa": "چرخش تصادفی صدا"
+    },
+    "Get Annual": {
+        "bn": "বার্ষিক প্ল্যান নিন",
+        "hi": "वार्षिक प्लान लें",
+        "ar": "احصل على الخطة السنوية",
+        "es": "Obtener Anual",
+        "fr": "Prendre l'annuel",
+        "de": "Jährlich holen",
+        "ja": "年間プランを取得",
+        "tr": "Yıllık Al",
+        "ru": "Годовая подписка",
+        "pt": "Obter Anual",
+        "id": "Ambil Tahunan",
+        "ur": "سالانہ پلان لیں",
+        "it": "Ottieni Annuale",
+        "zh": "获取年度订阅",
+        "ko": "연간 플랜 선택",
+        "fa": "دریافت اشتراک سالانه"
+    },
+    "Get Monthly": {
+        "bn": "মাসিক প্ল্যান নিন",
+        "hi": "मासिक प्लान लें",
+        "ar": "احصل على الخطة الشهرية",
+        "es": "Obtener Mensual",
+        "fr": "Prendre le mensuel",
+        "de": "Monatlich holen",
+        "ja": "月間プランを取得",
+        "tr": "Aylık Al",
+        "ru": "Месячная подписка",
+        "pt": "Obter Mensal",
+        "id": "Ambil Bulanan",
+        "ur": "ماہانہ پلان لیں",
+        "it": "Ottieni Mensile",
+        "zh": "获取月度订阅",
+        "ko": "월간 플랜 선택",
+        "fa": "دریافت اشتراک ماهانه"
+    },
+    "Get Lifetime": {
+        "bn": "আজীবন প্ল্যান নিন",
+        "hi": "लाइफटाइम प्लान लें",
+        "ar": "احصل على مدى الحياة",
+        "es": "Obtener de por vida",
+        "fr": "Accès à vie",
+        "de": "Lebenslang holen",
+        "ja": "買い切りプランを取得",
+        "tr": "Ömür Boyu Al",
+        "ru": "Навсегда",
+        "pt": "Acesso Vitalício",
+        "id": "Akses Seumur Hidup",
+        "ur": "تامر پلان لیں",
+        "it": "Ottieni a vita",
+        "zh": "永久买断",
+        "ko": "평생 이용권 선택",
+        "fa": "دسترسی مادام‌العمر"
+    },
+    "Sign In": {
+        "bn": "সাইন ইন",
+        "hi": "साइन इन",
+        "ar": "تسجيل الدخول",
+        "es": "Iniciar sesión",
+        "fr": "Connexion",
+        "de": "Anmelden",
+        "ja": "サインイン",
+        "tr": "Giriş Yap",
+        "ru": "Войти",
+        "pt": "Entrar",
+        "id": "Masuk",
+        "ur": "سائن ان",
+        "it": "Accedi",
+        "zh": "登录",
+        "ko": "로그인",
+        "fa": "ورود"
+    },
+    "Sign Up": {
+        "bn": "নিবন্ধন",
+        "hi": "साइन अप",
+        "ar": "إنشاء حساب",
+        "es": "Registrarse",
+        "fr": "Inscription",
+        "de": "Registrieren",
+        "ja": "新規登録",
+        "tr": "Kayıt Ol",
+        "ru": "Регистрация",
+        "pt": "Cadastrar-se",
+        "id": "Daftar",
+        "ur": "سائن اپ",
+        "it": "Registrati",
+        "zh": "注册",
+        "ko": "회원가입",
+        "fa": "ثبت نام"
+    },
+    "Full Name": {
+        "bn": "পুরো নাম",
+        "hi": "पूरा नाम",
+        "ar": "الاسم الكامل",
+        "es": "Nombre completo",
+        "fr": "Nom complet",
+        "de": "Vollständiger Name",
+        "ja": "氏名",
+        "tr": "Tam Ad",
+        "ru": "Полное имя",
+        "pt": "Nome Completo",
+        "id": "Nama Lengkap",
+        "ur": "پورا نام",
+        "it": "Nome completo",
+        "zh": "全名",
+        "ko": "성명",
+        "fa": "نام کامل"
+    },
+    "Email Address": {
+        "bn": "ইমেইল ঠিকানা",
+        "hi": "ईमेल पता",
+        "ar": "البريد الإلكتروني",
+        "es": "Correo electrónico",
+        "fr": "Adresse e-mail",
+        "de": "E-Mail-Adresse",
+        "ja": "メールアドレス",
+        "tr": "E-posta Adresi",
+        "ru": "Адрес эл. почты",
+        "pt": "Endereço de E-mail",
+        "id": "Alamat Email",
+        "ur": "ای میل پتہ",
+        "it": "Indirizzo email",
+        "zh": "电子邮件地址",
+        "ko": "이메일 주소",
+        "fa": "آدرس ایمیل"
+    },
+    "Password": {
+        "bn": "পাসওয়ার্ড",
+        "hi": "पासवर्ड",
+        "ar": "كلمة المرور",
+        "es": "Contraseña",
+        "fr": "Mot de passe",
+        "de": "Passwort",
+        "ja": "パスワード",
+        "tr": "Şifre",
+        "ru": "Пароль",
+        "pt": "Senha",
+        "id": "Kata Sandi",
+        "ur": "پاس ورڈ",
+        "it": "Password",
+        "zh": "密码",
+        "ko": "비밀번호",
+        "fa": "رمز عبور"
+    },
+    "Confirm Password": {
+        "bn": "পাসওয়ার্ড নিশ্চিত করুন",
+        "hi": "पासवर्ड की पुष्टि करें",
+        "ar": "تأكيد كلمة المرور",
+        "es": "Confirmar contraseña",
+        "fr": "Confirmer le mot de passe",
+        "de": "Passwort bestätigen",
+        "ja": "パスワード確認",
+        "tr": "Şifreyi Onayla",
+        "ru": "Подтвердите пароль",
+        "pt": "Confirmar Senha",
+        "id": "Konfirmasi Kata Sandi",
+        "ur": "پاس ورڈ کی تصدیق کریں",
+        "it": "Conferma password",
+        "zh": "确认密码",
+        "ko": "비밀번호 확인",
+        "fa": "تأیید رمز عبور"
+    },
+    "Forgot Password?": {
+        "bn": "পাসওয়ার্ড ভুলে গেছেন?",
+        "hi": "पासवर्ड भूल गए?",
+        "ar": "نسيت كلمة المرور؟",
+        "es": "¿Olvidaste tu contraseña?",
+        "fr": "Mot de passe oublié ?",
+        "de": "Passwort vergessen?",
+        "ja": "パスワードをお忘れですか？",
+        "tr": "Şifrenizi mi unuttunuz?",
+        "ru": "Забыли пароль?",
+        "pt": "Esqueceu a senha?",
+        "id": "Lupa Kata Sandi?",
+        "ur": "پاس ورڈ بھول گئے؟",
+        "it": "Password dimenticata?",
+        "zh": "忘记密码？",
+        "ko": "비밀번호를 잊으셨나요?",
+        "fa": "رمز عبور را فراموش کرده‌اید؟"
+    },
+    "Continue with Google": {
+        "bn": "Google দিয়ে চালিয়ে যান",
+        "hi": "Google के साथ जारी रखें",
+        "ar": "المتابعة باستخدام Google",
+        "es": "Continuar con Google",
+        "fr": "Continuer avec Google",
+        "de": "Weiter mit Google",
+        "ja": "Googleで続行",
+        "tr": "Google ile Devam Et",
+        "ru": "Продолжить с Google",
+        "pt": "Continuar com o Google",
+        "id": "Lanjutkan dengan Google",
+        "ur": "گوگل کے ساتھ جاری رکھیں",
+        "it": "Continua con Google",
+        "zh": "使用 Google 继续",
+        "ko": "Google로 계속하기",
+        "fa": "ادامه با Google"
+    },
+    "Quran": {
+        "bn": "কোরআন",
+        "hi": "क़ुरआन",
+        "ar": "القرآن",
+        "ur": "قرآن"
+    },
+    "Bhagavad Gita": {
+        "bn": "ভগবদ্গীতা",
+        "hi": "भगवद्गीता"
+    },
+    "Dhammapada": {
+        "bn": "ধম্মপদ",
+        "hi": "धम्मपद"
+    },
+    "Granth Sahib": {
+        "bn": "গ্রন্থ সাহিব",
+        "hi": "ग्रंथ साहिब",
+        "pa": "ਗ੍ਰੰਥ ਸਾਹਿਬ"
+    }
 };
+
+// --- Universal Neural Verse Translation & Cache Engine ---
+const verseTranslationMemoryCache = {};
+
+function getTranslationCacheKey(text, lang) {
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+        hash = ((hash << 5) - hash) + text.charCodeAt(i);
+        hash |= 0;
+    }
+    return 'vtr_' + lang + '_' + Math.abs(hash);
+}
+
+function getCachedVerseTranslation(text, lang) {
+    if (!text || !lang || lang === 'en_US') return text;
+    const key = getTranslationCacheKey(text, lang);
+    if (verseTranslationMemoryCache[key]) return verseTranslationMemoryCache[key];
+    try {
+        const stored = localStorage.getItem(key);
+        if (stored) {
+            verseTranslationMemoryCache[key] = stored;
+            return stored;
+        }
+    } catch(e) {}
+    return null;
+}
+
+function setCachedVerseTranslation(text, lang, translation) {
+    if (!text || !lang || !translation) return;
+    const key = getTranslationCacheKey(text, lang);
+    verseTranslationMemoryCache[key] = translation;
+    try {
+        localStorage.setItem(key, translation);
+    } catch(e) {}
+}
+
+async function translateTextAsync(text, targetLang) {
+    if (!text || !targetLang || targetLang === 'en_US') return text;
+    
+    // Check cache first
+    const cached = getCachedVerseTranslation(text, targetLang);
+    if (cached) return cached;
+    
+    const shortLang = targetLang.split('_')[0];
+    
+    // 1. Try MyMemory API
+    try {
+        const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=en|' + shortLang;
+        const resp = await fetch(url);
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.responseData && data.responseData.translatedText) {
+                let trans = data.responseData.translatedText.trim();
+                if (!trans.toUpperCase().includes('MYMEMORY WARNING') && !trans.toUpperCase().includes('QUERY LENGTH LIMIT')) {
+                    setCachedVerseTranslation(text, targetLang, trans);
+                    return trans;
+                }
+            }
+        }
+    } catch(e) {}
+
+    // 2. Try Google Translate Fallback
+    try {
+        const gUrl = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=' + shortLang + '&dt=t&q=' + encodeURIComponent(text);
+        const gResp = await fetch(gUrl);
+        if (gResp.ok) {
+            const gData = await gResp.json();
+            if (Array.isArray(gData) && Array.isArray(gData[0])) {
+                const gTrans = gData[0].map(item => item[0]).join('').trim();
+                if (gTrans) {
+                    setCachedVerseTranslation(text, targetLang, gTrans);
+                    return gTrans;
+                }
+            }
+        }
+    } catch(e) {}
+
+    return text;
+}
+
+function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLanguage) {
+    if (!domElement || !rawText) return;
+    if (lang === 'en_US') {
+        domElement.innerText = rawText;
+        return;
+    }
+    const cached = getCachedVerseTranslation(rawText, lang);
+    if (cached) {
+        domElement.innerText = cached;
+    } else {
+        domElement.innerText = rawText;
+        translateTextAsync(rawText, lang).then(translated => {
+            if (translated && domElement && domElement.isConnected) {
+                domElement.innerText = translated;
+            }
+        }).catch(() => {});
+    }
+}
 
 let currentAppLanguage = localStorage.getItem('versefeed_user_language') || 'en_US';
 
@@ -144,7 +1330,7 @@ function getCanonicalReligion(str) {
 function applyLanguageTranslations(langCode = currentAppLanguage) {
     currentAppLanguage = langCode;
     
-    // Update Settings Religion Toggle Buttons
+    // 1. Update Settings Religion Toggle Buttons
     document.querySelectorAll('.global-rel-btn').forEach(btn => {
         if (btn.id === 'dark-mode-toggle' || btn.onclick?.toString().includes('openLanguageModal')) return;
         const canonicalRel = btn.dataset.religion || getCanonicalReligion(btn.textContent);
@@ -154,14 +1340,14 @@ function applyLanguageTranslations(langCode = currentAppLanguage) {
         }
     });
 
-    // Update Settings Language Button Label
+    // 2. Update Settings Language Button Label
     const selectedLangObj = supportedLanguages.find(l => l.code === langCode) || supportedLanguages[0];
     const settingsLabel = document.getElementById('settings-current-lang-label');
     if (settingsLabel) {
         settingsLabel.textContent = t('Language') + ': ' + (selectedLangObj.native || selectedLangObj.name);
     }
 
-    // Update Settings Links
+    // 3. Update Settings Links
     const privLink = document.getElementById('link-privacy-policy');
     if (privLink) privLink.textContent = t('Privacy Policy');
     const termsLink = document.getElementById('link-terms-service');
@@ -169,25 +1355,74 @@ function applyLanguageTranslations(langCode = currentAppLanguage) {
     const credLink = document.getElementById('link-credits-modal');
     if (credLink) credLink.textContent = t('Credits');
 
-    // Update Premium Button Text
+    // 4. Update Premium Buttons & Paywall
     const premBtn = document.getElementById('user-premium-btn');
     if (premBtn) premBtn.textContent = t('Premium');
+    
+    const paywallTitle = document.querySelector('.premium-title');
+    if (paywallTitle) paywallTitle.textContent = t('Premium');
+    
+    const paywallFeatures = document.querySelectorAll('.premium-feature-row span');
+    const featureKeys = ['AD Free', 'All HD Offline Voices', 'Unlimited Folders 30 Char', 'Custom Topic Filters', 'Source Narration', 'Ambient Audio Controls', 'Random Voice Rotation'];
+    paywallFeatures.forEach((span, idx) => {
+        if (featureKeys[idx]) span.textContent = t(featureKeys[idx]);
+    });
 
-    // Update Onboarding Guest Button
+    const paywallBuyBtn = document.querySelector('.premium-buy-pill-text');
+    if (paywallBuyBtn) paywallBuyBtn.textContent = t('Get Annual');
+
+    // 5. Update Onboarding Screen
+    const onboardWelcomeH2 = document.querySelector('#onboard-welcome h2');
+    if (onboardWelcomeH2) onboardWelcomeH2.textContent = t('Spiritual Wisdom');
+    const onboardWelcomeP = document.querySelector('#onboard-welcome p');
+    if (onboardWelcomeP) onboardWelcomeP.textContent = t('Access scriptures, curated ambient tracks, and personalized daily verses.');
+    const googleBtnSpan = document.querySelector('#google-signin-btn-container button span');
+    if (googleBtnSpan) googleBtnSpan.textContent = t('Sign in with Google');
     const guestBtn = document.querySelector('button[onclick="continueAsGuest()"]');
     if (guestBtn) guestBtn.textContent = t('Continue as Guest');
 
-    // Update Search Placeholder
+    // 6. Update Modals (Auth, Folder Creation, Rename, Language)
+    const authTabSignin = document.getElementById('auth-tab-signin');
+    if (authTabSignin) authTabSignin.textContent = t('Sign In');
+    const authTabSignup = document.getElementById('auth-tab-signup');
+    if (authTabSignup) authTabSignup.textContent = t('Sign Up');
+    const authSubmitBtn = document.getElementById('auth-submit-btn');
+    if (authSubmitBtn && authSubmitBtn.textContent.includes('Sign')) {
+        authSubmitBtn.textContent = t('Sign In');
+    }
+
+    const createAlbumInput = document.getElementById('create-album-name');
+    if (createAlbumInput) createAlbumInput.placeholder = t('Folder Name');
+    const createAlbumBtn = document.querySelector('#create-bookmark-modal .album-create-btn');
+    if (createAlbumBtn) createAlbumBtn.textContent = t('Create Folder');
+
+    const renameAlbumInput = document.getElementById('rename-album-input');
+    if (renameAlbumInput) renameAlbumInput.placeholder = t('New Name');
+    const renameAlbumBtn = document.querySelector('#rename-modal .album-create-btn');
+    if (renameAlbumBtn) renameAlbumBtn.textContent = t('Rename');
+
+    const langModalTitle = document.querySelector('#language-modal .modal-content h3');
+    if (langModalTitle) langModalTitle.textContent = t('Choose Language');
+    const langSearch = document.getElementById('lang-search-input');
+    if (langSearch) langSearch.placeholder = t('Search language...');
+
+    // 7. Update Search Placeholder
     const libSearchInput = document.getElementById('lib-search-input');
     if (libSearchInput) {
         libSearchInput.placeholder = t('Search verses or authors...');
     }
 
-    // Refresh Settings & Library UI
-    if (typeof buildSettings === 'function') buildSettings();
+    // 8. Re-render Active Feed Card, Library, and Saved Screens in chosen language
+    if (typeof renderFeedCard === 'function' && typeof currentVerseIndex !== 'undefined') {
+        renderFeedCard(currentVerseIndex.general || 0);
+    }
     if (typeof showReligions === 'function' && document.getElementById('library-home') && !document.getElementById('library-home').classList.contains('hidden')) {
         showReligions();
     }
+    if (typeof showSavedVerses === 'function' && document.getElementById('saved-verses') && !document.getElementById('saved-verses').classList.contains('hidden')) {
+        showSavedVerses(true);
+    }
+    if (typeof buildSettings === 'function') buildSettings();
 }
 
 function getFirebaseCurrentUid() {
@@ -2781,7 +4016,7 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
         // Top-Left subtle "Sponsored" tag
         const tagEl = document.createElement('span');
         tagEl.style.cssText = 'position: absolute; top: 18px; left: 22px; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.45; font-weight: 600; color: var(--text-color); pointer-events: none;';
-        tagEl.textContent = 'Sponsored';
+        tagEl.textContent = t('Sponsored');
         card.appendChild(tagEl);
 
         // Middle Content Container
@@ -2866,7 +4101,7 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
         footer.style.cssText = 'width: 100%; display: flex; justify-content: center; padding-bottom: 8px; flex-shrink: 0;';
         const removeAdsBtn = document.createElement('button');
         removeAdsBtn.style.cssText = 'background: var(--card-bg); color: var(--text-color); border: 1px solid var(--glass-border); padding: 12px 36px; border-radius: 24px; font-size: 0.95rem; font-weight: 600; cursor: pointer; font-family: inherit; box-shadow: var(--glass-shadow); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); letter-spacing: 0.3px;';
-        removeAdsBtn.textContent = 'Remove Ads';
+        removeAdsBtn.textContent = t('Remove Ads');
         removeAdsBtn.onclick = () => openPremiumModal();
         footer.appendChild(removeAdsBtn);
         card.appendChild(footer);
@@ -2876,7 +4111,7 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
 
     const textEl = document.createElement('div');
     textEl.classList.add('verse-text');
-    textEl.textContent = verse.text || '';
+    applyDynamicVerseTranslation(textEl, verse.text || '');
 
     const footer = document.createElement('div');
     footer.classList.add('card-footer');
@@ -3442,7 +4677,7 @@ function renderVersesList(versesArray, listElement) {
         let displayVerse = v.text;
         displayVerse = displayVerse.replace(/<span class='author-attr'>.*?<\/span>/gm, '');
         displayVerse = displayVerse.replace(/<[^>]*>?/gm, '');
-        text.innerText = displayVerse;
+        applyDynamicVerseTranslation(text, displayVerse);
         
         const footer = document.createElement('div');
         footer.classList.add('saved-verse-footer');
@@ -4043,7 +5278,7 @@ function renderBookChapterBatch(batchSize = 30) {
         
         let displayVerse = text;
         if (displayVerse.endsWith('.')) displayVerse = displayVerse.slice(0, -1);
-        p.innerHTML = displayVerse;
+        applyDynamicVerseTranslation(p, displayVerse);
         p.onclick = (e) => {
             e.stopPropagation();
             handleVerseClick(gIndex);
