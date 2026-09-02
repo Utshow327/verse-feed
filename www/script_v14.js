@@ -60,41 +60,734 @@ var sessionUserPremiumAngle = null;
 const CANONICAL_RELIGIONS = ['Christianity', 'Islam', 'Hinduism', 'Sikhism', 'Buddhism', 'Judaism', 'Philosophy'];
 
 const supportedLanguages = [
-    { code: 'en_US', name: 'English', native: 'English', hasVoice: true, voiceLabel: '🎙️ Neural Voice Available', packBadge: '✓ Default Pack (All Books)', isBundled: true },
-    { code: 'bn', name: 'Bangla', native: 'বাংলা', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '📦 Authentic Pack (Quran & Bible)', isBundled: true },
-    { code: 'hi', name: 'Hindi', native: 'हिन्दी', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'ar', name: 'Arabic', native: 'العربية', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'es', name: 'Spanish', native: 'Español', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'fr', name: 'French', native: 'Français', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'de', name: 'German', native: 'Deutsch', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'ja', name: 'Japanese', native: '日本語', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'tr', name: 'Turkish', native: 'Türkçe', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'ru', name: 'Russian', native: 'Русский', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'pt', name: 'Portuguese', native: 'Português', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'id', name: 'Indonesian', native: 'Bahasa Indonesia', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'ur', name: 'Urdu', native: 'اردو', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'it', name: 'Italian', native: 'Italiano', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'zh', name: 'Chinese', native: '中文', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'ko', name: 'Korean', native: '한국어', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'fa', name: 'Persian', native: 'فارسی', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'ta', name: 'Tamil', native: 'தமிழ்', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'te', name: 'Telugu', native: 'తెలుగు', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'mr', name: 'Marathi', native: 'मराठी', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'gu', name: 'Gujarati', native: 'ગુજરાતી', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'vi', name: 'Vietnamese', native: 'Tiếng Việt', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'th', name: 'Thai', native: 'ไทย', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'pl', name: 'Polish', native: 'Polski', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'nl', name: 'Dutch', native: 'Nederlands', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'sv', name: 'Swedish', native: 'Svenska', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'el', name: 'Greek', native: 'Ελληνικά', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'he', name: 'Hebrew', native: 'עברית', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'uk', name: 'Ukrainian', native: 'Українська', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'ro', name: 'Romanian', native: 'Română', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'cs', name: 'Czech', native: 'Čeština', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'hu', name: 'Hungarian', native: 'Magyar', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'ms', name: 'Malay', native: 'Bahasa Melayu', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false },
-    { code: 'fil', name: 'Filipino', native: 'Tagalog', hasVoice: false, voiceLabel: '📝 Text Only', packBadge: '☁️ Cloud Edition', isBundled: false }
+    {
+        "code": "en_US",
+        "name": "English",
+        "native": "English",
+        "hasVoice": true,
+        "isBundled": true
+    },
+    {
+        "code": "bn",
+        "name": "Bangla",
+        "native": "বাংলা",
+        "hasVoice": false,
+        "isBundled": true
+    },
+    {
+        "code": "es",
+        "name": "Spanish",
+        "native": "Español",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "fr",
+        "name": "French",
+        "native": "Français",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ar",
+        "name": "Arabic",
+        "native": "العربية",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "hi",
+        "name": "Hindi",
+        "native": "हिन्दी",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "pt",
+        "name": "Portuguese",
+        "native": "Português",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ru",
+        "name": "Russian",
+        "native": "Русский",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ja",
+        "name": "Japanese",
+        "native": "日本語",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "de",
+        "name": "German",
+        "native": "Deutsch",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "zh",
+        "name": "Chinese (Simplified)",
+        "native": "简体中文",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "zh_TW",
+        "name": "Chinese (Traditional)",
+        "native": "繁體中文",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ko",
+        "name": "Korean",
+        "native": "한국어",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "it",
+        "name": "Italian",
+        "native": "Italiano",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "tr",
+        "name": "Turkish",
+        "native": "Türkçe",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "vi",
+        "name": "Vietnamese",
+        "native": "Tiếng Việt",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "pl",
+        "name": "Polish",
+        "native": "Polski",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "uk",
+        "name": "Ukrainian",
+        "native": "Українська",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "nl",
+        "name": "Dutch",
+        "native": "Nederlands",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "fa",
+        "name": "Persian",
+        "native": "فارسی",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "id",
+        "name": "Indonesian",
+        "native": "Bahasa Indonesia",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ms",
+        "name": "Malay",
+        "native": "Bahasa Melayu",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "th",
+        "name": "Thai",
+        "native": "ไทย",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ur",
+        "name": "Urdu",
+        "native": "اردو",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "pa",
+        "name": "Punjabi",
+        "native": "ਪੰਜਾਬੀ",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ta",
+        "name": "Tamil",
+        "native": "தமிழ்",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "te",
+        "name": "Telugu",
+        "native": "తెలుగు",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "mr",
+        "name": "Marathi",
+        "native": "मराठी",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "gu",
+        "name": "Gujarati",
+        "native": "ગુજરાતી",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "kn",
+        "name": "Kannada",
+        "native": "ಕನ್ನಡ",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ml",
+        "name": "Malayalam",
+        "native": "മലയാളം",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "my",
+        "name": "Burmese",
+        "native": "မြန်မာဘာသာ",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ne",
+        "name": "Nepali",
+        "native": "नेपाली",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "si",
+        "name": "Sinhala",
+        "native": "සිංහල",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "km",
+        "name": "Khmer",
+        "native": "ភាសាខ្មែរ",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "lo",
+        "name": "Lao",
+        "native": "ພາສາລາວ",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "fil",
+        "name": "Filipino",
+        "native": "Filipino (Tagalog)",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "jv",
+        "name": "Javanese",
+        "native": "Basa Jawa",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "su",
+        "name": "Sundanese",
+        "native": "Basa Sunda",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ceb",
+        "name": "Cebuano",
+        "native": "Sinugboanon",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "sv",
+        "name": "Swedish",
+        "native": "Svenska",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "no",
+        "name": "Norwegian",
+        "native": "Norsk",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "da",
+        "name": "Danish",
+        "native": "Dansk",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "fi",
+        "name": "Finnish",
+        "native": "Suomi",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "el",
+        "name": "Greek",
+        "native": "Ελληνικά",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "he",
+        "name": "Hebrew",
+        "native": "עברית",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ro",
+        "name": "Romanian",
+        "native": "Română",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "cs",
+        "name": "Czech",
+        "native": "Čeština",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "hu",
+        "name": "Hungarian",
+        "native": "Magyar",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "sk",
+        "name": "Slovak",
+        "native": "Slovenčina",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "bg",
+        "name": "Bulgarian",
+        "native": "Български",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "hr",
+        "name": "Croatian",
+        "native": "Hrvatski",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "sr",
+        "name": "Serbian",
+        "native": "Српски",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "bs",
+        "name": "Bosnian",
+        "native": "Bosanski",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "sl",
+        "name": "Slovenian",
+        "native": "Slovenščina",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "lt",
+        "name": "Lithuanian",
+        "native": "Lietuvių",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "lv",
+        "name": "Latvian",
+        "native": "Latviešu",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "et",
+        "name": "Estonian",
+        "native": "Eesti",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "sq",
+        "name": "Albanian",
+        "native": "Shqip",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "mk",
+        "name": "Macedonian",
+        "native": "Македонски",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "be",
+        "name": "Belarusian",
+        "native": "Беларуская",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ka",
+        "name": "Georgian",
+        "native": "ქართული",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "hy",
+        "name": "Armenian",
+        "native": "Հայերեն",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "az",
+        "name": "Azerbaijani",
+        "native": "Azərbaycan",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "kk",
+        "name": "Kazakh",
+        "native": "Қазақ тілі",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "uz",
+        "name": "Uzbek",
+        "native": "Oʻzbekcha",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ky",
+        "name": "Kyrgyz",
+        "native": "Кыргызча",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "tg",
+        "name": "Tajik",
+        "native": "Тоҷикӣ",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "tk",
+        "name": "Turkmen",
+        "native": "Türkmençe",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "mn",
+        "name": "Mongolian",
+        "native": "Монгол",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "sw",
+        "name": "Swahili",
+        "native": "Kiswahili",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "am",
+        "name": "Amharic",
+        "native": "አማርኛ",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "yo",
+        "name": "Yoruba",
+        "native": "Èdè Yorùbá",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ig",
+        "name": "Igbo",
+        "native": "Asụsụ Igbo",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ha",
+        "name": "Hausa",
+        "native": "Harshen Hausa",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "zu",
+        "name": "Zulu",
+        "native": "isiZulu",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "xh",
+        "name": "Xhosa",
+        "native": "isiXhosa",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "af",
+        "name": "Afrikaans",
+        "native": "Afrikaans",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "so",
+        "name": "Somali",
+        "native": "Soomaaliga",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "mg",
+        "name": "Malagasy",
+        "native": "Fiteny Malagasy",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "sn",
+        "name": "Shona",
+        "native": "chiShona",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ny",
+        "name": "Chichewa",
+        "native": "ChiCheŵa",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "rw",
+        "name": "Kinyarwanda",
+        "native": "Ikinyarwanda",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "st",
+        "name": "Sesotho",
+        "native": "Sesotho",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "is",
+        "name": "Icelandic",
+        "native": "Íslenska",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ga",
+        "name": "Irish",
+        "native": "Gaeilge",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "cy",
+        "name": "Welsh",
+        "native": "Cymraeg",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "gd",
+        "name": "Scottish Gaelic",
+        "native": "Gàidhlig",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "mt",
+        "name": "Maltese",
+        "native": "Malti",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "eu",
+        "name": "Basque",
+        "native": "Euskara",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ca",
+        "name": "Catalan",
+        "native": "Català",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "gl",
+        "name": "Galician",
+        "native": "Galego",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "la",
+        "name": "Latin",
+        "native": "Latina",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "eo",
+        "name": "Esperanto",
+        "native": "Esperanto",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "haw",
+        "name": "Hawaiian",
+        "native": "ʻŌlelo Hawaiʻi",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "mi",
+        "name": "Maori",
+        "native": "Te Reo Māori",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "sm",
+        "name": "Samoan",
+        "native": "Gagana Sāmoa",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ps",
+        "name": "Pashto",
+        "native": "پښتو",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ku",
+        "name": "Kurdish",
+        "native": "Kurdî (کوردی)",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "sd",
+        "name": "Sindhi",
+        "native": "سنڌي",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "or",
+        "name": "Odia",
+        "native": "ଓଡ଼ିଆ",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "as",
+        "name": "Assamese",
+        "native": "অসমীয়া",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "ug",
+        "name": "Uyghur",
+        "native": "ئۇيغۇرچە",
+        "hasVoice": false,
+        "isBundled": false
+    },
+    {
+        "code": "yi",
+        "name": "Yiddish",
+        "native": "ייִדיש",
+        "hasVoice": false,
+        "isBundled": false
+    }
 ];
 
 const i18nDict = {
@@ -1380,6 +2073,13 @@ const i18nDict = {
     "Zero ads, maximum cozy vibes, and you save a programmer from despair.": {"bn":"শূন্য বিজ্ঞাপন, সর্বোচ্চ প্রশান্তি এবং একটি সুন্দর আধ্যাত্মিক পরিবেশ।"},
     "Skip the ads, keep the wisdom, and bless an indie creator's day.": {"bn":"বিজ্ঞাপন এড়িয়ে চলুন, প্রজ্ঞা ধরে রাখুন এবং নির্মাতাকে উৎসাহিত করুন।"},
     "A cozy, distraction-free sanctuary with all HD neural voices unlocked.": {"bn":"সব এইচডি কণ্ঠস্বর সহ এক শান্ত, নিরবচ্ছিন্ন পবিত্র অভিজ্ঞতার আশ্রয়।"}
+,
+    "Part": {"bn":"পর্ব","hi":"भाग","fr":"Partie","es":"Parte","ar":"الجزء","de":"Teil","it":"Parte","pt":"Parte","ru":"Часть","tr":"Bölüm"},
+    "Book": {"bn":"খণ্ড","hi":"किताब","fr":"Livre","es":"Libro","ar":"الكتاب","de":"Buch","it":"Libro","pt":"Livro","ru":"Книга","tr":"Kitap"},
+    "Chapter": {"bn":"অধ্যায়","hi":"अध्याय","fr":"Chapitre","es":"Capítulo","ar":"الفصل","de":"Kapitel","it":"Capitolo","pt":"Capítulo","ru":"Глава","tr":"Bölüm"},
+    "Section": {"bn":"অনুচ্ছেদ","hi":"अनुभाग","fr":"Section","es":"Sección","ar":"القسم","de":"Abschnitt","it":"Sezione","pt":"Seção","ru":"Раздел","tr":"Kısım"},
+    "Hymn": {"bn":"স্তোত্র","hi":"सूक्त","fr":"Hymne","es":"Himno","ar":"ترنيمة","de":"Hymne","it":"Inno","pt":"Hino","ru":"Гимн","tr":"İlahi"},
+    "Discourse": {"bn":"প্রবচন","hi":"प्रवचन","fr":"Discours","es":"Discurso","ar":"خطاب","de":"Diskurs","it":"Discorso","pt":"Discurso","ru":"Беседа","tr":"Söylem"}
 };
 
 // --- Universal Neural Verse Translation & Cache Engine ---
@@ -3431,6 +4131,16 @@ function formatVerseRef(v) {
     let chapPart = (chap !== '' && chap !== null && chap !== undefined) ? ' ' + chap : '';
     let versePart = (verse !== '' && verse !== null && verse !== undefined) ? (chapPart ? ':' + verse : ' ' + verse) : '';
     
+    // Translate structural English words in chapter label (e.g. Part 9 -> পর্ব ৯ / Partie 9)
+    const structuralKeys = ['Part', 'Book', 'Chapter', 'Section', 'Hymn', 'Discourse'];
+    structuralKeys.forEach(k => {
+        const reg = new RegExp('\\b' + k + '\\b', 'gi');
+        if (reg.test(chapPart)) {
+            const translatedTerm = (typeof t === 'function') ? t(k) : k;
+            chapPart = chapPart.replace(reg, translatedTerm);
+        }
+    });
+
     // In Bengali mode, convert Western digits to Bengali digits
     if (currentAppLanguage === 'bn') {
         const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
