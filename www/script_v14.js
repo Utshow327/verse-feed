@@ -1341,27 +1341,40 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
     if (!domElement || !rawText) return;
     if (lang === 'en_US' || lang === 'en') {
         domElement.innerText = rawText;
+        domElement.style.opacity = '1';
         return;
     }
     
-    // If rawText already contains target language script, render directly
+    // If rawText already contains target language script, render directly with 0ms delay
     if (lang === 'bn' && /[\u0980-\u09FF]/.test(rawText)) {
         domElement.innerText = rawText;
+        domElement.style.opacity = '1';
         return;
     }
     
     const cached = getCachedVerseTranslation(rawText, lang);
     if (cached) {
         domElement.innerText = cached;
+        domElement.style.opacity = '1';
         return;
     }
     
-    domElement.innerText = rawText;
+    // Smooth transition: don't flash English, show subtle placeholder and fade in
+    domElement.style.transition = 'opacity 0.25s ease';
+    domElement.style.opacity = '0.35';
+    domElement.innerText = '...';
+    
     translateTextAsync(rawText, lang).then(translated => {
-        if (translated && translated !== rawText && domElement && domElement.isConnected) {
-            domElement.innerText = translated;
+        if (domElement && domElement.isConnected) {
+            domElement.innerText = translated || rawText;
+            domElement.style.opacity = '1';
         }
-    }).catch(() => {});
+    }).catch(() => {
+        if (domElement && domElement.isConnected) {
+            domElement.innerText = rawText;
+            domElement.style.opacity = '1';
+        }
+    });
 }
 
 let currentAppLanguage = localStorage.getItem('versefeed_user_language') || 'en_US';
@@ -3991,7 +4004,7 @@ function generateBatch(type, lastRels = []) {
         if (!hasThreeConsec) break;
         tries++;
     }
-    return slots.map(r => {
+    const batch = slots.map(r => {
         let pool = getFilteredPool(r);
 
         if (!pool || pool.length === 0) {
@@ -4010,6 +4023,17 @@ function generateBatch(type, lastRels = []) {
         const selectedVerse = availablePool[Math.floor(Math.random() * availablePool.length)];
         return selectedVerse;
     }).filter(v => v !== null);
+
+    // Warm up translations for the batch in the background so cards render with zero delay
+    if (currentAppLanguage !== 'en_US' && currentAppLanguage !== 'en') {
+        batch.forEach(v => {
+            if (v && v.text && !/[\u0980-\u09FF]/.test(v.text) && !getCachedVerseTranslation(v.text, currentAppLanguage)) {
+                translateTextAsync(v.text, currentAppLanguage);
+            }
+        });
+    }
+
+    return batch;
 }
 function getVerseAtIndex(index) {
     while (index >= verseBatches.general.length) {
@@ -6571,16 +6595,17 @@ function renderLanguageList(filterQuery = '') {
     filtered.forEach(lang => {
         const item = document.createElement('div');
         const isSelected = currentAppLanguage === lang.code;
-        item.style.cssText = `display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-radius: 14px; border: 1px solid ${isSelected ? 'var(--p-gold)' : 'var(--glass-border)'}; background: ${isSelected ? 'rgba(188, 174, 158, 0.12)' : 'rgba(255,255,255,0.03)'}; cursor: pointer; transition: all 0.2s ease;`;
+        
+        // Exact same selection style as topic and verse selection (inverted colors, no tick mark)
+        item.style.cssText = `display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-radius: 14px; border: 2px solid ${isSelected ? 'var(--text-color)' : 'var(--glass-border)'}; background: ${isSelected ? 'var(--text-color)' : 'transparent'}; color: ${isSelected ? 'var(--bg-grad-1)' : 'var(--text-color)'}; cursor: pointer; transition: all 0.2s ease; opacity: ${isSelected ? '1' : '0.6'}; font-weight: ${isSelected ? '600' : '500'};`;
         
         const isSameName = lang.native.toLowerCase() === lang.name.toLowerCase();
 
         item.innerHTML = `
             <div style="display: flex; align-items: baseline; gap: 8px;">
-                <span style="font-size: 1.02rem; font-weight: 600; color: var(--text-color);">${lang.native}</span>
-                ${!isSameName ? `<span style="font-size: 0.84rem; opacity: 0.55; color: var(--text-color); font-weight: 400;">(${lang.name})</span>` : ''}
+                <span style="font-size: 1.02rem; font-weight: 600; color: inherit;">${lang.native}</span>
+                ${!isSameName ? `<span style="font-size: 0.84rem; opacity: 0.75; color: inherit; font-weight: 400;">(${lang.name})</span>` : ''}
             </div>
-            ${isSelected ? '<span style="color: var(--p-gold); font-weight: 700; font-size: 1.1rem;">✓</span>' : ''}
         `;
 
         item.onclick = () => {
