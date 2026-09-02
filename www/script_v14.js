@@ -5490,6 +5490,27 @@ async function loadUnselectedDataInBackground() {
         }
     }
 }
+
+function localizeDigits(str, lang = currentAppLanguage) {
+    if (!str && str !== 0) return '';
+    const s = String(str);
+    const baseLang = (lang || '').split('_')[0].split('-')[0].toLowerCase();
+    
+    const digitMaps = {
+        'bn': ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'],
+        'ar': ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'],
+        'hi': ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'],
+        'ur': ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'],
+        'fa': ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'],
+        'mr': ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'],
+        'ne': ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९']
+    };
+    
+    const map = digitMaps[baseLang];
+    if (!map) return s;
+    return s.replace(/\d/g, d => map[parseInt(d, 10)]);
+}
+
 function formatVerseRef(v) {
     if (!v) return '';
     const rawBook = v.book || v.religion || '';
@@ -5509,12 +5530,9 @@ function formatVerseRef(v) {
         }
     });
 
-    // In Bengali mode, convert Western digits to Bengali digits
-    if (currentAppLanguage === 'bn') {
-        const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
-        chapPart = chapPart.replace(/\d/g, d => bnDigits[parseInt(d, 10)]);
-        versePart = versePart.replace(/\d/g, d => bnDigits[parseInt(d, 10)]);
-    }
+    // Universal Native Digit Localization (Arabic, Bengali, Hindi, Urdu, Farsi, etc.)
+    chapPart = localizeDigits(chapPart, currentAppLanguage);
+    versePart = localizeDigits(versePart, currentAppLanguage);
     
     // Localize Book Name through universal dictionary & cache
     let localizedBook = rawBook;
@@ -7725,7 +7743,7 @@ function populateChapterWheel() {
     chapterList.forEach((chap, index) => {
         const div = document.createElement('div');
         div.className = 'chap-wheel-item';
-        div.innerText = (currentAppLanguage === 'bn') ? (index + 1).toString().replace(/\d/g, d => ['০','১','২','৩','৪','৫','৬','৭','৮','৯'][parseInt(d, 10)]) : (index + 1).toString();
+        div.innerText = localizeDigits(index + 1, currentAppLanguage);
         div.dataset.val = chap;
         div.onclick = () => {
             const target = div.offsetLeft + div.offsetWidth / 2 - wheel.clientWidth / 2;
