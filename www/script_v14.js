@@ -30782,7 +30782,8 @@ async function initApp() {
                     loadingScreen.style.display = 'none';
                 }, 950);
 
-                // Voice initializes on-demand when user clicks Speak button to keep startup at 60fps
+                // Auto-start installing voice in background if not yet installed
+                setTimeout(checkAndAutoInstallVoice, 1200);
 
                 try {
                     initLanguageSettings();
@@ -31043,7 +31044,7 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
                 showVoiceInstallingToast("Installing voice...", maxPercent);
             }
             
-            const tts = await import("./libs/piper/piper-bundle.js?v=21");
+            const tts = await import("./libs/piper/piper-bundle.js?v=22");
             if (tts.TtsSession._instance) {
                 tts.TtsSession._instance = null; // Force reload of ONNX model
             }
@@ -31103,6 +31104,24 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
     })();
     return piperInitPromise;
 }
+
+function checkAndAutoInstallVoice() {
+    if (!selectedVoice) return;
+    const isInstalled = localStorage.getItem('piper_voice_installed_' + selectedVoice) === 'true';
+    if (!isInstalled && !piperInitializing && (!piperSession || piperSession.voiceId !== selectedVoice)) {
+        console.log("Auto-starting/resuming voice installation for:", selectedVoice);
+        initPiper(selectedVoice).catch(e => console.warn("Auto voice install notice:", e));
+    }
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        checkAndAutoInstallVoice();
+    }
+});
+window.addEventListener('focus', () => {
+    checkAndAutoInstallVoice();
+});
 
 function updateMusicVolume() {
     if (!isPremiumUser) {
@@ -34632,6 +34651,7 @@ function voiceWheelSelect(val) {
     }
 
     applyAutoSpeed();
+    checkAndAutoInstallVoice();
     const items = getVoiceWheelItems();
     items.forEach(el => {
         if (el.dataset.val === val) el.classList.add('selected');
@@ -34733,6 +34753,7 @@ function updateVoiceWheelActiveStyle() {
             }
 
             applyAutoSpeed();
+            checkAndAutoInstallVoice();
         }
     }
 }

@@ -19754,44 +19754,163 @@ async function readBlob(url) {
   return void 0;
 }
 
-async function fetchBlob(url, callback) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("HTTP error " + res.status + " fetching " + url);
-  
-  if (!res.body || typeof res.body.getReader !== 'function') {
-    const b = await res.blob();
-    if (callback) {
-      callback({ url, total: b.size, loaded: b.size });
+async function getPartialBlob(url) {
+  try {
+    const db = await getPiperDB();
+    if (db) {
+      const tx = db.transaction(PIPER_STORE_NAME, "readonly");
+      const req = tx.objectStore(PIPER_STORE_NAME).get("partial_" + url);
+      const res = await new Promise((resolve) => {
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(null);
+      });
+      if (res && res.blob && res.blob.size > 0) return res;
     }
-    return b;
+  } catch (e) {}
+  return null;
+}
+
+async function savePartialBlob(url, blob, totalSize) {
+  try {
+    const db = await getPiperDB();
+    if (db) {
+      const tx = db.transaction(PIPER_STORE_NAME, "readwrite");
+      tx.objectStore(PIPER_STORE_NAME).put({ blob, totalSize }, "partial_" + url);
+      await new Promise((res) => {
+        tx.oncomplete = res;
+        tx.onerror = res;
+      });
+    }
+  } catch (e) {}
+}
+
+async function clearPartialBlob(url) {
+  try {
+    const db = await getPiperDB();
+    if (db) {
+      const tx = db.transaction(PIPER_STORE_NAME, "readwrite");
+      tx.objectStore(PIPER_STORE_NAME).delete("partial_" + url);
+    }
+  } catch (e) {}
+}
+
+async function fetchBlob(url, callback) {
+  const isLargeModel = url.endsWith('.onnx');
+  let existingPartial = isLargeModel ? await getPartialBlob(url) : null;
+
+  let headers = {};
+  let startOffset = 0;
+  let totalContentLength = 0;
+  let accumulatedChunks = [];
+
+  if (existingPartial && existingPartial.blob && existingPartial.blob.size > 0) {
+    startOffset = existingPartial.blob.size;
+    totalContentLength = existingPartial.totalSize || 0;
+    accumulatedChunks.push(existingPartial.blob);
+    headers['Range'] = `bytes=${startOffset}-`;
+    console.log(`Resuming voice download for ${url} from byte ${startOffset}/${totalContentLength}...`);
   }
 
+  let res = null;
   try {
-    const reader = res.body.getReader();
-    const contentLength = +(res.headers.get("Content-Length") ?? 0);
-    let receivedLength = 0;
-    let chunks = [];
+    res = await fetch(url, { headers });
+  } catch (netErr) {
+    if (startOffset > 0) {
+      startOffset = 0;
+      accumulatedChunks = [];
+      res = await fetch(url);
+    } else {
+      throw netErr;
+    }
+  }
+
+  if (res.status === 416) {
+    await clearPartialBlob(url);
+    startOffset = 0;
+    accumulatedChunks = [];
+    res = await fetch(url);
+  }
+
+  if (!res.ok && res.status !== 206) {
+    throw new Error("HTTP error " + res.status + " fetching " + url);
+  }
+
+  if (res.status === 200) {
+    startOffset = 0;
+    accumulatedChunks = [];
+  }
+
+  if (res.status === 206) {
+    const cr = res.headers.get("Content-Range");
+    if (cr) {
+      const parts = cr.split("/");
+      if (parts.length > 1) {
+        totalContentLength = parseInt(parts[1], 10) || totalContentLength;
+      }
+    }
+  } else {
+    totalContentLength = +(res.headers.get("Content-Length") ?? 0);
+  }
+
+  if (startOffset > 0 && callback && totalContentLength > 0) {
+    callback({
+      url,
+      total: totalContentLength,
+      loaded: startOffset
+    });
+  }
+
+  if (!res.body || typeof res.body.getReader !== 'function') {
+    const b = await res.blob();
+    accumulatedChunks.push(b);
+    const finalBlob = new Blob(accumulatedChunks, { type: res.headers.get("Content-Type") ?? void 0 });
+    if (isLargeModel) await clearPartialBlob(url);
+    if (callback) {
+      callback({ url, total: finalBlob.size, loaded: finalBlob.size });
+    }
+    return finalBlob;
+  }
+
+  const reader = res.body.getReader();
+  let receivedSinceResume = 0;
+  let lastSaveTime = Date.now();
+
+  try {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      chunks.push(value);
-      receivedLength += value.length;
+      accumulatedChunks.push(value);
+      receivedSinceResume += value.length;
+      const currentLoaded = startOffset + receivedSinceResume;
+
       if (callback) {
         callback({
           url,
-          total: contentLength || receivedLength,
-          loaded: receivedLength
+          total: totalContentLength || currentLoaded,
+          loaded: currentLoaded
         });
       }
+
+      if (isLargeModel && (receivedSinceResume % (2 * 1024 * 1024) < value.length || Date.now() - lastSaveTime > 2000)) {
+        lastSaveTime = Date.now();
+        const partialBlob = new Blob(accumulatedChunks, { type: 'application/octet-stream' });
+        accumulatedChunks = [partialBlob];
+        savePartialBlob(url, partialBlob, totalContentLength).catch(() => {});
+      }
     }
-    if (chunks.length > 0 && receivedLength > 0) {
-      return new Blob(chunks, { type: res.headers.get("Content-Type") ?? void 0 });
+  } catch (readErr) {
+    if (isLargeModel && accumulatedChunks.length > 0) {
+      const partialBlob = new Blob(accumulatedChunks, { type: 'application/octet-stream' });
+      await savePartialBlob(url, partialBlob, totalContentLength).catch(() => {});
     }
-  } catch (streamErr) {
-    console.warn("Stream reading failed, falling back to res.blob():", streamErr);
+    throw readErr;
   }
 
-  return await res.blob();
+  const finalBlob = new Blob(accumulatedChunks, { type: res.headers.get("Content-Type") ?? void 0 });
+  if (isLargeModel) {
+    await clearPartialBlob(url).catch(() => {});
+  }
+  return finalBlob;
 }
 function pcm2wav(buffer, numChannels, sampleRate) {
   const bufferLength = buffer.length;
