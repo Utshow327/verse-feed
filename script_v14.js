@@ -4007,7 +4007,8 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
         return highlightSearchTerms(txt, highlightTerms);
     };
 
-    if (lang === 'en_US' || lang === 'en') {
+    const baseLang = getAppBaseLanguage(lang);
+    if (baseLang === 'en') {
         const existingActions = domElement.querySelector('.verse-actions');
         domElement.innerHTML = applyHighlight(rawText);
         if (existingActions) domElement.appendChild(existingActions);
@@ -4017,7 +4018,7 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
     
     // 1. Instant Dictionary Match
     if (typeof t === 'function') {
-        const dictTrans = t(rawText);
+        const dictTrans = t(rawText, lang);
         if (dictTrans && dictTrans.toLowerCase() !== rawText.toLowerCase()) {
             const existingActions = domElement.querySelector('.verse-actions');
             domElement.innerHTML = applyHighlight(dictTrans);
@@ -4028,9 +4029,9 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
     }
     
     // 2. If rawText already contains target language script, render directly
-    if ((lang === 'bn' && /[\u0980-\u09FF]/.test(rawText)) ||
-        (lang === 'ar' && /[\u0600-\u06FF]/.test(rawText)) ||
-        (lang === 'he' && /[\u0590-\u05FF]/.test(rawText))) {
+    if ((baseLang === 'bn' && /[\u0980-\u09FF]/.test(rawText)) ||
+        (baseLang === 'ar' && /[\u0600-\u06FF]/.test(rawText)) ||
+        (baseLang === 'he' && /[\u0590-\u05FF]/.test(rawText))) {
         const existingActions = domElement.querySelector('.verse-actions');
         domElement.innerHTML = applyHighlight(rawText);
         if (existingActions) domElement.appendChild(existingActions);
@@ -4039,7 +4040,7 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
     }
     
     // 3. Memory & Disk Cache Lookup
-    const cached = getCachedVerseTranslation(rawText, lang);
+    const cached = getCachedVerseTranslation(rawText, lang) || getCachedVerseTranslation(rawText, baseLang);
     if (cached && !isGarbageTranslation(cached, lang)) {
         const existingActions = domElement.querySelector('.verse-actions');
         domElement.innerHTML = applyHighlight(cached);
@@ -4056,7 +4057,7 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
     domElement.style.opacity = '0.7';
     
     translateTextAsync(rawText, lang).then(translated => {
-        if (domElement && domElement.isConnected) {
+        if (domElement) {
             const finalTxt = (translated && !isGarbageTranslation(translated, lang)) ? translated : rawText;
             const actions = domElement.querySelector('.verse-actions');
             domElement.innerHTML = applyHighlight(finalTxt);
@@ -4064,7 +4065,7 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
             domElement.style.opacity = '1';
         }
     }).catch(() => {
-        if (domElement && domElement.isConnected) {
+        if (domElement) {
             const actions = domElement.querySelector('.verse-actions');
             domElement.innerHTML = applyHighlight(rawText);
             if (actions) domElement.appendChild(actions);
@@ -4080,37 +4081,32 @@ function getAppBaseLanguage(lang = currentAppLanguage) {
     return lang.split('_')[0].split('-')[0].toLowerCase();
 }
 
-function t(key) {
+function t(key, lang = currentAppLanguage) {
     if (!key || typeof key !== 'string') return key || '';
-    if (currentAppLanguage === 'en_US' || currentAppLanguage === 'en') return key;
+    const baseLang = getAppBaseLanguage(lang);
+    if (baseLang === 'en') return key;
     
-    // 1. Exact Dictionary Match
+    // 1. Exact or Base Language Dictionary Match
     if (typeof i18nDict !== 'undefined') {
-        if (i18nDict[key] && i18nDict[key][currentAppLanguage]) {
-            return i18nDict[key][currentAppLanguage];
+        const cleanKey = key.trim();
+        if (i18nDict[cleanKey]) {
+            if (i18nDict[cleanKey][lang]) return i18nDict[cleanKey][lang];
+            if (i18nDict[cleanKey][baseLang]) return i18nDict[cleanKey][baseLang];
         }
         // Case-insensitive dictionary lookup
-        const lower = key.toLowerCase().trim();
+        const lower = cleanKey.toLowerCase();
         for (let k in i18nDict) {
-            if (k.toLowerCase() === lower && i18nDict[k][currentAppLanguage]) {
-                return i18nDict[k][currentAppLanguage];
+            if (k.toLowerCase() === lower) {
+                if (i18nDict[k][lang]) return i18nDict[k][lang];
+                if (i18nDict[k][baseLang]) return i18nDict[k][baseLang];
             }
         }
     }
     
     // 2. Cache Lookup
-    const cached = getCachedVerseTranslation(key, currentAppLanguage);
-    if (cached && !isGarbageTranslation(cached)) {
+    const cached = getCachedVerseTranslation(key, lang) || getCachedVerseTranslation(key, baseLang);
+    if (cached && !isGarbageTranslation(cached, lang)) {
         return cached;
-    }
-    
-    // 3. Background Async Auto-Translation (Warms cache for next render)
-    if (key.length > 1 && !/^\d+$/.test(key)) {
-        translateTextAsync(key, currentAppLanguage).then(trans => {
-            if (trans && !isGarbageTranslation(trans)) {
-                setCachedVerseTranslation(key, currentAppLanguage, trans);
-            }
-        }).catch(() => {});
     }
     
     return key;
@@ -6960,7 +6956,8 @@ function preloadFunnyLines(lang = currentAppLanguage) {
 function applyDynamicRefTranslation(refEl, verse) {
     if (!refEl || !verse) return;
     refEl.textContent = formatVerseRef(verse);
-    if (currentAppLanguage === 'en_US' || currentAppLanguage === 'en') return;
+    const baseLang = getAppBaseLanguage(currentAppLanguage);
+    if (baseLang === 'en') return;
 
     // Automatic English Text Detection: If any Latin English letters are detected in the rendered citation, translate them!
     const textNow = refEl.textContent;
@@ -6970,7 +6967,7 @@ function applyDynamicRefTranslation(refEl, verse) {
         
         if (/[a-zA-Z]/.test(rawBook)) {
             translateTextAsync(rawBook, currentAppLanguage).then(trans => {
-                if (trans && refEl.isConnected) {
+                if (trans && refEl) {
                     refEl.textContent = formatVerseRef(verse);
                 }
             });
@@ -6978,7 +6975,7 @@ function applyDynamicRefTranslation(refEl, verse) {
         
         if (/[a-zA-Z]/.test(chap)) {
             translateTextAsync(chap, currentAppLanguage).then(trans => {
-                if (trans && refEl.isConnected) {
+                if (trans && refEl) {
                     refEl.textContent = formatVerseRef(verse);
                 }
             });
