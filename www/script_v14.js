@@ -31907,9 +31907,13 @@ function formatVerseRef(v, lang = currentAppLanguage) {
     if (!v) return '';
     const targetLang = lang || currentAppLanguage || 'en';
     const baseLang = getAppBaseLanguage(targetLang);
-    const rawBook = v.book || v.religion || '';
-    const chap = (v.chapter !== undefined && v.chapter !== null) ? String(v.chapter) : '';
-    const verse = (v.verse !== undefined && v.verse !== null) ? String(v.verse) : '';
+    let rawBook = (v.book || v.religion || '').trim();
+    rawBook = rawBook.replace(/\s+book$/i, '').trim();
+
+    let chap = (v.chapter !== undefined && v.chapter !== null) ? String(v.chapter).trim() : '';
+    chap = chap.replace(/^(?:book|chapter)\s+/i, '').trim();
+
+    const verse = (v.verse !== undefined && v.verse !== null) ? String(v.verse).trim() : '';
     
     let chapPart = (chap !== '' && chap !== null && chap !== undefined) ? ' ' + chap : '';
     let versePart = (verse !== '' && verse !== null && verse !== undefined) ? (chapPart ? ':' + verse : ' ' + verse) : '';
@@ -32794,8 +32798,8 @@ function applyDynamicRefTranslation(refEl, verse) {
     // Automatic English Detection: If English letters remain, grey out while neural engine translates
     if (/[a-zA-Z]{2,}/.test(textNow)) {
         refEl.style.opacity = '0.35'; // Grey out while translating just like verse body
-        const rawBook = verse.book || verse.religion || '';
-        const chap = (verse.chapter !== undefined && verse.chapter !== null) ? String(verse.chapter) : '';
+        const rawBook = (verse.book || verse.religion || '').replace(/\s+book$/i, '').trim();
+        const chap = (verse.chapter !== undefined && verse.chapter !== null) ? String(verse.chapter).replace(/^(?:book|chapter)\s+/i, '').trim() : '';
         
         const tasks = [];
         if (/[a-zA-Z]/.test(rawBook)) {
