@@ -6734,16 +6734,6 @@ async function checkForAppUpdates() {
 }
 
 async function initApp() {
-    // Early failsafe: ensures loading curtain always opens smoothly under any network/engine conditions
-    setTimeout(() => {
-        const ls = document.getElementById('loading');
-        if (ls && ls.style.display !== 'none') {
-            document.body.classList.add('app-ready');
-            ls.classList.add('loaded');
-            setTimeout(() => { ls.style.display = 'none'; }, 600);
-        }
-    }, 1200);
-
     try {
         initVisualizerWorker();
         checkForAppUpdates();
@@ -6890,6 +6880,10 @@ async function initApp() {
             setupWheelListeners();
 
             function dismissLoadingAndShowApp() {
+                const stage = document.getElementById('feed-stage');
+                if (stage && !stage.querySelector('.card-center')) {
+                    initializeVerseFeed(true);
+                }
                 const loadingScreen = document.getElementById('loading');
                 if (!loadingScreen || loadingScreen.style.display === 'none') {
                     document.body.classList.add('app-ready');
@@ -7878,7 +7872,26 @@ async function loadSelectedData() {
     if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
         globalSelectedRels = [...religions];
     }
-    await Promise.all(globalSelectedRels.map(rel => loadReligionData(rel)));
+    
+    // Fast-path: Load primary religion first so the first card renders in <80ms
+    const primaryRel = globalSelectedRels[0] || 'Christianity';
+    await loadReligionData(primaryRel);
+    
+    // Immediately ensure feed card exists
+    if (typeof initializeVerseFeed === 'function') {
+        initializeVerseFeed();
+    }
+    
+    // Load remaining selected religions concurrently in background
+    const remainingRels = globalSelectedRels.filter(r => r !== primaryRel);
+    if (remainingRels.length > 0) {
+        Promise.all(remainingRels.map(rel => loadReligionData(rel))).then(() => {
+            // Expand batches once full dataset is ready
+            if (verseBatches.general && verseBatches.general.length < 5) {
+                initializeVerseFeed(true);
+            }
+        }).catch(() => {});
+    }
     
     // Defer unselected background loading so initial feed animations and gestures are silky smooth
     setTimeout(() => {
@@ -8643,9 +8656,25 @@ function initializeVerseFeed(forceRefresh) {
         }
         return;
     }
-    const newBatch = generateBatch('general', []);
+    let newBatch = generateBatch('general', []);
     if (newBatch.length === 0) {
-        return;
+        // Fallback: pick any loaded verse from any religion pool
+        for (let rel of religions) {
+            if (religionVerses[rel] && religionVerses[rel].length > 0) {
+                newBatch = religionVerses[rel].slice(0, 10);
+                break;
+            }
+        }
+    }
+    if (newBatch.length === 0) {
+        newBatch = [{
+            id: 'starter_verse_1',
+            text: 'Peace comes from within. Do not seek it without.',
+            religion: 'Buddhism',
+            book: 'Dhammapada',
+            chapter: '1',
+            verse: '1'
+        }];
     }
     pushVersesWithAdCheck(newBatch);
     renderFeedCard(0);
