@@ -5823,6 +5823,8 @@ function cleanBengaliUnicode(text) {
         .trim();
 }
 
+const inFlightTranslations = new Map();
+
 async function translateTextAsync(text, targetLang) {
     if (!text || !targetLang || targetLang === 'en_US' || targetLang === 'en') return text;
     
@@ -5831,49 +5833,59 @@ async function translateTextAsync(text, targetLang) {
     if (cached && !isGarbageTranslation(cached, targetLang)) return cached;
     
     const shortLang = targetLang.split('_')[0].split('-')[0].toLowerCase();
-    
-    // 1. High-Speed Google Engine (No IP cap, instant response)
-    try {
-        const gUrl = 'https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=' + shortLang + '&q=' + encodeURIComponent(text);
-        const gResp = await fetch(gUrl);
-        if (gResp.ok) {
-            const gData = await gResp.json();
-            let gTrans = '';
-            if (Array.isArray(gData)) {
-                if (Array.isArray(gData[0])) {
-                    gTrans = (gData[0][0] || '').trim();
-                } else if (typeof gData[0] === 'string') {
-                    gTrans = gData[0].trim();
+    const flightKey = `${shortLang}_${text.trim()}`;
+    if (inFlightTranslations.has(flightKey)) {
+        return inFlightTranslations.get(flightKey);
+    }
+
+    const task = (async () => {
+        // 1. High-Speed Google Engine (No IP cap, instant response)
+        try {
+            const gUrl = 'https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=' + shortLang + '&q=' + encodeURIComponent(text);
+            const gResp = await fetch(gUrl);
+            if (gResp.ok) {
+                const gData = await gResp.json();
+                let gTrans = '';
+                if (Array.isArray(gData)) {
+                    if (Array.isArray(gData[0])) {
+                        gTrans = (gData[0][0] || '').trim();
+                    } else if (typeof gData[0] === 'string') {
+                        gTrans = gData[0].trim();
+                    }
+                }
+                if (gTrans && !isGarbageTranslation(gTrans, targetLang)) {
+                    if (shortLang === 'bn') gTrans = cleanBengaliUnicode(gTrans);
+                    setCachedVerseTranslation(text, targetLang, gTrans);
+                    return gTrans;
                 }
             }
-            if (gTrans && !isGarbageTranslation(gTrans, targetLang)) {
-                if (shortLang === 'bn') gTrans = cleanBengaliUnicode(gTrans);
-                setCachedVerseTranslation(text, targetLang, gTrans);
-                return gTrans;
-            }
-        }
-    } catch(e) {}
+        } catch(e) {}
 
-    // 2. MyMemory Fallback
-    try {
-        const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=en|' + shortLang;
-        const resp = await fetch(url);
-        if (resp.ok) {
-            const data = await resp.json();
-            if (data && data.responseData && data.responseData.translatedText) {
-                let trans = data.responseData.translatedText.trim();
-                if (!isGarbageTranslation(trans, targetLang)) {
-                    if (shortLang === 'bn') trans = cleanBengaliUnicode(trans);
-                    setCachedVerseTranslation(text, targetLang, trans);
-                    return trans;
+        // 2. MyMemory Fallback
+        try {
+            const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=en|' + shortLang;
+            const resp = await fetch(url);
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data && data.responseData && data.responseData.translatedText) {
+                    let trans = data.responseData.translatedText.trim();
+                    if (!isGarbageTranslation(trans, targetLang)) {
+                        if (shortLang === 'bn') trans = cleanBengaliUnicode(trans);
+                        setCachedVerseTranslation(text, targetLang, trans);
+                        return trans;
+                    }
                 }
             }
-        }
-    } catch(e) {}
+        } catch(e) {}
 
-    return text;
+        return text;
+    })().finally(() => {
+        inFlightTranslations.delete(flightKey);
+    });
+
+    inFlightTranslations.set(flightKey, task);
+    return task;
 }
-
 function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLanguage, highlightTerms = null) {
     if (!domElement || !rawText) return;
     
@@ -8641,11 +8653,11 @@ function preloadUpcomingVerses(currentIndex = currentVerseIndex.general || 0) {
         pushVersesWithAdCheck(newBatch);
     }
 
-    // Pre-translate upcoming 15 verses in parallel in the background
+    // Pre-translate upcoming 1 card gently ahead in the background (prevents network and thread lag)
     if (currentAppLanguage !== 'en_US' && currentAppLanguage !== 'en') {
-        const end = Math.min(currentIndex + 15, verseBatches.general.length);
-        for (let i = currentIndex; i < end; i++) {
-            const v = verseBatches.general[i];
+        const nextIdx = currentIndex + 1;
+        if (nextIdx < verseBatches.general.length) {
+            const v = verseBatches.general[nextIdx];
             if (v && v.text && !getCachedVerseTranslation(v.text, currentAppLanguage)) {
                 translateTextAsync(v.text, currentAppLanguage);
             }
@@ -8798,15 +8810,7 @@ function generateBatch(type, lastRels = []) {
         return selectedVerse;
     }).filter(v => v !== null);
 
-    // Warm up translations for the batch in the background so cards render with zero delay
-    if (currentAppLanguage !== 'en_US' && currentAppLanguage !== 'en') {
-        batch.forEach(v => {
-            if (v && v.text && !/[\u0980-\u09FF]/.test(v.text) && !getCachedVerseTranslation(v.text, currentAppLanguage)) {
-                translateTextAsync(v.text, currentAppLanguage);
-            }
-        });
-    }
-
+    // Verses are translated on-demand or in gentle 1-ahead preload to maintain buttery 60fps
     return batch;
 }
 function getVerseAtIndex(index) {
@@ -8866,7 +8870,9 @@ function getNextFunnyLine() {
 
 function preloadFunnyLines(lang = currentAppLanguage) {
     if (!lang || lang === 'en_US' || lang === 'en') return;
-    premiumFunnyLines.forEach(line => {
+    // Only preload the first 2 funny lines gently in background, not all 25 at once
+    const sample = premiumFunnyLines.slice(0, 2);
+    sample.forEach(line => {
         if (line && !getCachedVerseTranslation(line, lang)) {
             translateTextAsync(line, lang);
         }
@@ -11420,6 +11426,23 @@ function applyRandomPremiumAngle() {
     }
 }
 
+function updateLangItemInvertedStyle(el, isSelected) {
+    if (!el) return;
+    if (isSelected) {
+        el.style.border = '2px solid var(--text-color)';
+        el.style.background = 'var(--text-color)';
+        el.style.color = 'var(--bg-grad-1)';
+        el.style.opacity = '1';
+        el.style.fontWeight = '600';
+    } else {
+        el.style.border = '2px solid var(--glass-border)';
+        el.style.background = 'transparent';
+        el.style.color = 'var(--text-color)';
+        el.style.opacity = '0.6';
+        el.style.fontWeight = '500';
+    }
+}
+
 function renderLanguageList(filterQuery = '') {
     const container = document.getElementById('language-list-container');
     if (!container) return;
@@ -11439,10 +11462,12 @@ function renderLanguageList(filterQuery = '') {
 
     filtered.forEach(lang => {
         const item = document.createElement('div');
+        item.className = 'lang-option-item';
+        item.dataset.langCode = lang.code;
         const isSelected = currentAppLanguage === lang.code;
         
-        // Exact same selection style as topic and verse selection (inverted colors, no tick mark)
-        item.style.cssText = `display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-radius: 14px; border: 2px solid ${isSelected ? 'var(--text-color)' : 'var(--glass-border)'}; background: ${isSelected ? 'var(--text-color)' : 'transparent'}; color: ${isSelected ? 'var(--bg-grad-1)' : 'var(--text-color)'}; cursor: pointer; transition: all 0.2s ease; opacity: ${isSelected ? '1' : '0.6'}; font-weight: ${isSelected ? '600' : '500'};`;
+        item.style.cssText = `display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-radius: 14px; cursor: pointer; transition: all 0.18s ease;`;
+        updateLangItemInvertedStyle(item, isSelected);
         
         const isSameName = lang.native.toLowerCase() === lang.name.toLowerCase();
 
@@ -11453,8 +11478,22 @@ function renderLanguageList(filterQuery = '') {
             </div>
         `;
 
-        item.onclick = () => {
-            selectAppLanguage(lang);
+        item.onclick = (e) => {
+            if (e) e.stopPropagation();
+            
+            // 1. INSTANT visual invert selection in 0ms:
+            container.querySelectorAll('.lang-option-item').forEach(el => {
+                updateLangItemInvertedStyle(el, el === item);
+            });
+            
+            if (typeof playScrollSound === 'function') {
+                try { playScrollSound(); } catch(err){}
+            }
+
+            // 2. Allow user to see the crisp inverted selection, then smoothly close and switch
+            setTimeout(() => {
+                selectAppLanguage(lang);
+            }, 180);
         };
         container.appendChild(item);
     });
@@ -11524,9 +11563,13 @@ function selectAppLanguage(lang) {
         preloadFunnyLines(lang.code);
         buildSettings();
         
-        // Reload religion datasets if switching between native packs (Arabic, Bengali, English)
-        const nativeLangs = ['ar', 'bn', 'en_US', 'en'];
-        if (nativeLangs.includes(prevLang) || nativeLangs.includes(lang.code)) {
+        // Only reload dataset if switching to/from Arabic or Bengali which use dedicated translation JSON files
+        const prevBase = getAppBaseLanguage(prevLang);
+        const newBase = getAppBaseLanguage(lang.code);
+        const distinctPackLangs = ['ar', 'bn'];
+        const needsDatasetReload = (distinctPackLangs.includes(prevBase) || distinctPackLangs.includes(newBase)) && (prevBase !== newBase);
+
+        if (needsDatasetReload) {
             loadedReligions.clear();
             if (religionBooks.Islam) delete religionBooks.Islam;
             if (religionBooks.Christianity) delete religionBooks.Christianity;
