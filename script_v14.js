@@ -33809,18 +33809,22 @@ function highlightSearchTerms(text, terms) {
         .sort((a, b) => b.length - a.length);
         
     if (safeTerms.length === 0) return text;
-    const regex = new RegExp(`(${safeTerms.join('|')})`, 'gi');
+    // Grapheme-safe Unicode regex: Never split a combining mark / matra from its base consonant!
+    // 1. (?<!\p{M}): Never match starting with an orphaned combining mark
+    // 2. \p{M}*: Encompass any trailing vowel signs / matras (e.g. Bengali ি/ী/ু, Hindi, Arabic)
+    const regex = new RegExp(`(?<!\\p{M})((?:${safeTerms.join('|')})\\p{M}*)`, 'giu');
     return text.replace(regex, '<span class="search-highlight">$1</span>');
 }
 
 let searchDebounceTimeout = null;
+let activeSearchRequestId = 0;
 window.currentSearchResultsMatches = [];
 let currentSearchRenderedCount = 0;
 let currentSearchHighlightTerms = [];
 
 function debouncedPerformLibSearch() {
     clearTimeout(searchDebounceTimeout);
-    searchDebounceTimeout = setTimeout(performLibSearch, 250);
+    searchDebounceTimeout = setTimeout(performLibSearch, 300);
 }
 
 function checkTermMatch(vText, vTrans, term) {
@@ -33837,6 +33841,7 @@ async function performLibSearch() {
     const resultsContainer = document.getElementById('lib-search-results');
     if (!input || !resultsContainer) return;
     
+    const requestId = ++activeSearchRequestId;
     const rawVal = input.value.toLowerCase().trim();
     if (rawVal.length < 2) {
         resultsContainer.innerHTML = '';
@@ -33849,16 +33854,20 @@ async function performLibSearch() {
     const tokens = rawVal.split(/\s+/).filter(t => t.length > 0);
     let allSearchTerms = [...tokens, rawVal];
     
-    // Cross-language search: If user searches in English while in another language (or vice-versa), translate query!
-    if (currentAppLanguage !== 'en_US' && currentAppLanguage !== 'en') {
+    // Cross-language search: Only translate if query was typed in pure Latin/English while in non-English mode
+    const isPureLatin = /^[a-z0-9\s'’\-]+$/i.test(rawVal);
+    if (isPureLatin && currentAppLanguage !== 'en_US' && currentAppLanguage !== 'en') {
         try {
             const transTerm = await translateTextAsync(rawVal, currentAppLanguage);
+            if (requestId !== activeSearchRequestId) return; // Stale in-flight query, abort
             if (transTerm && transTerm.toLowerCase() !== rawVal) {
                 const transTokens = transTerm.toLowerCase().split(/\s+/).filter(t => t.length > 0);
                 allSearchTerms.push(transTerm.toLowerCase(), ...transTokens);
             }
         } catch(e) {}
     }
+    
+    if (requestId !== activeSearchRequestId) return; // Verify again after async call
     
     currentSearchHighlightTerms = Array.from(new Set(allSearchTerms.filter(t => t && t.length > 1)));
     
