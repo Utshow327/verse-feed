@@ -31043,7 +31043,7 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
                 showVoiceInstallingToast("Installing voice...", maxPercent);
             }
             
-            const tts = await import("./libs/piper/piper-bundle.js?v=20");
+            const tts = await import("./libs/piper/piper-bundle.js?v=21");
             if (tts.TtsSession._instance) {
                 tts.TtsSession._instance = null; // Force reload of ONNX model
             }

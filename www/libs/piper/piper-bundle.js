@@ -19497,7 +19497,7 @@ var _ortSession;
 var _progressCallback;
 var _wasmPaths;
 var _logger;
-var HF_BASE = "https://huggingface.co/rhasspy/piper-voices/resolve/main";
+var HF_BASE = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0";
 var ONNX_BASE = "/libs/piper/";
 var WASM_BASE = "/libs/piper/piper_phonemize";
 var PATH_MAP = {
@@ -19627,69 +19627,171 @@ var PATH_MAP = {
   "en_US-norman-medium": "en/en_US/norman/medium/en_US-norman-medium.onnx",
   "it_IT-paola-medium": "it/it_IT/paola/medium/it_IT-paola-medium.onnx"
 };
-async function writeBlob(url, blob) {
-  if (!true) return;
-  try {
-    const root = await navigator.storage.getDirectory();
-    const dir = await root.getDirectoryHandle("piper", {
-      create: true
-    });
-    const path = url.split("/").at(-1);
-    const file = await dir.getFileHandle(path, { create: true });
-    const writable = await file.createWritable();
-    await writable.write(blob);
-    await writable.close();
-  } catch (e) {
-    console.error(e);
-  }
+const PIPER_DB_NAME = "piper_voice_db_v1";
+const PIPER_STORE_NAME = "blobs";
+
+function getPiperDB() {
+  return new Promise((resolve) => {
+    if (typeof indexedDB === 'undefined') {
+      resolve(null);
+      return;
+    }
+    const req = indexedDB.open(PIPER_DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore(PIPER_STORE_NAME);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null);
+  });
 }
+
+async function writeBlob(url, blob) {
+  if (!blob || blob.size < 100) return;
+  // 1. Persist to Cache API (fastest in mobile WebView)
+  try {
+    if ('caches' in window) {
+      const cache = await caches.open('piper-voice-cache-v1');
+      await cache.put(url, new Response(blob));
+    }
+  } catch (e) {}
+
+  // 2. Also persist to IndexedDB
+  try {
+    const db = await getPiperDB();
+    if (db) {
+      const tx = db.transaction(PIPER_STORE_NAME, "readwrite");
+      tx.objectStore(PIPER_STORE_NAME).put(blob, url);
+      await new Promise((res) => {
+        tx.oncomplete = res;
+        tx.onerror = res;
+      });
+    }
+  } catch (e) {}
+
+  // 3. Fallback to OPFS only if createWritable is actually supported
+  try {
+    if (navigator.storage && navigator.storage.getDirectory) {
+      const root = await navigator.storage.getDirectory();
+      const dir = await root.getDirectoryHandle("piper", { create: true });
+      const path = url.split("/").at(-1);
+      const file = await dir.getFileHandle(path, { create: true });
+      if (typeof file.createWritable === 'function') {
+        const writable = await file.createWritable();
+        await writable.write(blob);
+        await writable.close();
+      }
+    }
+  } catch (e) {}
+}
+
 async function removeBlob(url) {
   try {
-    const root = await navigator.storage.getDirectory();
-    const dir = await root.getDirectoryHandle("piper");
-    const path = url.split("/").at(-1);
-    const file = await dir.getFileHandle(path);
-    await file.remove();
-  } catch (e) {
-    console.error(e);
-  }
-}
-async function readBlob(url) {
-  if (!true) return;
+    if ('caches' in window) {
+      const cache = await caches.open('piper-voice-cache-v1');
+      await cache.delete(url);
+    }
+  } catch (e) {}
   try {
-    const root = await navigator.storage.getDirectory();
-    const dir = await root.getDirectoryHandle("piper", {
-      create: true
-    });
-    const path = url.split("/").at(-1);
-    const file = await dir.getFileHandle(path);
-    return await file.getFile();
-  } catch (e) {
-    return void 0;
-  }
+    const db = await getPiperDB();
+    if (db) {
+      const tx = db.transaction(PIPER_STORE_NAME, "readwrite");
+      tx.objectStore(PIPER_STORE_NAME).delete(url);
+    }
+  } catch (e) {}
+  try {
+    if (navigator.storage && navigator.storage.getDirectory) {
+      const root = await navigator.storage.getDirectory();
+      const dir = await root.getDirectoryHandle("piper");
+      const path = url.split("/").at(-1);
+      const file = await dir.getFileHandle(path);
+      await file.remove();
+    }
+  } catch (e) {}
 }
+
+async function readBlob(url) {
+  // 1. Try Cache API first
+  try {
+    if ('caches' in window) {
+      const cache = await caches.open('piper-voice-cache-v1');
+      const match = await cache.match(url);
+      if (match) {
+        const b = await match.blob();
+        if (b && b.size > 100) return b;
+      }
+    }
+  } catch (e) {}
+
+  // 2. Try IndexedDB
+  try {
+    const db = await getPiperDB();
+    if (db) {
+      const tx = db.transaction(PIPER_STORE_NAME, "readonly");
+      const req = tx.objectStore(PIPER_STORE_NAME).get(url);
+      const res = await new Promise((resolve) => {
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(null);
+      });
+      if (res && res.size > 100) return res;
+    }
+  } catch (e) {}
+
+  // 3. Try OPFS, cleaning up 0-byte corrupt files if encountered
+  try {
+    if (navigator.storage && navigator.storage.getDirectory) {
+      const root = await navigator.storage.getDirectory();
+      const dir = await root.getDirectoryHandle("piper");
+      const path = url.split("/").at(-1);
+      const file = await dir.getFileHandle(path);
+      const f = await file.getFile();
+      if (f && f.size > 100) return f;
+      if (f && f.size === 0) {
+        try { await file.remove(); } catch (ign) {}
+      }
+    }
+  } catch (e) {}
+
+  return void 0;
+}
+
 async function fetchBlob(url, callback) {
-  var _a;
   const res = await fetch(url);
   if (!res.ok) throw new Error("HTTP error " + res.status + " fetching " + url);
-  const reader = (_a = res.body) == null ? void 0 : _a.getReader();
-  const contentLength = +(res.headers.get("Content-Length") ?? 0);
-  let receivedLength = 0;
-  let chunks = [];
-  while (reader) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
+  
+  if (!res.body || typeof res.body.getReader !== 'function') {
+    const b = await res.blob();
+    if (callback) {
+      callback({ url, total: b.size, loaded: b.size });
     }
-    chunks.push(value);
-    receivedLength += value.length;
-    callback == null ? void 0 : callback({
-      url,
-      total: contentLength,
-      loaded: receivedLength
-    });
+    return b;
   }
-  return new Blob(chunks, { type: res.headers.get("Content-Type") ?? void 0 });
+
+  try {
+    const reader = res.body.getReader();
+    const contentLength = +(res.headers.get("Content-Length") ?? 0);
+    let receivedLength = 0;
+    let chunks = [];
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      receivedLength += value.length;
+      if (callback) {
+        callback({
+          url,
+          total: contentLength || receivedLength,
+          loaded: receivedLength
+        });
+      }
+    }
+    if (chunks.length > 0 && receivedLength > 0) {
+      return new Blob(chunks, { type: res.headers.get("Content-Type") ?? void 0 });
+    }
+  } catch (streamErr) {
+    console.warn("Stream reading failed, falling back to res.blob():", streamErr);
+  }
+
+  return await res.blob();
 }
 function pcm2wav(buffer, numChannels, sampleRate) {
   const bufferLength = buffer.length;
@@ -19856,9 +19958,11 @@ async function predict(config, callback) {
 }
 async function getBlob(url, callback) {
   let blob = await readBlob(url);
-  if (!blob) {
+  if (!blob || blob.size < 100) {
     blob = await fetchBlob(url, callback);
-    await writeBlob(url, blob);
+    if (blob && blob.size > 100) {
+      await writeBlob(url, blob);
+    }
   }
   return blob;
 }
