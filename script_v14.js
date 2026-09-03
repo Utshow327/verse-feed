@@ -7093,10 +7093,7 @@ async function initApp() {
                     loadingScreen.style.display = 'none';
                 }, 950);
 
-                // Auto-start installing/loading the voice immediately on app open
-                setTimeout(() => {
-                    initPiper(selectedVoice).catch(err => console.log("Background voice pre-install:", err));
-                }, 300);
+                // Voice initializes on-demand when user clicks Speak button to keep startup at 60fps
 
                 try {
                     initLanguageSettings();
@@ -8050,7 +8047,6 @@ async function loadReligionData(rel) {
         if (rel === 'Philosophy') processGenericData(responses[0], 'Philosophy');
 
         loadedReligions.add(rel);
-        buildSettings();
 
         if (document.getElementById('read-books').classList.contains('active-section') && !document.getElementById('library-home').classList.contains('hidden')) {
             showReligions();
@@ -8074,28 +8070,22 @@ async function loadSelectedData() {
         initializeVerseFeed();
     }
     
-    // Load remaining selected religions concurrently in background
+    // Gently load remaining selected religions ONE AT A TIME with delays so UI stays silky smooth at 60fps
     const remainingRels = globalSelectedRels.filter(r => r !== primaryRel);
     if (remainingRels.length > 0) {
-        Promise.all(remainingRels.map(rel => loadReligionData(rel))).then(() => {
-            // Expand batches once full dataset is ready
-            if (verseBatches.general && verseBatches.general.length < 5) {
-                initializeVerseFeed(true);
+        setTimeout(async () => {
+            for (const rel of remainingRels) {
+                if (!loadedReligions.has(rel)) {
+                    await loadReligionData(rel);
+                    await new Promise(r => setTimeout(r, 400)); // Yield thread so user gestures are zero-lag
+                }
             }
-        }).catch(() => {});
+            if (typeof buildSettings === 'function') buildSettings();
+        }, 1500);
     }
-    
-    // Defer unselected background loading so initial feed animations and gestures are silky smooth
-    setTimeout(() => {
-        loadUnselectedDataInBackground();
-    }, 2500);
 }
 async function loadUnselectedDataInBackground() {
-    for (const rel of religions) {
-        if (!loadedReligions.has(rel)) {
-            loadReligionData(rel);
-        }
-    }
+    // Lazy loaded on demand when user accesses unselected books or changes settings
 }
 
 function toHebrewNumeral(num) {
@@ -8147,13 +8137,16 @@ function toHebrewNumeral(num) {
 function localizeDigits(str, lang = currentAppLanguage) {
     if (!str && str !== 0) return '';
     const s = String(str);
-    const baseLang = (lang || '').split('_')[0].split('-')[0].toLowerCase();
+    const baseLang = (lang || currentAppLanguage || '').split('_')[0].split('-')[0].toLowerCase();
     
     if (baseLang === 'he') {
-        return s.replace(/\d+/g, match => toHebrewNumeral(match));
+        return s.replace(/[0-9]+/g, match => toHebrewNumeral(match));
     }
     
     const digitMaps = {
+        'zh': ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'],
+        'ja': ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'],
+        'ko': ['영', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'],
         'bn': ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'],
         'as': ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'],
         'ar': ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'],
@@ -8180,7 +8173,7 @@ function localizeDigits(str, lang = currentAppLanguage) {
     
     const map = digitMaps[baseLang];
     if (!map) return s;
-    return s.replace(/\d/g, d => map[parseInt(d, 10)]);
+    return s.replace(/[0-9]/g, d => map[parseInt(d, 10)]);
 }
 
 function formatVerseRef(v) {
