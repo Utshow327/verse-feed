@@ -6008,7 +6008,7 @@ function applyLanguageTranslations(langCode = currentAppLanguage) {
     
     // 1. Update Settings Religion Toggle Buttons
     document.querySelectorAll('.global-rel-btn').forEach(btn => {
-        if (btn.id === 'dark-mode-toggle' || btn.onclick?.toString().includes('openLanguageModal')) return;
+        if (btn.id === 'dark-mode-toggle' || btn.id === 'language-toggle-btn' || btn.getAttribute('onclick')?.includes('openLanguageModal')) return;
         const canonicalRel = btn.dataset.religion || getCanonicalReligion(btn.textContent);
         if (canonicalRel) {
             btn.dataset.religion = canonicalRel;
@@ -6017,10 +6017,12 @@ function applyLanguageTranslations(langCode = currentAppLanguage) {
     });
 
     // 2. Update Settings Language Button Label (Display in authentic native script)
-    const selectedLangObj = supportedLanguages.find(l => l.code === langCode) || supportedLanguages[0];
-    const settingsLabel = document.getElementById('settings-current-lang-label');
-    if (settingsLabel) {
-        settingsLabel.textContent = selectedLangObj.native || selectedLangObj.name;
+    const selectedLangObj = supportedLanguages.find(l => l.code === langCode) || 
+                            supportedLanguages.find(l => getAppBaseLanguage(l.code) === getAppBaseLanguage(langCode)) || 
+                            supportedLanguages[0];
+    const settingsBtn = document.getElementById('language-toggle-btn');
+    if (settingsBtn && selectedLangObj) {
+        settingsBtn.innerHTML = `<span id="settings-current-lang-label">${selectedLangObj.native || selectedLangObj.name}</span>`;
     }
 
     // 3. Update Settings Links
@@ -6735,6 +6737,7 @@ async function checkForAppUpdates() {
 
 async function initApp() {
     try {
+        initLanguageSettings();
         initVisualizerWorker();
         checkForAppUpdates();
         updateUserUI();
@@ -8548,7 +8551,7 @@ function buildSettings() {
             localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
         }
         document.querySelectorAll('.global-rel-btn').forEach(btn => {
-            if (btn.id === 'dark-mode-toggle' || btn.id === 'language-toggle-btn' || btn.onclick?.toString().includes('openLanguageModal')) return;
+            if (btn.id === 'dark-mode-toggle' || btn.id === 'language-toggle-btn' || btn.getAttribute('onclick')?.includes('openLanguageModal')) return;
             const canonicalRel = btn.dataset.religion || getCanonicalReligion(btn.textContent);
             if (canonicalRel) {
                 btn.dataset.religion = canonicalRel;
@@ -8562,6 +8565,15 @@ function buildSettings() {
                 btn.classList.remove('active');
             }
         });
+
+        // Always sync the language button with currentAppLanguage
+        const currentLangObj = supportedLanguages.find(l => l.code === currentAppLanguage) || 
+                               supportedLanguages.find(l => getAppBaseLanguage(l.code) === getAppBaseLanguage(currentAppLanguage)) || 
+                               supportedLanguages[0];
+        const langBtn = document.getElementById('language-toggle-btn');
+        if (langBtn && currentLangObj) {
+            langBtn.innerHTML = `<span id="settings-current-lang-label">${currentLangObj.native || currentLangObj.name}</span>`;
+        }
     });
 }
 async function toggleGlobalReligion(rawRel) {
@@ -11452,6 +11464,44 @@ function filterLanguages(query) {
     renderLanguageList(query);
 }
 
+function refreshActiveSectionAfterLangChange() {
+    // 1. Reset and re-render feed cards in the new language
+    verseBatches.general = [];
+    currentFeedIndex = 0;
+    if (typeof currentVerseIndex === 'object') {
+        currentVerseIndex.general = 0;
+    }
+    initializeVerseFeed(true);
+
+    // 2. If Book section is active, re-render book views
+    const bookSection = document.getElementById('read-books');
+    if (bookSection && bookSection.classList.contains('active-section')) {
+        const bookContentView = document.getElementById('book-content-view');
+        if (bookContentView && !bookContentView.classList.contains('hidden') && typeof currentBookObj === 'object' && currentBookObj) {
+            if (typeof renderBookVerses === 'function') {
+                renderBookVerses(currentBookObj, currentChapterKey);
+            }
+        } else {
+            if (typeof showReligions === 'function') showReligions();
+        }
+    }
+
+    // 3. If Saved section is active, re-render saved verses
+    const savedSection = document.getElementById('saved-verses');
+    if (savedSection && savedSection.classList.contains('active-section')) {
+        if (typeof showSavedVerses === 'function') showSavedVerses(true);
+    }
+
+    // 4. If Search view has query, re-run search with new language
+    const searchInput = document.getElementById('search-input');
+    if (searchInput && searchInput.value.trim().length > 0) {
+        if (typeof performLibSearch === 'function') performLibSearch(searchInput.value.trim());
+    }
+
+    // 5. Update settings buttons
+    buildSettings();
+}
+
 function selectAppLanguage(lang) {
     if (!lang || !lang.code) return;
     const prevLang = currentAppLanguage;
@@ -11472,6 +11522,7 @@ function selectAppLanguage(lang) {
     setTimeout(() => {
         applyLanguageTranslations(lang.code);
         preloadFunnyLines(lang.code);
+        buildSettings();
         
         // Reload religion datasets if switching between native packs (Arabic, Bengali, English)
         const nativeLangs = ['ar', 'bn', 'en_US', 'en'];
@@ -11480,13 +11531,10 @@ function selectAppLanguage(lang) {
             if (religionBooks.Islam) delete religionBooks.Islam;
             if (religionBooks.Christianity) delete religionBooks.Christianity;
             loadSelectedData().then(() => {
-                if (typeof showReligions === 'function') showReligions();
-                if (typeof renderCurrentSection === 'function') renderCurrentSection();
+                refreshActiveSectionAfterLangChange();
             });
-        }
-        
-        if (typeof renderCards === 'function') {
-            renderCards();
+        } else {
+            refreshActiveSectionAfterLangChange();
         }
     }, 40);
 }
