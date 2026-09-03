@@ -18423,8 +18423,9 @@ function applyDynamicVerseTranslation(domElement, rawText, lang = currentAppLang
     if (!domElement || !rawText) return;
     
     const applyHighlight = (txt) => {
-        if (!highlightTerms || highlightTerms.length === 0) return txt;
-        return highlightSearchTerms(txt, highlightTerms);
+        const localized = localizeDigits(txt, lang);
+        if (!highlightTerms || highlightTerms.length === 0) return localized;
+        return highlightSearchTerms(localized, highlightTerms);
     };
 
     const baseLang = getAppBaseLanguage(lang);
@@ -20490,50 +20491,98 @@ function toHebrewNumeral(num) {
     return th_str + h_str + t_str;
 }
 
+function toEthiopicNumeral(numStr) {
+    const n = parseInt(numStr, 10);
+    if (isNaN(n) || n < 1 || n > 9999) return numStr;
+    const ones = ['', '፩', '፪', '፫', '፬', '፭', '፮', '፯', '፰', '፱'];
+    const tens = ['', '፲', '፳', '፴', '፵', '፶', '፷', '፸', '፹', '፺'];
+    if (n < 10) return ones[n];
+    if (n < 100) return tens[Math.floor(n / 10)] + ones[n % 10];
+    const h = Math.floor(n / 100);
+    const rem = n % 100;
+    const hStr = (h === 1 ? '' : toEthiopicNumeral(h)) + '፻';
+    const remStr = rem > 0 ? (tens[Math.floor(rem / 10)] + ones[rem % 10]) : '';
+    return hStr + remStr;
+}
+
+function toRomanNumeral(numStr) {
+    let n = parseInt(numStr, 10);
+    if (isNaN(n) || n < 1 || n > 3999) return numStr;
+    const vals = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+    const syms = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
+    let res = '';
+    for (let i = 0; i < vals.length; i++) {
+        while (n >= vals[i]) {
+            res += syms[i];
+            n -= vals[i];
+        }
+    }
+    return res;
+}
+
+const universalDigitMaps = {
+    // East Asian
+    'zh': ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'],
+    'zh_tw': ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'],
+    'ja': ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'],
+    'ko': ['영', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'],
+    // South Asian (Indic)
+    'bn': ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'],
+    'as': ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'],
+    'hi': ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'],
+    'mr': ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'],
+    'ne': ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'],
+    'sa': ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'],
+    'pa': ['੦', '੧', '੨', '੩', '੪', '੫', '੬', '੭', '੮', '੯'],
+    'gu': ['૦', '૧', '૨', '૩', '૪', '૫', '૬', '૭', '૮', '૯'],
+    'ta': ['௦', '௧', '௨', '௩', '௪', '௫', '௬', '௭', '௮', '௯'],
+    'te': ['౦', '౧', '౨', '౩', '౪', '౫', '౬', '౭', '౮', '౯'],
+    'kn': ['೦', '೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯'],
+    'ml': ['൦', '൧', '൨', '൩', '൪', '൫', '൬', '൭', '൮', '൯'],
+    'or': ['୦', '୧', '୨', '୩', '୪', '୫', '୬', '୭', '୮', '୯'],
+    'si': ['෦', '෧', '෨', '෩', '෪', '෫', '෬', '෭', '෮', '෯'],
+    // Middle Eastern & Perso-Arabic
+    'ar': ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'],
+    'fa': ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'],
+    'ur': ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'],
+    'ps': ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'],
+    'sd': ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'],
+    'ug': ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'],
+    'ku': ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'],
+    // Southeast Asian & Himalayan
+    'th': ['๐', '๑', '๒', '๓', '๔', '๕', '๖', '๗', '๘', '๙'],
+    'lo': ['໐', '໑', '໒', '໓', '໔', '໕', '໖', '໗', '໘', '໙'],
+    'my': ['၀', '၁', '၂', '၃', '၄', '၅', '၆', '၇', '၈', '၉'],
+    'km': ['០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩'],
+    'bo': ['༠', '༡', '༢', '༣', '༤', '༥', '༦', '༧', '༨', '༩'],
+    'mn': ['᠐', '᠑', '᠒', '᠓', '᠔', '᠕', '᠖', '᠗', '᠘', '᠙']
+};
+
 function localizeDigits(str, lang = currentAppLanguage) {
     if (!str && str !== 0) return '';
     const s = String(str);
-    const baseLang = (lang || currentAppLanguage || '').split('_')[0].split('-')[0].toLowerCase();
+    const targetLang = lang || currentAppLanguage || 'en';
+    const baseLang = targetLang.split('_')[0].split('-')[0].toLowerCase();
     
     if (baseLang === 'he') {
         return s.replace(/[0-9]+/g, match => toHebrewNumeral(match));
     }
+    if (baseLang === 'am') {
+        return s.replace(/[0-9]+/g, match => toEthiopicNumeral(match));
+    }
+    if (baseLang === 'la') {
+        return s.replace(/[0-9]+/g, match => toRomanNumeral(match));
+    }
     
-    const digitMaps = {
-        'zh': ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'],
-        'ja': ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'],
-        'ko': ['영', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'],
-        'bn': ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'],
-        'as': ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'],
-        'ar': ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'],
-        'hi': ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'],
-        'mr': ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'],
-        'ne': ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'],
-        'sa': ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'],
-        'ur': ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'],
-        'fa': ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'],
-        'ps': ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'],
-        'pa': ['੦', '੧', '੨', '੩', '੪', '੫', '੬', '੭', '੮', '੯'],
-        'gu': ['૦', '૧', '૨', '૩', '૪', '૫', '૬', '૭', '૮', '૯'],
-        'ta': ['௦', '௧', '௨', '௩', '௪', '௫', '௬', '௭', '௮', '௯'],
-        'te': ['౦', '౧', '౨', '౩', '౪', '౫', '౬', '౭', '౮', '౯'],
-        'kn': ['೦', '೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯'],
-        'ml': ['൦', '൧', '൨', '൩', '൪', '൫', '൬', '൭', '൮', '൯'],
-        'or': ['୦', '୧', '୨', '୩', '୪', '୫', '୬', '୭', '୮', '୯'],
-        'th': ['๐', '๑', '๒', '๓', '๔', '๕', '๖', '๗', '๘', '๙'],
-        'lo': ['໐', '໑', '໒', '໓', '໔', '໕', '໖', '໗', '໘', '໙'],
-        'my': ['၀', '၁', '၂', '၃', '၄', '၅', '၆', '၇', '၈', '၉'],
-        'km': ['០', '១', '២', '៣', '۴', '៥', '៦', '៧', '៨', '៩'],
-        'bo': ['༠', '༡', '༢', '༣', '༤', '༥', '༦', '༧', '༨', '༩']
-    };
-    
-    const map = digitMaps[baseLang];
+    const map = universalDigitMaps[targetLang.toLowerCase()] || universalDigitMaps[baseLang];
     if (!map) return s;
     return s.replace(/[0-9]/g, d => map[parseInt(d, 10)]);
 }
 
-function formatVerseRef(v) {
+function formatVerseRef(v, lang = currentAppLanguage) {
     if (!v) return '';
+    const targetLang = lang || currentAppLanguage || 'en';
+    const baseLang = getAppBaseLanguage(targetLang);
     const rawBook = v.book || v.religion || '';
     const chap = (v.chapter !== undefined && v.chapter !== null) ? String(v.chapter) : '';
     const verse = (v.verse !== undefined && v.verse !== null) ? String(v.verse) : '';
@@ -20542,36 +20591,37 @@ function formatVerseRef(v) {
     let versePart = (verse !== '' && verse !== null && verse !== undefined) ? (chapPart ? ':' + verse : ' ' + verse) : '';
     
     // Auto-detect and translate textual words in chapter/structure label
-    if (currentAppLanguage !== 'en_US' && currentAppLanguage !== 'en') {
+    if (baseLang !== 'en') {
         const words = chapPart.split(/(\s+|:)/);
         chapPart = words.map(w => {
             const clean = w.trim();
             if (!clean || !/[a-zA-Z]/.test(clean)) return w;
             if (typeof t === 'function') {
-                const tw = t(clean);
+                const tw = t(clean, targetLang);
                 if (tw && tw.toLowerCase() !== clean.toLowerCase()) return tw;
             }
-            const cached = getCachedVerseTranslation(clean, currentAppLanguage);
-            if (cached && !isGarbageTranslation(cached, currentAppLanguage)) return cached;
+            const cached = getCachedVerseTranslation(clean, targetLang);
+            if (cached && !isGarbageTranslation(cached, targetLang)) return cached;
             return w;
         }).join('');
     }
 
-    // Universal Native Digit Localization (Hebrew Gematria, Arabic, Bengali, Hindi, Urdu, etc.)
-    chapPart = localizeDigits(chapPart, currentAppLanguage);
-    versePart = localizeDigits(versePart, currentAppLanguage);
-    
     // Localize Book Name through universal dictionary & cache
     let localizedBook = rawBook;
     if (typeof t === "function") {
-        localizedBook = t(rawBook);
+        localizedBook = t(rawBook, targetLang);
     }
-    if (currentAppLanguage !== 'en_US' && currentAppLanguage !== 'en') {
-        const cachedBook = getCachedVerseTranslation(rawBook, currentAppLanguage);
-        if (cachedBook && !isGarbageTranslation(cachedBook, currentAppLanguage)) {
+    if (baseLang !== 'en') {
+        const cachedBook = getCachedVerseTranslation(rawBook, targetLang);
+        if (cachedBook && !isGarbageTranslation(cachedBook, targetLang)) {
             localizedBook = cachedBook;
         }
     }
+
+    // Universal Native Digit Localization
+    chapPart = localizeDigits(chapPart, targetLang);
+    versePart = localizeDigits(versePart, targetLang);
+    localizedBook = localizeDigits(localizedBook, targetLang);
     
     return `${localizedBook}${chapPart}${versePart}`.trim();
 }
