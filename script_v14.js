@@ -7708,7 +7708,7 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
         if (generationId !== currentGenerationId) break;
         
         // Yield to let browser paint animation frames BEFORE heavy work
-        await new Promise(r => setTimeout(r, 1));
+        await new Promise(r => requestAnimationFrame(r));
         if (generationId !== currentGenerationId) break;
         
         try {
@@ -9286,13 +9286,15 @@ function renderFeedCard(index, direction = 'none') {
     if (direction !== 'none' && oldCards.length > 0) {
         stage.appendChild(card);
         oldCards.forEach(oldCard => {
+            oldCard.style.transform = '';
+            oldCard.style.transition = 'transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.32s ease';
             oldCard.classList.remove('card-center', 'card-right', 'card-left');
             if (direction === 'next') oldCard.classList.add('card-left');
             else oldCard.classList.add('card-right');
             oldCard.style.pointerEvents = 'none';
             setTimeout(() => {
                 try { if (oldCard && oldCard.parentNode) oldCard.parentNode.removeChild(oldCard); } catch(e){}
-            }, 360);
+            }, 340);
         });
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
@@ -9337,7 +9339,7 @@ function nextCard(isAuto = false) {
             setTimeout(() => {
                 playText(spokenText, 'feed');
                 autoMode = true;
-            }, 100);
+            }, 260);
         } else if (newVerse && newVerse.isAd) {
             if (!newVerse.funnyLine) {
                 newVerse.funnyLine = getNextFunnyLine();
@@ -9381,7 +9383,7 @@ function prevCard() {
             setTimeout(() => {
                 playText(spokenText, 'feed');
                 autoMode = true;
-            }, 100);
+            }, 260);
         } else if (wasPlaying && newVerse && newVerse.isAd) {
             if (!newVerse.funnyLine) {
                 newVerse.funnyLine = getNextFunnyLine();
@@ -11433,23 +11435,17 @@ function initVisualizerWorker() {
 function resizeWaveformCanvas() {
     const canvas = document.getElementById('waveform-canvas');
     if (!canvas) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // High-performance 1.0 DPR: eliminates multi-megapixel GPU canvas overdraw while looking silky smooth
     visualizerLogicalWidth = Math.max(window.innerWidth, canvas.clientWidth || 0);
     visualizerLogicalHeight = 380;
-    const targetWidth = Math.round(visualizerLogicalWidth * dpr);
-    const targetHeight = Math.round(visualizerLogicalHeight * dpr);
 
-    if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
-        canvas.width = targetWidth;
-        canvas.height = targetHeight;
+    if (canvas.width !== visualizerLogicalWidth || canvas.height !== visualizerLogicalHeight) {
+        canvas.width = visualizerLogicalWidth;
+        canvas.height = visualizerLogicalHeight;
         canvas.style.width = '100vw';
         canvas.style.height = visualizerLogicalHeight + 'px';
     }
     waveformCanvasCtx = canvas.getContext('2d', { alpha: true });
-    if (waveformCanvasCtx) {
-        waveformCanvasCtx.setTransform(1, 0, 0, 1, 0, 0);
-        waveformCanvasCtx.scale(dpr, dpr);
-    }
     rebuildVisualizerGradients();
 }
 window.addEventListener('resize', resizeWaveformCanvas, { passive: true });
@@ -11490,56 +11486,64 @@ function startWaveformVisualizer() {
         visualizerDataArray = new Uint8Array(bufferLength);
     }
 
-    let lastDrawTime = 0;
     function draw(timestamp) {
         // Kill this loop if a newer generation started
         if (myGeneration !== visualizerDrawGeneration) return;
 
         waveformAnimFrame = requestAnimationFrame(draw);
 
-        // Throttle to ~30fps to save CPU (especially during voice download)
-        if (timestamp - lastDrawTime < 33) return;
-        lastDrawTime = timestamp;
+        // Clear canvas buffer efficiently
+        ctx.clearRect(0, 0, visualizerLogicalWidth, visualizerLogicalHeight);
 
-        // Clear entire physical buffer
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.restore();
+        const time = (timestamp || performance.now()) * 0.001;
 
-        if (audioAnalyser && isSpeaking && !isPaused) {
+        // Smooth continuous audio volume & verse change respiration
+        if (audioAnalyser && isSpeaking && !isPaused && !isGenerating && !isQueueGenerating) {
             audioAnalyser.getByteFrequencyData(visualizerDataArray);
             let sum = 0;
             const len = visualizerDataArray.length;
             for (let i = 0; i < len; i++) sum += visualizerDataArray[i];
             const avgVolume = sum / len / 255.0;
-            visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.28;
+            visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.22;
+        } else if (isGenerating || isQueueGenerating) {
+            // Organic ambient breathing wave during verse transition - prevents ANY stutter, freezing, or flatlining!
+            const breathTarget = 0.12 + 0.06 * Math.sin(time * 3.2);
+            visualizerSmoothedVol += (breathTarget - visualizerSmoothedVol) * 0.12;
         } else {
-            visualizerSmoothedVol *= 0.85;
+            visualizerSmoothedVol *= 0.90;
         }
 
         const cw = visualizerLogicalWidth;
         const ch = visualizerLogicalHeight;
-        const np = Math.max(40, Math.floor(cw / 8));
+        const np = 24; // 24 control points with quadratic Bézier interpolation for liquid 60fps performance
         const sw = (cw + 20) / (np - 1);
-        const time = Date.now() * 0.001;
 
         for (let layerIdx = 0; layerIdx < 3; layerIdx++) {
-            const speed = [1.5, 1.8, 2.2][layerIdx];
-            const frequency = [0.005, 0.007, 0.009][layerIdx];
+            const speed = [1.2, 1.5, 1.9][layerIdx];
+            const frequency = [0.004, 0.006, 0.008][layerIdx];
             const amplitudeBase = [8, 12, 16][layerIdx];
-            const audioMult = [95, 140, 195][layerIdx];
+            const audioMult = [85, 125, 170][layerIdx];
 
             ctx.beginPath();
             ctx.moveTo(-10, ch);
-            for (let i = 0; i < np; i++) {
+            
+            let prevX = -10;
+            const startWave = Math.sin(-10 * frequency + time * speed);
+            let prevY = ch - Math.max(4, amplitudeBase + (startWave * 7) + (visualizerSmoothedVol * audioMult));
+            ctx.lineTo(prevX, prevY);
+
+            for (let i = 1; i < np; i++) {
                 const x = -10 + (i * sw);
-                const wave1 = Math.sin(x * frequency + time * speed);
-                const wave2 = Math.sin((cw - x) * frequency + time * (speed * 0.85));
-                const height = amplitudeBase + (wave1 * 6) + (wave2 * 6) + (visualizerSmoothedVol * audioMult);
+                const wave = Math.sin(x * frequency + time * speed);
+                const height = amplitudeBase + (wave * 7) + (visualizerSmoothedVol * audioMult);
                 const y = ch - Math.max(4, height);
-                ctx.lineTo(x, y);
+                const midX = (prevX + x) * 0.5;
+                const midY = (prevY + y) * 0.5;
+                ctx.quadraticCurveTo(prevX, prevY, midX, midY);
+                prevX = x;
+                prevY = y;
             }
+            ctx.lineTo(cw + 10, prevY);
             ctx.lineTo(cw + 10, ch);
             ctx.closePath();
             ctx.fillStyle = (cachedGradLayers && cachedGradLayers[layerIdx]) || 'rgba(238, 204, 180, 0.3)';
