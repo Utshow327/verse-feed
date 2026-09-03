@@ -32534,12 +32534,17 @@ function updateBatchesAfterSettings() {
 function pushVersesWithAdCheck(newBatch) {
     for (let verse of newBatch) {
         if (!isPremiumUser) {
-            if (versesSinceLastAd === nextAdGap) {
-                verseBatches.general.push({ isAd: true });
-                versesSinceLastAd = 0;
-                nextAdGap = getNextAdGap();
+            // GUARANTEE: Never insert an ad until at least 4 real verses are already in the pool
+            if (verseBatches.general.length >= 4) {
+                if (versesSinceLastAd >= nextAdGap) {
+                    verseBatches.general.push({ isAd: true });
+                    versesSinceLastAd = 0;
+                    nextAdGap = getNextAdGap();
+                }
+                versesSinceLastAd++;
+            } else {
+                versesSinceLastAd++;
             }
-            versesSinceLastAd++;
         }
         verseBatches.general.push(verse);
     }
@@ -32573,6 +32578,12 @@ function initializeVerseFeed(forceRefresh) {
     const stage = document.getElementById('feed-stage');
     const emptyState = document.getElementById('feed-empty-state');
 
+    if (forceRefresh) {
+        verseBatches.general = [];
+        versesSinceLastAd = 0;
+        nextAdGap = getNextAdGap();
+    }
+
     if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
         globalSelectedRels = [...religions];
     }
@@ -32605,6 +32616,19 @@ function initializeVerseFeed(forceRefresh) {
         }];
     }
     pushVersesWithAdCheck(newBatch);
+
+    // Strict guarantee: First card (index 0) is NEVER an ad
+    if (verseBatches.general.length > 0 && verseBatches.general[0].isAd) {
+        const firstRealIdx = verseBatches.general.findIndex(v => v && !v.isAd);
+        if (firstRealIdx > 0) {
+            const temp = verseBatches.general[0];
+            verseBatches.general[0] = verseBatches.general[firstRealIdx];
+            verseBatches.general[firstRealIdx] = temp;
+        } else {
+            verseBatches.general.shift();
+        }
+    }
+
     renderFeedCard(0);
     preloadUpcomingVerses(0);
 }
@@ -37924,9 +37948,75 @@ function renderPremiumPackages() {
     const container = document.getElementById('premium-packages');
     if (!container) return;
 
-    const annualPrice = "$14.99";
-    const annualPerMonth = "$1.25";
-    const monthlyPrice = "$1.99";
+    let annualPrice = "$14.99";
+    let annualPerMonth = "$1.25";
+    let monthlyPrice = "$1.99";
+
+    // 1. Live Google Play / RevenueCat localized prices
+    if (rcPackages && rcPackages.length > 0) {
+        const annualPkg = rcPackages.find(p => p.packageType === 'ANNUAL' || (p.identifier && (p.identifier.toLowerCase().includes('annual') || p.identifier.toLowerCase().includes('yearly'))));
+        const monthlyPkg = rcPackages.find(p => p.packageType === 'MONTHLY' || (p.identifier && p.identifier.toLowerCase().includes('monthly')));
+
+        if (annualPkg && annualPkg.product) {
+            if (annualPkg.product.priceString) annualPrice = annualPkg.product.priceString;
+            if (annualPkg.product.price) {
+                const perMonthNum = (annualPkg.product.price / 12).toFixed(2);
+                const symbol = annualPkg.product.priceString ? annualPkg.product.priceString.replace(/[0-9.,\s]/g, '') : '$';
+                annualPerMonth = `${symbol}${perMonthNum}`;
+            }
+        }
+        if (monthlyPkg && monthlyPkg.product && monthlyPkg.product.priceString) {
+            monthlyPrice = monthlyPkg.product.priceString;
+        }
+    } else {
+        // 2. Intelligent Regional Currency Fallback (before Google Play finishes loading)
+        try {
+            const userTz = (Intl && Intl.DateTimeFormat) ? (Intl.DateTimeFormat().resolvedOptions().timeZone || '') : '';
+            const userLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
+            
+            if (userTz.includes('Dhaka') || userLang.includes('bn') || userLang.includes('bd') || currentAppLanguage === 'bn') {
+                annualPrice = "৳১,৬৫০";
+                annualPerMonth = "৳১৩৮";
+                monthlyPrice = "৳২২০";
+            } else if (userTz.includes('Kolkata') || userTz.includes('Calcutta') || userLang.includes('in') || currentAppLanguage === 'hi') {
+                annualPrice = "₹1,299";
+                annualPerMonth = "₹108";
+                monthlyPrice = "₹169";
+            } else if (userTz.includes('London') || userLang.includes('gb')) {
+                annualPrice = "£12.99";
+                annualPerMonth = "£1.08";
+                monthlyPrice = "£1.79";
+            } else if (userTz.includes('Paris') || userTz.includes('Berlin') || userTz.includes('Rome') || userTz.includes('Madrid') || userTz.includes('Amsterdam') || userTz.includes('Vienna') || userTz.includes('Brussels')) {
+                annualPrice = "14,99 €";
+                annualPerMonth = "1,25 €";
+                monthlyPrice = "1,99 €";
+            } else if (userTz.includes('Karachi') || userLang.includes('pk') || currentAppLanguage === 'ur') {
+                annualPrice = "Rs 3,999";
+                annualPerMonth = "Rs 333";
+                monthlyPrice = "Rs 550";
+            } else if (userTz.includes('Jakarta') || userLang.includes('id') || currentAppLanguage === 'id') {
+                annualPrice = "Rp 199.000";
+                annualPerMonth = "Rp 16.500";
+                monthlyPrice = "Rp 29.000";
+            } else if (userTz.includes('Sao_Paulo') || userLang.includes('br') || currentAppLanguage === 'pt') {
+                annualPrice = "R$ 69,90";
+                annualPerMonth = "R$ 5,80";
+                monthlyPrice = "R$ 9,90";
+            } else if (userTz.includes('Tokyo') || userLang.includes('ja') || currentAppLanguage === 'ja') {
+                annualPrice = "¥2,200";
+                annualPerMonth = "¥183";
+                monthlyPrice = "¥300";
+            } else if (userTz.includes('Seoul') || userLang.includes('ko') || currentAppLanguage === 'ko') {
+                annualPrice = "₩19,000";
+                annualPerMonth = "₩1,580";
+                monthlyPrice = "₩2,500";
+            } else if (userTz.includes('Manila') || userLang.includes('ph') || currentAppLanguage === 'fil') {
+                annualPrice = "₱799";
+                annualPerMonth = "₱67";
+                monthlyPrice = "₱110";
+            }
+        } catch (e) {}
+    }
 
     const saveBadge = typeof t === 'function' ? t('Save 37%') : 'Save 37%';
     const annualLabel = typeof t === 'function' ? t('Annual') : 'Annual';
