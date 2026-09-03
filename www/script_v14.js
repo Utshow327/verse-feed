@@ -11430,34 +11430,38 @@ function selectAppLanguage(lang) {
     localStorage.setItem('versefeed_user_language', lang.code);
     localStorage.setItem('user_language_selected', 'true');
     
-    // Immediate visual selection update in modal
-    const searchVal = document.getElementById('lang-search-input')?.value || '';
-    renderLanguageList(searchVal);
-    
-    // Reload religion datasets if switching between native packs (Arabic, Bengali, English)
-    const nativeLangs = ['ar', 'bn', 'en_US', 'en'];
-    if (nativeLangs.includes(prevLang) || nativeLangs.includes(lang.code)) {
-        loadedReligions.clear();
-        if (religionBooks.Islam) delete religionBooks.Islam;
-        if (religionBooks.Christianity) delete religionBooks.Christianity;
-        loadSelectedData().then(() => {
-            if (typeof showReligions === 'function') showReligions();
-            if (typeof renderCurrentSection === 'function') renderCurrentSection();
-        });
-    }
-    
-    applyLanguageTranslations(lang.code);
-    preloadFunnyLines(lang.code);
-    if (typeof renderCards === 'function') {
-        renderCards();
-    }
+    // Auto-close modal immediately with zero lag!
+    closeLanguageModal();
 
     if (!lang.hasVoice) {
         showToast((lang.native || lang.name) + ' (Text only)');
     } else {
         showToast(lang.native || lang.name);
     }
+
+    // Defer heavy DOM translations & data loading so modal closes at buttery 60fps
+    setTimeout(() => {
+        applyLanguageTranslations(lang.code);
+        preloadFunnyLines(lang.code);
+        
+        // Reload religion datasets if switching between native packs (Arabic, Bengali, English)
+        const nativeLangs = ['ar', 'bn', 'en_US', 'en'];
+        if (nativeLangs.includes(prevLang) || nativeLangs.includes(lang.code)) {
+            loadedReligions.clear();
+            if (religionBooks.Islam) delete religionBooks.Islam;
+            if (religionBooks.Christianity) delete religionBooks.Christianity;
+            loadSelectedData().then(() => {
+                if (typeof showReligions === 'function') showReligions();
+                if (typeof renderCurrentSection === 'function') renderCurrentSection();
+            });
+        }
+        
+        if (typeof renderCards === 'function') {
+            renderCards();
+        }
+    }, 40);
 }
+
 function openLanguageModal(isFirstLaunch = false) {
     const modal = document.getElementById('language-modal');
     if (!modal) return;
@@ -11469,11 +11473,11 @@ function openLanguageModal(isFirstLaunch = false) {
 }
 
 function closeLanguageModal(e) {
-    if (e) e.stopPropagation();
+    if (e && e.stopPropagation) e.stopPropagation();
     const modal = document.getElementById('language-modal');
     if (!modal) return;
     modal.classList.remove('show');
-    setTimeout(() => modal.classList.add('hidden'), 250);
+    setTimeout(() => modal.classList.add('hidden'), 200);
 }
 
 function initLanguageSettings() {
