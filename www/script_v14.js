@@ -803,7 +803,12 @@ const i18nDict = {
         "ja": "広告",
         "pt": "Anúncio",
         "tr": "Reklam",
-        "he": "מוֹדָעָה"
+        "he": "מוֹדָעָה",
+        "zh": "广告",
+        "ko": "광고",
+        "id": "Iklan",
+        "ur": "اشتہار",
+        "fa": "آگهی"
     },
     "by": {
         "ar": "بقلم",
@@ -817,7 +822,12 @@ const i18nDict = {
         "ja": "著者",
         "pt": "por",
         "tr": "tarafından",
-        "he": "עַל יְדֵי"
+        "he": "עַל יְדֵי",
+        "zh": "经过",
+        "ko": "~에 의해",
+        "id": "oleh",
+        "ur": "کی طرف سے",
+        "fa": "توسط"
     },
     "Guru Granth Sahib": {
         "ar": "جورو جرانث صاحب",
@@ -829,7 +839,15 @@ const i18nDict = {
         "de": "Guru Granth Sahib",
         "ru": "Гуру Грантх Сахиб",
         "pa": "ਗੁਰੂ ਗ੍ਰੰਥ ਸਾਹਿਬ",
-        "he": "גורו גרנת' סאהיב"
+        "he": "גורו גרנת' סאהיב",
+        "ja": "グル・グランス・サーヒブ",
+        "zh": "古鲁·格兰特·萨希布",
+        "ko": "전문가 그란스 사히브",
+        "pt": "Guru Granth Sahib",
+        "tr": "Guru Granth Sahib",
+        "id": "Guru Granth Sahib",
+        "ur": "گرو گرنتھ صاحب",
+        "fa": "گورو گرانت صاحب"
     },
     "Guru Nanak and the Sikh Religion": {
         "ar": "غورو ناناك والديانة السيخية",
@@ -840,7 +858,15 @@ const i18nDict = {
         "it": "Guru Nanak e la religione sikh",
         "de": "Guru Nanak und die Sikh-Religion",
         "ru": "Гуру Нанак и религия сикхов",
-        "he": "גורו ננק והדת הסיקית"
+        "he": "גורו ננק והדת הסיקית",
+        "ja": "グル・ナナクとシーク教",
+        "zh": "古鲁纳纳克和锡克教",
+        "ko": "구루 나낙과 시크교",
+        "pt": "Guru Nanak e a religião Sikh",
+        "tr": "Guru Nanak ve Sih Dini",
+        "id": "Guru Nanak dan Agama Sikh",
+        "ur": "گرو نانک اور سکھ مذہب",
+        "fa": "گورو ناناک و مذهب سیک"
     },
     "Existentialism": {
         "ar": "الوجودية",
@@ -854,7 +880,12 @@ const i18nDict = {
         "ja": "実存主義",
         "pt": "Existencialismo",
         "tr": "Varoluşçuluk",
-        "he": "אקזיסטנציאליזם"
+        "he": "אקזיסטנציאליזם",
+        "zh": "存在主义",
+        "ko": "실존주의",
+        "id": "Eksistensialisme",
+        "ur": "وجودیت",
+        "fa": "اگزیستانسیالیسم"
     },
     "Stoicism": {
         "ar": "الرواقية",
@@ -868,7 +899,12 @@ const i18nDict = {
         "ja": "ストア派",
         "pt": "Estoicismo",
         "tr": "Stoacılık",
-        "he": "סטואיות"
+        "he": "סטואיות",
+        "zh": "斯多葛主义",
+        "ko": "극기",
+        "id": "Sikap tabah",
+        "ur": "Stoicism",
+        "fa": "رواقی گری"
     },
     "Absurdism": {
         "ar": "العبثية",
@@ -882,7 +918,12 @@ const i18nDict = {
         "ja": "不条理主義",
         "pt": "Absurdismo",
         "tr": "Absürdizm",
-        "he": "אבסורדיזם"
+        "he": "אבסורדיזם",
+        "zh": "荒诞主义",
+        "ko": "부조리주의",
+        "id": "Absurdisme",
+        "ur": "بیہودہ پن",
+        "fa": "پوچ گرایی"
     },
     "Nihilism": {
         "ar": "العدمية",
@@ -896,7 +937,12 @@ const i18nDict = {
         "ja": "虚無主義",
         "pt": "Niilismo",
         "tr": "Nihilizm",
-        "he": "ניהיליזם"
+        "he": "ניהיליזם",
+        "zh": "虚无主义",
+        "ko": "허무주의",
+        "id": "Nihilisme",
+        "ur": "نحیل ازم",
+        "fa": "نیهیلیسم"
     },
     "Taoism": {
         "ar": "الطاوية",
@@ -910,7 +956,12 @@ const i18nDict = {
         "ja": "道教",
         "pt": "Taoísmo",
         "tr": "Taoizm",
-        "he": "טאואיזם"
+        "he": "טאואיזם",
+        "zh": "道教",
+        "ko": "도교",
+        "id": "Taoisme",
+        "ur": "تاؤ ازم",
+        "fa": "تائوئیسم"
     },
     "Confucianism": {
         "ar": "الكونفوشيوسية",
@@ -924,7 +975,12 @@ const i18nDict = {
         "ja": "儒教",
         "pt": "Confucionismo",
         "tr": "Konfüçyüsçülük",
-        "he": "קונפוציאניזם"
+        "he": "קונפוציאניזם",
+        "zh": "儒",
+        "ko": "유도",
+        "id": "Konfusianisme",
+        "ur": "کنفیوشس ازم",
+        "fa": "کنفوسیوسیسم"
     },
     "Philosophy": {
         "ar": "الفلسفة",
@@ -957,7 +1013,12 @@ const i18nDict = {
         "ja": "心理学",
         "pt": "Psicologia",
         "tr": "Psikoloji",
-        "he": "פְּסִיכוֹלוֹגִיָה"
+        "he": "פְּסִיכוֹלוֹגִיָה",
+        "zh": "心理学",
+        "ko": "심리학",
+        "id": "Psikologi",
+        "ur": "نفسیات",
+        "fa": "روانشناسی"
     },
     "Folder deleted": {
         "bn": "ফোল্ডার মুছে ফেলা হয়েছে",
@@ -1047,7 +1108,12 @@ const i18nDict = {
         "ja": "詩をコピーしました",
         "pt": "Versículo copiado",
         "tr": "Ayet kopyalandı",
-        "he": "הפסוק הועתק"
+        "he": "הפסוק הועתק",
+        "zh": "复制的诗句",
+        "ko": "복사된 구절",
+        "id": "Ayat disalin",
+        "ur": "آیت نقل کی گئی۔",
+        "fa": "آیه کپی شده"
     },
     "Bookmark removed": {
         "bn": "বুকমার্ক সরানো হয়েছে",
@@ -1061,7 +1127,12 @@ const i18nDict = {
         "ja": "ブックマークを削除しました",
         "pt": "Marcador removido",
         "tr": "Yer işareti kaldırıldı",
-        "he": "הסימניה הוסרה"
+        "he": "הסימניה הוסרה",
+        "zh": "书签已删除",
+        "ko": "북마크가 삭제되었습니다.",
+        "id": "Penanda dihapus",
+        "ur": "بک مارک ہٹا دیا گیا۔",
+        "fa": "نشانک حذف شد"
     },
     "Saved to Bookmarks (All)": {
         "bn": "বুকমার্কে সংরক্ষিত",
@@ -1075,7 +1146,12 @@ const i18nDict = {
         "ja": "ブックマークに保存しました",
         "pt": "Salvo nos Favoritos",
         "tr": "Yer İşaretlerine Kaydedildi",
-        "he": "נשמר בסימניות (הכל)"
+        "he": "נשמר בסימניות (הכל)",
+        "zh": "保存到书签（全部）",
+        "ko": "북마크에 저장됨(전체)",
+        "id": "Disimpan ke Bookmark (Semua)",
+        "ur": "بک مارکس میں محفوظ کیا گیا (تمام)",
+        "fa": "ذخیره شده در نشانک ها (همه)"
     },
     "Undo": {
         "bn": "পূর্বাবস্থায় ফেরত",
@@ -1101,28 +1177,76 @@ const i18nDict = {
         "hi": "मेडिटेशन",
         "es": "Meditaciones",
         "he": "מדיטציות",
-        "ar": "تأملات"
+        "ar": "تأملات",
+        "ja": "瞑想",
+        "zh": "沉思",
+        "ko": "명상",
+        "fr": "Méditations",
+        "de": "Meditationen",
+        "ru": "Медитации",
+        "it": "Meditazioni",
+        "pt": "Meditações",
+        "tr": "Meditasyonlar",
+        "id": "Meditasi",
+        "ur": "مراقبہ",
+        "fa": "مدیتیشن ها"
     },
     "Talmud": {
         "bn": "তালমুদ",
         "hi": "तालमुद",
         "ar": "التلمود",
         "he": "תלמוד",
-        "es": "Talmud"
+        "es": "Talmud",
+        "ja": "タルムード",
+        "zh": "塔木德",
+        "ko": "탈무드",
+        "fr": "Talmud",
+        "de": "Talmud",
+        "ru": "Талмуд",
+        "it": "Talmud",
+        "pt": "Talmude",
+        "tr": "Talmud",
+        "id": "Talmud",
+        "ur": "تلمود",
+        "fa": "تلمود"
     },
     "Tanakh": {
         "bn": "তানাক",
         "hi": "तनाख",
         "ar": "التناخ",
         "he": "תנ\"ך",
-        "es": "Tanaj"
+        "es": "Tanaj",
+        "ja": "タナク",
+        "zh": "塔纳赫",
+        "ko": "타나크",
+        "fr": "Tanakh",
+        "de": "Tanach",
+        "ru": "Танах",
+        "it": "Tanakh",
+        "pt": "Tanakh",
+        "tr": "Tanah",
+        "id": "Tanakh",
+        "ur": "تنخ",
+        "fa": "تناخ"
     },
     "Torah": {
         "bn": "তোরাহ",
         "hi": "तोराह",
         "ar": "التوراة",
         "he": "תורה",
-        "es": "Torá"
+        "es": "Torá",
+        "ja": "トーラー",
+        "zh": "妥拉",
+        "ko": "토라",
+        "fr": "Torah",
+        "de": "Thora",
+        "ru": "Тора",
+        "it": "Torah",
+        "pt": "Torá",
+        "tr": "Tevrat",
+        "id": "Torah",
+        "ur": "تورات",
+        "fa": "تورات"
     },
     "Proverbs": {
         "bn": "হিতোপদেশ",
@@ -1133,7 +1257,15 @@ const i18nDict = {
         "it": "Proverbi",
         "de": "Sprüche",
         "ru": "Притчи",
-        "he": "משלי"
+        "he": "משלי",
+        "ja": "ことわざ",
+        "zh": "箴言",
+        "ko": "잠언",
+        "pt": "Provérbios",
+        "tr": "Atasözleri",
+        "id": "Amsal",
+        "ur": "کہاوتیں",
+        "fa": "ضرب المثل ها"
     },
     "Psalms": {
         "bn": "গীতসংহিতা",
@@ -1144,7 +1276,15 @@ const i18nDict = {
         "it": "Salmi",
         "de": "Psalmen",
         "ru": "Псалтирь",
-        "he": "תהילים"
+        "he": "תהילים",
+        "ja": "詩篇",
+        "zh": "诗篇",
+        "ko": "시편",
+        "pt": "Salmos",
+        "tr": "Mezmurlar",
+        "id": "Mazmur",
+        "ur": "زبور",
+        "fa": "مزامیر"
     },
     "John": {
         "bn": "যোহন",
@@ -1155,7 +1295,15 @@ const i18nDict = {
         "it": "Giovanni",
         "de": "Johannes",
         "ru": "Иоанн",
-        "he": "יוחנן"
+        "he": "יוחנן",
+        "ja": "ジョン",
+        "zh": "约翰",
+        "ko": "남자",
+        "pt": "John",
+        "tr": "John",
+        "id": "Yohanes",
+        "ur": "جان",
+        "fa": "جان"
     },
     "Luke": {
         "bn": "লূক",
@@ -1166,7 +1314,15 @@ const i18nDict = {
         "it": "Luca",
         "de": "Lukas",
         "ru": "Лука",
-        "he": "לוקאס"
+        "he": "לוקאס",
+        "ja": "ルーク",
+        "zh": "卢克",
+        "ko": "루크",
+        "pt": "Lucas",
+        "tr": "Luka",
+        "id": "Lukas",
+        "ur": "لیوک",
+        "fa": "لوک"
     },
     "Mark": {
         "bn": "মার্ক",
@@ -1177,7 +1333,15 @@ const i18nDict = {
         "it": "Marco",
         "de": "Markus",
         "ru": "Марк",
-        "he": "מרקוס"
+        "he": "מרקוס",
+        "ja": "マーク",
+        "zh": "标记",
+        "ko": "표시",
+        "pt": "Marca",
+        "tr": "İşaret",
+        "id": "Tanda",
+        "ur": "نشان",
+        "fa": "علامت گذاری کنید"
     },
     "Matthew": {
         "bn": "মথি",
@@ -1188,7 +1352,15 @@ const i18nDict = {
         "it": "Matteo",
         "de": "Matthäus",
         "ru": "Матфей",
-        "he": "מתי"
+        "he": "מתי",
+        "ja": "マシュー",
+        "zh": "马修",
+        "ko": "매튜",
+        "pt": "Mateus",
+        "tr": "Matta",
+        "id": "Matius",
+        "ur": "میتھیو",
+        "fa": "متیو"
     },
     "Deuteronomy": {
         "bn": "দ্বিতীয় বিবরণ",
@@ -1199,7 +1371,15 @@ const i18nDict = {
         "it": "Deuteronomio",
         "de": "Deuteronomium",
         "ru": "Второзаконие",
-        "he": "דברים"
+        "he": "דברים",
+        "ja": "申命記",
+        "zh": "申命记",
+        "ko": "신명기",
+        "pt": "Deuteronômio",
+        "tr": "Tesniye",
+        "id": "Ulangan",
+        "ur": "Deuteronomy",
+        "fa": "تثنیه"
     },
     "Numbers": {
         "bn": "গণনা পুস্তক",
@@ -1210,7 +1390,15 @@ const i18nDict = {
         "it": "Numeri",
         "de": "Numeri",
         "ru": "Числа",
-        "he": "במדבר"
+        "he": "במדבר",
+        "ja": "数字",
+        "zh": "数字",
+        "ko": "숫자",
+        "pt": "Números",
+        "tr": "Sayılar",
+        "id": "Angka",
+        "ur": "نمبرز",
+        "fa": "اعداد"
     },
     "Leviticus": {
         "bn": "লেবীয় পুস্তক",
@@ -1221,7 +1409,15 @@ const i18nDict = {
         "it": "Levitico",
         "de": "Levitikus",
         "ru": "Левит",
-        "he": "ויקרא"
+        "he": "ויקרא",
+        "ja": "レビ記",
+        "zh": "利未记",
+        "ko": "레위기",
+        "pt": "Levítico",
+        "tr": "Levililer",
+        "id": "Imamat",
+        "ur": "Leviticus",
+        "fa": "لاویان"
     },
     "Exodus": {
         "bn": "যাত্রাপুস্তক",
@@ -1232,7 +1428,15 @@ const i18nDict = {
         "it": "Esodo",
         "de": "Exodus",
         "ru": "Исход",
-        "he": "שמות"
+        "he": "שמות",
+        "ja": "出エジプト記",
+        "zh": "出埃及记",
+        "ko": "이동",
+        "pt": "Êxodo",
+        "tr": "Çıkış",
+        "id": "Keluaran",
+        "ur": "خروج",
+        "fa": "خروج"
     },
     "Genesis": {
         "bn": "আদিপুস্তক",
@@ -1243,35 +1447,92 @@ const i18nDict = {
         "it": "Genesi",
         "de": "Genesis",
         "ru": "Бытие",
-        "he": "בראשית"
+        "he": "בראשית",
+        "ja": "創世記",
+        "zh": "创世纪",
+        "ko": "창세기",
+        "pt": "Gênese",
+        "tr": "Yaratılış",
+        "id": "Asal",
+        "ur": "پیدائش",
+        "fa": "پیدایش"
     },
     "New Testament": {
         "bn": "নতুন নিয়ম",
         "hi": "नया नियम",
         "ar": "العهد الجديد",
         "es": "Nuevo Testamento",
-        "he": "בְּרִית חֲדָשָׁה"
+        "he": "בְּרִית חֲדָשָׁה",
+        "ja": "新約聖書",
+        "zh": "新约",
+        "ko": "신약 성서",
+        "fr": "le Nouveau Testament",
+        "de": "Neues Testament",
+        "ru": "Новый Завет",
+        "it": "Nuovo Testamento",
+        "pt": "Novo Testamento",
+        "tr": "Yeni Ahit",
+        "id": "Perjanjian Baru",
+        "ur": "نیا عہد نامہ",
+        "fa": "عهد جدید"
     },
     "Old Testament": {
         "bn": "পুরাতন নিয়ম",
         "hi": "पुराना नियम",
         "ar": "العهد القديم",
         "es": "Antiguo Testamento",
-        "he": "הברית הישנה"
+        "he": "הברית הישנה",
+        "ja": "旧約聖書",
+        "zh": "旧约",
+        "ko": "구약 성서",
+        "fr": "Ancien Testament",
+        "de": "Altes Testament",
+        "ru": "Ветхий Завет",
+        "it": "Antico Testamento",
+        "pt": "Antigo Testamento",
+        "tr": "Eski Ahit",
+        "id": "Perjanjian Lama",
+        "ur": "عہد نامہ قدیم",
+        "fa": "عهد عتیق"
     },
     "Granth Sahib": {
         "bn": "গ্রন্থ সাহিব",
         "hi": "ग्रंथ साहिब",
         "pa": "ਗ੍ਰੰਥ ਸਾਹਿਬ",
         "he": "גרנת' סאהיב",
-        "ar": "جرانث صاحب"
+        "ar": "جرانث صاحب",
+        "ja": "グラント・サーヒブ",
+        "zh": "格兰斯·萨希布",
+        "ko": "그란스 사히브",
+        "es": "Granth Sahib",
+        "fr": "Granth Sahib",
+        "de": "Granth Sahib",
+        "ru": "Грант Сахиб",
+        "it": "Granth Sahib",
+        "pt": "Granth Sahib",
+        "tr": "Granth Sahib",
+        "id": "Granth Sahib",
+        "ur": "گرنتھ صاحب",
+        "fa": "گرانت صاحب"
     },
     "Dhammapada": {
         "bn": "ধম্মপদ",
         "hi": "धम्मपद",
         "es": "Dhammapada",
         "he": "דהמפדה",
-        "ar": "دهامابادا"
+        "ar": "دهامابادا",
+        "ja": "ダンマパダ",
+        "zh": "法句经",
+        "ko": "담마파다",
+        "fr": "Dhammapada",
+        "de": "Dhammapada",
+        "ru": "Дхаммапада",
+        "it": "Dhammapada",
+        "pt": "Dhammapada",
+        "tr": "Dhammapada",
+        "id": "Dhammapada",
+        "ur": "دھماپادا",
+        "fa": "داماپادا"
     },
     "Bhagavad Gita": {
         "bn": "শ্রীমদ্ভগবদ্গীতা",
@@ -1283,7 +1544,15 @@ const i18nDict = {
         "it": "Bhagavad Gita",
         "de": "Bhagavad Gita",
         "ru": "Бхагавад-гита",
-        "he": "בהגוואד גיטה"
+        "he": "בהגוואד גיטה",
+        "ja": "バガヴァッド・ギーター",
+        "zh": "薄伽梵歌",
+        "ko": "바가바드 기타",
+        "pt": "Bhagavad Gita",
+        "tr": "Bhagavad Gita",
+        "id": "Bhagavad Gita",
+        "ur": "بھگواد گیتا",
+        "fa": "باگاواد گیتا"
     },
     "Sunan Ibn Majah": {
         "bn": "সুনান ইবনে মাজাহ",
@@ -1293,28 +1562,73 @@ const i18nDict = {
         "he": "סונאן אבן מאג'ה",
         "es": "Sunan Ibn Majah",
         "fr": "Sunan Ibn Majah",
-        "fa": "سنن ابن ماجه"
+        "fa": "سنن ابن ماجه",
+        "ja": "スナン・イブン・マジャ",
+        "zh": "苏南·伊本·马贾",
+        "ko": "수난 이븐 마자",
+        "de": "Sunan Ibn Majah",
+        "ru": "Сунан Ибн Маджа",
+        "it": "Sunan Ibn Majah",
+        "pt": "Sunan Ibn Majah",
+        "tr": "Sünen İbn Mâce",
+        "id": "Sunan Ibn Majah"
     },
     "Sunan an-Nasai": {
         "bn": "সুনান আন-নাসায়ী",
         "hi": "सुनन अन-नसाई",
         "ar": "سنن النسائي",
         "ur": "سنن نسائی",
-        "he": "קוראים לו אנ-נסאי"
+        "he": "קוראים לו אנ-נסאי",
+        "ja": "彼の名前はアン・ナサイです",
+        "zh": "他的名字叫安纳赛",
+        "ko": "그의 이름은 안-나사이(An-Nasai)입니다",
+        "es": "Su nombre es An-Nasai.",
+        "fr": "Son nom est An-Nasai",
+        "de": "Sein Name ist An-Nasai",
+        "ru": "Его зовут Ан-Насаи.",
+        "it": "Il suo nome è An-Nasai",
+        "pt": "Seu nome é An-Nasai",
+        "tr": "Onun adı An-Nesai",
+        "id": "Namanya An-Nasai",
+        "fa": "نام او نسایی است"
     },
     "Jami At Tirmidhi": {
         "bn": "জামে তিরমিযী",
         "hi": "जामी अत-तिर्मिज़ी",
         "ar": "جامع الترمذي",
         "ur": "جامع ترمذی",
-        "he": "ג'מי בטירמידי"
+        "he": "ג'מי בטירמידי",
+        "ja": "ジャミ・アット・ティルミディ",
+        "zh": "贾米在提尔米济",
+        "ko": "자미 앳 티르미디",
+        "es": "Jami At Tirmidhi",
+        "fr": "Jami à Tirmidhi",
+        "de": "Jami in Tirmidhi",
+        "ru": "Джами Ат-Тирмизи",
+        "it": "Jami a Tirmidhi",
+        "pt": "Jami em Tirmidhi",
+        "tr": "Cami At Tirmizi",
+        "id": "Jami At Tirmidzi",
+        "fa": "جامی در ترمذی"
     },
     "Sunan Abu Dawud": {
         "bn": "সুনান আবু দাউদ",
         "hi": "सुनन अबू दाऊद",
         "ar": "سنن أبي داود",
         "ur": "سنن ابو داؤد",
-        "he": "שמו של אבו דאוד"
+        "he": "שמו של אבו דאוד",
+        "ja": "アブ・ダウドの名前",
+        "zh": "阿布达乌德的名字",
+        "ko": "아부 다우드의 이름",
+        "es": "El nombre de Abu Dawud",
+        "fr": "Le nom d'Abou Dawud",
+        "de": "Der Name Abu Dawud",
+        "ru": "Имя Абу Дауда",
+        "it": "Il nome di Abu Dawud",
+        "pt": "O nome de Abu Dawud",
+        "tr": "Ebu Davud'un adı",
+        "id": "Nama Abu Dawud",
+        "fa": "نام ابوداود"
     },
     "Sahih Muslim": {
         "bn": "সহীহ মুসলিম",
@@ -1328,7 +1642,12 @@ const i18nDict = {
         "ru": "Сахих Муслим",
         "it": "Sahih Muslim",
         "tr": "Sahih-i Müslim",
-        "fa": "صحیح مسلم"
+        "fa": "صحیح مسلم",
+        "ja": "サヒフ・ムスリム",
+        "zh": "穆斯林圣训",
+        "ko": "사히 무슬림",
+        "pt": "Sahih muçulmano",
+        "id": "Sahih Muslim"
     },
     "Sahih Bukhari": {
         "bn": "সহীহ বুখারী",
@@ -1342,7 +1661,12 @@ const i18nDict = {
         "ru": "Сахих аль-Бухари",
         "it": "Sahih al-Bukhari",
         "tr": "Sahih-i Buhari",
-        "fa": "صحیح بخاری"
+        "fa": "صحیح بخاری",
+        "ja": "サヒ・ブハリ",
+        "zh": "布哈里圣训",
+        "ko": "사히 부카리",
+        "pt": "Sahih Bukhari",
+        "id": "Shahih Bukhari"
     },
     "Quran": {
         "bn": "কোরআন",
@@ -1359,7 +1683,9 @@ const i18nDict = {
         "pt": "Alcorão",
         "tr": "Kuran",
         "zh": "古兰经",
-        "fa": "قرآن"
+        "fa": "قرآن",
+        "ko": "꾸란",
+        "id": "Alquran"
     },
     "Christianity": {
         "bn": "খ্রিস্টধর্ম",
@@ -2411,28 +2737,76 @@ const i18nDict = {
         "hi": "सूत्र",
         "es": "Sutras",
         "he": "סוטרות",
-        "ar": "سوترا"
+        "ar": "سوترا",
+        "ja": "お経",
+        "zh": "佛经",
+        "ko": "경전",
+        "fr": "Soutras",
+        "de": "Sutras",
+        "ru": "Сутры",
+        "it": "Sutra",
+        "pt": "Sutras",
+        "tr": "Sutralar",
+        "id": "Sutra",
+        "ur": "ستراس",
+        "fa": "سوتراها"
     },
     "SUTRAS": {
         "bn": "সূত্র",
         "hi": "सूत्र",
         "es": "Sutras",
         "he": "SUTRAS",
-        "ar": "سوترا"
+        "ar": "سوترا",
+        "ja": "お経",
+        "zh": "佛经",
+        "ko": "경전",
+        "fr": "SUTRAS",
+        "de": "SUTRAS",
+        "ru": "СУТРА",
+        "it": "SUTRA",
+        "pt": "SUTRAS",
+        "tr": "SUTRALAR",
+        "id": "SUTRA",
+        "ur": "سوتر",
+        "fa": "سوتراها"
     },
     "sutras": {
         "bn": "সূত্র",
         "hi": "सूत्र",
         "es": "Sutras",
         "he": "סוטרות",
-        "ar": "سوترا"
+        "ar": "سوترا",
+        "ja": "お経",
+        "zh": "佛经",
+        "ko": "경전",
+        "fr": "sutras",
+        "de": "Sutras",
+        "ru": "сутры",
+        "it": "sutra",
+        "pt": "sutras",
+        "tr": "vecizeler",
+        "id": "sutra",
+        "ur": "ستراس",
+        "fa": "سوتراها"
     },
     "Zen": {
         "bn": "জেন",
         "hi": "ज़ेन",
         "es": "Zen",
         "he": "זן",
-        "ar": "زين"
+        "ar": "زين",
+        "ja": "禅",
+        "zh": "禅",
+        "ko": "선",
+        "fr": "Zen",
+        "de": "Zen",
+        "ru": "Дзен",
+        "it": "zen",
+        "pt": "zen",
+        "tr": "Zen",
+        "id": "Zen",
+        "ur": "زین",
+        "fa": "ذن"
     },
     "Jatakas & Legends": {
         "bn": "জাতক ও পৌরাণিক কাহিনী",
@@ -2441,202 +2815,551 @@ const i18nDict = {
         "he": "ג'טאקות ואגדות",
         "ar": "جاتاكاس والأساطير",
         "fr": "Jâtakas et Légendes",
-        "de": "Jatakas und Legenden"
+        "de": "Jatakas und Legenden",
+        "ja": "ジャータカと伝説",
+        "zh": "本生经与传说",
+        "ko": "자타카와 전설",
+        "ru": "Джатаки и легенды",
+        "it": "Jataka e leggende",
+        "pt": "Jatakas e lendas",
+        "tr": "Jatakalar ve Efsaneler",
+        "id": "Jataka & Legenda",
+        "ur": "جاتک اور لیجنڈز",
+        "fa": "جاتاکاها و افسانه ها"
     },
     "Ancient Greek": {
         "bn": "প্রাচীন গ্রিক দর্শন",
         "hi": "प्राचीन यूनानी दर्शन",
         "es": "Griego Antiguo",
         "he": "יוונית עתיקה",
-        "ar": "اليونانية القديمة"
+        "ar": "اليونانية القديمة",
+        "ja": "古代ギリシャ語",
+        "zh": "古希腊语",
+        "ko": "고대 그리스",
+        "fr": "Grec ancien",
+        "de": "Altgriechisch",
+        "ru": "Древнегреческий",
+        "it": "Greco antico",
+        "pt": "Grego antigo",
+        "tr": "Antik Yunan",
+        "id": "Yunani Kuno",
+        "ur": "قدیم یونانی۔",
+        "fa": "یونان باستان"
     },
     "Rationalism": {
         "bn": "যুক্তিবাদ",
         "hi": "तर्कवाद",
         "es": "Racionalismo",
         "he": "רציונליזם",
-        "ar": "العقلانية"
+        "ar": "العقلانية",
+        "ja": "合理主義",
+        "zh": "理性主义",
+        "ko": "이성론",
+        "fr": "Rationalisme",
+        "de": "Rationalismus",
+        "ru": "Рационализм",
+        "it": "Razionalismo",
+        "pt": "Racionalismo",
+        "tr": "Rasyonalizm",
+        "id": "Rasionalisme",
+        "ur": "عقلیت پسندی",
+        "fa": "عقل گرایی"
     },
     "Empiricism": {
         "bn": "অভিজ্ঞতাবাদ",
         "hi": "अनुभववाद",
         "es": "Empirismo",
         "he": "אמפיריציזם",
-        "ar": "التجريبية"
+        "ar": "التجريبية",
+        "ja": "経験主義",
+        "zh": "经验主义",
+        "ko": "경험주의",
+        "fr": "Empirisme",
+        "de": "Empirismus",
+        "ru": "Эмпиризм",
+        "it": "Empirismo",
+        "pt": "Empirismo",
+        "tr": "deneycilik",
+        "id": "Empirisme",
+        "ur": "تجربہ پسندی",
+        "fa": "تجربه گرایی"
     },
     "Enlightenment": {
         "bn": "আলোকায়ন",
         "hi": "प्रबोधन",
         "es": "Ilustración",
         "he": "הֶאָרָה",
-        "ar": "التنوير"
+        "ar": "التنوير",
+        "ja": "啓発",
+        "zh": "启示",
+        "ko": "계발",
+        "fr": "Éclaircissement",
+        "de": "Aufklärung",
+        "ru": "Просвещение",
+        "it": "Illuminismo",
+        "pt": "Iluminação",
+        "tr": "Aydınlanma",
+        "id": "Pencerahan",
+        "ur": "روشن خیالی",
+        "fa": "روشنگری"
     },
     "Analytic": {
         "bn": "বিশ্লেষণমূলক দর্শন",
         "hi": "विश्लेषणात्मक",
         "es": "Analítica",
         "he": "אֲנַאלִיטִי",
-        "ar": "تحليلية"
+        "ar": "تحليلية",
+        "ja": "分析的",
+        "zh": "分析型",
+        "ko": "분석적",
+        "fr": "Analytique",
+        "de": "Analytisch",
+        "ru": "Аналитический",
+        "it": "Analitico",
+        "pt": "Analítico",
+        "tr": "Analitik",
+        "id": "Analitik",
+        "ur": "تجزیاتی",
+        "fa": "تحلیلی"
     },
     "Pragmatism": {
         "bn": "প্রয়োগবাদ",
         "hi": "व्यावहारिकतावाद",
         "es": "Pragmatismo",
         "he": "פרגמטיזם",
-        "ar": "البراغماتية"
+        "ar": "البراغماتية",
+        "ja": "プラグマティズム",
+        "zh": "实用主义",
+        "ko": "참견",
+        "fr": "Pragmatisme",
+        "de": "Pragmatismus",
+        "ru": "Прагматизм",
+        "it": "Pragmatismo",
+        "pt": "Pragmatismo",
+        "tr": "Pragmatizm",
+        "id": "Pragmatisme",
+        "ur": "عملیت پسندی",
+        "fa": "پراگماتیسم"
     },
     "Letters from a Stoic": {
         "bn": "এক স্টোয়িকের পত্রাবলী",
         "hi": "एक स्टोइक के पत्र",
         "es": "Cartas de un Estoico",
         "he": "מכתבים מאת סטואי",
-        "ar": "رسائل من الرواقي"
+        "ar": "رسائل من الرواقي",
+        "ja": "ストイックからの手紙",
+        "zh": "斯多葛派的来信",
+        "ko": "금욕주의자의 편지",
+        "fr": "Lettres d'un stoïcien",
+        "de": "Briefe eines Stoikers",
+        "ru": "Письма стоика",
+        "it": "Lettere di uno stoico",
+        "pt": "Cartas de um estóico",
+        "tr": "Bir Stoacıdan Mektuplar",
+        "id": "Surat dari seorang Stoa",
+        "ur": "ایک Stoic سے خطوط",
+        "fa": "نامه هایی از یک رواقیون"
     },
     "Enchiridion": {
         "bn": "এনকিরিডিয়ন",
         "hi": "एनचिरिडियन",
         "es": "Manual de Vida",
         "he": "מַדרִיך",
-        "ar": "كتيب"
+        "ar": "كتيب",
+        "ja": "ハンドブック",
+        "zh": "手册",
+        "ko": "안내서",
+        "fr": "Manuel",
+        "de": "Handbuch",
+        "ru": "Справочник",
+        "it": "Manuale",
+        "pt": "Manual",
+        "tr": "El Kitabı",
+        "id": "Buku Pegangan",
+        "ur": "ہینڈ بک",
+        "fa": "کتاب راهنما"
     },
     "Discourses": {
         "bn": "প্রবচন",
         "hi": "प्रवचन",
         "es": "Discursos",
         "he": "שיחות",
-        "ar": "الخطابات"
+        "ar": "الخطابات",
+        "ja": "談話",
+        "zh": "话语",
+        "ko": "담론",
+        "fr": "Discours",
+        "de": "Diskurse",
+        "ru": "Дискурсы",
+        "it": "Discorsi",
+        "pt": "Discursos",
+        "tr": "Söylemler",
+        "id": "wacana",
+        "ur": "مکالمے",
+        "fa": "گفتمان ها"
     },
     "Republic": {
         "bn": "প্রজাতন্ত্র (রিপাবলিক)",
         "hi": "गणतंत्र",
         "es": "La República",
         "he": "רֶפּוּבּלִיקָה",
-        "ar": "جمهورية"
+        "ar": "جمهورية",
+        "ja": "共和国",
+        "zh": "共和国",
+        "ko": "공화국",
+        "fr": "République",
+        "de": "Republik",
+        "ru": "Республика",
+        "it": "Repubblica",
+        "pt": "República",
+        "tr": "Cumhuriyet",
+        "id": "Republik",
+        "ur": "جمہوریہ",
+        "fa": "جمهوری"
     },
     "Nicomachean Ethics": {
         "bn": "নিকোমেকিয়ান নীতিবিদ্যা",
         "hi": "नीतिशास्त्र",
         "es": "Ética a Nicómaco",
         "he": "אתיקה ניקומכאית",
-        "ar": "الأخلاق النيقوماخية"
+        "ar": "الأخلاق النيقوماخية",
+        "ja": "ニコマコス倫理",
+        "zh": "尼各马可伦理学",
+        "ko": "니코마코스 윤리",
+        "fr": "L'éthique à Nicomaque",
+        "de": "Nikomachische Ethik",
+        "ru": "Никомахова этика",
+        "it": "Etica Nicomachea",
+        "pt": "Ética a Nicômaco",
+        "tr": "Nikomakhos Etiği",
+        "id": "Etika Nikomakea",
+        "ur": "نیکوماشین اخلاقیات",
+        "fa": "اخلاق نیکوماخوس"
     },
     "Beyond Good and Evil": {
         "bn": "ভালো ও মন্দের ওপারে",
         "hi": "अच्छाई और बुराई से परे",
         "es": "Más allá del bien y del mal",
         "he": "מעבר לטוב ולרע",
-        "ar": "أبعد من الخير والشر"
+        "ar": "أبعد من الخير والشر",
+        "ja": "善と悪を超えて",
+        "zh": "超越善恶",
+        "ko": "선과 악을 넘어",
+        "fr": "Au-delà du Bien et du Mal",
+        "de": "Jenseits von Gut und Böse",
+        "ru": "За пределами добра и зла",
+        "it": "Al di là del bene e del male",
+        "pt": "Além do Bem e do Mal",
+        "tr": "İyinin ve Kötünün Ötesinde",
+        "id": "Melampaui Kebaikan dan Kejahatan",
+        "ur": "نیکی اور بدی سے آگے",
+        "fa": "فراتر از خیر و شر"
     },
     "Gurbani": {
         "bn": "গুরবাণী",
         "hi": "गुरबाणी",
         "pa": "ਗੁਰਬਾਣੀ",
         "he": "גורבני",
-        "ar": "قرباني"
+        "ar": "قرباني",
+        "ja": "グルバーニ",
+        "zh": "古尔巴尼",
+        "ko": "구르바니",
+        "es": "Gurbaní",
+        "fr": "Gurbani",
+        "de": "Gurbani",
+        "ru": "Гурбани",
+        "it": "Gurbani",
+        "pt": "Gurbani",
+        "tr": "Gurbani",
+        "id": "Gurbani",
+        "ur": "گربانی۔",
+        "fa": "قربانی"
     },
     "Japji Sahib": {
         "bn": "জপজী সাহিব",
         "hi": "जपजी साहिब",
         "pa": "ਜਪੁਜੀ ਸਾਹਿਬ",
         "he": "Japji Sahib",
-        "ar": "جابجي صاحب"
+        "ar": "جابجي صاحب",
+        "ja": "ジャプジ・サーヒブ",
+        "zh": "贾普吉·萨希卜",
+        "ko": "잡지 사히브",
+        "es": "Japji Sahib",
+        "fr": "Japji Sahib",
+        "de": "Japji Sahib",
+        "ru": "Джапджи Сахиб",
+        "it": "Japji Sahib",
+        "pt": "Japji sahib",
+        "tr": "Japji Sahib",
+        "id": "Japji Sahib",
+        "ur": "جپجی صاحب",
+        "fa": "جاپجی صاحب"
     },
     "Mishnah": {
         "bn": "মিশনাহ",
         "hi": "मिशनाह",
         "es": "Mishná",
         "he": "משנה",
-        "ar": "مشناه"
+        "ar": "مشناه",
+        "ja": "ミシュナ",
+        "zh": "米西那",
+        "ko": "미슈나",
+        "fr": "Mishna",
+        "de": "Mischna",
+        "ru": "Мишна",
+        "it": "Mishnah",
+        "pt": "Mishná",
+        "tr": "Mişna",
+        "id": "Misnah",
+        "ur": "مسنہ",
+        "fa": "میشنا"
     },
     "Midrash": {
         "bn": "মিদ্রাশ",
         "hi": "मिद्रश",
         "es": "Midrash",
         "he": "מדרש",
-        "ar": "مدراش"
+        "ar": "مدراش",
+        "ja": "ミドラーシュ",
+        "zh": "米德拉什",
+        "ko": "미드라쉬",
+        "fr": "Midrash",
+        "de": "Midrasch",
+        "ru": "Мидраш",
+        "it": "Midrash",
+        "pt": "Midrash",
+        "tr": "Midraş",
+        "id": "Midrash",
+        "ur": "مڈراش",
+        "fa": "میدراش"
     },
     "Halakhah": {
         "bn": "হালাখা",
         "hi": "हालाखा",
         "es": "Halajá",
         "he": "הלכה",
-        "ar": "هالاخاه"
+        "ar": "هالاخاه",
+        "ja": "ハラカー",
+        "zh": "哈拉卡",
+        "ko": "할라카",
+        "fr": "Halakhah",
+        "de": "Halacha",
+        "ru": "Галаха",
+        "it": "Halakhah",
+        "pt": "Halakhá",
+        "tr": "Halakhah",
+        "id": "Halakha",
+        "ur": "حلخہ",
+        "fa": "هالاخواه"
     },
     "Kabbalah": {
         "bn": "কাব্বালাহ",
         "hi": "कब्बालाह",
         "es": "Cábala",
         "he": "קַבָּלָה",
-        "ar": "الكابالا"
+        "ar": "الكابالا",
+        "ja": "カバラ",
+        "zh": "卡巴拉",
+        "ko": "밀교",
+        "fr": "Cabale",
+        "de": "Kabbala",
+        "ru": "Каббала",
+        "it": "Cabala",
+        "pt": "Cabala",
+        "tr": "Kabala",
+        "id": "Kabbalah",
+        "ur": "قبالہ",
+        "fa": "کابالا"
     },
     "Jewish Thought": {
         "bn": "ইহুদি দর্শন",
         "hi": "यहूदी विचार",
         "es": "Pensamiento Judío",
         "he": "מחשבה יהודית",
-        "ar": "الفكر اليهودي"
+        "ar": "الفكر اليهودي",
+        "ja": "ユダヤ人の思想",
+        "zh": "犹太思想",
+        "ko": "유대인 사상",
+        "fr": "Pensée juive",
+        "de": "Jüdisches Denken",
+        "ru": "Еврейская мысль",
+        "it": "Pensiero ebraico",
+        "pt": "Pensamento Judaico",
+        "tr": "Yahudi Düşüncesi",
+        "id": "Pemikiran Yahudi",
+        "ur": "یہودی سوچ",
+        "fa": "اندیشه یهودی"
     },
     "Gita": {
         "bn": "গীতা",
         "hi": "गीता",
         "es": "Gita",
         "he": "גיטה",
-        "ar": "جيتا"
+        "ar": "جيتا",
+        "ja": "ギータ",
+        "zh": "吉塔",
+        "ko": "기타",
+        "fr": "Gita",
+        "de": "Gita",
+        "ru": "Гита",
+        "it": "Gita",
+        "pt": "Gita",
+        "tr": "Gita",
+        "id": "Gita",
+        "ur": "گیتا",
+        "fa": "گیتا"
     },
     "Rigveda": {
         "bn": "ঋগ্বেদ",
         "hi": "ऋग्वेद",
         "es": "Rigveda",
         "he": "ריגוודה",
-        "ar": "ريجفيدا"
+        "ar": "ريجفيدا",
+        "ja": "リグヴェーダ",
+        "zh": "梨俱吠陀",
+        "ko": "리그베다",
+        "fr": "Rigvéda",
+        "de": "Rigveda",
+        "ru": "Ригведа",
+        "it": "Rigveda",
+        "pt": "Rig Veda",
+        "tr": "Rigveda",
+        "id": "Regveda",
+        "ur": "رگ وید",
+        "fa": "ریگودا"
     },
     "AtharvaVeda": {
         "bn": "অথর্ববেদ",
         "hi": "अथर्ववेद",
         "es": "Atharvaveda",
         "he": "אתרבה וודה",
-        "ar": "اثارفا فيدا"
+        "ar": "اثارفا فيدا",
+        "ja": "アタルヴァ ヴェーダ",
+        "zh": "阿闼婆吠陀",
+        "ko": "아타르바 베다",
+        "fr": "Atharva Véda",
+        "de": "Atharva Veda",
+        "ru": "Атхарва Веда",
+        "it": "Atharva Veda",
+        "pt": "Atharva Veda",
+        "tr": "Atharva Veda",
+        "id": "Atharwa Weda",
+        "ur": "اتھرو وید",
+        "fa": "آثاروا ودا"
     },
     "Yajurveda": {
         "bn": "যজুর্বেদ",
         "hi": "यजुर्वेद",
         "es": "Yajurveda",
         "he": "יאגורוודה",
-        "ar": "ياجورفيدا"
+        "ar": "ياجورفيدا",
+        "ja": "ヤジュルヴェーダ",
+        "zh": "夜柔吠陀",
+        "ko": "야주르베다",
+        "fr": "Yajurvéda",
+        "de": "Yajurveda",
+        "ru": "Яджурведа",
+        "it": "Yajurveda",
+        "pt": "Yajurvéda",
+        "tr": "Yajurveda",
+        "id": "Yajurveda",
+        "ur": "یجروید",
+        "fa": "یاجورودا"
     },
     "Ramayana": {
         "bn": "রামায়ণ",
         "hi": "रामायण",
         "es": "Ramayana",
         "he": "רמאיאנה",
-        "ar": "رامايانا"
+        "ar": "رامايانا",
+        "ja": "ラーマーヤナ",
+        "zh": "罗摩衍那",
+        "ko": "라마야나",
+        "fr": "Ramayana",
+        "de": "Ramayana",
+        "ru": "Рамаяна",
+        "it": "Ramayana",
+        "pt": "Ramayana",
+        "tr": "Ramayana",
+        "id": "Ramayana",
+        "ur": "رامائن",
+        "fa": "رامایانا"
     },
     "Mahabharata": {
         "bn": "মহাভারত",
         "hi": "महाभारत",
         "es": "Mahabharata",
         "he": "מהאבהארטה",
-        "ar": "مهابهاراتا"
+        "ar": "مهابهاراتا",
+        "ja": "マハーバーラタ",
+        "zh": "摩诃婆罗多",
+        "ko": "마하바라타",
+        "fr": "Mahabharata",
+        "de": "Mahabharata",
+        "ru": "Махабхарата",
+        "it": "Mahabharata",
+        "pt": "Mahabharata",
+        "tr": "Mahabharata",
+        "id": "Mahabharata",
+        "ur": "مہابھارت",
+        "fa": "مهابهاراتا"
     },
     "Ramcharitmanas": {
         "bn": "রামচরিতমানস",
         "hi": "रामचरितमानस",
         "es": "Ramcharitmanas",
         "he": "רמחריטמנאס",
-        "ar": "رامشاريتماناس"
+        "ar": "رامشاريتماناس",
+        "ja": "ラムチャリトマナス",
+        "zh": "拉姆查里特玛纳斯",
+        "ko": "람차리트마나스",
+        "fr": "Ramcharitmanas",
+        "de": "Ramcharitmanas",
+        "ru": "Рамчаритманас",
+        "it": "Ramcharitmanas",
+        "pt": "Ramcharitmanas",
+        "tr": "Ramcharitmanas",
+        "id": "Ramcharitmanas",
+        "ur": "رامچرتماناس",
+        "fa": "رامچاریتماناس"
     },
     "Upanishads": {
         "bn": "উপনিষদ",
         "hi": "उपनिषद",
         "es": "Upanishads",
         "he": "אופנישדות",
-        "ar": "الأوبانيشاد"
+        "ar": "الأوبانيشاد",
+        "ja": "ウパニシャッド",
+        "zh": "奥义书",
+        "ko": "우파니샤드",
+        "fr": "Upanishads",
+        "de": "Upanishaden",
+        "ru": "Упанишады",
+        "it": "Upanishad",
+        "pt": "Upanishads",
+        "tr": "Upanişadlar",
+        "id": "Upanishad",
+        "ur": "اپنشد",
+        "fa": "اوپانیشادها"
     },
     "Sahih al-Bukhari": {
         "bn": "সহীহ বুখারী",
         "hi": "सहीह बुखारी",
         "ar": "صحيح البخاري",
-        "he": "סחיח אל-בוכרי"
+        "he": "סחיח אל-בוכרי",
+        "ja": "サヒ・アル・ブハーリ",
+        "zh": "布哈里圣训实录",
+        "ko": "사히 알 부카리",
+        "es": "Sahih al-Bujari",
+        "fr": "Sahih al-Boukhari",
+        "de": "Sahih al-Bukhari",
+        "ru": "Сахих аль-Бухари",
+        "it": "Sahih al-Bukhari",
+        "pt": "Sahih al-Bukhari",
+        "tr": "Sahih el-Buhari",
+        "id": "Shahih al-Bukhari",
+        "ur": "صحیح البخاری",
+        "fa": "صحیح البخاری"
     },
     "Sunan Abi Dawud": {
         "bn": "সুনান আবু দাউদ",
@@ -2646,13 +3369,35 @@ const i18nDict = {
         "es": "Sunan Abi Dawud",
         "fr": "Sunan Abi Dawud",
         "ur": "سنن ابی داؤد",
-        "fa": "سنن ابوداود"
+        "fa": "سنن ابوداود",
+        "ja": "彼の名前はアビ・ダウドです",
+        "zh": "他的名字叫阿比·达乌德",
+        "ko": "이름이 아비 다우드인 사람",
+        "de": "Sein Name ist Abi Dawud",
+        "ru": "Его зовут Аби Дауд.",
+        "it": "Il suo nome è Abi Dawud",
+        "pt": "O nome dele é Abi Dawud",
+        "tr": "Adı Ebu Davud",
+        "id": "Namanya Abi Dawud"
     },
     "Jami at-Tirmidhi": {
         "bn": "জামে তিরমিযী",
         "hi": "जामी अत-तिर्मिज़ी",
         "ar": "جامع الترمذي",
-        "he": "ג'מי אט-טירמידי"
+        "he": "ג'מי אט-טירמידי",
+        "ja": "ジャミ・アット・ティルミディ",
+        "zh": "贾米·提尔米济",
+        "ko": "자미 앗-티르미디",
+        "es": "Jami at-Tirmidhi",
+        "fr": "Jami at-Tirmidhi",
+        "de": "Jami at-Tirmidhi",
+        "ru": "Джами ат-Тирмизи",
+        "it": "Jami at-Tirmidhi",
+        "pt": "Jami at-Tirmidhi",
+        "tr": "Cami et-Tirmizi",
+        "id": "Jami at-Tirmidzi",
+        "ur": "جامع ترمذی ۔",
+        "fa": "جامی ترمذی"
     },
     "Sunan an-Nasa'i": {
         "bn": "সুনান আন-নাসায়ী",
@@ -2662,19 +3407,54 @@ const i18nDict = {
         "es": "Sunan an-Nasa'i",
         "fr": "Sunan an-Nasa'i",
         "ur": "سنن نسائی",
-        "fa": "سنن نسائی"
+        "fa": "سنن نسائی",
+        "ja": "彼の名前はアン・ナサイです",
+        "zh": "他的名字叫安纳萨伊",
+        "ko": "그의 이름은 안-나사이(An-Nasa'i)입니다.",
+        "de": "Sein Name ist An-Nasa'i",
+        "ru": "Его зовут Ан-Насаи.",
+        "it": "Il suo nome è An-Nasa'i",
+        "pt": "Seu nome é An-Nasa'i",
+        "tr": "Adı An-Nesa'i",
+        "id": "Namanya An-Nasa'i"
     },
     "Muwatta Malik": {
         "bn": "মুওয়াত্তা মালিক",
         "hi": "मुवत्ता मालिक",
         "ar": "موطأ مالك",
-        "he": "מוואטה מאליק"
+        "he": "מוואטה מאליק",
+        "ja": "ムワッタ・マリク",
+        "zh": "穆瓦塔·马利克",
+        "ko": "무와타 말리크",
+        "es": "Malik Muwatta",
+        "fr": "Muwatta Malik",
+        "de": "Muwatta Malik",
+        "ru": "Муватта Малик",
+        "it": "Muwatta Malik",
+        "pt": "Muwatta Malik",
+        "tr": "Muwatta Malik",
+        "id": "Muwatta Malik",
+        "ur": "موطا ملک",
+        "fa": "مواته مالک"
     },
     "Musnad Ahmad": {
         "bn": "মুসনাদ আহমাদ",
         "hi": "मुसनद अहमद",
         "ar": "مسند أحمد",
-        "he": "מוסנאד אחמד"
+        "he": "מוסנאד אחמד",
+        "ja": "ムスナド・アハマド",
+        "zh": "穆斯纳德·艾哈迈德",
+        "ko": "무스나드 아마드",
+        "es": "Musnad Ahmad",
+        "fr": "Musnad Ahmad",
+        "de": "Musnad Ahmad",
+        "ru": "Муснад Ахмад",
+        "it": "Musnad Ahmad",
+        "pt": "Musnad Ahmad",
+        "tr": "Müsned Ahmed",
+        "id": "Musnad Ahmad",
+        "ur": "مسند احمد",
+        "fa": "مسند احمد"
     },
     "Joshua": {
         "bn": "যিহোশূয়",
@@ -2685,7 +3465,15 @@ const i18nDict = {
         "it": "Giosuè",
         "de": "Josua",
         "ru": "Иисус Навин",
-        "he": "יהושע"
+        "he": "יהושע",
+        "ja": "ジョシュア",
+        "zh": "Joshua",
+        "ko": "여호수아",
+        "pt": "Josué",
+        "tr": "Joshua",
+        "id": "Yosua",
+        "ur": "جوشوا",
+        "fa": "جاشوا"
     },
     "Judges": {
         "bn": "বিচারকর্ত্তৃগণ",
@@ -2696,7 +3484,15 @@ const i18nDict = {
         "it": "Giudici",
         "de": "Richter",
         "ru": "Судьи",
-        "he": "שופטים"
+        "he": "שופטים",
+        "ja": "裁判官",
+        "zh": "法官",
+        "ko": "판사",
+        "pt": "Juízes",
+        "tr": "Hakimler",
+        "id": "Hakim",
+        "ur": "ججز",
+        "fa": "داوران"
     },
     "Ruth": {
         "bn": "রূথ",
@@ -2707,7 +3503,15 @@ const i18nDict = {
         "it": "Rut",
         "de": "Rut",
         "ru": "Руфь",
-        "he": "רות"
+        "he": "רות",
+        "ja": "ルース",
+        "zh": "露丝",
+        "ko": "룻",
+        "pt": "Rute",
+        "tr": "Ruth",
+        "id": "Rut",
+        "ur": "روتھ",
+        "fa": "روت"
     },
     "1 Samuel": {
         "bn": "১ শমূয়েল",
@@ -2718,7 +3522,15 @@ const i18nDict = {
         "it": "1 Samuele",
         "de": "1. Samuel",
         "ru": "1 Царств",
-        "he": "שמואל א'"
+        "he": "שמואל א'",
+        "ja": "1 サムエル",
+        "zh": "1 撒母耳",
+        "ko": "사무엘상 1장",
+        "pt": "1Samuel",
+        "tr": "1 Samuel",
+        "id": "1 Samuel",
+        "ur": "1 سموئیل",
+        "fa": "1 ساموئل"
     },
     "2 Samuel": {
         "bn": "২ শমূয়েল",
@@ -2729,7 +3541,15 @@ const i18nDict = {
         "it": "2 Samuele",
         "de": "2. Samuel",
         "ru": "2 Царств",
-        "he": "שמואל ב'"
+        "he": "שמואל ב'",
+        "ja": "2 サムエル",
+        "zh": "2 撒母耳",
+        "ko": "사무엘하",
+        "pt": "2Samuel",
+        "tr": "2 Samuel",
+        "id": "2 Samuel",
+        "ur": "2 سموئیل",
+        "fa": "2 ساموئل"
     },
     "1 Kings": {
         "bn": "১ রাজাবলি",
@@ -2740,7 +3560,15 @@ const i18nDict = {
         "it": "1 Re",
         "de": "1. Könige",
         "ru": "3 Царств",
-        "he": "מלכים א'"
+        "he": "מלכים א'",
+        "ja": "1 キングス",
+        "zh": "1 国王",
+        "ko": "열왕기상",
+        "pt": "1 Reis",
+        "tr": "1 Kral",
+        "id": "1 Raja",
+        "ur": "1 بادشاہ",
+        "fa": "1 پادشاهان"
     },
     "2 Kings": {
         "bn": "২ রাজাবলি",
@@ -2751,7 +3579,15 @@ const i18nDict = {
         "it": "2 Re",
         "de": "2. Könige",
         "ru": "4 Царств",
-        "he": "מלכים ב'"
+        "he": "מלכים ב'",
+        "ja": "2 キングス",
+        "zh": "2 国王",
+        "ko": "열왕기하",
+        "pt": "2 Reis",
+        "tr": "2 Kral",
+        "id": "2 Raja",
+        "ur": "2 بادشاہ",
+        "fa": "2 پادشاه"
     },
     "1 Chronicles": {
         "bn": "১ বংশাবলি",
@@ -2762,7 +3598,15 @@ const i18nDict = {
         "it": "1 Cronache",
         "de": "1. Chronik",
         "ru": "1 Паралипоменон",
-        "he": "דברי הימים א'"
+        "he": "דברי הימים א'",
+        "ja": "1 年代記",
+        "zh": "1 编年史",
+        "ko": "역대상",
+        "pt": "1 Crônicas",
+        "tr": "1 Günlük",
+        "id": "1 Tawarikh",
+        "ur": "1 تواریخ",
+        "fa": "1 تواریخ"
     },
     "2 Chronicles": {
         "bn": "২ বংশাবলি",
@@ -2773,7 +3617,15 @@ const i18nDict = {
         "it": "2 Cronache",
         "de": "2. Chronik",
         "ru": "2 Паралипоменон",
-        "he": "דברי הימים ב'"
+        "he": "דברי הימים ב'",
+        "ja": "2 クロニクル",
+        "zh": "2 编年史",
+        "ko": "역대하",
+        "pt": "2 Crônicas",
+        "tr": "2 Günlük",
+        "id": "2 Tawarikh",
+        "ur": "2 تواریخ",
+        "fa": "2 تواریخ"
     },
     "Ezra": {
         "bn": "ইষ্রা",
@@ -2784,7 +3636,15 @@ const i18nDict = {
         "it": "Esdra",
         "de": "Esra",
         "ru": "Ездра",
-        "he": "עזרא"
+        "he": "עזרא",
+        "ja": "エズラ",
+        "zh": "以斯拉",
+        "ko": "에스라",
+        "pt": "Esdras",
+        "tr": "Ezra",
+        "id": "Ezra",
+        "ur": "عذرا",
+        "fa": "عزرا"
     },
     "Nehemiah": {
         "bn": "নহিমিয়",
@@ -2795,7 +3655,15 @@ const i18nDict = {
         "it": "Neemia",
         "de": "Nehemia",
         "ru": "Неемия",
-        "he": "נחמיה"
+        "he": "נחמיה",
+        "ja": "ネヘミヤ",
+        "zh": "尼希米记",
+        "ko": "느헤미야",
+        "pt": "Neemias",
+        "tr": "Nehemya",
+        "id": "Nehemia",
+        "ur": "نحمیاہ",
+        "fa": "نحمیا"
     },
     "Esther": {
         "bn": "ইষ্টের",
@@ -2806,7 +3674,15 @@ const i18nDict = {
         "it": "Ester",
         "de": "Ester",
         "ru": "Есфирь",
-        "he": "אסתר"
+        "he": "אסתר",
+        "ja": "エスター",
+        "zh": "以斯帖",
+        "ko": "에스더",
+        "pt": "Ester",
+        "tr": "Ester",
+        "id": "Ester",
+        "ur": "ایسٹر",
+        "fa": "استر"
     },
     "Job": {
         "bn": "ইয়োব",
@@ -2817,7 +3693,15 @@ const i18nDict = {
         "it": "Giobbe",
         "de": "Hiob",
         "ru": "Иов",
-        "he": "איוב"
+        "he": "איוב",
+        "ja": "仕事",
+        "zh": "工作",
+        "ko": "직업",
+        "pt": "Trabalho",
+        "tr": "İş",
+        "id": "Pekerjaan",
+        "ur": "جاب",
+        "fa": "شغل"
     },
     "Ecclesiastes": {
         "bn": "উপদেশক",
@@ -2828,7 +3712,15 @@ const i18nDict = {
         "it": "Ecclesiaste",
         "de": "Prediger",
         "ru": "Екклесиаст",
-        "he": "קהלת"
+        "he": "קהלת",
+        "ja": "伝道者の書",
+        "zh": "传道书",
+        "ko": "전도서",
+        "pt": "Eclesiastes",
+        "tr": "Vaizler",
+        "id": "Pengkhotbah",
+        "ur": "واعظ",
+        "fa": "جامعه"
     },
     "Song of Solomon": {
         "bn": "পরমগীত",
@@ -2839,7 +3731,15 @@ const i18nDict = {
         "it": "Cantico dei Cantici",
         "de": "Hohelied",
         "ru": "Песнь Песней",
-        "he": "שיר השירים"
+        "he": "שיר השירים",
+        "ja": "ソロモンの歌",
+        "zh": "所罗门之歌",
+        "ko": "솔로몬의 노래",
+        "pt": "Cântico de Salomão",
+        "tr": "Süleyman'ın Şarkısı",
+        "id": "Nyanyian Sulaiman",
+        "ur": "سلیمان کا گانا",
+        "fa": "آهنگ سلیمان"
     },
     "Isaiah": {
         "bn": "যিশাইয়",
@@ -2850,7 +3750,15 @@ const i18nDict = {
         "it": "Isaia",
         "de": "Jesaja",
         "ru": "Исаия",
-        "he": "ישעיהו"
+        "he": "ישעיהו",
+        "ja": "イザヤ書",
+        "zh": "以赛亚",
+        "ko": "이사야",
+        "pt": "Isaías",
+        "tr": "İşaya",
+        "id": "Yesaya",
+        "ur": "یسعیاہ",
+        "fa": "اشعیا"
     },
     "Jeremiah": {
         "bn": "যিরমিয়",
@@ -2861,7 +3769,15 @@ const i18nDict = {
         "it": "Geremia",
         "de": "Jeremia",
         "ru": "Иеремия",
-        "he": "ירמיהו"
+        "he": "ירמיהו",
+        "ja": "エレミヤ",
+        "zh": "耶利米",
+        "ko": "예레미야",
+        "pt": "Jeremias",
+        "tr": "Yeremya",
+        "id": "Yeremia",
+        "ur": "یرمیاہ",
+        "fa": "ارمیا"
     },
     "Lamentations": {
         "bn": "বিলাপ",
@@ -2872,7 +3788,15 @@ const i18nDict = {
         "it": "Lamentazioni",
         "de": "Klagelieder",
         "ru": "Плач Иеремии",
-        "he": "איכה"
+        "he": "איכה",
+        "ja": "哀歌",
+        "zh": "哀歌",
+        "ko": "예레미야 애가",
+        "pt": "Lamentações",
+        "tr": "Ağıtlar",
+        "id": "Ratapan",
+        "ur": "نوحہ خوانی",
+        "fa": "نوحه ها"
     },
     "Ezekiel": {
         "bn": "যিহিষ্কেল",
@@ -2883,7 +3807,15 @@ const i18nDict = {
         "it": "Ezechiele",
         "de": "Hesekiel",
         "ru": "Иезекииль",
-        "he": "יחזקאל"
+        "he": "יחזקאל",
+        "ja": "エゼキエル",
+        "zh": "以西结",
+        "ko": "에스겔",
+        "pt": "Ezequiel",
+        "tr": "Ezekiel",
+        "id": "Yehezkiel",
+        "ur": "حزقیل",
+        "fa": "حزقیال"
     },
     "Daniel": {
         "bn": "দানিয়েল",
@@ -2894,7 +3826,15 @@ const i18nDict = {
         "it": "Daniele",
         "de": "Daniel",
         "ru": "Даниил",
-        "he": "דניאל"
+        "he": "דניאל",
+        "ja": "ダニエル",
+        "zh": "丹尼尔",
+        "ko": "다니엘",
+        "pt": "Danilo",
+        "tr": "Daniel",
+        "id": "Daniel",
+        "ur": "دانیال",
+        "fa": "دانیال"
     },
     "Hosea": {
         "bn": "হোশেয়",
@@ -2905,7 +3845,15 @@ const i18nDict = {
         "it": "Osea",
         "de": "Hosea",
         "ru": "Осия",
-        "he": "הושע"
+        "he": "הושע",
+        "ja": "ホセア",
+        "zh": "何西阿",
+        "ko": "호세아",
+        "pt": "Oséias",
+        "tr": "Hoşea",
+        "id": "Hosea",
+        "ur": "ہوسیا۔",
+        "fa": "هوسی"
     },
     "Joel": {
         "bn": "যোয়েল",
@@ -2916,7 +3864,15 @@ const i18nDict = {
         "it": "Gioele",
         "de": "Joel",
         "ru": "Иоиль",
-        "he": "יואל"
+        "he": "יואל",
+        "ja": "ジョエル",
+        "zh": "乔尔",
+        "ko": "조엘",
+        "pt": "Joel",
+        "tr": "Joel",
+        "id": "Joel",
+        "ur": "جوئل",
+        "fa": "جوئل"
     },
     "Amos": {
         "bn": "আমোষ",
@@ -2927,7 +3883,15 @@ const i18nDict = {
         "it": "Amos",
         "de": "Amos",
         "ru": "Амос",
-        "he": "עמוס"
+        "he": "עמוס",
+        "ja": "アモス",
+        "zh": "阿莫斯",
+        "ko": "아모스",
+        "pt": "Amós",
+        "tr": "Amos",
+        "id": "Amos",
+        "ur": "آموس",
+        "fa": "آموس"
     },
     "Obadiah": {
         "bn": "ওবদিয়",
@@ -2938,7 +3902,15 @@ const i18nDict = {
         "it": "Abdia",
         "de": "Obadja",
         "ru": "Авдий",
-        "he": "עובדיה"
+        "he": "עובדיה",
+        "ja": "オバデヤ",
+        "zh": "俄巴底亚",
+        "ko": "오바댜",
+        "pt": "Obadias",
+        "tr": "Obadiah",
+        "id": "Obaja",
+        "ur": "عبادیہ",
+        "fa": "عبدیه"
     },
     "Jonah": {
         "bn": "যোনা",
@@ -2949,7 +3921,15 @@ const i18nDict = {
         "it": "Giona",
         "de": "Jona",
         "ru": "Иона",
-        "he": "יונה"
+        "he": "יונה",
+        "ja": "ヨナ",
+        "zh": "约拿",
+        "ko": "요나",
+        "pt": "Jonas",
+        "tr": "Yunus",
+        "id": "Yunus",
+        "ur": "یونس",
+        "fa": "یونس"
     },
     "Micah": {
         "bn": "মীখা",
@@ -2960,7 +3940,15 @@ const i18nDict = {
         "it": "Michea",
         "de": "Micha",
         "ru": "Михей",
-        "he": "מיכה"
+        "he": "מיכה",
+        "ja": "ミカ",
+        "zh": "弥迦",
+        "ko": "미가",
+        "pt": "Miquéias",
+        "tr": "Mika",
+        "id": "Mikha",
+        "ur": "میکاہ",
+        "fa": "میکاه"
     },
     "Nahum": {
         "bn": "নহূম",
@@ -2971,7 +3959,15 @@ const i18nDict = {
         "it": "Naum",
         "de": "Nahum",
         "ru": "Наум",
-        "he": "נחום"
+        "he": "נחום",
+        "ja": "ナホム",
+        "zh": "那厄姆",
+        "ko": "나훔",
+        "pt": "Naum",
+        "tr": "Nahum",
+        "id": "Nahum",
+        "ur": "نہم",
+        "fa": "ناهوم"
     },
     "Habakkuk": {
         "bn": "হবক্‌কূক",
@@ -2982,7 +3978,15 @@ const i18nDict = {
         "it": "Abacuc",
         "de": "Habakuk",
         "ru": "Аввакум",
-        "he": "חבקוק"
+        "he": "חבקוק",
+        "ja": "彼らは躊躇します",
+        "zh": "他们犹豫不决",
+        "ko": "그들은 주저한다",
+        "pt": "Eles hesitam",
+        "tr": "Tereddüt ediyorlar",
+        "id": "Mereka ragu-ragu",
+        "ur": "وہ ہچکچاتے ہیں۔",
+        "fa": "تردید می کنند"
     },
     "Zephaniah": {
         "bn": "সফনিয়",
@@ -2993,7 +3997,15 @@ const i18nDict = {
         "it": "Sofonia",
         "de": "Zefanja",
         "ru": "Софония",
-        "he": "צפניה"
+        "he": "צפניה",
+        "ja": "ゼパニヤ",
+        "zh": "西番雅",
+        "ko": "스바냐",
+        "pt": "Sofonias",
+        "tr": "Zefanya",
+        "id": "Zefanya",
+        "ur": "صفنیاہ",
+        "fa": "صفونیا"
     },
     "Haggai": {
         "bn": "হগয়",
@@ -3004,7 +4016,15 @@ const i18nDict = {
         "it": "Aggeo",
         "de": "Haggai",
         "ru": "Аггей",
-        "he": "חגי"
+        "he": "חגי",
+        "ja": "ハガイ",
+        "zh": "哈该",
+        "ko": "학개",
+        "pt": "Ageu",
+        "tr": "Haggai",
+        "id": "Hagai",
+        "ur": "ہاگئی",
+        "fa": "هاگی"
     },
     "Zechariah": {
         "bn": "সখরিয়",
@@ -3015,7 +4035,15 @@ const i18nDict = {
         "it": "Zaccaria",
         "de": "Sacharja",
         "ru": "Захария",
-        "he": "זכריה"
+        "he": "זכריה",
+        "ja": "ゼカリヤ",
+        "zh": "撒迦利亚书",
+        "ko": "스가랴",
+        "pt": "Zacarias",
+        "tr": "Zekeriya",
+        "id": "Zakharia",
+        "ur": "زکریا",
+        "fa": "زکریا"
     },
     "Malachi": {
         "bn": "মালাখি",
@@ -3026,7 +4054,15 @@ const i18nDict = {
         "it": "Malachia",
         "de": "Maleachi",
         "ru": "Малахия",
-        "he": "מלאכי"
+        "he": "מלאכי",
+        "ja": "マラキ語",
+        "zh": "玛拉基",
+        "ko": "말라기",
+        "pt": "Malaquias",
+        "tr": "Malaki",
+        "id": "Maleakhi",
+        "ur": "ملاکی",
+        "fa": "ملاشی"
     },
     "Acts": {
         "bn": "প্রেরিতদের কার্য",
@@ -3037,7 +4073,15 @@ const i18nDict = {
         "it": "Atti",
         "de": "Apostelgeschichte",
         "ru": "Деяния",
-        "he": "מעשי השליחים"
+        "he": "מעשי השליחים",
+        "ja": "行為",
+        "zh": "使徒行传",
+        "ko": "사도행전",
+        "pt": "Atos",
+        "tr": "Elçilerin İşleri",
+        "id": "Kisah Para Rasul",
+        "ur": "اعمال",
+        "fa": "اعمال"
     },
     "Romans": {
         "bn": "রোমীয়",
@@ -3048,7 +4092,15 @@ const i18nDict = {
         "it": "Romani",
         "de": "Römer",
         "ru": "Римлянам",
-        "he": "אל הרומים"
+        "he": "אל הרומים",
+        "ja": "ローマ人",
+        "zh": "罗马书",
+        "ko": "로마서",
+        "pt": "Romanos",
+        "tr": "Romalılar",
+        "id": "Roma",
+        "ur": "رومیوں",
+        "fa": "رومی ها"
     },
     "1 Corinthians": {
         "bn": "১ করিন্থীয়",
@@ -3059,7 +4111,15 @@ const i18nDict = {
         "it": "1 Corinzi",
         "de": "1. Korinther",
         "ru": "1 Коринфянам",
-        "he": "הראשונה לקורינתים"
+        "he": "הראשונה לקורינתים",
+        "ja": "1 コリント人への手紙",
+        "zh": "1 哥林多前书",
+        "ko": "고린도전서",
+        "pt": "1 Coríntios",
+        "tr": "1 Korintliler",
+        "id": "1 Korintus",
+        "ur": "1 کرنتھیوں",
+        "fa": "1 قرنتیان"
     },
     "2 Corinthians": {
         "bn": "২ করিন্থীয়",
@@ -3070,7 +4130,15 @@ const i18nDict = {
         "it": "2 Corinzi",
         "de": "2. Korinther",
         "ru": "2 Коринфянам",
-        "he": "השנייה לקורינתים"
+        "he": "השנייה לקורינתים",
+        "ja": "2 コリント人への手紙",
+        "zh": "2 哥林多前书",
+        "ko": "고린도후서",
+        "pt": "2 Coríntios",
+        "tr": "2 Korintliler",
+        "id": "2 Korintus",
+        "ur": "2 کرنتھیوں",
+        "fa": "2 قرنتیان"
     },
     "Galatians": {
         "bn": "গালাতীয়",
@@ -3081,7 +4149,15 @@ const i18nDict = {
         "it": "Galati",
         "de": "Galater",
         "ru": "Галатам",
-        "he": "אל הגלטים"
+        "he": "אל הגלטים",
+        "ja": "ガラテヤ人への手紙",
+        "zh": "加拉太书",
+        "ko": "갈라디아서",
+        "pt": "Gálatas",
+        "tr": "Galatyalılar",
+        "id": "Galatia",
+        "ur": "گلیاتیوں",
+        "fa": "گالاتیان"
     },
     "Ephesians": {
         "bn": "ইফিষীয়",
@@ -3092,7 +4168,15 @@ const i18nDict = {
         "it": "Efesini",
         "de": "Epheser",
         "ru": "Ефесянам",
-        "he": "אל האפסים"
+        "he": "אל האפסים",
+        "ja": "エペソ人への手紙",
+        "zh": "以弗所书",
+        "ko": "에베소서",
+        "pt": "Efésios",
+        "tr": "Efesliler",
+        "id": "Efesus",
+        "ur": "افسیوں",
+        "fa": "افسسیان"
     },
     "Philippians": {
         "bn": "ফিলিপীয়",
@@ -3103,7 +4187,15 @@ const i18nDict = {
         "it": "Filippesi",
         "de": "Philipper",
         "ru": "Филиппийцам",
-        "he": "אל הפיליפים"
+        "he": "אל הפיליפים",
+        "ja": "ピリピ人への手紙",
+        "zh": "腓立比书",
+        "ko": "빌립보서",
+        "pt": "Filipenses",
+        "tr": "Filipililer",
+        "id": "Filipi",
+        "ur": "فلپیئنز",
+        "fa": "فیلیپیایی ها"
     },
     "Colossians": {
         "bn": "কলসীয়",
@@ -3114,7 +4206,15 @@ const i18nDict = {
         "it": "Colossesi",
         "de": "Kolosser",
         "ru": "Колоссянам",
-        "he": "אל הקולוסים"
+        "he": "אל הקולוסים",
+        "ja": "コロサイ人への手紙",
+        "zh": "歌罗西书",
+        "ko": "골로새서",
+        "pt": "Colossenses",
+        "tr": "Koloseliler",
+        "id": "Kolose",
+        "ur": "کولسیوں",
+        "fa": "کولوسیان"
     },
     "1 Thessalonians": {
         "bn": "১ থিষলনীকীয়",
@@ -3125,7 +4225,15 @@ const i18nDict = {
         "it": "1 Tessalonicesi",
         "de": "1. Thessalonicher",
         "ru": "1 Фессалоникийцам",
-        "he": "הראשונה לתסלוניקים"
+        "he": "הראשונה לתסלוניקים",
+        "ja": "1 テサロニケ人への手紙",
+        "zh": "1 帖撒罗尼迦前书",
+        "ko": "데살로니가전서",
+        "pt": "1 Tessalonicenses",
+        "tr": "1 Selanikliler",
+        "id": "1 Tesalonika",
+        "ur": "1 تھیسالونیکی",
+        "fa": "1 تسالونیکیان"
     },
     "2 Thessalonians": {
         "bn": "২ থিষলনীকীয়",
@@ -3136,7 +4244,15 @@ const i18nDict = {
         "it": "2 Tessalonicesi",
         "de": "2. Thessalonicher",
         "ru": "2 Фессалоникийцам",
-        "he": "השנייה לתסלוניקים"
+        "he": "השנייה לתסלוניקים",
+        "ja": "2 テサロニケ人への手紙",
+        "zh": "2 帖撒罗尼迦前书",
+        "ko": "데살로니가후서",
+        "pt": "2 Tessalonicenses",
+        "tr": "2 Selanikli",
+        "id": "2 Tesalonika",
+        "ur": "2 تھیسالونیکی",
+        "fa": "2 تسالونیکیان"
     },
     "1 Timothy": {
         "bn": "১ তীমথিয়",
@@ -3147,7 +4263,15 @@ const i18nDict = {
         "it": "1 Timoteo",
         "de": "1. Timotheus",
         "ru": "1 Тимофею",
-        "he": "הראשונה לטימותיוס"
+        "he": "הראשונה לטימותיוס",
+        "ja": "1 テモテ",
+        "zh": "1 提摩太",
+        "ko": "디모데전서",
+        "pt": "1 Timóteo",
+        "tr": "1 Timoteos",
+        "id": "1 Timotius",
+        "ur": "1 تیمتھیس",
+        "fa": "1 تیموتائوس"
     },
     "2 Timothy": {
         "bn": "২ তীমথিয়",
@@ -3158,7 +4282,15 @@ const i18nDict = {
         "it": "2 Timoteo",
         "de": "2. Timotheus",
         "ru": "2 Тимофею",
-        "he": "השנייה לטימותיוס"
+        "he": "השנייה לטימותיוס",
+        "ja": "2 テモテ",
+        "zh": "2 提摩太",
+        "ko": "디모데후서",
+        "pt": "2 Timóteo",
+        "tr": "2 Timoteos",
+        "id": "2 Timotius",
+        "ur": "2 تیمتھیس",
+        "fa": "2 تیموتائوس"
     },
     "Titus": {
         "bn": "তীত",
@@ -3169,7 +4301,15 @@ const i18nDict = {
         "it": "Tito",
         "de": "Titus",
         "ru": "Титу",
-        "he": "אל טיטוס"
+        "he": "אל טיטוס",
+        "ja": "タイタス",
+        "zh": "提图斯",
+        "ko": "디도",
+        "pt": "Tito",
+        "tr": "Titus",
+        "id": "Titus",
+        "ur": "ٹائٹس",
+        "fa": "تیتوس"
     },
     "Philemon": {
         "bn": "ফিলীমন",
@@ -3180,7 +4320,15 @@ const i18nDict = {
         "it": "Filemone",
         "de": "Philemon",
         "ru": "Филимону",
-        "he": "אל פילימון"
+        "he": "אל פילימון",
+        "ja": "フィレモン",
+        "zh": "腓利门",
+        "ko": "빌레몬",
+        "pt": "Filemom",
+        "tr": "Filomon",
+        "id": "Filemon",
+        "ur": "فلیمون",
+        "fa": "فیلیمون"
     },
     "Hebrews": {
         "bn": "ইব্রীয়",
@@ -3191,7 +4339,15 @@ const i18nDict = {
         "it": "Ebrei",
         "de": "Hebräer",
         "ru": "Евреям",
-        "he": "אל העברים"
+        "he": "אל העברים",
+        "ja": "ヘブライ人への手紙",
+        "zh": "希伯来书",
+        "ko": "히브리서",
+        "pt": "Hebreus",
+        "tr": "İbraniler",
+        "id": "Ibrani",
+        "ur": "عبرانیوں",
+        "fa": "عبرانیان"
     },
     "James": {
         "bn": "যাকোব",
@@ -3202,7 +4358,15 @@ const i18nDict = {
         "it": "Giacomo",
         "de": "Jakobus",
         "ru": "Иакова",
-        "he": "איגרת יעקב"
+        "he": "איגרת יעקב",
+        "ja": "ジェームス",
+        "zh": "詹姆斯",
+        "ko": "제임스",
+        "pt": "James",
+        "tr": "James",
+        "id": "Yakobus",
+        "ur": "جیمز",
+        "fa": "جیمز"
     },
     "1 Peter": {
         "bn": "১ পিতর",
@@ -3213,7 +4377,15 @@ const i18nDict = {
         "it": "1 Pietro",
         "de": "1. Petrus",
         "ru": "1 Петра",
-        "he": "איגרת פטרוס הראשונה"
+        "he": "איגרת פטרוס הראשונה",
+        "ja": "1 ピーター",
+        "zh": "1 彼得",
+        "ko": "베드로 1서",
+        "pt": "1 Pedro",
+        "tr": "1 Peter",
+        "id": "1 Petrus",
+        "ur": "1 پیٹر",
+        "fa": "1 پیتر"
     },
     "2 Peter": {
         "bn": "২ পিতর",
@@ -3224,7 +4396,15 @@ const i18nDict = {
         "it": "2 Pietro",
         "de": "2. Petrus",
         "ru": "2 Петра",
-        "he": "איגרת פטרוס השנייה"
+        "he": "איגרת פטרוס השנייה",
+        "ja": "2 ピーター",
+        "zh": "2 彼得",
+        "ko": "베드로 2서",
+        "pt": "2 Pedro",
+        "tr": "2 Peter",
+        "id": "2 Petrus",
+        "ur": "2 پیٹر",
+        "fa": "2 پیتر"
     },
     "1 John": {
         "bn": "১ যোহন",
@@ -3235,7 +4415,15 @@ const i18nDict = {
         "it": "1 Giovanni",
         "de": "1. Johannes",
         "ru": "1 Иоанна",
-        "he": "איגרת יוחנן הראשונה"
+        "he": "איגרת יוחנן הראשונה",
+        "ja": "1 ジョン",
+        "zh": "约翰一书",
+        "ko": "요한 1서",
+        "pt": "1 João",
+        "tr": "1 John",
+        "id": "1 Yohanes",
+        "ur": "1 جان",
+        "fa": "1 جان"
     },
     "2 John": {
         "bn": "২ যোহন",
@@ -3246,7 +4434,15 @@ const i18nDict = {
         "it": "2 Giovanni",
         "de": "2. Johannes",
         "ru": "2 Иоанна",
-        "he": "איגרת יוחנן השנייה"
+        "he": "איגרת יוחנן השנייה",
+        "ja": "2 ジョン",
+        "zh": "约翰二书",
+        "ko": "요한 2서",
+        "pt": "2 João",
+        "tr": "2 John",
+        "id": "2 Yohanes",
+        "ur": "2 جان",
+        "fa": "2 جان"
     },
     "3 John": {
         "bn": "৩ যোহন",
@@ -3257,7 +4453,15 @@ const i18nDict = {
         "it": "3 Giovanni",
         "de": "3. Johannes",
         "ru": "3 Иоанна",
-        "he": "איגרת יוחנן השלישית"
+        "he": "איגרת יוחנן השלישית",
+        "ja": "3 ジョン",
+        "zh": "约翰三书",
+        "ko": "요한 3서",
+        "pt": "3 João",
+        "tr": "3 John",
+        "id": "3 Yohanes",
+        "ur": "3 جان",
+        "fa": "3 جان"
     },
     "Jude": {
         "bn": "যিহূদা",
@@ -3268,7 +4472,15 @@ const i18nDict = {
         "it": "Giuda",
         "de": "Judas",
         "ru": "Иуды",
-        "he": "איגרת יהודה"
+        "he": "איגרת יהודה",
+        "ja": "ジュード",
+        "zh": "裘德",
+        "ko": "주드",
+        "pt": "Judas",
+        "tr": "Jude",
+        "id": "Yudas",
+        "ur": "جوڈ",
+        "fa": "جود"
     },
     "Revelation": {
         "bn": "প্রকাশিত বাক্য",
@@ -3279,127 +4491,395 @@ const i18nDict = {
         "it": "Apocalisse",
         "de": "Offenbarung",
         "ru": "Откровение",
-        "he": "חזון יוחנן"
+        "he": "חזון יוחנן",
+        "ja": "啓示",
+        "zh": "启示",
+        "ko": "시현",
+        "pt": "Revelação",
+        "tr": "Vahiy",
+        "id": "Wahyu",
+        "ur": "وحی",
+        "fa": "مکاشفه"
     },
     "One small tap for you, one giant leap for this starving indie dev.": {
         "bn": "আপনার জন্য একটি ছোট ট্যাপ, এই পরিশ্রমী নির্মাতার জন্য এক বিশাল পদক্ষেপ।",
         "he": "הקשה אחת קטנה בשבילך, קפיצת מדרגה אחת ענקית למפתח האינדי הרעב הזה.",
         "ar": "نقرة واحدة صغيرة لك، وقفزة عملاقة لهذا المطور المستقل الجائع.",
-        "hi": "आपके लिए एक छोटा सा टैप, इस भूखे इंडी देव के लिए एक विशाल छलांग।"
+        "hi": "आपके लिए एक छोटा सा टैप, इस भूखे इंडी देव के लिए एक विशाल छलांग।",
+        "ja": "あなたにとっては 1 回の小さなタップですが、この飢えたインディーズ開発者にとっては 1 回の大きな飛躍です。",
+        "zh": "对你来说轻轻一按，对这个饥饿的独立开发者来说就是一大步。",
+        "ko": "당신을 위한 작은 탭 한번, 이 배고픈 인디 개발자를 위한 거대한 도약.",
+        "es": "Un pequeño toque para ti, un gran salto para este desarrollador independiente hambriento.",
+        "fr": "Un petit clic pour vous, un pas de géant pour ce développeur indépendant affamé.",
+        "de": "Ein kleiner Tipp für Sie, ein großer Sprung für diesen hungernden Indie-Entwickler.",
+        "ru": "Одно маленькое касание для вас, один гигантский скачок для этого голодающего инди-разработчика.",
+        "it": "Un piccolo tocco per te, un passo da gigante per questo sviluppatore indipendente affamato.",
+        "pt": "Um pequeno toque para você, um salto gigante para este desenvolvedor indie faminto.",
+        "tr": "Sizin için küçük bir dokunuş, açlıktan ölmek üzere olan bu bağımsız geliştirici için dev bir adım.",
+        "id": "Satu ketukan kecil untuk Anda, satu lompatan besar untuk pengembang indie yang kelaparan ini.",
+        "ur": "آپ کے لیے ایک چھوٹا سا تھپتھپائیں، اس بھوک سے مرنے والے انڈی دیو کے لیے ایک بڑی چھلانگ۔",
+        "fa": "یک ضربه کوچک برای شما، یک جهش بزرگ برای این توسعه دهنده مستقل گرسنه."
     },
     "Remove ads and fund the developer's 3 AM coffee addiction.": {
         "bn": "বিজ্ঞাপন সরান এবং নির্মাতাকে রাত ৩টার কফির যোগান দিন।",
         "he": "הסר מודעות וממן את ההתמכרות לקפה של המפתח בשעה 3:00.",
         "ar": "قم بإزالة الإعلانات وقم بتمويل إدمان المطور للقهوة في الساعة 3 صباحًا.",
-        "hi": "विज्ञापन हटाएं और डेवलपर की सुबह 3 बजे कॉफी की लत के लिए धन जुटाएं।"
+        "hi": "विज्ञापन हटाएं और डेवलपर की सुबह 3 बजे कॉफी की लत के लिए धन जुटाएं।",
+        "ja": "広告を削除して、開発者の午前 3 時のコーヒー中毒に資金を提供します。",
+        "zh": "删除广告并资助开发者凌晨 3 点的咖啡瘾。",
+        "ko": "광고를 제거하고 개발자의 오전 3시 커피 중독에 자금을 지원하세요.",
+        "es": "Elimine los anuncios y financie la adicción al café de las 3 a. m. del desarrollador.",
+        "fr": "Supprimez les publicités et financez la dépendance au café du développeur à 3 heures du matin.",
+        "de": "Entfernen Sie Werbung und finanzieren Sie die 3-Uhr-Kaffeesucht des Entwicklers.",
+        "ru": "Удалите рекламу и профинансируйте зависимость разработчика от кофе в 3 часа ночи.",
+        "it": "Rimuovi gli annunci e finanzia la dipendenza dallo sviluppatore dal caffè alle 3 del mattino.",
+        "pt": "Remova anúncios e financie o vício do desenvolvedor em café às 3 da manhã.",
+        "tr": "Reklamları kaldırın ve geliştiricinin sabah 3 kahve bağımlılığını finanse edin.",
+        "id": "Hapus iklan dan danai kecanduan kopi pukul 3 pagi pengembang.",
+        "ur": "اشتہارات ہٹائیں اور ڈویلپر کے 3 AM کافی کی لت کو فنڈ دیں۔",
+        "fa": "تبلیغات را حذف کنید و هزینه اعتیاد توسعه دهنده به قهوه در ساعت 3 صبح را تامین کنید."
     },
     "Ads keep our servers alive. Premium keeps the developer's sanity alive.": {
         "bn": "বিজ্ঞাপন সার্ভার বাঁচিয়ে রাখে। প্রিমিয়াম নির্মাতাকে বাঁচিয়ে রাখে।",
         "he": "מודעות שומרות על השרתים שלנו בחיים. פרימיום שומרת על שפיות המפתח בחיים.",
         "ar": "الإعلانات تبقي خوادمنا حية. Premium يبقي عقل المطور على قيد الحياة.",
-        "hi": "विज्ञापन हमारे सर्वर को सक्रिय रखते हैं। प्रीमियम डेवलपर की समझदारी को जीवित रखता है।"
+        "hi": "विज्ञापन हमारे सर्वर को सक्रिय रखते हैं। प्रीमियम डेवलपर की समझदारी को जीवित रखता है।",
+        "ja": "広告によってサーバーは生き続けます。プレミアムは開発者の正気を保ちます。",
+        "zh": "广告让我们的服务器保持活力。高级版可以让开发人员保持理智。",
+        "ko": "광고는 서버를 계속 유지합니다. 프리미엄은 개발자의 정신을 생생하게 유지합니다.",
+        "es": "Los anuncios mantienen vivos nuestros servidores. Premium mantiene viva la cordura del desarrollador.",
+        "fr": "Les publicités maintiennent nos serveurs en vie. Premium maintient la santé mentale du développeur.",
+        "de": "Werbung hält unsere Server am Leben. Premium hält die geistige Gesundheit des Entwicklers aufrecht.",
+        "ru": "Реклама поддерживает работу наших серверов. Премиум поддерживает здравомыслие разработчика.",
+        "it": "Gli annunci mantengono attivi i nostri server. Premium mantiene viva la sanità mentale dello sviluppatore.",
+        "pt": "Os anúncios mantêm nossos servidores ativos. Premium mantém viva a sanidade do desenvolvedor.",
+        "tr": "Reklamlar sunucularımızı canlı tutar. Premium, geliştiricinin akıl sağlığını canlı tutar.",
+        "id": "Iklan menjaga server kami tetap hidup. Premium menjaga kewarasan pengembang tetap hidup.",
+        "ur": "اشتہارات ہمارے سرورز کو زندہ رکھتے ہیں۔ پریمیم ڈویلپر کی عقل کو زندہ رکھتا ہے۔",
+        "fa": "تبلیغات سرورهای ما را زنده نگه می دارد. Premium عقل توسعه دهنده را زنده نگه می دارد."
     },
     "Look, we both hate ads. Just tap the button and let's never speak of this again.": {
         "bn": "আমরা দুজনই বিজ্ঞাপন অপছন্দ করি। বোতামে চাপ দিন এবং শান্তিতে পড়ুন।",
         "he": "תראה, שנינו שונאים פרסומות. פשוט הקש על הכפתור ובואו לעולם לא נדבר על זה שוב.",
         "ar": "انظر، كلانا يكره الإعلانات. فقط اضغط على الزر ودعنا لا نتحدث عن هذا مرة أخرى.",
-        "hi": "देखिए, हम दोनों को विज्ञापनों से नफरत है। बस बटन टैप करें और आइए इसके बारे में फिर कभी बात न करें।"
+        "hi": "देखिए, हम दोनों को विज्ञापनों से नफरत है। बस बटन टैप करें और आइए इसके बारे में फिर कभी बात न करें।",
+        "ja": "ほら、私たちは二人とも広告が嫌いです。ボタンをタップするだけで、もうこのことについて話す必要はありません。",
+        "zh": "看，我们都讨厌广告。只需点击按钮，我们就不再谈论这件事了。",
+        "ko": "보세요, 우리 둘 다 광고를 싫어해요. 버튼을 탭하기만 하면 다시는 이 이야기를 하지 않겠습니다.",
+        "es": "Mira, ambos odiamos los anuncios. Simplemente toque el botón y nunca más hablemos de esto.",
+        "fr": "Écoutez, nous détestons tous les deux les publicités. Appuyez simplement sur le bouton et n'en parlons plus jamais.",
+        "de": "Schauen Sie, wir hassen beide Werbung. Tippen Sie einfach auf die Schaltfläche und lassen Sie uns nie wieder darüber sprechen.",
+        "ru": "Слушай, мы оба ненавидим рекламу. Просто нажмите кнопку, и давайте больше никогда об этом не будем говорить.",
+        "it": "Senti, entrambi odiamo la pubblicità. Basta toccare il pulsante e non parliamone mai più.",
+        "pt": "Olha, nós dois odiamos anúncios. Basta tocar no botão e nunca mais falaremos disso.",
+        "tr": "Bak, ikimiz de reklamlardan nefret ediyoruz. Sadece düğmeye dokunun ve bundan bir daha asla bahsetmeyelim.",
+        "id": "Dengar, kami berdua benci iklan. Cukup ketuk tombolnya dan jangan pernah membicarakan hal ini lagi.",
+        "ur": "دیکھو، ہم دونوں اشتہارات سے نفرت کرتے ہیں۔ بس بٹن کو تھپتھپائیں اور آئیے اس کے بارے میں دوبارہ کبھی بات نہ کریں۔",
+        "fa": "ببینید، ما هر دو از تبلیغات متنفریم. فقط روی دکمه ضربه بزنید و اجازه دهید هرگز در مورد این صحبت دوباره."
     },
     "Upgrade to Premium so I can finally afford actual groceries instead of instant noodles.": {
         "bn": "প্রিমিয়ামে আপগ্রেড করুন যাতে এই স্বাধীন ডেভেলপার নুডলসের বদলে ভালো খাবার খেতে পারে।",
         "he": "שדרג לפרימיום כדי שאוכל סוף סוף להרשות לעצמי מצרכים אמיתיים במקום אטריות אינסטנט.",
         "ar": "قم بالترقية إلى Premium حتى أتمكن أخيرًا من شراء البقالة الفعلية بدلاً من المكرونة سريعة التحضير.",
-        "hi": "प्रीमियम में अपग्रेड करें ताकि मैं अंततः इंस्टेंट नूडल्स के बजाय वास्तविक किराने का सामान खरीद सकूं।"
+        "hi": "प्रीमियम में अपग्रेड करें ताकि मैं अंततः इंस्टेंट नूडल्स के बजाय वास्तविक किराने का सामान खरीद सकूं।",
+        "ja": "プレミアムにアップグレードすると、インスタントラーメンの代わりに実際の食料品を購入できるようになります。",
+        "zh": "升级到高级版，这样我终于可以买得起真正的杂货而不是方便面了。",
+        "ko": "프리미엄으로 업그레이드하면 마침내 인스턴트 라면 대신 실제 식료품을 구입할 수 있습니다.",
+        "es": "Actualíceme a Premium para finalmente poder permitirme comprar alimentos reales en lugar de fideos instantáneos.",
+        "fr": "Passez à Premium pour pouvoir enfin me permettre de vraies courses au lieu de nouilles instantanées.",
+        "de": "Upgrade auf Premium, damit ich mir endlich echte Lebensmittel statt Instantnudeln leisten kann.",
+        "ru": "Перейдите на Премиум, чтобы я наконец мог позволить себе настоящие продукты вместо лапши быстрого приготовления.",
+        "it": "Passa a Premium così posso finalmente permettermi la spesa vera e propria invece dei noodles istantanei.",
+        "pt": "Atualize para Premium para que eu possa finalmente comprar mantimentos de verdade em vez de macarrão instantâneo.",
+        "tr": "Premium'a yükseltin, böylece artık hazır erişte yerine gerçek yiyecek satın alabiliyorum.",
+        "id": "Tingkatkan ke Premium sehingga saya akhirnya bisa membeli bahan makanan daripada mie instan.",
+        "ur": "Premium میں اپ گریڈ کریں تاکہ میں فوری نوڈلز کے بجائے اصل گروسری کا متحمل ہو سکوں۔",
+        "fa": "به Premium ارتقا دهید تا در نهایت بتوانم به جای نودل فوری، خواربار فروشی واقعی بخرم."
     },
     "You're reading ancient wisdom while staring at an ad. Let's fix that.": {
         "bn": "আপনি প্রাচীন প্রজ্ঞা পড়ার মাঝে বিজ্ঞাপন দেখছেন। চলুন এটি দূর করি।",
         "he": "אתה קורא חוכמה עתיקה בזמן שאתה בוהה במודעה. בוא נתקן את זה.",
         "ar": "أنت تقرأ الحكمة القديمة بينما تحدق في أحد الإعلانات. دعونا نصلح ذلك.",
-        "hi": "आप किसी विज्ञापन को देखते हुए प्राचीन ज्ञान पढ़ रहे हैं। आइए उसे ठीक करें।"
+        "hi": "आप किसी विज्ञापन को देखते हुए प्राचीन ज्ञान पढ़ रहे हैं। आइए उसे ठीक करें।",
+        "ja": "あなたは広告を見つめながら古代の知恵を読んでいます。それを修正しましょう。",
+        "zh": "您正在一边盯着广告一边阅读古老的智慧。让我们解决这个问题。",
+        "ko": "당신은 광고를 보면서 고대의 지혜를 읽고 있습니다. 문제를 해결해 보겠습니다.",
+        "es": "Estás leyendo sabiduría antigua mientras miras un anuncio. Arreglemos eso.",
+        "fr": "Vous lisez une sagesse ancienne en regardant une publicité. Réparons ça.",
+        "de": "Sie lesen alte Weisheiten, während Sie auf eine Anzeige starren. Lasst uns das beheben.",
+        "ru": "Вы читаете древнюю мудрость, глядя на рекламу. Давайте это исправим.",
+        "it": "Stai leggendo un'antica saggezza mentre guardi una pubblicità. Risolviamolo.",
+        "pt": "Você está lendo a sabedoria antiga enquanto olha para um anúncio. Vamos consertar isso.",
+        "tr": "Bir reklama bakarken eski bilgeliği okuyorsunuz. Bunu düzeltelim.",
+        "id": "Anda membaca kebijaksanaan kuno sambil menatap sebuah iklan. Mari kita perbaiki itu.",
+        "ur": "آپ ایک اشتہار کو گھورتے ہوئے قدیم حکمت پڑھ رہے ہیں۔ آئیے اسے ٹھیک کرتے ہیں۔",
+        "fa": "شما در حال خواندن حکمت باستانی هستید در حالی که به یک آگهی خیره شده اید. بیایید آن را درست کنیم."
     },
     "Tap Remove Ads and an angel will personally bless your WiFi signal.": {
         "bn": "বিজ্ঞাপন সরান বাটনে ট্যাপ করুন এবং প্রশান্তিময় অভিজ্ঞতা উপভোগ করুন।",
         "he": "הקש על הסר מודעות ומלאך יברך באופן אישי את אות ה-WiFi שלך.",
         "ar": "انقر فوق \"إزالة الإعلانات\" وسوف يبارك الملاك شخصيًا إشارة WiFi الخاصة بك.",
-        "hi": "विज्ञापन हटाएँ पर टैप करें और एक देवदूत व्यक्तिगत रूप से आपके वाईफाई सिग्नल को आशीर्वाद देगा।"
+        "hi": "विज्ञापन हटाएँ पर टैप करें और एक देवदूत व्यक्तिगत रूप से आपके वाईफाई सिग्नल को आशीर्वाद देगा।",
+        "ja": "[広告を削除] をタップすると、天使が個人的に WiFi 信号を祝福してくれます。",
+        "zh": "点击“删除广告”，天使将亲自祝福您的 WiFi 信号。",
+        "ko": "광고 제거를 탭하면 천사가 개인적으로 Wi-Fi 신호를 축복할 것입니다.",
+        "es": "Toca Eliminar anuncios y un ángel bendecirá personalmente tu señal WiFi.",
+        "fr": "Appuyez sur Supprimer les publicités et un ange bénira personnellement votre signal WiFi.",
+        "de": "Tippen Sie auf „Werbung entfernen“ und ein Engel wird Ihr WLAN-Signal persönlich segnen.",
+        "ru": "Нажмите «Удалить рекламу», и ангел лично благословит ваш сигнал Wi-Fi.",
+        "it": "Tocca Rimuovi pubblicità e un angelo benedirà personalmente il tuo segnale WiFi.",
+        "pt": "Toque em Remover anúncios e um anjo abençoará pessoalmente seu sinal WiFi.",
+        "tr": "Reklamları Kaldır'a dokunduğunuzda bir melek WiFi sinyalinizi kişisel olarak kutsayacaktır.",
+        "id": "Ketuk Hapus Iklan dan malaikat secara pribadi akan memberkati sinyal WiFi Anda.",
+        "ur": "اشتہارات ہٹائیں پر ٹیپ کریں اور ایک فرشتہ ذاتی طور پر آپ کے وائی فائی سگنل کو برکت دے گا۔",
+        "fa": "روی Remove Ads ضربه بزنید تا یک فرشته شخصاً سیگنال WiFi شما را برکت دهد."
     },
     "Think of Premium as buying the developer a virtual tea. A very appreciative tea.": {
         "bn": "প্রিমিয়াম নিয়ে নির্মাতাকে এক কাপ প্রশংসার চা উপহার দিন।",
         "he": "תחשוב על פרימיום כקניית למפתח תה וירטואלי. תה מאוד מעורר הערכה.",
         "ar": "فكر في Premium على أنه شراء شاي افتراضي للمطور. شاي موضع تقدير كبير.",
-        "hi": "प्रीमियम को डेवलपर के लिए वर्चुअल चाय खरीदने के समान समझें। बहुत सराहनीय चाय."
+        "hi": "प्रीमियम को डेवलपर के लिए वर्चुअल चाय खरीदने के समान समझें। बहुत सराहनीय चाय.",
+        "ja": "プレミアムは、開発者に仮想のお茶を購入するようなものだと考えてください。とてもありがたいお茶です。",
+        "zh": "将 Premium 视为为开发者购买一杯虚拟茶。非常值得欣赏的一款茶。",
+        "ko": "프리미엄을 개발자에게 가상 차를 구매하는 것으로 생각해보세요. 매우 감사한 차입니다.",
+        "es": "Piense en Premium como comprarle al desarrollador un té virtual. Un té muy agradecido.",
+        "fr": "Considérez Premium comme l'achat d'un thé virtuel au développeur. Un thé très apprécié.",
+        "de": "Stellen Sie sich Premium so vor, als würden Sie dem Entwickler einen virtuellen Tee spendieren. Ein sehr wertschätzender Tee.",
+        "ru": "Думайте о Premium как о покупке виртуального чая для разработчика. Очень благодарный чай.",
+        "it": "Pensa a Premium come all'acquisto di un tè virtuale allo sviluppatore. Un tè molto apprezzato.",
+        "pt": "Pense no Premium como comprar um chá virtual para o desenvolvedor. Um chá muito agradecido.",
+        "tr": "Premium'u geliştiriciye sanal bir çay satın almak olarak düşünün. Çok değerli bir çay.",
+        "id": "Bayangkan Premium seperti membelikan teh virtual kepada pengembang. Teh yang sangat dihargai.",
+        "ur": "ڈویلپر کو ورچوئل چائے خریدنے کے طور پر پریمیم کے بارے میں سوچیں۔ ایک بہت ہی قابل تعریف چائے۔",
+        "fa": "Premium را به عنوان خرید یک چای مجازی برای توسعه دهنده در نظر بگیرید. یک چای بسیار قدردانی"
     },
     "No ads, all HD voices, and eternal good karma. Best investment of your week.": {
         "bn": "কোনো বিজ্ঞাপন নেই, সব এইচডি কণ্ঠস্বর এবং নিখুঁত আধ্যাত্মিক প্রশান্তি।",
         "he": "ללא פרסומות, כל קולות HD, וקארמה טובה נצחית. ההשקעה הטובה ביותר של השבוע שלך.",
         "ar": "لا توجد إعلانات، وجميع الأصوات عالية الدقة، والكارما الجيدة الأبدية. أفضل استثمار في أسبوعك.",
-        "hi": "कोई विज्ञापन नहीं, सभी एचडी आवाजें, और शाश्वत अच्छे कर्म। आपके सप्ताह का सर्वोत्तम निवेश."
+        "hi": "कोई विज्ञापन नहीं, सभी एचडी आवाजें, और शाश्वत अच्छे कर्म। आपके सप्ताह का सर्वोत्तम निवेश.",
+        "ja": "広告なし、すべて HD 音声、永遠の善のカルマ。今週のベスト投資。",
+        "zh": "无广告，全高清语音，善缘永恒。您一周的最佳投资。",
+        "ko": "광고가 없고, HD 음성이 모두 제공되며, 영원한 선업이 있습니다. 이번주 최고의 투자.",
+        "es": "Sin publicidad, todas las voces en HD y buen karma eterno. La mejor inversión de tu semana.",
+        "fr": "Pas de publicité, toutes les voix HD et un bon karma éternel. Meilleur investissement de votre semaine.",
+        "de": "Keine Werbung, alle HD-Stimmen und ewig gutes Karma. Beste Investition Ihrer Woche.",
+        "ru": "Никакой рекламы, все HD-голоса и вечная добрая карма. Лучшая инвестиция вашей недели.",
+        "it": "Nessuna pubblicità, tutte le voci in HD e un karma eterno e positivo. Il miglior investimento della tua settimana.",
+        "pt": "Sem anúncios, todas as vozes em HD e um bom carma eterno. Melhor investimento da sua semana.",
+        "tr": "Reklam yok, tamamı HD sesler ve sonsuz iyi karma. Haftanızın en iyi yatırımı.",
+        "id": "Tanpa iklan, semua suara HD, dan karma baik abadi. Investasi terbaik minggu ini.",
+        "ur": "کوئی اشتہار نہیں، تمام HD آوازیں، اور ابدی اچھے کرما۔ آپ کے ہفتے کی بہترین سرمایہ کاری۔",
+        "fa": "بدون تبلیغات، تمام صداهای HD، و کارما خوب ابدی. بهترین سرمایه گذاری هفته شما"
     },
     "Your spiritual enlightenment shouldn't have a commercial break.": {
         "bn": "আপনার আধ্যাত্মিক পাঠে কোনো বিজ্ঞাপনের বিরতি থাকা উচিত নয়।",
         "he": "להארה הרוחנית שלך לא אמורה להיות הפסקה מסחרית.",
         "ar": "تنويرك الروحي لا ينبغي أن يكون له استراحة تجارية.",
-        "hi": "आपके आध्यात्मिक ज्ञान में व्यावसायिक विराम नहीं होना चाहिए।"
+        "hi": "आपके आध्यात्मिक ज्ञान में व्यावसायिक विराम नहीं होना चाहिए।",
+        "ja": "あなたのスピリチュアルな啓発に商業的なブレイクがあってはなりません。",
+        "zh": "你的精神启蒙不应该有商业广告。",
+        "ko": "당신의 영적 깨달음에는 상업적인 휴식이 있어서는 안 됩니다.",
+        "es": "Tu iluminación espiritual no debería tener una pausa comercial.",
+        "fr": "Votre illumination spirituelle ne devrait pas avoir de pause publicitaire.",
+        "de": "Ihre spirituelle Erleuchtung sollte keine Werbeunterbrechung haben.",
+        "ru": "Ваше духовное просветление не должно иметь рекламной паузы.",
+        "it": "La tua illuminazione spirituale non dovrebbe avere una pausa pubblicitaria.",
+        "pt": "Sua iluminação espiritual não deveria ter intervalo comercial.",
+        "tr": "Ruhsal aydınlanmanız ticari bir ara vermemelidir.",
+        "id": "Pencerahan spiritual Anda seharusnya tidak memiliki jeda iklan.",
+        "ur": "آپ کی روحانی روشن خیالی میں تجارتی وقفہ نہیں ہونا چاہیے۔",
+        "fa": "روشنگری معنوی شما نباید وقفه تجاری داشته باشد."
     },
     "100% of Premium buyers report feeling 42% more zen and 100% ad-free.": {
         "bn": "প্রিমিয়াম সদস্যরা উপভোগ করেন ১০০% বিজ্ঞাপনমুক্ত নিরবচ্ছিন্ন অভিজ্ঞতা।",
         "he": "100% מרוכשי פרימיום מדווחים שהם מרגישים 42% יותר זן ו-100% ללא פרסומות.",
         "ar": "أبلغ 100% من المشترين المميزين عن شعورهم بمزيد من الهدوء بنسبة 42% وخلوها من الإعلانات بنسبة 100%.",
-        "hi": "100% प्रीमियम खरीदार 42% अधिक ज़ेन और 100% विज्ञापन-मुक्त महसूस करते हैं।"
+        "hi": "100% प्रीमियम खरीदार 42% अधिक ज़ेन और 100% विज्ञापन-मुक्त महसूस करते हैं।",
+        "ja": "プレミアム購入者の 100% が、禅感が 42% 向上し、広告が 100% 表示されなくなったと報告しています。",
+        "zh": "100% 的高级买家表示感觉更加禅宗 42%，并且 100% 无广告。",
+        "ko": "프리미엄 구매자 중 100%는 42% 더 나은 기분을 느끼고 100% 광고가 없는 느낌을 받았다고 보고합니다.",
+        "es": "El 100% de los compradores Premium afirman sentirse un 42% más zen y 100% libres de publicidad.",
+        "fr": "100 % des acheteurs Premium déclarent se sentir 42 % plus zen et 100 % sans publicité.",
+        "de": "100 % der Premium-Käufer berichten, dass sie sich 42 % wohler fühlen und 100 % werbefrei sind.",
+        "ru": "100 % покупателей Premium сообщают, что чувствуют себя на 42 % более дружелюбными и на 100 % без рекламы.",
+        "it": "Il 100% degli acquirenti Premium dichiara di sentirsi il 42% più zen e il 100% senza pubblicità.",
+        "pt": "100% dos compradores Premium relatam sentir-se 42% mais zen e 100% livres de anúncios.",
+        "tr": "Premium kullanıcılarının %100'ü %42 daha fazla zen ve %100 reklamsız hissettiklerini bildiriyor.",
+        "id": "100% pembeli Premium melaporkan merasa 42% lebih nyaman dan 100% bebas iklan.",
+        "ur": "پریمیم خریداروں میں سے 100% 42% زیادہ زین اور 100% اشتہار سے پاک محسوس کرتے ہیں۔",
+        "fa": "100٪ از خریداران Premium گزارش می دهند که 42٪ بیشتر احساس می کنند و 100٪ بدون تبلیغات هستند."
     },
     "Help an indie developer survive capitalism. Tap to unlock Premium.": {
         "bn": "একক নির্মাতাকে সমর্থন করুন। প্রিমিয়াম আনলক করতে ট্যাপ করুন।",
         "he": "עזור למפתח אינדי לשרוד את הקפיטליזם. הקש כדי לבטל את הנעילה של Premium.",
         "ar": "ساعد مطورًا مستقلاً على النجاة من الرأسمالية. انقر لفتح Premium.",
-        "hi": "एक इंडी डेवलपर को पूंजीवाद से बचे रहने में मदद करें। प्रीमियम अनलॉक करने के लिए टैप करें।"
+        "hi": "एक इंडी डेवलपर को पूंजीवाद से बचे रहने में मदद करें। प्रीमियम अनलॉक करने के लिए टैप करें।",
+        "ja": "インディー開発者が資本主義を生き延びられるよう支援します。タップしてプレミアムのロックを解除します。",
+        "zh": "帮助独立开发者在资本主义中生存。点击即可解锁高级版。",
+        "ko": "인디 개발자가 자본주의에서 살아남을 수 있도록 도와주세요. 프리미엄을 잠금 해제하려면 탭하세요.",
+        "es": "Ayuda a un desarrollador independiente a sobrevivir al capitalismo. Toca para desbloquear Premium.",
+        "fr": "Aidez un développeur indépendant à survivre au capitalisme. Appuyez pour déverrouiller Premium.",
+        "de": "Helfen Sie einem Indie-Entwickler, den Kapitalismus zu überleben. Tippen Sie hier, um Premium freizuschalten.",
+        "ru": "Помогите инди-разработчику пережить капитализм. Нажмите, чтобы разблокировать Премиум.",
+        "it": "Aiuta uno sviluppatore indipendente a sopravvivere al capitalismo. Tocca per sbloccare Premium.",
+        "pt": "Ajude um desenvolvedor independente a sobreviver ao capitalismo. Toque para desbloquear o Premium.",
+        "tr": "Bağımsız bir geliştiricinin kapitalizmden kurtulmasına yardımcı olun. Premium'un kilidini açmak için dokunun.",
+        "id": "Bantu pengembang indie bertahan dari kapitalisme. Ketuk untuk membuka kunci Premium.",
+        "ur": "انڈی ڈویلپر کی سرمایہ داری کو زندہ رہنے میں مدد کریں۔ پریمیم کو غیر مقفل کرنے کے لیے تھپتھپائیں۔",
+        "fa": "به یک توسعه دهنده مستقل کمک کنید تا از سرمایه داری جان سالم به در ببرد. برای باز کردن قفل Premium ضربه بزنید."
     },
     "If you buy Premium, I promise to tell my mom someone actually bought my app.": {
         "bn": "প্রিমিয়াম নিলে আমি মাকে গর্ব করে বলতে পারব কেউ আমার অ্যাপ ভালোবেসেছে!",
         "he": "אם אתה קונה פרימיום, אני מבטיח לספר לאמא שלי שמישהו באמת קנה את האפליקציה שלי.",
         "ar": "إذا اشتريت Premium، أعدك أن أخبر أمي أن شخصًا ما اشترى تطبيقي بالفعل.",
-        "hi": "यदि आप प्रीमियम खरीदते हैं, तो मैं अपनी माँ को यह बताने का वादा करता हूँ कि किसी ने वास्तव में मेरा ऐप खरीदा है।"
+        "hi": "यदि आप प्रीमियम खरीदते हैं, तो मैं अपनी माँ को यह बताने का वादा करता हूँ कि किसी ने वास्तव में मेरा ऐप खरीदा है।",
+        "ja": "プレミアムを購入したら、誰かが実際に私のアプリを購入したことを母に伝えることを約束します。",
+        "zh": "如果您购买高级版，我保证告诉我妈妈有人确实购买了我的应用程序。",
+        "ko": "프리미엄을 구매하시면 누군가가 실제로 내 앱을 구매했다고 어머니께 말씀드리겠다고 약속합니다.",
+        "es": "Si compras Premium, prometo decirle a mi mamá que alguien realmente compró mi aplicación.",
+        "fr": "Si vous achetez Premium, je promets de dire à ma mère que quelqu'un a réellement acheté mon application.",
+        "de": "Wenn du Premium kaufst, verspreche ich meiner Mutter zu sagen, dass jemand meine App tatsächlich gekauft hat.",
+        "ru": "Если вы купите Premium, я обещаю рассказать маме, что кто-то действительно купил мое приложение.",
+        "it": "Se acquisti Premium, prometto di dire a mia madre che qualcuno ha effettivamente acquistato la mia app.",
+        "pt": "Se você comprar o Premium, prometo contar à minha mãe que alguém realmente comprou meu aplicativo.",
+        "tr": "Premium satın alırsanız anneme birisinin uygulamamı gerçekten satın aldığını söyleyeceğime söz veriyorum.",
+        "id": "Jika kamu membeli Premium, aku berjanji akan memberi tahu ibuku bahwa seseorang benar-benar membeli aplikasiku.",
+        "ur": "اگر آپ پریمیم خریدتے ہیں، تو میں وعدہ کرتا ہوں کہ اپنی ماں کو بتاؤں گا کہ کسی نے واقعی میری ایپ خریدی ہے۔",
+        "fa": "اگر Premium بخرید، قول می‌دهم به مادرم بگویم کسی واقعاً برنامه من را خریده است."
     },
     "Peace, tranquility, and zero banner ads trying to sell you car insurance.": {
         "bn": "শান্তি, স্থিরতা এবং কোনো অবাঞ্ছিত বাণিজ্যিক বিজ্ঞাপন ছাড়া পবিত্র পাঠ।",
         "he": "שלווה, שלווה ואפס מודעות באנר המנסות למכור לך ביטוח רכב.",
         "ar": "السلام والهدوء وعدم وجود إعلانات لافتة تحاول بيع التأمين على السيارات لك.",
-        "hi": "शांति, शांति और शून्य बैनर विज्ञापन आपको कार बीमा बेचने की कोशिश कर रहे हैं।"
+        "hi": "शांति, शांति और शून्य बैनर विज्ञापन आपको कार बीमा बेचने की कोशिश कर रहे हैं।",
+        "ja": "平和、静けさ、自動車保険の販売を目的としたバナー広告はありません。",
+        "zh": "和平、安宁和零横幅广告试图向您推销汽车保险。",
+        "ko": "평화, 평온, 그리고 자동차 보험을 판매하려는 배너 광고가 없습니다.",
+        "es": "Paz, tranquilidad y cero anuncios publicitarios que intenten venderle un seguro de automóvil.",
+        "fr": "Paix, tranquillité et aucune bannière publicitaire essayant de vous vendre une assurance automobile.",
+        "de": "Frieden, Ruhe und keine Werbebanner, die versuchen, Ihnen eine Kfz-Versicherung zu verkaufen.",
+        "ru": "Мир, спокойствие и отсутствие рекламных баннеров, пытающихся продать вам автострахование.",
+        "it": "Pace, tranquillità e zero banner pubblicitari che cercano di venderti l'assicurazione auto.",
+        "pt": "Paz, tranquilidade e zero banners tentando vender seguro de carro.",
+        "tr": "Huzur, sükunet ve sıfır banner reklamlar size araba sigortası satmaya çalışıyor.",
+        "id": "Kedamaian, ketenangan, dan tidak ada iklan banner yang mencoba menjual asuransi mobil kepada Anda.",
+        "ur": "امن، سکون، اور صفر بینر اشتہارات جو آپ کو کار انشورنس بیچنے کی کوشش کر رہے ہیں۔",
+        "fa": "صلح، آرامش و تبلیغات بنری صفر که سعی در فروش بیمه خودرو به شما دارند."
     },
     "Upgrade to Premium: Your daily verses deserve better than a low-budget ad.": {
         "bn": "প্রিমিয়াম নিন: আপনার দৈনিক বাণীগুলো বিজ্ঞাপনের চেয়ে অনেক বেশি মূল্যবান।",
         "he": "שדרג לפרימיום: לפסוקים היומיים שלך מגיע יותר ממודעה בתקציב נמוך.",
         "ar": "الترقية إلى Premium: آياتك اليومية تستحق أفضل من إعلان منخفض الميزانية.",
-        "hi": "प्रीमियम में अपग्रेड करें: आपके दैनिक छंद कम बजट वाले विज्ञापन से बेहतर हैं।"
+        "hi": "प्रीमियम में अपग्रेड करें: आपके दैनिक छंद कम बजट वाले विज्ञापन से बेहतर हैं।",
+        "ja": "プレミアムにアップグレード: あなたの毎日の詩は、低予算の広告より価値があります。",
+        "zh": "升级到高级版：您的日常诗句值得比低预算广告更好的内容。",
+        "ko": "프리미엄으로 업그레이드: 귀하의 일일 구절은 저예산 광고보다 더 가치가 있습니다.",
+        "es": "Actualice a Premium: sus versos diarios merecen algo mejor que un anuncio de bajo presupuesto.",
+        "fr": "Passez à Premium : vos vers quotidiens méritent mieux qu’une publicité à petit budget.",
+        "de": "Upgrade auf Premium: Ihre täglichen Verse verdienen etwas Besseres als eine Low-Budget-Anzeige.",
+        "ru": "Перейдите на Премиум: ваши ежедневные стихи заслуживают большего, чем малобюджетная реклама.",
+        "it": "Passa a Premium: i tuoi versi quotidiani meritano di meglio di una pubblicità a basso budget.",
+        "pt": "Atualize para Premium: seus versículos diários merecem coisa melhor do que um anúncio de baixo orçamento.",
+        "tr": "Premium'a yükseltin: Günlük şiirleriniz düşük bütçeli bir reklamdan daha iyisini hak ediyor.",
+        "id": "Tingkatkan ke Premium: Ayat harian Anda layak mendapatkan yang lebih baik daripada iklan beranggaran rendah.",
+        "ur": "پریمیم میں اپ گریڈ کریں: آپ کی روزانہ کی آیات کم بجٹ والے اشتہار سے بہتر ہیں۔",
+        "fa": "ارتقا به Premium: آیات روزانه شما شایسته بهتر از یک تبلیغ کم‌هزینه است."
     },
     "Buy Premium and I'll literally do a celebratory backflip in my room.": {
         "bn": "প্রিমিয়াম নিলে এই ডেভেলপার পরম আনন্দে কৃতজ্ঞ থাকবে!",
         "he": "קנה פרימיום ואני ממש אעשה סיבוב לאחור חגיגי בחדר שלי.",
         "ar": "اشترِ Premium وسأقوم حرفيًا بقلب خلفي احتفالي في غرفتي.",
-        "hi": "प्रीमियम खरीदें और मैं सचमुच अपने कमरे में एक जश्न मनाने वाला बैकफ़्लिप करूँगा।"
+        "hi": "प्रीमियम खरीदें और मैं सचमुच अपने कमरे में एक जश्न मनाने वाला बैकफ़्लिप करूँगा।",
+        "ja": "プレミアムを購入すれば、文字通り自分の部屋でお祝いのバク転をすることになります。",
+        "zh": "购买高级版，我真的会在我的房间里做一个庆祝性的后空翻。",
+        "ko": "프리미엄을 구매하면 말 그대로 내 방에서 축하 백플립을 할 수 있습니다.",
+        "es": "Compra Premium y literalmente haré una voltereta hacia atrás de celebración en mi habitación.",
+        "fr": "Achetez Premium et je ferai littéralement un backflip de célébration dans ma chambre.",
+        "de": "Wenn ich Premium kaufe, mache ich buchstäblich einen feierlichen Rückwärtssalto in meinem Zimmer.",
+        "ru": "Купите Premium, и я буквально сделаю праздничное сальто у себя в комнате.",
+        "it": "Acquista Premium e farò letteralmente un salto mortale all'indietro celebrativo nella mia stanza.",
+        "pt": "Compre Premium e eu literalmente darei um salto mortal para trás comemorativo no meu quarto.",
+        "tr": "Premium satın alın ve odamda kelimenin tam anlamıyla bir kutlama ters takla atacağım.",
+        "id": "Beli Premium dan saya akan melakukan backflip perayaan di kamar saya.",
+        "ur": "پریمیم خریدیں اور میں لفظی طور پر اپنے کمرے میں جشن منانے کا بیک فلپ کروں گا۔",
+        "fa": "Premium را بخرید و من به معنای واقعی کلمه در اتاقم یک تلنگر جشن انجام خواهم داد."
     },
     "Support a solo developer and cleanse your feed of all promotional clutter.": {
         "bn": "একক নির্মাতাকে সমর্থন করুন এবং আপনার ফিড সম্পূর্ণ পরিচ্ছন্ন রাখুন।",
         "he": "תמכו במפתח סולו ותנקו את הפיד שלכם מכל העומס בקידום מכירות.",
         "ar": "ادعم مطورًا منفردًا وقم بتنظيف خلاصتك من كل الفوضى الترويجية.",
-        "hi": "एक एकल डेवलपर का समर्थन करें और अपने फ़ीड से सभी प्रचार संबंधी अव्यवस्थाएं साफ़ करें।"
+        "hi": "एक एकल डेवलपर का समर्थन करें और अपने फ़ीड से सभी प्रचार संबंधी अव्यवस्थाएं साफ़ करें।",
+        "ja": "個人開発者をサポートし、フィードから宣伝用の煩雑なものをすべて削除します。",
+        "zh": "支持独立开发者并清理您的 Feed 中的所有促销混乱内容。",
+        "ko": "1인 개발자를 지원하고 피드에서 모든 프로모션 관련 혼란을 제거하세요.",
+        "es": "Apoye a un desarrollador en solitario y limpie su feed de todo el desorden promocional.",
+        "fr": "Soutenez un développeur solo et nettoyez votre flux de tout encombrement promotionnel.",
+        "de": "Unterstützen Sie einen Einzelentwickler und befreien Sie Ihren Feed von jeglichem Werbemüll.",
+        "ru": "Поддержите индивидуального разработчика и очистите свою ленту от всего рекламного мусора.",
+        "it": "Supporta uno sviluppatore solista e ripulisci il tuo feed da tutta la confusione promozionale.",
+        "pt": "Apoie um desenvolvedor solo e limpe seu feed de toda a confusão promocional.",
+        "tr": "Tek başına çalışan bir geliştiriciyi destekleyin ve feed'inizi tüm tanıtım karmaşasından arındırın.",
+        "id": "Dukung pengembang tunggal dan bersihkan feed Anda dari semua kekacauan promosi.",
+        "ur": "ایک سولو ڈویلپر کو سپورٹ کریں اور اپنی فیڈ کو تمام پروموشنل بے ترتیبی سے صاف کریں۔",
+        "fa": "از یک توسعه دهنده انفرادی حمایت کنید و فید خود را از همه درهم و برهمی های تبلیغاتی پاک کنید."
     },
     "Zero ads, maximum cozy vibes, and you save a programmer from despair.": {
         "bn": "শূন্য বিজ্ঞাপন, সর্বোচ্চ প্রশান্তি এবং একটি সুন্দর আধ্যাত্মিক পরিবেশ।",
         "he": "אפס פרסומות, מקסימום אווירה נעימה, ואתה מציל מתכנת מייאוש.",
         "ar": "بدون إعلانات، وأقصى قدر من المشاعر المريحة، ويمكنك إنقاذ المبرمج من اليأس.",
-        "hi": "शून्य विज्ञापन, अधिकतम आरामदायक वाइब्स, और आप एक प्रोग्रामर को निराशा से बचाते हैं।"
+        "hi": "शून्य विज्ञापन, अधिकतम आरामदायक वाइब्स, और आप एक प्रोग्रामर को निराशा से बचाते हैं।",
+        "ja": "広告がゼロ、最大限の居心地の良い雰囲気で、プログラマーを絶望から救います。",
+        "zh": "零广告，最大程度的舒适氛围，让程序员免于绝望。",
+        "ko": "광고가 없고 아늑한 분위기가 극대화되어 프로그래머를 절망에서 구할 수 있습니다.",
+        "es": "Cero anuncios, vibraciones máximas y acogedoras y salvas a un programador de la desesperación.",
+        "fr": "Zéro publicité, ambiance chaleureuse maximale et vous sauvez un programmeur du désespoir.",
+        "de": "Keine Werbung, maximale gemütliche Stimmung und Sie bewahren einen Programmierer vor der Verzweiflung.",
+        "ru": "Ноль рекламы, максимум уюта и вы спасете программиста от отчаяния.",
+        "it": "Zero pubblicità, massime vibrazioni accoglienti e salvi un programmatore dalla disperazione.",
+        "pt": "Zero anúncios, máxima vibração aconchegante e você salva um programador do desespero.",
+        "tr": "Sıfır reklam, maksimum rahatlık ve bir programcıyı umutsuzluktan kurtarırsınız.",
+        "id": "Tanpa iklan, suasana nyaman maksimal, dan Anda menyelamatkan programmer dari keputusasaan.",
+        "ur": "صفر اشتہارات، زیادہ سے زیادہ آرام دہ وائبس، اور آپ ایک پروگرامر کو مایوسی سے بچاتے ہیں۔",
+        "fa": "بدون تبلیغات، حداکثر حالات دنج، و شما یک برنامه نویس را از ناامیدی نجات می دهید."
     },
     "Skip the ads, keep the wisdom, and bless an indie creator's day.": {
         "bn": "বিজ্ঞাপন এড়িয়ে চলুন, প্রজ্ঞা ধরে রাখুন এবং নির্মাতাকে উৎসাহিত করুন।",
         "he": "דלג על המודעות, שמור על החוכמה וברוך יום יוצר אינדי.",
         "ar": "تخطي الإعلانات، واحتفظ بالحكمة، وبارك يوم منشئ المحتوى المستقل.",
-        "hi": "विज्ञापन छोड़ें, ज्ञान बनाए रखें और इंडी क्रिएटर दिवस को धन्य बनाएं।"
+        "hi": "विज्ञापन छोड़ें, ज्ञान बनाए रखें और इंडी क्रिएटर दिवस को धन्य बनाएं।",
+        "ja": "広告をスキップして知恵を蓄え、インディー クリエイターの一日を祝福しましょう。",
+        "zh": "跳过广告，保留智慧，祝福独立创作者的一天。",
+        "ko": "광고를 건너뛰고 지혜를 지키며 인디 창작자의 하루를 축복하세요.",
+        "es": "Evite los anuncios, conserve la sabiduría y bendiga el día de un creador independiente.",
+        "fr": "Évitez les publicités, gardez la sagesse et bénissez la journée d'un créateur indépendant.",
+        "de": "Überspringen Sie die Werbung, behalten Sie die Weisheit und segnen Sie den Tag eines Indie-Schöpfers.",
+        "ru": "Пропустите рекламу, сохраните мудрость и благословите день инди-творца.",
+        "it": "Salta la pubblicità, mantieni la saggezza e benedici la giornata di un creatore indipendente.",
+        "pt": "Ignore os anúncios, mantenha a sabedoria e abençoe o dia do criador independente.",
+        "tr": "Reklamları atlayın, bilgeliğinizi koruyun ve bağımsız yaratıcıların gününü kutlayın.",
+        "id": "Lewati iklan, pertahankan kebijaksanaan, dan berkahi hari pencipta indie.",
+        "ur": "اشتہارات کو چھوڑیں، حکمت کو برقرار رکھیں، اور انڈی تخلیق کار کے دن کو مبارک کریں۔",
+        "fa": "از تبلیغات بگذرید، حکمت را حفظ کنید و روز یک خالق مستقل را برکت دهید."
     },
     "A cozy, distraction-free sanctuary with all HD neural voices unlocked.": {
         "bn": "সব এইচডি কণ্ঠস্বর সহ এক শান্ত, নিরবচ্ছিন্ন পবিত্র অভিজ্ঞতার আশ্রয়।",
         "he": "מקלט נעים ונטול הסחות דעת עם כל הקולות העצביים HD פתוחים.",
         "ar": "ملاذ مريح وخالي من التشتيت مع فتح جميع الأصوات العصبية عالية الدقة.",
-        "hi": "सभी एचडी तंत्रिका आवाजों के साथ एक आरामदायक, व्याकुलता-मुक्त अभयारण्य।"
+        "hi": "सभी एचडी तंत्रिका आवाजों के साथ एक आरामदायक, व्याकुलता-मुक्त अभयारण्य।",
+        "ja": "すべての HD ニューラル音声のロックが解除された、居心地の良い、気を散らすことのない聖域。",
+        "zh": "一个舒适、无干扰的庇护所，所有高清神经语音均已解锁。",
+        "ko": "모든 HD 신경 음성이 잠금 해제된 아늑하고 산만함이 없는 안식처입니다.",
+        "es": "Un santuario acogedor y sin distracciones con todas las voces neuronales HD desbloqueadas.",
+        "fr": "Un sanctuaire confortable et sans distraction avec toutes les voix neuronales HD débloquées.",
+        "de": "Ein gemütlicher, ablenkungsfreier Zufluchtsort, in dem alle neuronalen HD-Stimmen freigeschaltet sind.",
+        "ru": "Уютное убежище без отвлекающих факторов, где разблокированы все нейронные голоса HD.",
+        "it": "Un rifugio accogliente e privo di distrazioni con tutte le voci neurali HD sbloccate.",
+        "pt": "Um santuário aconchegante e sem distrações, com todas as vozes neurais HD desbloqueadas.",
+        "tr": "Tüm HD sinir seslerinin kilidinin açık olduğu rahat, dikkat dağıtıcı olmayan bir sığınak.",
+        "id": "Tempat perlindungan yang nyaman dan bebas gangguan dengan semua suara saraf HD tidak terkunci.",
+        "ur": "تمام HD نیورل آوازوں کے ساتھ ایک آرام دہ، خلفشار سے پاک پناہ گاہ۔",
+        "fa": "پناهگاهی دنج و بدون حواس پرتی با تمام صداهای عصبی HD باز شده."
     },
     "Part": {
         "bn": "পর্ব",
@@ -3412,7 +4892,13 @@ const i18nDict = {
         "pt": "Parte",
         "ru": "Часть",
         "tr": "Bölüm",
-        "he": "חֵלֶק"
+        "he": "חֵלֶק",
+        "ja": "一部",
+        "zh": "部分",
+        "ko": "부분",
+        "id": "Bagian",
+        "ur": "حصہ",
+        "fa": "قسمت"
     },
     "Book": {
         "bn": "খণ্ড",
@@ -3425,7 +4911,13 @@ const i18nDict = {
         "pt": "Livro",
         "ru": "Книга",
         "tr": "Kitap",
-        "he": "סֵפֶר"
+        "he": "סֵפֶר",
+        "ja": "本",
+        "zh": "书",
+        "ko": "책",
+        "id": "Buku",
+        "ur": "کتاب",
+        "fa": "کتاب"
     },
     "Section": {
         "bn": "অনুচ্ছেদ",
@@ -3438,7 +4930,13 @@ const i18nDict = {
         "pt": "Seção",
         "ru": "Раздел",
         "tr": "Kısım",
-        "he": "סָעִיף"
+        "he": "סָעִיף",
+        "ja": "セクション",
+        "zh": "部分",
+        "ko": "부분",
+        "id": "Bagian",
+        "ur": "سیکشن",
+        "fa": "بخش"
     },
     "Hymn": {
         "bn": "স্তোত্র",
@@ -3451,7 +4949,13 @@ const i18nDict = {
         "pt": "Hino",
         "ru": "Гимн",
         "tr": "İlahi",
-        "he": "הִמנוֹן"
+        "he": "הִמנוֹן",
+        "ja": "賛美歌",
+        "zh": "圣歌",
+        "ko": "찬송가",
+        "id": "Nyanyian pujian",
+        "ur": "تسبیح",
+        "fa": "سرود"
     },
     "Discourse": {
         "bn": "প্রবচন",
@@ -3464,7 +4968,13 @@ const i18nDict = {
         "pt": "Discurso",
         "ru": "Беседа",
         "tr": "Söylem",
-        "he": "שִׂיחַ"
+        "he": "שִׂיחַ",
+        "ja": "談話",
+        "zh": "话语",
+        "ko": "담화",
+        "id": "Ceramah",
+        "ur": "گفتگو",
+        "fa": "گفتمان"
     },
     "Guru Granth": {
         "ar": "جورو جرانث",
@@ -3476,7 +4986,15 @@ const i18nDict = {
         "it": "Guru Granth",
         "de": "Guru Granth",
         "ru": "Гуру Грантх",
-        "he": "גורו גרנת'"
+        "he": "גורו גרנת'",
+        "ja": "グル・グランス",
+        "zh": "古鲁·格兰斯",
+        "ko": "전문가 그란스",
+        "pt": "Guru Granth",
+        "tr": "Guru Granth",
+        "id": "Guru Granth",
+        "ur": "گرو گرنتھ",
+        "fa": "گورو گرانت"
     },
     "Chronicles": {
         "ar": "أخبار الأيام",
@@ -3487,7 +5005,15 @@ const i18nDict = {
         "it": "Cronache",
         "de": "Chronik",
         "ru": "Паралипоменон",
-        "he": "דִברֵי הַיָמִים"
+        "he": "דִברֵי הַיָמִים",
+        "ja": "年代記",
+        "zh": "编年史",
+        "ko": "역대기",
+        "pt": "Crônicas",
+        "tr": "Günlükler",
+        "id": "kronik",
+        "ur": "تواریخ",
+        "fa": "تواریخ"
     },
     "Kings": {
         "ar": "الملوك",
@@ -3498,7 +5024,15 @@ const i18nDict = {
         "it": "Re",
         "de": "Könige",
         "ru": "Царств",
-        "he": "מלכים"
+        "he": "מלכים",
+        "ja": "キングス",
+        "zh": "国王队",
+        "ko": "킹스",
+        "pt": "Reis",
+        "tr": "Krallar",
+        "id": "Raja",
+        "ur": "بادشاہ",
+        "fa": "پادشاهان"
     },
     "Samuel": {
         "ar": "صموئيل",
@@ -3509,7 +5043,15 @@ const i18nDict = {
         "it": "Samuele",
         "de": "Samuel",
         "ru": "Царств",
-        "he": "שמואל"
+        "he": "שמואל",
+        "ja": "サミュエル",
+        "zh": "塞缪尔",
+        "ko": "사무엘",
+        "pt": "Samuel",
+        "tr": "samuel",
+        "id": "Samuel",
+        "ur": "سموئیل",
+        "fa": "ساموئل"
     },
     "Song of Songs": {
         "ar": "نشيد الأنشاد",
@@ -3520,7 +5062,15 @@ const i18nDict = {
         "it": "Cantico dei Cantici",
         "de": "Hohelied",
         "ru": "Песнь Песней",
-        "he": "שיר השירים"
+        "he": "שיר השירים",
+        "ja": "歌の中の歌",
+        "zh": "歌中之歌",
+        "ko": "노래의 노래",
+        "pt": "Cântico dos Cânticos",
+        "tr": "Şarkıların Şarkısı",
+        "id": "Lagu Lagu",
+        "ur": "گانوں کا گانا",
+        "fa": "آهنگ آوازها"
     },
     "Pirkei Avot": {
         "ar": "أقوال الآباء",
@@ -3531,7 +5081,15 @@ const i18nDict = {
         "fr": "Pirkei Avot",
         "it": "Pirkei Avot",
         "de": "Pirke Awot",
-        "ru": "Пиркей Авот"
+        "ru": "Пиркей Авот",
+        "ja": "ピルケイ・アボット",
+        "zh": "皮尔基·阿沃特",
+        "ko": "피르케이 아보트",
+        "pt": "Pirkei Avot",
+        "tr": "Pirkei Avot",
+        "id": "Pirkei Avot",
+        "ur": "پیرکی ایوٹ",
+        "fa": "پیرکی آووت"
     },
     "Berakhot": {
         "ar": "براخوت",
@@ -3542,7 +5100,15 @@ const i18nDict = {
         "fr": "Berakhot",
         "it": "Berakhot",
         "de": "Berachot",
-        "ru": "Брахот"
+        "ru": "Брахот",
+        "ja": "ベラコット",
+        "zh": "伯拉霍特",
+        "ko": "베라호트",
+        "pt": "Berakhot",
+        "tr": "Berahot",
+        "id": "Berakhot",
+        "ur": "بیراکھوٹ",
+        "fa": "براخوت"
     },
     "Shabbat": {
         "ar": "شابات",
@@ -3553,7 +5119,15 @@ const i18nDict = {
         "fr": "Chabbat",
         "it": "Shabbat",
         "de": "Schabbat",
-        "ru": "Шаббат"
+        "ru": "Шаббат",
+        "ja": "安息日",
+        "zh": "安息日",
+        "ko": "안식일",
+        "pt": "Shabat",
+        "tr": "Şabat",
+        "id": "Sabat",
+        "ur": "شبت",
+        "fa": "شبات"
     },
     "Pesachim": {
         "ar": "بيساخيم",
@@ -3564,7 +5138,15 @@ const i18nDict = {
         "fr": "Pessahim",
         "it": "Pesachim",
         "de": "Pessachim",
-        "ru": "Песахим"
+        "ru": "Песахим",
+        "ja": "ペサチム",
+        "zh": "佩萨金",
+        "ko": "페사침",
+        "pt": "Pesachim",
+        "tr": "Pesachim",
+        "id": "Pesachim",
+        "ur": "Pesachim",
+        "fa": "پساخیم"
     },
     "Yoma": {
         "ar": "يوما",
@@ -3575,7 +5157,15 @@ const i18nDict = {
         "fr": "Yoma",
         "it": "Yoma",
         "de": "Joma",
-        "ru": "Йома"
+        "ru": "Йома",
+        "ja": "枯れる",
+        "zh": "干涸",
+        "ko": "건조시키다",
+        "pt": "Secar",
+        "tr": "Kurutmak",
+        "id": "Mengering",
+        "ur": "سوکھ جانا",
+        "fa": "خشک کن"
     },
     "Sukkah": {
         "ar": "سوكاه",
@@ -3586,7 +5176,15 @@ const i18nDict = {
         "fr": "Soukka",
         "it": "Sukkah",
         "de": "Sukka",
-        "ru": "Сукка"
+        "ru": "Сукка",
+        "ja": "スカ",
+        "zh": "住棚",
+        "ko": "숙카",
+        "pt": "Sucá",
+        "tr": "Suka",
+        "id": "Sukkah",
+        "ur": "سکہ",
+        "fa": "سوکا"
     },
     "Rosh Hashanah": {
         "ar": "روش هاشاناه",
@@ -3597,7 +5195,15 @@ const i18nDict = {
         "fr": "Roch Hachana",
         "it": "Rosh Hashanah",
         "de": "Rosch ha-Schana",
-        "ru": "Рош ха-Шана"
+        "ru": "Рош ха-Шана",
+        "ja": "ロシュ・ハシャナ",
+        "zh": "犹太新年",
+        "ko": "로쉬 하샤나",
+        "pt": "Rosh Hashaná",
+        "tr": "Roş Aşana",
+        "id": "Rosh Hashanah",
+        "ur": "روش ہشناہ",
+        "fa": "روش هاشانا"
     },
     "Megillah": {
         "ar": "مجيلاه",
@@ -3608,7 +5214,15 @@ const i18nDict = {
         "fr": "Meguila",
         "it": "Megillah",
         "de": "Megilla",
-        "ru": "Мегила"
+        "ru": "Мегила",
+        "ja": "メギラ",
+        "zh": "梅吉拉",
+        "ko": "메길라",
+        "pt": "Meguilá",
+        "tr": "Megillah",
+        "id": "Megillah",
+        "ur": "میگلہ",
+        "fa": "مگی الله"
     },
     "Kiddushin": {
         "ar": "كيدوشين",
@@ -3619,7 +5233,15 @@ const i18nDict = {
         "fr": "Kiddouchin",
         "it": "Kiddushin",
         "de": "Kidduschin",
-        "ru": "Кидушин"
+        "ru": "Кидушин",
+        "ja": "キドゥシン",
+        "zh": "基德辛",
+        "ko": "키두신",
+        "pt": "Kiddushin",
+        "tr": "Kiduşin",
+        "id": "Kiddushin",
+        "ur": "کدوشین",
+        "fa": "کیدوشین"
     },
     "Sotah": {
         "ar": "سوتاه",
@@ -3630,7 +5252,15 @@ const i18nDict = {
         "fr": "Sota",
         "it": "Sotah",
         "de": "Sota",
-        "ru": "Сота"
+        "ru": "Сота",
+        "ja": "ソータ",
+        "zh": "索塔",
+        "ko": "소타",
+        "pt": "Sotá",
+        "tr": "Sota",
+        "id": "Sotah",
+        "ur": "سوتہ",
+        "fa": "سوتا"
     },
     "Bava Kamma": {
         "ar": "بافا كاما",
@@ -3641,7 +5271,15 @@ const i18nDict = {
         "fr": "Bava Kama",
         "it": "Bava Kamma",
         "de": "Bawa kamma",
-        "ru": "Бава Кама"
+        "ru": "Бава Кама",
+        "ja": "バーバ・カンマ",
+        "zh": "巴瓦业",
+        "ko": "바바캄마",
+        "pt": "Bava Kamma",
+        "tr": "Bava Kamma",
+        "id": "Bava Kamma",
+        "ur": "باوا کما۔",
+        "fa": "باوا کما"
     },
     "Bava Metzia": {
         "ar": "بافا متسيا",
@@ -3652,7 +5290,15 @@ const i18nDict = {
         "fr": "Bava Metsia",
         "it": "Bava Metzia",
         "de": "Bawa mezia",
-        "ru": "Бава Мециа"
+        "ru": "Бава Мециа",
+        "ja": "バーバ メッツィア",
+        "zh": "巴瓦梅齐亚",
+        "ko": "바바 메치아",
+        "pt": "Bava Metzia",
+        "tr": "Bava Metzia",
+        "id": "Bava Metzia",
+        "ur": "باوا میٹزیا",
+        "fa": "باوا متزیا"
     },
     "Bava Batra": {
         "ar": "بافا باترا",
@@ -3663,7 +5309,15 @@ const i18nDict = {
         "fr": "Bava Batra",
         "it": "Bava Batra",
         "de": "Bawa batra",
-        "ru": "Бава Батра"
+        "ru": "Бава Батра",
+        "ja": "バババトラ",
+        "zh": "巴瓦巴特拉",
+        "ko": "바바 바트라",
+        "pt": "Bava Batra",
+        "tr": "Bava Batra",
+        "id": "Bava Batra",
+        "ur": "باوا بترا",
+        "fa": "باوا باترا"
     },
     "Sanhedrin": {
         "ar": "سنهدرين",
@@ -3674,7 +5328,15 @@ const i18nDict = {
         "fr": "Sanhédrin",
         "it": "Sinedrio",
         "de": "Sanhedrin",
-        "ru": "Сангедрин"
+        "ru": "Сангедрин",
+        "ja": "サンヘドリン",
+        "zh": "公会",
+        "ko": "산헤드린",
+        "pt": "Sinédrio",
+        "tr": "Sanhedrin",
+        "id": "Sanhedrin",
+        "ur": "سنہڈرین",
+        "fa": "سنهدرین"
     },
     "Makkot": {
         "ar": "ماكوت",
@@ -3685,7 +5347,15 @@ const i18nDict = {
         "fr": "Makkot",
         "it": "Makkot",
         "de": "Makkot",
-        "ru": "Макот"
+        "ru": "Макот",
+        "ja": "マコット",
+        "zh": "马科特",
+        "ko": "막콧",
+        "pt": "Makkot",
+        "tr": "Makkot",
+        "id": "Makkot",
+        "ur": "مککوٹ",
+        "fa": "مکوت"
     },
     "Peah": {
         "ar": "بياه",
@@ -3696,7 +5366,15 @@ const i18nDict = {
         "fr": "Peah",
         "it": "Peah",
         "de": "Pe'ah",
-        "ru": "Пеа"
+        "ru": "Пеа",
+        "ja": "エンドウ豆",
+        "zh": "豌豆",
+        "ko": "완두콩",
+        "pt": "Ervilhas",
+        "tr": "Bezelye",
+        "id": "Kacang polong",
+        "ur": "مٹر",
+        "fa": "نخود فرنگی"
     },
     "Balakanda": {
         "he": "באלאקאנדה",
@@ -3704,7 +5382,18 @@ const i18nDict = {
         "bn": "আদিকান্ড",
         "hi": "बालकाण्ड",
         "es": "Balakanda",
-        "fr": "Balakanda"
+        "fr": "Balakanda",
+        "ja": "バラカンダ",
+        "zh": "巴拉坎达",
+        "ko": "발라칸다",
+        "de": "Balakanda",
+        "ru": "Балаканда",
+        "it": "Balakanda",
+        "pt": "Balakanda",
+        "tr": "Balakanda",
+        "id": "Balakanda",
+        "ur": "بالاکنڈہ",
+        "fa": "بالاکاندا"
     },
     "Ayodhyakanda": {
         "he": "איודיהקאנדה",
@@ -3712,7 +5401,18 @@ const i18nDict = {
         "bn": "অযোধ্যাকান্ড",
         "hi": "अयोध्याकाण्ड",
         "es": "Ayodhyakanda",
-        "fr": "Ayodhyakanda"
+        "fr": "Ayodhyakanda",
+        "ja": "アヨーディカンダ",
+        "zh": "阿约提亚坎达",
+        "ko": "아요디아칸다",
+        "de": "Ayodhyakanda",
+        "ru": "Айодхьяканда",
+        "it": "Ayodhyakanda",
+        "pt": "Ayodhyakanda",
+        "tr": "Ayodhyakanda",
+        "id": "Ayodhyakanda",
+        "ur": "ایودھیاکنڈا۔",
+        "fa": "آیودیاکاندا"
     },
     "Aranyakanda": {
         "he": "אראניאקאנדה",
@@ -3720,7 +5420,18 @@ const i18nDict = {
         "bn": "অরণ্যকান্ড",
         "hi": "अरण्यकाण्ड",
         "es": "Aranyakanda",
-        "fr": "Aranyakanda"
+        "fr": "Aranyakanda",
+        "ja": "アランヤカンダ",
+        "zh": "阿兰亚坎达",
+        "ko": "아라냐칸다",
+        "de": "Aranyakanda",
+        "ru": "Араньяканда",
+        "it": "Aranyakanda",
+        "pt": "Aranyakanda",
+        "tr": "Aranyakanda",
+        "id": "Aranyakanda",
+        "ur": "آرنیا کنڈا",
+        "fa": "آرانیاکاندا"
     },
     "Kishkindhakanda": {
         "he": "קישקינדהקאנדה",
@@ -3728,7 +5439,18 @@ const i18nDict = {
         "bn": "কিস্কিন্ধাকান্ড",
         "hi": "किष्किन्धाकाण्ड",
         "es": "Kishkindhakanda",
-        "fr": "Kishkindhakanda"
+        "fr": "Kishkindhakanda",
+        "ja": "キシュキンダカンダ",
+        "zh": "基什金达坎达",
+        "ko": "키슈킨다칸다",
+        "de": "Kishkindhakanda",
+        "ru": "Кишкиндхаканда",
+        "it": "Kishkindhakanda",
+        "pt": "Kishkindhakanda",
+        "tr": "Kishkindhakanda",
+        "id": "Kishkindhakanda",
+        "ur": "کشکندکھنڈا۔",
+        "fa": "کیشکیندهاکاندا"
     },
     "Sundarakanda": {
         "he": "סונדאראקאנדה",
@@ -3736,7 +5458,18 @@ const i18nDict = {
         "bn": "সুন্দরকান্ড",
         "hi": "सुन्दरकाण्ड",
         "es": "Sundarakanda",
-        "fr": "Sundarakanda"
+        "fr": "Sundarakanda",
+        "ja": "スンダラカンダ",
+        "zh": "孙达拉坎达",
+        "ko": "순다라칸다",
+        "de": "Sundarakanda",
+        "ru": "Сундараканда",
+        "it": "Sundarakanda",
+        "pt": "Sundarakanda",
+        "tr": "Sundarakanda",
+        "id": "Sundarakanda",
+        "ur": "سندرکنڈا۔",
+        "fa": "سونداراکاندا"
     },
     "Yuddhakanda": {
         "he": "יודהקאנדה",
@@ -3744,7 +5477,17 @@ const i18nDict = {
         "bn": "লঙ্কাকান্ড",
         "hi": "युद्धकाण्ड",
         "es": "Yuddhakanda",
-        "fr": "Yuddhakanda"
+        "fr": "Yuddhakanda",
+        "ja": "ユッダカンダ",
+        "zh": "尤达坎达",
+        "ko": "유다칸다",
+        "ru": "Юддхаканда",
+        "it": "Yuddhakanda",
+        "pt": "Yuddhakanda",
+        "tr": "Yuddhakanda",
+        "id": "Yudhakanda",
+        "ur": "یودکھنڈا۔",
+        "fa": "یوداکاندا"
     },
     "Uttarakanda": {
         "he": "אוטאראקאנדה",
@@ -3752,63 +5495,169 @@ const i18nDict = {
         "bn": "উত্তরকান্ড",
         "hi": "उत्तरकाण्ड",
         "es": "Uttarakanda",
-        "fr": "Uttarakanda"
+        "fr": "Uttarakanda",
+        "ja": "ウッタラーカンド州",
+        "zh": "北阿坎德邦",
+        "ko": "우타라칸드",
+        "ru": "Уттаракханд",
+        "it": "Uttarakhand",
+        "pt": "Uttarakhand",
+        "tr": "Uttarkand",
+        "id": "Uttarakhand",
+        "ur": "اتراکھنڈ",
+        "fa": "اوتاراکند"
     },
     "Mishna": {
         "he": "משנה",
         "ar": "ميشناه",
         "bn": "মিশনা",
         "hi": "मिशना",
-        "es": "Mishná"
+        "es": "Mishná",
+        "ja": "ミシュナ",
+        "zh": "米什纳",
+        "ko": "미슈나",
+        "fr": "Michna",
+        "de": "Mischna",
+        "ru": "Мишна",
+        "it": "Mishna",
+        "pt": "Mishná",
+        "tr": "Mişna",
+        "id": "Misna",
+        "ur": "میشنا",
+        "fa": "میشنا"
     },
     "Zohar": {
         "he": "זוהר",
         "ar": "زوهار",
         "bn": "জোহর",
         "hi": "ज़ोहर",
-        "es": "Zohar"
+        "es": "Zohar",
+        "ja": "ゾハル",
+        "zh": "佐哈尔",
+        "ko": "조하르",
+        "fr": "Zohar",
+        "de": "Sohar",
+        "ru": "Зоар",
+        "it": "Zohar",
+        "pt": "Zohar",
+        "tr": "Zohar",
+        "id": "Zohar",
+        "ur": "ظہر",
+        "fa": "زوهر"
     },
     "Humanism": {
         "he": "הומניזם",
         "ar": "الإنسانية",
         "bn": "মানবতাবাদ",
         "hi": "मानवतावाद",
-        "es": "Humanismo"
+        "es": "Humanismo",
+        "ja": "ヒューマニズム",
+        "zh": "人道主义",
+        "ko": "인문주의",
+        "fr": "Humanisme",
+        "de": "Humanismus",
+        "ru": "Гуманизм",
+        "it": "Umanesimo",
+        "pt": "Humanismo",
+        "tr": "Hümanizm",
+        "id": "Humanisme",
+        "ur": "ہیومنزم",
+        "fa": "اومانیسم"
     },
     "Idealism": {
         "he": "אידיאליזם",
         "ar": "المثالية",
         "bn": "ভাববাদ",
         "hi": "प्रत्ययवाद",
-        "es": "Idealismo"
+        "es": "Idealismo",
+        "ja": "理想主義",
+        "zh": "唯心主义",
+        "ko": "이상주의",
+        "fr": "Idéalisme",
+        "de": "Idealismus",
+        "ru": "Идеализм",
+        "it": "Idealismo",
+        "pt": "Idealismo",
+        "tr": "İdealizm",
+        "id": "Idealisme",
+        "ur": "آئیڈیل ازم",
+        "fa": "آرمان گرایی"
     },
     "Cynicism": {
         "he": "ציניזם",
         "ar": "الكلبية",
         "bn": "নিন্দাবাদ",
         "hi": "सिनिकवाद",
-        "es": "Cinismo"
+        "es": "Cinismo",
+        "ja": "皮肉",
+        "zh": "玩世不恭",
+        "ko": "냉소",
+        "fr": "Cynisme",
+        "de": "Zynismus",
+        "ru": "Цинизм",
+        "it": "Cinismo",
+        "pt": "Cinismo",
+        "tr": "Sinizm",
+        "id": "Sinisme",
+        "ur": "گھٹیا پن",
+        "fa": "بدبینی"
     },
     "Epicureanism": {
         "he": "אפיקוריאניזם",
         "ar": "الأبيقورية",
         "bn": "এপিকিউরীয়বাদ",
         "hi": "एपिक्यूरियनवाद",
-        "es": "Epicureísmo"
+        "es": "Epicureísmo",
+        "ja": "エピクロス主義",
+        "zh": "享乐主义",
+        "ko": "식도락",
+        "fr": "Épicurisme",
+        "de": "Epikureismus",
+        "ru": "эпикурейство",
+        "it": "epicureismo",
+        "pt": "epicurismo",
+        "tr": "Epikurosçuluk",
+        "id": "ajaran Epikur",
+        "ur": "Epicureanism",
+        "fa": "اپیکوریسم"
     },
     "Hedonism": {
         "he": "הדוניזם",
         "ar": "مذهب المتعة",
         "bn": "আনন্দবাদ",
         "hi": "सुखवाद",
-        "es": "Hedonismo"
+        "es": "Hedonismo",
+        "ja": "快楽主義",
+        "zh": "享乐主义",
+        "ko": "쾌락주의",
+        "fr": "Hédonisme",
+        "de": "Hedonismus",
+        "ru": "Гедонизм",
+        "it": "Edonismo",
+        "pt": "Hedonismo",
+        "tr": "Hedonizm",
+        "id": "Hedonisme",
+        "ur": "Hedonism",
+        "fa": "لذت گرایی"
     },
     "Vedas": {
         "he": "ודות",
         "ar": "الفيدا",
         "bn": "বেদ",
         "hi": "वेद",
-        "es": "Vedas"
+        "es": "Vedas",
+        "ja": "ヴェーダ",
+        "zh": "吠陀经",
+        "ko": "베다",
+        "fr": "Védas",
+        "de": "Veden",
+        "ru": "Веды",
+        "it": "Veda",
+        "pt": "Vedas",
+        "tr": "Vedalar",
+        "id": "Weda",
+        "ur": "وید",
+        "fa": "وداها"
     },
     "Jatakas": {
         "he": "ג'טאקות",
@@ -3816,7 +5665,18 @@ const i18nDict = {
         "bn": "জাতক",
         "hi": "जातक",
         "es": "Jatakas",
-        "fr": "Jâtakas"
+        "fr": "Jâtakas",
+        "ja": "ジャータカス",
+        "zh": "本生经",
+        "ko": "자타카",
+        "de": "Jatakas",
+        "ru": "Джатаки",
+        "it": "Jataka",
+        "pt": "Jatakas",
+        "tr": "Jatakalar",
+        "id": "Jataka",
+        "ur": "جتکاس",
+        "fa": "جاتاکاها"
     },
     "Hadith": {
         "he": "חדית'",
@@ -3833,7 +5693,9 @@ const i18nDict = {
         "tr": "Hadis",
         "zh": "圣训",
         "ur": "حدیث",
-        "fa": "حدیث"
+        "fa": "حدیث",
+        "ko": "하디스",
+        "id": "hadis"
     },
     "Jami` at-Tirmidhi": {
         "he": "ג'אמע א-תרמיד'י",
@@ -3843,7 +5705,16 @@ const i18nDict = {
         "es": "Jami' at-Tirmidhi",
         "fr": "Jami' at-Tirmidhi",
         "ur": "جامع ترمذی",
-        "fa": "جامع ترمذی"
+        "fa": "جامع ترمذی",
+        "ja": "ジャミ・アット・ティルミディ",
+        "zh": "提尔米济的贾米",
+        "ko": "자미` 앳-티르미디",
+        "de": "Jami` at-Tirmidhi",
+        "ru": "Джами ат-Тирмизи",
+        "it": "Jami` at-Tirmidhi",
+        "pt": "Jami'at-Tirmidhi",
+        "tr": "Cami' et-Tirmizi",
+        "id": "Jami` at-Tirmidzi"
     },
     "Bible": {
         "he": "תנ\"ך והברית החדשה",
@@ -3858,9 +5729,13 @@ const i18nDict = {
         "ja": "聖書",
         "pt": "Bíblia",
         "tr": "Kutsal Kitap",
-        "zh": "圣经"
+        "zh": "圣经",
+        "ko": "성경",
+        "id": "Alkitab",
+        "ur": "بائبل",
+        "fa": "کتاب مقدس"
     }
-};;
+};;;
 
 
 
