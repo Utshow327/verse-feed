@@ -5505,7 +5505,8 @@ const i18nDict = {
         "tr": "Uttarkand",
         "id": "Uttarakhand",
         "ur": "اتراکھنڈ",
-        "fa": "اوتاراکند"
+        "fa": "اوتاراکند",
+        "de": "Uttarakhand"
     },
     "Mishna": {
         "he": "משנה",
@@ -5734,8 +5735,184 @@ const i18nDict = {
         "id": "Alkitab",
         "ur": "بائبل",
         "fa": "کتاب مقدس"
+    },
+    "Samaveda": {
+        "ja": "サマヴェダ",
+        "ko": "사마베다",
+        "zh": "萨马韦达",
+        "es": "Samaveda",
+        "fr": "Samaveda",
+        "de": "Samaveda",
+        "ru": "Самаведа",
+        "ar": "سامافيدا",
+        "bn": "সামবেদ",
+        "hi": "Samaveda",
+        "he": "סמוודה",
+        "pt": "Samavéda",
+        "it": "Samaveda",
+        "tr": "Samaveda"
+    },
+    "Mandala": {
+        "ja": "マンダラ",
+        "ko": "만다라",
+        "zh": "曼陀罗",
+        "es": "mandala",
+        "fr": "Mandalas",
+        "de": "Mandala",
+        "ru": "Мандала",
+        "ar": "ماندالا",
+        "bn": "মান্ডালা",
+        "hi": "मंडल",
+        "he": "מנדלה",
+        "pt": "Mandala",
+        "it": "Mandala",
+        "tr": "mandala"
+    },
+    "Kaanda": {
+        "ja": "善良さ",
+        "ko": "선량",
+        "zh": "善良",
+        "es": "Bondad",
+        "fr": "Bonté",
+        "de": "Güte",
+        "ru": "Доброта",
+        "ar": "الخير",
+        "bn": "মঙ্গল",
+        "hi": "भलाई",
+        "he": "טוּב לֵב",
+        "pt": "Bondade",
+        "it": "Bontà",
+        "tr": "iyilik"
+    },
+    "Sundar Kand": {
+        "ja": "サンダー・カンド",
+        "ko": "순다르 칸드",
+        "zh": "桑达尔康德",
+        "es": "Sundar Kand",
+        "fr": "Sundar Kand",
+        "de": "Sundar Kand",
+        "ru": "Сундар Канд",
+        "ar": "سوندار كاند",
+        "bn": "সুন্দর কান্ড",
+        "hi": "Sundar Kand",
+        "he": "סונדאר קנד",
+        "pt": "Sundar Kand",
+        "it": "Sundar Kand",
+        "tr": "Sundar Kand"
+    },
+    "Aranya Kand": {
+        "ja": "アランヤ・カンド",
+        "ko": "아라냐 칸드",
+        "zh": "阿那亚康德",
+        "es": "Aranya Kand",
+        "fr": "Aranya Kand",
+        "de": "Aranya Kand",
+        "ru": "Аранья Канд",
+        "ar": "أرانيا كاند",
+        "bn": "অরণ্য কান্ড",
+        "hi": "Aranya Kand",
+        "he": "ארניה קנד",
+        "pt": "Aranya Kand",
+        "it": "Aranya Kand",
+        "tr": "Aranya Kand"
+    },
+    "Kishkindha Kand": {
+        "ja": "キシュキンダ・カンド",
+        "ko": "키슈킨다 칸드",
+        "zh": "基什金达·坎德",
+        "es": "Kishkindha Kand",
+        "fr": "Kishkindha Kand",
+        "de": "Kishkindha Kand",
+        "ru": "Кишкиндха Канд",
+        "ar": "كيشكيندا كاند",
+        "bn": "কিষ্কিন্ধা কাণ্ড",
+        "hi": "Kishkindha Kand",
+        "he": "קישקינדה קנד",
+        "pt": "Kishkindha Kand",
+        "it": "Kishkindha Kand",
+        "tr": "Kişkindha Kand"
+    },
+    "Ayodhya Kand": {
+        "ja": "アヨーディヤ カンド",
+        "ko": "아요디아 칸드",
+        "zh": "阿约提亚·康德",
+        "es": "Ayodhya Kand",
+        "fr": "Ayodhya Kand",
+        "de": "Ayodhya Kand",
+        "ru": "Айодхья Канд",
+        "ar": "ايوديا كاند",
+        "bn": "অযোধ্যা কাণ্ড",
+        "hi": "Ayodhya Kand",
+        "he": "Ayodhya Kand",
+        "pt": "Ayodhya Kand",
+        "it": "Ayodhya Kand",
+        "tr": "Ayodhya Kand"
+    },
+    "Lanka Kand": {
+        "ja": "ランカ理学士",
+        "ko": "랑카 학사학위",
+        "zh": "兰卡理学学士",
+        "es": "Lanka Licenciatura en Ciencias",
+        "fr": "Lanka B.Sc.",
+        "de": "Lanka B.Sc",
+        "ru": "Ланка Бакалавр наук",
+        "ar": "لانكا بكالوريوس العلوم",
+        "bn": "লঙ্কা B.Sc",
+        "hi": "लंका बी.एससी",
+        "he": "לנקה B.Sc",
+        "pt": "Lanka B.Sc",
+        "it": "Lanka B.Sc",
+        "tr": "Lanka B.Sc"
+    },
+    "Uttar Kand": {
+        "ja": "ウッタル・カンド",
+        "ko": "우타르 칸드",
+        "zh": "北康德",
+        "es": "Uttar Kan",
+        "fr": "Uttar Kand",
+        "de": "Uttar Kand",
+        "ru": "Уттар Канд",
+        "ar": "اوتار كاند",
+        "bn": "উত্তর কাণ্ড",
+        "hi": "Uttar Kand",
+        "he": "אוטר קנד",
+        "pt": "Uttar Kand",
+        "it": "Uttar Kand",
+        "tr": "Uttar Kand"
+    },
+    "Yudhhakanda": {
+        "ja": "ユダカンダ",
+        "ko": "유다칸다",
+        "zh": "尤达坎达",
+        "es": "Yudhhakanda",
+        "fr": "Yudhhakanda",
+        "de": "Yudhhakanda",
+        "ru": "Юдхаканда",
+        "ar": "يودهاكاندا",
+        "bn": "যুধকাণ্ড",
+        "hi": "युद्धकाण्ड",
+        "he": "יודהאקנדה",
+        "pt": "Yudhakanda",
+        "it": "Yudhhakanda",
+        "tr": "Yudhakanda"
+    },
+    "Bala Kand": {
+        "ja": "バラ・カンド",
+        "ko": "발라 칸드",
+        "zh": "巴拉康德",
+        "es": "Bala Kand",
+        "fr": "Bala Kand",
+        "de": "Bala Kand",
+        "ru": "Бала Канд",
+        "ar": "بالا كاند",
+        "bn": "বালা কান্ড",
+        "hi": "Bala Kand",
+        "he": "באלה קנד",
+        "pt": "Bala Kand",
+        "it": "Bala Kand",
+        "tr": "Bala Kand"
     }
-};;;
+};;;;
 
 
 
@@ -8882,31 +9059,52 @@ function preloadFunnyLines(lang = currentAppLanguage) {
 
 function applyDynamicRefTranslation(refEl, verse) {
     if (!refEl || !verse) return;
-    refEl.textContent = formatVerseRef(verse);
     const baseLang = getAppBaseLanguage(currentAppLanguage);
-    if (baseLang === 'en') return;
+    const textNow = formatVerseRef(verse);
+    refEl.textContent = textNow;
 
-    // Automatic English Text Detection: If any Latin English letters are detected in the rendered citation, translate them!
-    const textNow = refEl.textContent;
+    if (baseLang === 'en') {
+        refEl.style.opacity = '1';
+        return;
+    }
+
+    // Automatic English Detection: If English letters remain, grey out while neural engine translates
     if (/[a-zA-Z]{2,}/.test(textNow)) {
+        refEl.style.opacity = '0.35'; // Grey out while translating just like verse body
         const rawBook = verse.book || verse.religion || '';
         const chap = (verse.chapter !== undefined && verse.chapter !== null) ? String(verse.chapter) : '';
         
+        const tasks = [];
         if (/[a-zA-Z]/.test(rawBook)) {
-            translateTextAsync(rawBook, currentAppLanguage).then(trans => {
-                if (trans && refEl) {
-                    refEl.textContent = formatVerseRef(verse);
+            tasks.push(translateTextAsync(rawBook, currentAppLanguage).then(trans => {
+                if (trans && trans.toLowerCase() !== rawBook.toLowerCase()) {
+                    setCachedVerseTranslation(rawBook, currentAppLanguage, trans);
+                    if (typeof i18nDict !== 'undefined') {
+                        if (!i18nDict[rawBook]) i18nDict[rawBook] = {};
+                        i18nDict[rawBook][baseLang] = trans;
+                    }
                 }
-            });
+            }));
         }
         
         if (/[a-zA-Z]/.test(chap)) {
-            translateTextAsync(chap, currentAppLanguage).then(trans => {
-                if (trans && refEl) {
-                    refEl.textContent = formatVerseRef(verse);
+            tasks.push(translateTextAsync(chap, currentAppLanguage).then(trans => {
+                if (trans && trans.toLowerCase() !== chap.toLowerCase()) {
+                    setCachedVerseTranslation(chap, currentAppLanguage, trans);
                 }
-            });
+            }));
         }
+        
+        Promise.all(tasks).then(() => {
+            if (refEl) {
+                refEl.textContent = formatVerseRef(verse);
+                refEl.style.opacity = '1';
+            }
+        }).catch(() => {
+            if (refEl) refEl.style.opacity = '1';
+        });
+    } else {
+        refEl.style.opacity = '1';
     }
 }
 
