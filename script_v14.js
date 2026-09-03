@@ -30410,7 +30410,7 @@ const dataUrls = {
     Christianity: ['./data/bible.json?v=21'],
     Islam: ['./data/quran_v2.json?v=21', './data/hadiths_v2.json?v=21'],
     Hinduism: ['./data/gita.json?v=22', './data/hindu_books.json?v=22'],
-    Judaism: ['./data/sefaria.json?v=21'],
+    Judaism: ['./data/sefaria.json?v=22'],
     Sikhism: ['./data/gurbani.json?v=21'],
     Buddhism: ['./data/buddhism.json?v=21'],
     Philosophy: ['./data/philosophy.json?v=21']
@@ -33778,8 +33778,9 @@ function showReligions() {
 
         btn.onclick = async () => {
             if (!religionBooks[rel]) {
-                btn.style.opacity = '0.7';
+                btn.style.opacity = '0.5';
                 await loadReligionData(rel);
+                btn.style.opacity = '1';
             }
             if (religionBooks[rel]) {
                 showBooks(rel);
