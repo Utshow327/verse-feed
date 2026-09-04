@@ -1863,6 +1863,17 @@ h2 {
     border-radius: 0 0 20px 20px;
 }
 
+.toast-progress.installing {
+    background: linear-gradient(90deg, rgba(230,198,135,0.8) 0%, rgba(255,255,255,1) 50%, rgba(230,198,135,0.8) 100%);
+    background-size: 200% 100%;
+    animation: toastProgressShimmer 1.5s infinite linear;
+}
+
+@keyframes toastProgressShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
 
 .music-nav-btn {
     width: 40px;

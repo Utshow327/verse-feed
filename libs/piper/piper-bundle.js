@@ -19994,12 +19994,14 @@ var _TtsSession = class _TtsSession2 {
     __privateGet(this, _ort).env.wasm.numThreads = navigator.hardwareConcurrency;
     __privateGet(this, _ort).env.wasm.wasmPaths = __privateGet(this, _wasmPaths).onnxWasm;
     const path = PATH_MAP[this.voiceId];
-    const modelConfigBlob = await getBlob(`${HF_BASE}/${path}.json`);
+    const [modelConfigBlob, modelBlob] = await Promise.all([
+      getBlob(`${HF_BASE}/${path}.json`),
+      getBlob(
+        `${HF_BASE}/${path}`,
+        __privateGet(this, _progressCallback)
+      )
+    ]);
     __privateSet(this, _modelConfig, JSON.parse(await modelConfigBlob.text()));
-    const modelBlob = await getBlob(
-      `${HF_BASE}/${path}`,
-      __privateGet(this, _progressCallback)
-    );
     __privateSet(this, _ortSession, await __privateGet(this, _ort).InferenceSession.create(
       await modelBlob.arrayBuffer()
     ));

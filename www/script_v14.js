@@ -30965,6 +30965,16 @@ function getAudioContext() {
 }
 
 let voiceDownloadToastTimeout = null;
+let voiceWarmupInterval = null;
+let currentVoiceProgress = 5;
+
+function stopVoiceWarmup() {
+    if (voiceWarmupInterval) {
+        clearInterval(voiceWarmupInterval);
+        voiceWarmupInterval = null;
+    }
+}
+
 function showVoiceInstallingToast(msg = "Installing voice...", percent = null) {
     const toast = document.getElementById('global-toast');
     const msgEl = document.getElementById('toast-message');
@@ -30973,8 +30983,13 @@ function showVoiceInstallingToast(msg = "Installing voice...", percent = null) {
     if (!toast || !msgEl) return;
     
     let displayMsg = "Installing voice...";
-    if (typeof percent === 'number' && percent >= 100) {
-        displayMsg = "Voice ready";
+    if (typeof percent === 'number') {
+        const rounded = Math.round(percent);
+        if (rounded >= 100) {
+            displayMsg = "Voice ready";
+        } else {
+            displayMsg = `Installing voice (${rounded}%)...`;
+        }
     } else if (typeof msg === 'string' && msg.toLowerCase().includes('ready')) {
         displayMsg = "Voice ready";
     }
@@ -30983,8 +30998,9 @@ function showVoiceInstallingToast(msg = "Installing voice...", percent = null) {
     if (actionBtn) actionBtn.style.display = 'none';
     
     if (progressEl) {
+        progressEl.classList.add('installing');
         if (typeof percent === 'number') {
-            progressEl.style.transition = 'transform 0.2s ease-out';
+            progressEl.style.transition = 'transform 0.25s ease-out';
             const frac = Math.max(0.04, Math.min(1, percent / 100));
             progressEl.style.transform = `scaleX(${frac})`;
         } else {
@@ -31002,7 +31018,9 @@ function showVoiceInstallingToast(msg = "Installing voice...", percent = null) {
     clearTimeout(voiceDownloadToastTimeout);
     
     if (percent !== null && percent >= 100) {
+        stopVoiceWarmup();
         if (progressEl) {
+            progressEl.classList.remove('installing');
             progressEl.style.transition = 'transform 0.15s ease-out';
             progressEl.style.transform = 'scaleX(1)';
         }
@@ -31020,7 +31038,10 @@ function showVoiceInstallingToast(msg = "Installing voice...", percent = null) {
 
 function hideVoiceToast() {
     if (piperInitializing) return; // Do not hide toast while actively installing voice
+    stopVoiceWarmup();
     const toast = document.getElementById('global-toast');
+    const progressEl = document.getElementById('toast-progress');
+    if (progressEl) progressEl.classList.remove('installing');
     if (toast) toast.classList.remove('show');
     clearTimeout(voiceDownloadToastTimeout);
 }
@@ -31036,15 +31057,23 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
     
     piperInitPromise = (async () => {
         piperInitializing = true;
+        stopVoiceWarmup();
         
         try {
             const isInstalled = localStorage.getItem('piper_voice_installed_' + voiceId) === 'true';
-            let maxPercent = 5;
+            currentVoiceProgress = 5;
             if (!isInstalled) {
-                showVoiceInstallingToast("Installing voice...", maxPercent);
+                showVoiceInstallingToast("Installing voice...", currentVoiceProgress);
+                // Organic warmup creep during network connect / DNS / TLS handshake so user never feels frozen
+                voiceWarmupInterval = setInterval(() => {
+                    if (currentVoiceProgress < 26) {
+                        currentVoiceProgress += 0.8 + Math.random() * 0.7;
+                        showVoiceInstallingToast("Installing voice...", currentVoiceProgress);
+                    }
+                }, 380);
             }
             
-            const tts = await import("./libs/piper/piper-bundle.js?v=22");
+            const tts = await import("./libs/piper/piper-bundle.js?v=23");
             if (tts.TtsSession._instance) {
                 tts.TtsSession._instance = null; // Force reload of ONNX model
             }
@@ -31062,17 +31091,18 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
                 progress: (p) => {
                     if (p && p.loaded) {
                         const now = Date.now();
-                        if (now - lastProgressUpdate < 500) return; // Throttle to every 500ms
+                        if (now - lastProgressUpdate < 250) return; // Responsive 250ms update
                         lastProgressUpdate = now;
                         const totalBytes = (p.total && p.total > 0) ? p.total : (62 * 1024 * 1024);
                         const pct = Math.round((p.loaded / totalBytes) * 100);
                         if (!isInstalled) {
-                            maxPercent = Math.max(maxPercent, Math.min(98, pct));
-                            showVoiceInstallingToast("Installing voice...", maxPercent);
+                            currentVoiceProgress = Math.max(currentVoiceProgress, Math.min(98, pct));
+                            showVoiceInstallingToast("Installing voice...", currentVoiceProgress);
                         }
                     }
                 }
             });
+            stopVoiceWarmup();
             localStorage.setItem('piper_voice_installed_' + voiceId, 'true');
             piperInitializing = false;
             if (!isInstalled) {
@@ -38211,7 +38241,7 @@ window.addEventListener('offline', () => {
 
 function preloadPiperVoices() {
     if ('caches' in window) {
-        const cacheName = 'religion-app-v20';
+        const cacheName = 'piper-voice-cache-v1';
         caches.open(cacheName).then(cache => {
             const voiceUrls = [
                 './libs/piper/piper-bundle.js',
