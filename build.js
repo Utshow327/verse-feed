@@ -10,7 +10,6 @@ const includeList = [
     'script_v14.js',
     'style_v5.css',
     'manifest.json',
-    'service-worker.js',
     'data',
     'libs',
     'music'
