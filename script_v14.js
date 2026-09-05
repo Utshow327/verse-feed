@@ -29969,7 +29969,7 @@ function applyLanguageTranslations(langCode = currentAppLanguage) {
     }
 
     // 8. Re-render Active Feed Card, Library, and Saved Screens in chosen language
-    if (typeof renderFeedCard === 'function' && typeof currentVerseIndex !== 'undefined') {
+    if (typeof renderFeedCard === 'function' && typeof currentVerseIndex !== 'undefined' && appLoaded) {
         renderFeedCard(currentVerseIndex.general || 0);
     }
     if (typeof showReligions === 'function' && document.getElementById('library-home') && !document.getElementById('library-home').classList.contains('hidden')) {
@@ -29979,8 +29979,6 @@ function applyLanguageTranslations(langCode = currentAppLanguage) {
         showSavedVerses(true);
     }
     if (typeof buildSettings === 'function') buildSettings();
-    loadedReligions.clear();
-    loadSelectedData();
     preloadFunnyLines(langCode);
 }
 
@@ -30114,7 +30112,15 @@ localStorage.removeItem = function(key) {
     originalRemoveItem.call(this, key);
 };
 
+let currentActiveProfileId = null;
+
 function switchProfile(targetProfileId) {
+    if (!targetProfileId) targetProfileId = 'guest';
+    const isSameProfile = (currentActiveProfileId === targetProfileId);
+    if (isSameProfile && verseBatches.general && verseBatches.general.length > 0) {
+        return;
+    }
+    currentActiveProfileId = targetProfileId;
     isRestoringState = true;
     const prevRels = globalSelectedRels ? JSON.stringify(globalSelectedRels) : null;
     
@@ -30227,7 +30233,8 @@ function switchProfile(targetProfileId) {
         showSavedVerses(true);
     }
 
-    if (typeof initializeVerseFeed === 'function') {
+    const relsChanged = prevRels !== JSON.stringify(globalSelectedRels);
+    if (typeof initializeVerseFeed === 'function' && loadedReligions.size > 0 && (relsChanged || !verseBatches.general || verseBatches.general.length === 0)) {
         initializeVerseFeed(true);
     }
 
@@ -30785,11 +30792,7 @@ async function initApp() {
                 // Auto-start installing voice in background if not yet installed
                 setTimeout(checkAndAutoInstallVoice, 1200);
 
-                try {
-                    initLanguageSettings();
-                } catch(e) {
-                    console.warn("Language settings init:", e);
-                }
+
             }
 
             // Safety Watchdog: Guarantee loading overlay is dismissed even on slowest devices
@@ -33222,7 +33225,7 @@ function prevCard() {
         }
     }
 }
-function goTo(section) {
+function goTo(section, isUserTap = false) {
     if (!appLoaded && section !== 'verse-feed') return;
     const targetEl = document.getElementById(section);
     if (!targetEl) return;
@@ -33250,7 +33253,7 @@ function goTo(section) {
     if (section === 'verse-feed') {
         const n = document.getElementById('nav-feed'); if (n) n.classList.add('active-nav');
         const t = document.querySelector('.tab-btn[data-target="verse-feed"]'); if (t) t.classList.add('active');
-        if (isAlreadyActive) {
+        if (isAlreadyActive && isUserTap) {
             verseBatches.general = [];
             currentFeedIndex = 0;
             initializeVerseFeed();
