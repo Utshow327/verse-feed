@@ -35524,16 +35524,16 @@ function startWaveformVisualizer() {
             const len = visualizerDataArray.length;
             for (let i = 0; i < len; i++) sum += visualizerDataArray[i];
             const avgVolume = sum / len / 255.0;
-            // Immediate, snappy response to voice audio
+            // Immediate, smooth response to voice audio (gentle rise)
             if (avgVolume > 0.005) {
-                visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.38;
+                visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.20;
             } else {
-                visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.22;
+                visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.16;
             }
         } else if (isGenerating || isQueueGenerating) {
-            // Organic ambient breathing wave only when waiting for audio to start
-            const breathTarget = 0.12 + 0.06 * Math.sin(time * 3.2);
-            visualizerSmoothedVol += (breathTarget - visualizerSmoothedVol) * 0.12;
+            // Calm ambient breathing wave only when waiting for audio to start
+            const breathTarget = 0.08 + 0.03 * Math.sin(time * 2.2);
+            visualizerSmoothedVol += (breathTarget - visualizerSmoothedVol) * 0.10;
         } else {
             visualizerSmoothedVol *= 0.90;
         }
@@ -35544,23 +35544,23 @@ function startWaveformVisualizer() {
         const sw = (cw + 20) / (np - 1);
 
         for (let layerIdx = 0; layerIdx < 3; layerIdx++) {
-            const speed = [1.2, 1.5, 1.9][layerIdx];
+            const speed = [0.8, 1.1, 1.4][layerIdx];
             const frequency = [0.004, 0.006, 0.008][layerIdx];
-            const amplitudeBase = [8, 12, 16][layerIdx];
-            const audioMult = [85, 125, 170][layerIdx];
+            const amplitudeBase = [6, 9, 12][layerIdx];
+            const audioMult = [38, 55, 75][layerIdx];
 
             ctx.beginPath();
             ctx.moveTo(-10, ch);
             
             let prevX = -10;
             const startWave = Math.sin(-10 * frequency + time * speed);
-            let prevY = ch - Math.max(4, amplitudeBase + (startWave * 7) + (visualizerSmoothedVol * audioMult));
+            let prevY = ch - Math.max(4, amplitudeBase + (startWave * 4) + (visualizerSmoothedVol * audioMult));
             ctx.lineTo(prevX, prevY);
 
             for (let i = 1; i < np; i++) {
                 const x = -10 + (i * sw);
                 const wave = Math.sin(x * frequency + time * speed);
-                const height = amplitudeBase + (wave * 7) + (visualizerSmoothedVol * audioMult);
+                const height = amplitudeBase + (wave * 4) + (visualizerSmoothedVol * audioMult);
                 const y = ch - Math.max(4, height);
                 const midX = (prevX + x) * 0.5;
                 const midY = (prevY + y) * 0.5;
