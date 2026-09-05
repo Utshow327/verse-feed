@@ -33434,8 +33434,12 @@ function goTo(section, isUserTap = false) {
             bookContent.classList.contains('hidden'))) {
             deselectVerse();
             showReligions();
-        } else if (!bookContent.classList.contains('hidden') && lastSelectedBookVerse) {
-            selectVerse(lastSelectedBookVerse, 'book', lastSelectedBookVerse.elementId || ('book-verse-' + bookVoiceCurrentVerse), true);
+        } else if (!bookContent.classList.contains('hidden')) {
+            const vToSelect = lastSelectedBookVerse || globalVerseMap[bookVoiceCurrentVerse] || globalVerseMap[0];
+            if (vToSelect) {
+                const targetIdx = (vToSelect.globalIndex !== undefined) ? vToSelect.globalIndex : bookVoiceCurrentVerse;
+                selectVerse(vToSelect, 'book', 'book-verse-' + targetIdx, true);
+            }
         } else {
             deselectVerse();
         }
@@ -34348,13 +34352,20 @@ function initializeChapterView(content, chapterOrder) {
 
     populateChapterWheel();
 
-    // Initial Render
-    const targetInfo = globalVerseMap[bookVoiceCurrentVerse];
+    // Initial Render - always select the current verse so the user can immediately play/bookmark/interact
+    const targetInfo = globalVerseMap[bookVoiceCurrentVerse] || globalVerseMap[0];
     if (targetInfo) {
         renderChapter(targetInfo.chapter);
-        scrollToBookVerse(bookVoiceCurrentVerse);
+        const actualIdx = (targetInfo.globalIndex !== undefined) ? targetInfo.globalIndex : bookVoiceCurrentVerse;
+        scrollToBookVerse(actualIdx);
+        selectVerse({ ...targetInfo, isManual: true }, 'book', 'book-verse-' + actualIdx, true);
     } else if (chapterList.length > 0) {
         renderChapter(chapterList[0]);
+        if (globalVerseMap.length > 0) {
+            const first = globalVerseMap[0];
+            scrollToBookVerse(0);
+            selectVerse({ ...first, isManual: true }, 'book', 'book-verse-0', true);
+        }
     }
     updatePillUI();
 }
@@ -34393,7 +34404,9 @@ function renderChapter(chapter) {
         });
     }
     
-    renderBookChapterBatch(30);
+    const targetOffset = (bookVoiceCurrentVerse !== undefined && startIndex !== undefined && bookVoiceCurrentVerse >= startIndex) ? (bookVoiceCurrentVerse - startIndex) : 0;
+    const initialBatch = Math.max(30, targetOffset + 15);
+    renderBookChapterBatch(initialBatch);
     setupBookChapterScrollListener();
 }
 
@@ -34662,7 +34675,15 @@ function scrollToBookVerse(verseIndex) {
     if (info.chapter !== currentRenderedChapter) {
         renderChapter(info.chapter);
     }
-    const el = document.getElementById('book-verse-' + verseIndex);
+    let el = document.getElementById('book-verse-' + verseIndex);
+    if (!el && currentBookChapterState) {
+        const startIndex = currentBookChapterState.startIndex;
+        const targetOffset = verseIndex - startIndex;
+        if (targetOffset >= 0 && targetOffset >= currentBookChapterRenderedCount) {
+            renderBookChapterBatch((targetOffset - currentBookChapterRenderedCount) + 15);
+            el = document.getElementById('book-verse-' + verseIndex);
+        }
+    }
     if (el) {
         const container = document.getElementById('read-books');
         const rect = el.getBoundingClientRect();
