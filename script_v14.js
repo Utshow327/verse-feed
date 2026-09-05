@@ -31207,7 +31207,6 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
                 tts.TtsSession._instance = null; // Force reload of ONNX model
             }
             console.log("Loading Piper TTS voice:", voiceId);
-            const wasmBase = new URL('libs/piper/', window.location.href).href;
             
             let lastProgressUpdate = 0;
             const newSession = await tts.TtsSession.create({
@@ -31240,15 +31239,7 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
                 hideVoiceToast();
             }
             newSession.voiceId = voiceId;
-            let savedSpeed = localStorage.getItem('voiceSpeed_' + voiceId);
-            if (!savedSpeed) {
-                if (voiceId === 'en_GB-alan-medium') savedSpeed = "1.1";
-                else if (voiceId === 'en_GB-alba-medium') savedSpeed = "0.9";
-                else if (voiceId === 'en_US-libritts_r-medium') savedSpeed = "0.6";
-                else savedSpeed = "1.0";
-            }
-            const baseLen = voiceBaseLengths[voiceId] || 1.0;
-            newSession.speedScale = baseLen / parseFloat(savedSpeed);
+            newSession.speedScale = targetSpeedScale;
             
             piperSessionsCache[voiceId] = newSession;
             piperSession = newSession;
@@ -33708,7 +33699,7 @@ function _showSavedVersesImpl(rebuildFolders = true) {
             placeholder.style.height = '30vh';
             placeholder.style.opacity = '0.6';
             placeholder.style.fontSize = '1.1rem';
-            placeholder.innerText = 'No verses in this folder';
+            placeholder.innerText = t('No verses in this folder') || 'No verses in this folder';
             versesFrag.appendChild(placeholder);
         }
     }
@@ -35955,7 +35946,12 @@ function openCreateBookmarkModal() {
     const modal = document.getElementById('create-bookmark-modal');
     if (!modal) return;
     const input = document.getElementById('create-album-name');
-    if (input) input.value = '';
+    if (input) {
+        input.value = '';
+        input.placeholder = t('Folder Name') || 'Folder Name';
+    }
+    const createBtn = modal.querySelector('.album-create-btn');
+    if (createBtn) createBtn.textContent = t('Create Folder') || 'Create Folder';
     openModal(modal);
     setTimeout(() => { if (input) input.focus(); }, 50);
 }
