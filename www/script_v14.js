@@ -31050,6 +31050,81 @@ function hideVoiceToast() {
 }
 
 let piperSessionsCache = {};
+let piperWorker = null;
+let piperWorkerReady = false;
+let piperPendingRequests = new Map();
+let piperRequestId = 0;
+let lastWorkerProgressUpdate = 0;
+
+function getPiperWorker() {
+    if (piperWorker) return piperWorker;
+    try {
+        if (typeof Worker !== 'undefined') {
+            piperWorker = new Worker('./libs/piper/piper-worker.js?v=26', { type: 'module' });
+            piperWorker.onmessage = (e) => {
+                const msg = e.data;
+                if (!msg || !msg.type) return;
+                if (msg.type === 'progress') {
+                    if (msg.progress && msg.progress.loaded) {
+                        const now = Date.now();
+                        if (now - lastWorkerProgressUpdate < 250) return;
+                        lastWorkerProgressUpdate = now;
+                        const totalBytes = (msg.progress.total && msg.progress.total > 0) ? msg.progress.total : (62 * 1024 * 1024);
+                        const pct = Math.round((msg.progress.loaded / totalBytes) * 100);
+                        const isInstalled = localStorage.getItem('piper_voice_installed_' + msg.voiceId) === 'true';
+                        if (!isInstalled) {
+                            currentVoiceProgress = Math.max(currentVoiceProgress, Math.min(98, pct));
+                            showVoiceInstallingToast("Installing voice...", currentVoiceProgress);
+                        }
+                    }
+                } else if (msg.type === 'init_done') {
+                    const req = piperPendingRequests.get('init_' + msg.voiceId);
+                    if (req) {
+                        piperPendingRequests.delete('init_' + msg.voiceId);
+                        if (msg.success) {
+                            piperWorkerReady = true;
+                            req.resolve(true);
+                        } else {
+                            req.reject(new Error(msg.error));
+                        }
+                    }
+                } else if (msg.type === 'predict_done') {
+                    const req = piperPendingRequests.get(msg.id);
+                    if (req) {
+                        piperPendingRequests.delete(msg.id);
+                        if (msg.error) req.reject(new Error(msg.error));
+                        else req.resolve(msg.buffer);
+                    }
+                }
+            };
+            piperWorker.onerror = (err) => {
+                console.warn("Piper worker error, falling back to in-thread Piper:", err);
+                piperWorker = null;
+                piperWorkerReady = false;
+            };
+        }
+    } catch (err) {
+        console.warn("Could not create Piper Web Worker:", err);
+        piperWorker = null;
+    }
+    return piperWorker;
+}
+
+function requestWorkerPrediction(text, voiceId, speedScale) {
+    const worker = getPiperWorker();
+    if (!worker || !piperWorkerReady) return Promise.resolve(null);
+    return new Promise((resolve, reject) => {
+        const id = ++piperRequestId;
+        piperPendingRequests.set(id, { resolve, reject });
+        worker.postMessage({ type: 'predict', id, text, speedScale });
+        setTimeout(() => {
+            if (piperPendingRequests.has(id)) {
+                piperPendingRequests.delete(id);
+                reject(new Error("Worker prediction timeout"));
+            }
+        }, 15000);
+    });
+}
 
 async function initPiper(voiceId = "en_US-libritts_r-medium") {
     if (piperSessionsCache[voiceId]) {
@@ -31076,6 +31151,57 @@ async function initPiper(voiceId = "en_US-libritts_r-medium") {
                 }, 380);
             }
             
+            const wasmBase = new URL('libs/piper/', window.location.href).href;
+            let savedSpeed = localStorage.getItem('voiceSpeed_' + voiceId);
+            if (!savedSpeed) {
+                if (voiceId === 'en_GB-alan-medium') savedSpeed = "1.1";
+                else if (voiceId === 'en_GB-alba-medium') savedSpeed = "0.9";
+                else if (voiceId === 'en_US-libritts_r-medium') savedSpeed = "0.6";
+                else savedSpeed = "1.0";
+            }
+            const baseLen = voiceBaseLengths[voiceId] || 1.0;
+            const targetSpeedScale = baseLen / parseFloat(savedSpeed);
+
+            // Fast-path: Try initializing in dedicated background Web Worker
+            const worker = getPiperWorker();
+            if (worker) {
+                try {
+                    const workerOk = await new Promise((resolve, reject) => {
+                        piperPendingRequests.set('init_' + voiceId, { resolve, reject });
+                        worker.postMessage({
+                            type: 'init',
+                            voiceId: voiceId,
+                            wasmPaths: {
+                                onnxWasm: wasmBase,
+                                piperData: wasmBase + "piper_phonemize.data",
+                                piperWasm: wasmBase + "piper_phonemize.wasm"
+                            },
+                            speedScale: targetSpeedScale
+                        });
+                        setTimeout(() => {
+                            if (piperPendingRequests.has('init_' + voiceId)) {
+                                piperPendingRequests.delete('init_' + voiceId);
+                                resolve(false);
+                            }
+                        }, 30000);
+                    });
+                    if (workerOk) {
+                        stopVoiceWarmup();
+                        localStorage.setItem('piper_voice_installed_' + voiceId, 'true');
+                        piperInitializing = false;
+                        if (!isInstalled) showVoiceInstallingToast("Voice ready", 100);
+                        else hideVoiceToast();
+                        const sessionObj = { voiceId, isWorker: true, speedScale: targetSpeedScale };
+                        piperSessionsCache[voiceId] = sessionObj;
+                        piperSession = sessionObj;
+                        console.log(`Piper TTS loaded with ${voiceId} in dedicated background Web Worker.`);
+                        return sessionObj;
+                    }
+                } catch(wErr) {
+                    console.warn("Worker Piper init notice, using in-thread fallback:", wErr);
+                }
+            }
+
             const tts = await import("./libs/piper/piper-bundle.js?v=23");
             if (tts.TtsSession._instance) {
                 tts.TtsSession._instance = null; // Force reload of ONNX model
@@ -31442,6 +31568,31 @@ async function playText(text, context) {
     }, 20);
 }
 
+let pregeneratedChunk0 = null;
+let pregeneratedVerseText = null;
+
+async function pregenerateNextVerseAudio() {
+    if (!autoMode || !piperSession || !piperSession.isWorker) return;
+    try {
+        const nextIdx = (currentVerseIndex && currentVerseIndex.general !== undefined) ? (currentVerseIndex.general + 1) : 1;
+        const nextV = getVerseAtIndex(nextIdx);
+        if (!nextV || nextV.isAd || !nextV.text) return;
+        
+        let spokenText = nextV.spoken_text || nextV.text;
+        if (!spokenText.endsWith('.')) spokenText += '.';
+        if (ttsAnnounceSource) spokenText += '. ' + nextV.book + '.';
+        
+        const firstChunk = spokenText.split(/([.!?,;:]+[\s]+|\|PAUSE\|\s*)/i).filter(Boolean)[0]?.trim();
+        if (!firstChunk || pregeneratedVerseText === firstChunk) return;
+        
+        const buf = await requestWorkerPrediction(firstChunk, piperSession.voiceId, piperSession.speedScale);
+        if (buf) {
+            pregeneratedChunk0 = buf;
+            pregeneratedVerseText = firstChunk;
+        }
+    } catch(e) {}
+}
+
 async function processAudioQueue(chunks, generationId, fallbackTTS) {
     let playbackStarted = false;
     
@@ -31464,14 +31615,24 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
                 continue;
             }
 
-            const wavBlob = await piperSession.predict(chunks[i]);
+            let arrayBuffer = null;
+            if (i === 0 && pregeneratedChunk0 && pregeneratedVerseText === chunks[0]) {
+                arrayBuffer = pregeneratedChunk0;
+                pregeneratedChunk0 = null;
+                pregeneratedVerseText = null;
+            } else if (piperSession && piperSession.isWorker) {
+                try {
+                    arrayBuffer = await requestWorkerPrediction(chunks[i], piperSession.voiceId, piperSession.speedScale);
+                } catch (wErr) {
+                    console.warn("Worker prediction fallback:", wErr);
+                }
+            }
+            if (!arrayBuffer && piperSession && typeof piperSession.predict === 'function') {
+                const wavBlob = await piperSession.predict(chunks[i]);
+                arrayBuffer = await wavBlob.arrayBuffer();
+            }
             if (generationId !== currentGenerationId) break;
-
-            // Yield AFTER predict so browser can paint frames between heavy CPU blocks
-            await new Promise(r => setTimeout(r, 1));
-            if (generationId !== currentGenerationId) break;
-
-            const arrayBuffer = await wavBlob.arrayBuffer();
+            if (!arrayBuffer) break;
             const decodedData = await ctx.decodeAudioData(arrayBuffer);
             
             if (generationId !== currentGenerationId) break;
@@ -31510,6 +31671,9 @@ async function processAudioQueue(chunks, generationId, fallbackTTS) {
     }
     
     isQueueGenerating = false;
+    if (playingQueueIndex >= audioChunkQueue.length - 1 && isSpeaking && !isPaused) {
+        pregenerateNextVerseAudio();
+    }
     // If playback never started (e.g. single chunk edge case), start it now
     if (!playbackStarted && generationId === currentGenerationId && audioChunkQueue.length > 0) {
         isGenerating = false;
@@ -31618,6 +31782,10 @@ function startAudioPlayback(offset, generationId) {
     source.start(0, offset);
     currentAudioNode = source;
     updateSpeakButton('speak-general');
+
+    if (playingQueueIndex >= audioChunkQueue.length - 1 && !isQueueGenerating) {
+        pregenerateNextVerseAudio();
+    }
 }
 
 function updateSpeakButton(buttonId) {

@@ -19649,7 +19649,7 @@ async function writeBlob(url, blob) {
   if (!blob || blob.size < 100) return;
   // 1. Persist to Cache API (fastest in mobile WebView)
   try {
-    if ('caches' in window) {
+    if ('caches' in self) {
       const cache = await caches.open('piper-voice-cache-v1');
       await cache.put(url, new Response(blob));
     }
@@ -19686,7 +19686,7 @@ async function writeBlob(url, blob) {
 
 async function removeBlob(url) {
   try {
-    if ('caches' in window) {
+    if ('caches' in self) {
       const cache = await caches.open('piper-voice-cache-v1');
       await cache.delete(url);
     }
@@ -19712,7 +19712,7 @@ async function removeBlob(url) {
 async function readBlob(url) {
   // 1. Try Cache API first
   try {
-    if ('caches' in window) {
+    if ('caches' in self) {
       const cache = await caches.open('piper-voice-cache-v1');
       const match = await cache.match(url);
       if (match) {
