@@ -35496,15 +35496,21 @@ function startWaveformVisualizer() {
         const time = (timestamp || performance.now()) * 0.001;
 
         // Smooth continuous audio volume & verse change respiration
-        if (audioAnalyser && isSpeaking && !isPaused && !isGenerating && !isQueueGenerating) {
+        const isAudioPlaying = audioAnalyser && isSpeaking && !isPaused && !isGenerating && currentAudioNode;
+        if (isAudioPlaying) {
             audioAnalyser.getByteFrequencyData(visualizerDataArray);
             let sum = 0;
             const len = visualizerDataArray.length;
             for (let i = 0; i < len; i++) sum += visualizerDataArray[i];
             const avgVolume = sum / len / 255.0;
-            visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.22;
+            // Immediate, snappy response to voice audio
+            if (avgVolume > 0.005) {
+                visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.38;
+            } else {
+                visualizerSmoothedVol += (avgVolume - visualizerSmoothedVol) * 0.22;
+            }
         } else if (isGenerating || isQueueGenerating) {
-            // Organic ambient breathing wave during verse transition - prevents ANY stutter, freezing, or flatlining!
+            // Organic ambient breathing wave only when waiting for audio to start
             const breathTarget = 0.12 + 0.06 * Math.sin(time * 3.2);
             visualizerSmoothedVol += (breathTarget - visualizerSmoothedVol) * 0.12;
         } else {
