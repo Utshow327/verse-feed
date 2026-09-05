@@ -34190,7 +34190,7 @@ function setupSearchScrollListener() {
         if (container.scrollTop + container.clientHeight >= container.scrollHeight - 300) {
             renderSearchBatch(20);
         }
-    });
+    }, { passive: true });
 }
 function showBooks(rel) {
     currentReligion = rel;
@@ -34463,7 +34463,7 @@ function setupBookChapterScrollListener() {
         if (scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 400) {
             renderBookChapterBatch(30);
         }
-    });
+    }, { passive: true });
 }
 function populateChapterWheel() {
     const wheel = document.getElementById('chapter-scroll-wheel');
@@ -35188,7 +35188,7 @@ window.addEventListener('pointermove', (e) => {
         return;
     }
     updateRadialMenu(e.clientX, e.clientY);
-});
+}, { passive: true });
 
 window.addEventListener('pointerup', (e) => {
     if (radialTimeout) {
@@ -36564,7 +36564,7 @@ function handlePillPlay(e) {
                     currentAudioNode.stop();
                 } catch (err) { }
             }
-            stopWaveformVisualizer(true);
+            stopWaveformVisualizer(false);
             updateSpeakIcons();
             updatePillUI();
         } else {

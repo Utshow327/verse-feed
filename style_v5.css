@@ -167,7 +167,7 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     z-index: 5;
     opacity: 0;
     transform: translateY(100%) translate3d(0, 0, 0);
-    transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s ease-in 0.1s;
     contain: strict;
     will-change: opacity, transform;
     -webkit-backface-visibility: hidden;
@@ -176,6 +176,7 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
 #waveform-canvas.active {
     opacity: 1;
     transform: translateY(0) translate3d(0, 0, 0);
+    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease-out;
 }
 
 /* --- Navigation --- */
