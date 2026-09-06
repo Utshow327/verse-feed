@@ -32929,6 +32929,8 @@ function generateBatch(type, lastRels = []) {
         if (!hasThreeConsec) break;
         tries++;
     }
+    const recentMasterpieceBlocked = new Set(seenVersesList.slice(-100));
+
     const batch = slots.map(r => {
         let pool = getFilteredPool(r);
 
@@ -32936,7 +32938,18 @@ function generateBatch(type, lastRels = []) {
             return { text: "Debug: Pool is empty for religion " + r + ".", religion: 'System', book: 'Debug', chapter: '1', verse: '1' };
         }
         
-        let availablePool = pool.filter(v => v && v.text && !seenVersesSet.has(getVerseSig(v)));
+        let availablePool = pool.filter(v => {
+            if (!v || !v.text) return false;
+            const sig = getVerseSig(v);
+            if (!sig) return false;
+            const baseScore = (v.id && activeRankings && activeRankings[v.id]) ? activeRankings[v.id] : 75;
+            // Masterpieces (score >= 88) are recycled after 100 cards so the feed never runs out of deep wisdom!
+            if (baseScore >= 88) {
+                return !recentMasterpieceBlocked.has(sig);
+            }
+            return !seenVersesSet.has(sig);
+        });
+
         if (availablePool.length === 0) {
             const poolSigs = new Set(pool.map(v => getVerseSig(v)));
             seenVersesList = seenVersesList.filter(sig => !poolSigs.has(sig));
@@ -32945,7 +32958,20 @@ function generateBatch(type, lastRels = []) {
             availablePool = pool;
         }
         
-        const selectedVerse = availablePool[Math.floor(Math.random() * availablePool.length)];
+        // Dynamic tournament selection with randomized score perturbation (+/- 12 points)
+        // Gives variety while maintaining consistent high quality forever
+        let selectedVerse = availablePool[0];
+        let bestRank = -Infinity;
+        const tournamentSize = Math.min(4, availablePool.length);
+        for (let t = 0; t < tournamentSize; t++) {
+            const candidate = availablePool[Math.floor(Math.random() * availablePool.length)];
+            const candidateBase = (candidate.id && activeRankings && activeRankings[candidate.id]) ? activeRankings[candidate.id] : 75;
+            const dynamicRank = candidateBase + (Math.random() * 24 - 12);
+            if (dynamicRank > bestRank) {
+                bestRank = dynamicRank;
+                selectedVerse = candidate;
+            }
+        }
         return selectedVerse;
     }).filter(v => v !== null);
 
