@@ -30766,6 +30766,9 @@ async function initApp() {
         setTimeout(() => {
             setupGestures();
             setupWheelListeners();
+            if (typeof initVerseOfTheDayNotifications === 'function') {
+                initVerseOfTheDayNotifications();
+            }
 
             function dismissLoadingAndShowApp() {
                 const stage = document.getElementById('feed-stage');
@@ -30811,12 +30814,18 @@ async function initApp() {
                 // Ensure browser finishes layout and initial DOM painting
                 await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                 dismissLoadingAndShowApp();
+                if (typeof scheduleDailyVerseNotification === 'function') {
+                    scheduleDailyVerseNotification();
+                }
             }).catch(async err => {
                 console.error("Data load error:", err);
                 initializeVerseFeed();
                 goTo('verse-feed');
                 await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                 dismissLoadingAndShowApp();
+                if (typeof scheduleDailyVerseNotification === 'function') {
+                    scheduleDailyVerseNotification();
+                }
             });
         }, 10);
 
@@ -31320,6 +31329,7 @@ function toggleTTSRandom() {
 function updateTogglesUI() {
     const srcBtn = document.getElementById('tts-source-toggle');
     const rndBtn = document.getElementById('tts-random-toggle');
+    const notifBtn = document.getElementById('daily-verse-notif-toggle');
     const allowPremiumToggles = isPremiumUser && (typeof getActiveProfileId === 'function' ? getActiveProfileId() !== 'guest' : false);
     if (srcBtn) {
         if (ttsAnnounceSource && allowPremiumToggles) srcBtn.classList.add('active');
@@ -31330,6 +31340,11 @@ function updateTogglesUI() {
     if (rndBtn) {
         if (ttsRandomVoice && allowPremiumToggles) rndBtn.classList.add('active');
         else rndBtn.classList.remove('active');
+    }
+    if (notifBtn) {
+        const notifEnabled = localStorage.getItem('dailyNotificationEnabled') !== 'false';
+        if (notifEnabled) notifBtn.classList.add('active');
+        else notifBtn.classList.remove('active');
     }
 }
 
@@ -32678,7 +32693,7 @@ function buildSettings() {
             localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
         }
         document.querySelectorAll('.global-rel-btn').forEach(btn => {
-            if (btn.id === 'dark-mode-toggle' || btn.id === 'language-toggle-btn' || btn.getAttribute('onclick')?.includes('openLanguageModal')) return;
+            if (btn.id === 'dark-mode-toggle' || btn.id === 'language-toggle-btn' || btn.id === 'daily-verse-notif-toggle' || btn.getAttribute('onclick')?.includes('openLanguageModal')) return;
             const canonicalRel = btn.dataset.religion || getCanonicalReligion(btn.textContent);
             if (canonicalRel) {
                 btn.dataset.religion = canonicalRel;
@@ -32692,6 +32707,13 @@ function buildSettings() {
                 btn.classList.remove('active');
             }
         });
+
+        const notifBtn = document.getElementById('daily-verse-notif-toggle');
+        if (notifBtn) {
+            const notifEnabled = localStorage.getItem('dailyNotificationEnabled') !== 'false';
+            if (notifEnabled) notifBtn.classList.add('active');
+            else notifBtn.classList.remove('active');
+        }
 
         // Always sync the language button with currentAppLanguage
         const currentLangObj = supportedLanguages.find(l => l.code === currentAppLanguage) || 
@@ -32726,6 +32748,9 @@ async function toggleGlobalReligion(rawRel) {
     updateBatchesAfterSettings();
     if (typeof showReligions === "function" && document.getElementById('library-home') && !document.getElementById('library-home').classList.contains('hidden')) {
         showReligions();
+    }
+    if (typeof scheduleDailyVerseNotification === 'function') {
+        scheduleDailyVerseNotification();
     }
 }
 function addSelectionListeners() {
@@ -32785,6 +32810,183 @@ function preloadUpcomingVerses(currentIndex = currentVerseIndex.general || 0) {
     }
 }
 
+// --- Verse of the Day & 10:00 AM Local Notification System ---
+function getVerseOfTheDay(targetDate = new Date()) {
+    const activeRels = (globalSelectedRels && globalSelectedRels.length > 0) ? [...globalSelectedRels].sort() : [...religions].sort();
+    
+    let pool = [];
+    for (const rel of activeRels) {
+        const relPool = (typeof getFilteredPool === 'function') ? getFilteredPool(rel) : (religionVerses[rel] || []);
+        if (relPool && relPool.length > 0) {
+            pool.push(...relPool);
+        }
+    }
+
+    if (pool.length === 0) {
+        for (const rel of activeRels) {
+            if (religionVerses[rel] && religionVerses[rel].length > 0) {
+                pool.push(...religionVerses[rel]);
+            }
+        }
+    }
+
+    if (pool.length === 0) {
+        return null;
+    }
+
+    const topTier = pool.filter(v => v && v.id && activeRankings && activeRankings[v.id] >= 85);
+    const candidateList = topTier.length >= 5 ? topTier : pool;
+
+    const dateKey = `${targetDate.getFullYear()}-${targetDate.getMonth() + 1}-${targetDate.getDate()}`;
+    const seed = dateKey + '_' + activeRels.join('_');
+
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+        hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+        hash |= 0;
+    }
+
+    const selectedIndex = Math.abs(hash) % candidateList.length;
+    return { ...candidateList[selectedIndex], isVerseOfDay: true };
+}
+
+async function scheduleDailyVerseNotification(forceNow = false) {
+    if (localStorage.getItem('dailyNotificationEnabled') === 'false') {
+        return false;
+    }
+    const LocalNotifications = window.Capacitor?.Plugins?.LocalNotifications;
+    if (!LocalNotifications) return false;
+
+    try {
+        const perm = await LocalNotifications.checkPermissions();
+        if (perm.display !== 'granted') {
+            const req = await LocalNotifications.requestPermissions();
+            if (req.display !== 'granted') {
+                return false;
+            }
+        }
+
+        await LocalNotifications.createChannel({
+            id: 'verse_of_the_day_channel',
+            name: 'Verse of the Day',
+            description: 'Daily spiritual wisdom notification at 10:00 AM',
+            importance: 5,
+            visibility: 1,
+            vibration: true,
+            lights: true
+        });
+
+        const now = new Date();
+        const target = new Date();
+        target.setHours(10, 0, 0, 0);
+        if (target.getTime() <= now.getTime()) {
+            target.setDate(target.getDate() + 1);
+        }
+
+        const verse = getVerseOfTheDay(target);
+        if (!verse || !verse.text) return false;
+
+        const refStr = `${verse.book} ${verse.chapter}:${verse.verse}`;
+        const notifTitle = `✨ Verse of the Day (${verse.religion || 'Wisdom'})`;
+        const notifBody = `"${verse.text}"\n— ${refStr}`;
+
+        try {
+            await LocalNotifications.cancel({ notifications: [{ id: 1001 }] });
+        } catch (e) {}
+
+        await LocalNotifications.schedule({
+            notifications: [
+                {
+                    id: 1001,
+                    title: notifTitle,
+                    body: notifBody,
+                    largeBody: notifBody,
+                    summaryText: 'Verse of the Day',
+                    channelId: 'verse_of_the_day_channel',
+                    smallIcon: 'ic_launcher_round',
+                    schedule: {
+                        at: target,
+                        allowWhileIdle: true,
+                        repeats: true,
+                        every: 'day'
+                    },
+                    extra: {
+                        isVerseOfDay: true,
+                        verseId: verse.id,
+                        religion: verse.religion,
+                        book: verse.book,
+                        chapter: verse.chapter,
+                        verse: verse.verse
+                    }
+                }
+            ]
+        });
+        return true;
+    } catch (err) {
+        console.warn('Error scheduling daily verse notification:', err);
+        return false;
+    }
+}
+
+async function toggleDailyVerseNotification() {
+    const currentEnabled = localStorage.getItem('dailyNotificationEnabled') !== 'false';
+    const newState = !currentEnabled;
+    localStorage.setItem('dailyNotificationEnabled', newState ? 'true' : 'false');
+    updateTogglesUI();
+    if (newState) {
+        const scheduled = await scheduleDailyVerseNotification(true);
+        if (scheduled) {
+            showToast(t('Daily notification enabled for 10:00 AM'));
+        } else {
+            showToast(t('Notification scheduled'));
+        }
+    } else {
+        const LocalNotifications = window.Capacitor?.Plugins?.LocalNotifications;
+        if (LocalNotifications) {
+            try {
+                await LocalNotifications.cancel({ notifications: [{ id: 1001 }] });
+            } catch (e) {}
+        }
+        showToast(t('Daily notification disabled'));
+    }
+}
+
+function displayVerseOfDayInFeed() {
+    if (typeof goTo === 'function') {
+        goTo('verse-feed');
+    }
+    const vod = getVerseOfTheDay();
+    if (vod) {
+        const existingIdx = verseBatches.general.findIndex(v => v && (v.isVerseOfDay || (v.id && v.id === vod.id)));
+        if (existingIdx > -1) {
+            currentVerseIndex.general = existingIdx;
+        } else {
+            verseBatches.general.unshift(vod);
+            currentVerseIndex.general = 0;
+        }
+        renderFeedCard(currentVerseIndex.general);
+    }
+}
+
+let vodNotificationListenerAttached = false;
+function initVerseOfTheDayNotifications() {
+    const LocalNotifications = window.Capacitor?.Plugins?.LocalNotifications;
+    if (!LocalNotifications || vodNotificationListenerAttached) return;
+    vodNotificationListenerAttached = true;
+    try {
+        LocalNotifications.addListener('localNotificationActionPerformed', (notificationAction) => {
+            if (notificationAction && notificationAction.notification && notificationAction.notification.extra) {
+                const extra = notificationAction.notification.extra;
+                if (extra.isVerseOfDay) {
+                    displayVerseOfDayInFeed();
+                }
+            }
+        });
+    } catch (e) {
+        console.warn('Could not attach LocalNotifications listener:', e);
+    }
+}
+
 function initializeVerseFeed(forceRefresh) {
     const stage = document.getElementById('feed-stage');
     const emptyState = document.getElementById('feed-empty-state');
@@ -32827,6 +33029,16 @@ function initializeVerseFeed(forceRefresh) {
         }];
     }
     pushVersesWithAdCheck(newBatch);
+
+    // Ensure Verse of the Day is positioned as the very first card
+    const vod = getVerseOfTheDay();
+    if (vod) {
+        const existingVodIdx = verseBatches.general.findIndex(v => v && (v.isVerseOfDay || (v.id && v.id === vod.id)));
+        if (existingVodIdx > -1) {
+            verseBatches.general.splice(existingVodIdx, 1);
+        }
+        verseBatches.general.unshift(vod);
+    }
 
     // Strict guarantee: First card (index 0) is NEVER an ad
     if (verseBatches.general.length > 0 && verseBatches.general[0].isAd) {
@@ -33255,6 +33467,19 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
 
     card.appendChild(textEl);
     card.appendChild(footer);
+
+    if (verse.isVerseOfDay) {
+        const badge = document.createElement('div');
+        badge.className = 'verse-of-day-badge';
+        badge.innerHTML = `<span>✨</span> <span>${t('Verse of the Day')}</span>`;
+        if (currentAppLanguage !== 'en_US' && currentAppLanguage !== 'en') {
+            translateTextAsync('Verse of the Day', currentAppLanguage).then(tr => {
+                if (tr) badge.innerHTML = `<span>✨</span> <span>${tr}</span>`;
+            }).catch(() => {});
+        }
+        card.appendChild(badge);
+    }
+
     return card;
 }
 

@@ -348,6 +348,30 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     z-index: 10;
 }
 
+.verse-of-day-badge {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-weight: 700;
+    color: var(--text-color);
+    opacity: 0.85;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    background: var(--nav-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    pointer-events: none;
+    z-index: 2;
+    white-space: nowrap;
+}
+
 .card-peek-left {
     transform: translateX(-104%) scale(0.92);
     opacity: 0.3;

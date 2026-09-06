@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Minimalistic Religion App</title>
-    <link rel="stylesheet" href="style_v5.css?v=418">
+    <link rel="stylesheet" href="style_v5.css?v=419">
     <link rel="preconnect" href="https://huggingface.co" crossorigin>
     <link rel="dns-prefetch" href="https://huggingface.co">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -216,6 +216,12 @@
                 <button id="dark-mode-toggle" class="global-rel-btn" aria-label="Toggle Dark Mode" style="opacity: 1;">
                     <svg id="dark-mode-icon-svg" style="width:22px;height:22px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+                <button id="daily-verse-notif-toggle" class="global-rel-btn active" onclick="toggleDailyVerseNotification()" aria-label="Daily Verse Notification at 10 AM" style="opacity: 1;" title="Verse of the Day (10:00 AM)">
+                    <svg id="daily-verse-notif-icon-svg" style="width:20px;height:20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                     </svg>
                 </button>
             </div>
@@ -468,7 +474,7 @@
     <div id="radial-overlay" class="radial-overlay"></div>
     <script src="libs/localforage.min.js"></script>
     <script src="libs/html2canvas.min.js"></script>
-    <script src="script_v14.js?v=525"></script>
+    <script src="script_v14.js?v=526"></script>
 
 
 
