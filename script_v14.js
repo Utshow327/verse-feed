@@ -31329,7 +31329,6 @@ function toggleTTSRandom() {
 function updateTogglesUI() {
     const srcBtn = document.getElementById('tts-source-toggle');
     const rndBtn = document.getElementById('tts-random-toggle');
-    const notifTrack = document.getElementById('account-daily-notif-track');
     const allowPremiumToggles = isPremiumUser && (typeof getActiveProfileId === 'function' ? getActiveProfileId() !== 'guest' : false);
     if (srcBtn) {
         if (ttsAnnounceSource && allowPremiumToggles) srcBtn.classList.add('active');
@@ -31341,10 +31340,11 @@ function updateTogglesUI() {
         if (ttsRandomVoice && allowPremiumToggles) rndBtn.classList.add('active');
         else rndBtn.classList.remove('active');
     }
-    if (notifTrack) {
+    const notifBtn = document.getElementById('account-daily-notif-btn');
+    if (notifBtn) {
         const notifEnabled = localStorage.getItem('dailyNotificationEnabled') !== 'false';
-        if (notifEnabled) notifTrack.classList.add('active');
-        else notifTrack.classList.remove('active');
+        if (notifEnabled) notifBtn.classList.add('active');
+        else notifBtn.classList.remove('active');
     }
 }
 
@@ -32803,10 +32803,20 @@ function preloadUpcomingVerses(currentIndex = currentVerseIndex.general || 0) {
     }
 }
 
-// --- Daily Verse 10:00 AM Local Notification System ---
+// --- Daily Verse Notification System (Anti-Repetition & Setting-Aware) ---
 function getDailyNotificationVerse(targetDate = new Date()) {
     const activeRels = (globalSelectedRels && globalSelectedRels.length > 0) ? [...globalSelectedRels].sort() : [...religions].sort();
-    
+    const dateKey = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
+    const cacheKey = 'dailyNotifVerse_' + dateKey + '_' + activeRels.join('_');
+
+    try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed && parsed.text) return parsed;
+        }
+    } catch (e) {}
+
     let pool = [];
     for (const rel of activeRels) {
         const relPool = (typeof getFilteredPool === 'function') ? getFilteredPool(rel) : (religionVerses[rel] || []);
@@ -32827,20 +32837,59 @@ function getDailyNotificationVerse(targetDate = new Date()) {
         return null;
     }
 
-    const topTier = pool.filter(v => v && v.id && activeRankings && activeRankings[v.id] >= 85);
-    const candidateList = topTier.length >= 5 ? topTier : pool;
+    // Anti-repetition: Load recently sent verse IDs
+    let recentIds = [];
+    try {
+        recentIds = JSON.parse(localStorage.getItem('recentNotifiedVerseIds') || '[]');
+        if (!Array.isArray(recentIds)) recentIds = [];
+    } catch (e) {
+        recentIds = [];
+    }
 
-    const dateKey = `${targetDate.getFullYear()}-${targetDate.getMonth() + 1}-${targetDate.getDate()}`;
+    // Exclude recently sent verses
+    let freshPool = pool.filter(v => v && v.id && !recentIds.includes(v.id));
+    if (freshPool.length < 5) {
+        // If fresh pool is getting low, reset history so verses can recycle smoothly over time
+        recentIds = [];
+        freshPool = pool;
+    }
+
+    // Multi-tier quality scoring so it never feels repetitive:
+    // 1st preference: top-tier rated verses (>= 75)
+    let candidates = freshPool.filter(v => v && v.id && activeRankings && activeRankings[v.id] >= 75);
+    // 2nd preference: high quality verses (>= 70)
+    if (candidates.length < 5) {
+        candidates = freshPool.filter(v => v && v.id && activeRankings && activeRankings[v.id] >= 70);
+    }
+    // 3rd preference: any fresh verse from selected religions (e.g. Philosophy or unranked)
+    if (candidates.length === 0) {
+        candidates = freshPool;
+    }
+
     const seed = dateKey + '_' + activeRels.join('_');
-
     let hash = 0;
     for (let i = 0; i < seed.length; i++) {
         hash = ((hash << 5) - hash) + seed.charCodeAt(i);
         hash |= 0;
     }
 
-    const selectedIndex = Math.abs(hash) % candidateList.length;
-    return candidateList[selectedIndex];
+    const selectedIndex = Math.abs(hash) % candidates.length;
+    const selectedVerse = candidates[selectedIndex];
+
+    if (selectedVerse && selectedVerse.id) {
+        if (!recentIds.includes(selectedVerse.id)) {
+            recentIds.push(selectedVerse.id);
+            if (recentIds.length > 90) recentIds.shift(); // Keep last 90 days unique
+            try {
+                localStorage.setItem('recentNotifiedVerseIds', JSON.stringify(recentIds));
+            } catch (e) {}
+        }
+        try {
+            localStorage.setItem(cacheKey, JSON.stringify(selectedVerse));
+        } catch (e) {}
+    }
+
+    return selectedVerse;
 }
 
 async function scheduleDailyVerseNotification(forceNow = false) {
@@ -32862,7 +32911,7 @@ async function scheduleDailyVerseNotification(forceNow = false) {
         await LocalNotifications.createChannel({
             id: 'daily_verse_notification_channel',
             name: 'Daily Verse Notification',
-            description: 'Daily spiritual wisdom notification at 10:00 AM',
+            description: 'Daily spiritual wisdom notification',
             importance: 5,
             visibility: 1,
             vibration: true,
@@ -32929,9 +32978,9 @@ async function toggleDailyVerseNotification() {
     if (newState) {
         const scheduled = await scheduleDailyVerseNotification(true);
         if (scheduled) {
-            showToast(t('Daily notification enabled for 10:00 AM'));
+            showToast(t('Daily notifications enabled'));
         } else {
-            showToast(t('Notification scheduled'));
+            showToast(t('Daily notifications enabled'));
         }
     } else {
         const LocalNotifications = window.Capacitor?.Plugins?.LocalNotifications;
@@ -32940,7 +32989,7 @@ async function toggleDailyVerseNotification() {
                 await LocalNotifications.cancel({ notifications: [{ id: 1001 }] });
             } catch (e) {}
         }
-        showToast(t('Daily notification disabled'));
+        showToast(t('Daily notifications disabled'));
     }
 }
 
