@@ -348,28 +348,53 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     z-index: 10;
 }
 
-.verse-of-day-badge {
-    position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 1.2px;
-    font-weight: 700;
-    color: var(--text-color);
-    opacity: 0.85;
+.account-notif-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 14px;
-    border-radius: 20px;
-    background: var(--nav-bg);
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 18px;
+    border-radius: 18px;
+    background: var(--card-bg);
     border: 1px solid var(--glass-border);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-    pointer-events: none;
-    z-index: 2;
-    white-space: nowrap;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: transform 0.2s ease;
+    user-select: none;
+}
+
+.account-notif-row:active {
+    transform: scale(0.98);
+}
+
+.account-toggle-track {
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    background: rgba(128, 128, 128, 0.25);
+    position: relative;
+    transition: background 0.25s ease;
+    flex-shrink: 0;
+}
+
+.account-toggle-track.active {
+    background: var(--text-color);
+}
+
+.account-toggle-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.account-toggle-track.active .account-toggle-thumb {
+    transform: translateX(20px);
+    background: var(--bg-grad-1);
 }
 
 .card-peek-left {

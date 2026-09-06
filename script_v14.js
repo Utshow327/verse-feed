@@ -30766,8 +30766,8 @@ async function initApp() {
         setTimeout(() => {
             setupGestures();
             setupWheelListeners();
-            if (typeof initVerseOfTheDayNotifications === 'function') {
-                initVerseOfTheDayNotifications();
+            if (typeof initDailyVerseNotifications === 'function') {
+                initDailyVerseNotifications();
             }
 
             function dismissLoadingAndShowApp() {
@@ -31329,7 +31329,7 @@ function toggleTTSRandom() {
 function updateTogglesUI() {
     const srcBtn = document.getElementById('tts-source-toggle');
     const rndBtn = document.getElementById('tts-random-toggle');
-    const notifBtn = document.getElementById('daily-verse-notif-toggle');
+    const notifTrack = document.getElementById('account-daily-notif-track');
     const allowPremiumToggles = isPremiumUser && (typeof getActiveProfileId === 'function' ? getActiveProfileId() !== 'guest' : false);
     if (srcBtn) {
         if (ttsAnnounceSource && allowPremiumToggles) srcBtn.classList.add('active');
@@ -31341,10 +31341,10 @@ function updateTogglesUI() {
         if (ttsRandomVoice && allowPremiumToggles) rndBtn.classList.add('active');
         else rndBtn.classList.remove('active');
     }
-    if (notifBtn) {
+    if (notifTrack) {
         const notifEnabled = localStorage.getItem('dailyNotificationEnabled') !== 'false';
-        if (notifEnabled) notifBtn.classList.add('active');
-        else notifBtn.classList.remove('active');
+        if (notifEnabled) notifTrack.classList.add('active');
+        else notifTrack.classList.remove('active');
     }
 }
 
@@ -32693,7 +32693,7 @@ function buildSettings() {
             localStorage.setItem('globalSelectedRels', JSON.stringify(globalSelectedRels));
         }
         document.querySelectorAll('.global-rel-btn').forEach(btn => {
-            if (btn.id === 'dark-mode-toggle' || btn.id === 'language-toggle-btn' || btn.id === 'daily-verse-notif-toggle' || btn.getAttribute('onclick')?.includes('openLanguageModal')) return;
+            if (btn.id === 'dark-mode-toggle' || btn.id === 'language-toggle-btn' || btn.getAttribute('onclick')?.includes('openLanguageModal')) return;
             const canonicalRel = btn.dataset.religion || getCanonicalReligion(btn.textContent);
             if (canonicalRel) {
                 btn.dataset.religion = canonicalRel;
@@ -32707,13 +32707,6 @@ function buildSettings() {
                 btn.classList.remove('active');
             }
         });
-
-        const notifBtn = document.getElementById('daily-verse-notif-toggle');
-        if (notifBtn) {
-            const notifEnabled = localStorage.getItem('dailyNotificationEnabled') !== 'false';
-            if (notifEnabled) notifBtn.classList.add('active');
-            else notifBtn.classList.remove('active');
-        }
 
         // Always sync the language button with currentAppLanguage
         const currentLangObj = supportedLanguages.find(l => l.code === currentAppLanguage) || 
@@ -32810,8 +32803,8 @@ function preloadUpcomingVerses(currentIndex = currentVerseIndex.general || 0) {
     }
 }
 
-// --- Verse of the Day & 10:00 AM Local Notification System ---
-function getVerseOfTheDay(targetDate = new Date()) {
+// --- Daily Verse 10:00 AM Local Notification System ---
+function getDailyNotificationVerse(targetDate = new Date()) {
     const activeRels = (globalSelectedRels && globalSelectedRels.length > 0) ? [...globalSelectedRels].sort() : [...religions].sort();
     
     let pool = [];
@@ -32847,7 +32840,7 @@ function getVerseOfTheDay(targetDate = new Date()) {
     }
 
     const selectedIndex = Math.abs(hash) % candidateList.length;
-    return { ...candidateList[selectedIndex], isVerseOfDay: true };
+    return candidateList[selectedIndex];
 }
 
 async function scheduleDailyVerseNotification(forceNow = false) {
@@ -32867,8 +32860,8 @@ async function scheduleDailyVerseNotification(forceNow = false) {
         }
 
         await LocalNotifications.createChannel({
-            id: 'verse_of_the_day_channel',
-            name: 'Verse of the Day',
+            id: 'daily_verse_notification_channel',
+            name: 'Daily Verse Notification',
             description: 'Daily spiritual wisdom notification at 10:00 AM',
             importance: 5,
             visibility: 1,
@@ -32883,11 +32876,11 @@ async function scheduleDailyVerseNotification(forceNow = false) {
             target.setDate(target.getDate() + 1);
         }
 
-        const verse = getVerseOfTheDay(target);
+        const verse = getDailyNotificationVerse(target);
         if (!verse || !verse.text) return false;
 
         const refStr = `${verse.book} ${verse.chapter}:${verse.verse}`;
-        const notifTitle = `✨ Verse of the Day (${verse.religion || 'Wisdom'})`;
+        const notifTitle = `${verse.religion || 'Daily Verse'}`;
         const notifBody = `"${verse.text}"\n— ${refStr}`;
 
         try {
@@ -32901,8 +32894,8 @@ async function scheduleDailyVerseNotification(forceNow = false) {
                     title: notifTitle,
                     body: notifBody,
                     largeBody: notifBody,
-                    summaryText: 'Verse of the Day',
-                    channelId: 'verse_of_the_day_channel',
+                    summaryText: 'Daily Verse',
+                    channelId: 'daily_verse_notification_channel',
                     smallIcon: 'ic_launcher_round',
                     schedule: {
                         at: target,
@@ -32911,7 +32904,7 @@ async function scheduleDailyVerseNotification(forceNow = false) {
                         every: 'day'
                     },
                     extra: {
-                        isVerseOfDay: true,
+                        isDailyNotification: true,
                         verseId: verse.id,
                         religion: verse.religion,
                         book: verse.book,
@@ -32951,34 +32944,33 @@ async function toggleDailyVerseNotification() {
     }
 }
 
-function displayVerseOfDayInFeed() {
+function displayDailyNotificationVerse(extra) {
     if (typeof goTo === 'function') {
         goTo('verse-feed');
     }
-    const vod = getVerseOfTheDay();
-    if (vod) {
-        const existingIdx = verseBatches.general.findIndex(v => v && (v.isVerseOfDay || (v.id && v.id === vod.id)));
+    const verse = getDailyNotificationVerse(new Date());
+    if (verse) {
+        const existingIdx = verseBatches.general.findIndex(v => v && v.id && v.id === verse.id);
         if (existingIdx > -1) {
             currentVerseIndex.general = existingIdx;
         } else {
-            verseBatches.general.unshift(vod);
-            currentVerseIndex.general = 0;
+            verseBatches.general.splice(currentVerseIndex.general || 0, 0, verse);
         }
         renderFeedCard(currentVerseIndex.general);
     }
 }
 
-let vodNotificationListenerAttached = false;
-function initVerseOfTheDayNotifications() {
+let dailyNotifListenerAttached = false;
+function initDailyVerseNotifications() {
     const LocalNotifications = window.Capacitor?.Plugins?.LocalNotifications;
-    if (!LocalNotifications || vodNotificationListenerAttached) return;
-    vodNotificationListenerAttached = true;
+    if (!LocalNotifications || dailyNotifListenerAttached) return;
+    dailyNotifListenerAttached = true;
     try {
         LocalNotifications.addListener('localNotificationActionPerformed', (notificationAction) => {
             if (notificationAction && notificationAction.notification && notificationAction.notification.extra) {
                 const extra = notificationAction.notification.extra;
-                if (extra.isVerseOfDay) {
-                    displayVerseOfDayInFeed();
+                if (extra.isDailyNotification || extra.isVerseOfDay) {
+                    displayDailyNotificationVerse(extra);
                 }
             }
         });
@@ -33029,16 +33021,6 @@ function initializeVerseFeed(forceRefresh) {
         }];
     }
     pushVersesWithAdCheck(newBatch);
-
-    // Ensure Verse of the Day is positioned as the very first card
-    const vod = getVerseOfTheDay();
-    if (vod) {
-        const existingVodIdx = verseBatches.general.findIndex(v => v && (v.isVerseOfDay || (v.id && v.id === vod.id)));
-        if (existingVodIdx > -1) {
-            verseBatches.general.splice(existingVodIdx, 1);
-        }
-        verseBatches.general.unshift(vod);
-    }
 
     // Strict guarantee: First card (index 0) is NEVER an ad
     if (verseBatches.general.length > 0 && verseBatches.general[0].isAd) {
@@ -33467,19 +33449,6 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
 
     card.appendChild(textEl);
     card.appendChild(footer);
-
-    if (verse.isVerseOfDay) {
-        const badge = document.createElement('div');
-        badge.className = 'verse-of-day-badge';
-        badge.innerHTML = `<span>✨</span> <span>${t('Verse of the Day')}</span>`;
-        if (currentAppLanguage !== 'en_US' && currentAppLanguage !== 'en') {
-            translateTextAsync('Verse of the Day', currentAppLanguage).then(tr => {
-                if (tr) badge.innerHTML = `<span>✨</span> <span>${tr}</span>`;
-            }).catch(() => {});
-        }
-        card.appendChild(badge);
-    }
-
     return card;
 }
 
@@ -37545,6 +37514,8 @@ function resendVerificationEmail() {
 }
 
 function enableNameEditMode() {
+    const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+    if (!googleUser && !user) return;
     const nameEl = document.getElementById('user-modal-name');
     if (!nameEl || nameEl.isEditing) return;
     
@@ -37844,12 +37815,7 @@ function handleEmailSignUp() {
 let isGooglePopupOpen = false;
 
 function toggleGoogleAuth() {
-    const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
-    if (googleUser || user) {
-        openUserProfileModal();
-    } else {
-        openEmailAuthModal('signin');
-    }
+    openUserProfileModal();
 }
 
 async function signInWithGoogle() {
@@ -38164,34 +38130,60 @@ async function loadUserDataFromFirestore(uid) {
 
 function openUserProfileModal() {
     const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
-    if (!googleUser && !user) {
-        openEmailAuthModal('signin');
-        return;
-    }
+    const isSignedIn = !!(googleUser || user);
+
     if (typeof cancelNameEditMode === 'function') cancelNameEditMode();
     const modal = document.getElementById('user-profile-modal');
     const nameEl = document.getElementById('user-modal-name');
     const emailEl = document.getElementById('user-modal-email');
     const imgEl = document.getElementById('user-modal-avatar-img');
     const txtEl = document.getElementById('user-modal-avatar-text');
+    const signedInActions = document.getElementById('user-modal-signed-in-actions');
+    const guestActions = document.getElementById('user-modal-guest-actions');
     
-    const name = (googleUser && googleUser.name) || (user && (user.displayName || user.email)) || 'User';
-    const email = (googleUser && googleUser.email) || (user && user.email) || '';
-    const picture = (googleUser && googleUser.picture) || (user && user.photoURL) || localStorage.getItem('customUserAvatar') || '';
+    if (isSignedIn) {
+        const name = (googleUser && googleUser.name) || (user && (user.displayName || user.email)) || 'User';
+        const email = (googleUser && googleUser.email) || (user && user.email) || '';
+        const picture = (googleUser && googleUser.picture) || (user && user.photoURL) || localStorage.getItem('customUserAvatar') || '';
 
-    if (nameEl) nameEl.innerText = name;
-    if (emailEl) emailEl.innerText = email;
-    
-    if (imgEl && txtEl) {
-        if (picture) {
-            imgEl.src = picture;
-            imgEl.style.display = 'block';
-            txtEl.style.display = 'none';
-        } else {
+        if (nameEl) {
+            nameEl.innerText = name;
+            nameEl.style.cursor = 'pointer';
+            nameEl.title = 'Click to edit name';
+        }
+        if (emailEl) emailEl.innerText = email;
+        
+        if (imgEl && txtEl) {
+            if (picture) {
+                imgEl.src = picture;
+                imgEl.style.display = 'block';
+                txtEl.style.display = 'none';
+            } else {
+                imgEl.style.display = 'none';
+                txtEl.style.display = 'inline';
+                txtEl.innerText = name ? name.charAt(0).toUpperCase() : 'U';
+            }
+        }
+        if (signedInActions) signedInActions.style.display = 'flex';
+        if (guestActions) guestActions.style.display = 'none';
+    } else {
+        if (nameEl) {
+            nameEl.innerText = 'Guest Account';
+            nameEl.style.cursor = 'default';
+            nameEl.title = '';
+        }
+        if (emailEl) emailEl.innerText = 'Sign in to sync your saved verses';
+        if (imgEl && txtEl) {
             imgEl.style.display = 'none';
             txtEl.style.display = 'inline';
-            txtEl.innerText = name ? name.charAt(0).toUpperCase() : 'U';
+            txtEl.innerText = '👤';
         }
+        if (signedInActions) signedInActions.style.display = 'none';
+        if (guestActions) guestActions.style.display = 'flex';
+    }
+
+    if (typeof updateTogglesUI === 'function') {
+        updateTogglesUI();
     }
     
     openModal(modal);
