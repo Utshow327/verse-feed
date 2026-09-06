@@ -32978,9 +32978,9 @@ async function toggleDailyVerseNotification() {
     if (newState) {
         const scheduled = await scheduleDailyVerseNotification(true);
         if (scheduled) {
-            showToast(t('Daily notifications enabled'));
+            showToast(t('Notifications enabled'));
         } else {
-            showToast(t('Daily notifications enabled'));
+            showToast(t('Notifications enabled'));
         }
     } else {
         const LocalNotifications = window.Capacitor?.Plugins?.LocalNotifications;
@@ -32989,7 +32989,7 @@ async function toggleDailyVerseNotification() {
                 await LocalNotifications.cancel({ notifications: [{ id: 1001 }] });
             } catch (e) {}
         }
-        showToast(t('Daily notifications disabled'));
+        showToast(t('Notifications disabled'));
     }
 }
 
