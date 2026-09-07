@@ -1,9 +1,13 @@
-# scripts/generate_all_explanations.py
+# scripts/generate_groq_explanations.py
 import os
 import sys
 import json
 import time
+import re
+import argparse
+import urllib.request
 from datetime import timedelta
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Ensure UTF-8 output on Windows consoles
 try:
@@ -12,49 +16,40 @@ try:
 except Exception:
     pass
 
-try:
-    from llama_cpp import Llama
-except ImportError:
-    print('ERROR: llama_cpp is not installed. Run: pip install llama-cpp-python')
-    sys.exit(1)
+DEFAULT_KEY = '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'
+GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
+DEFAULT_MODEL = 'groq/compound'
 
-MODEL_PATH = 'qwen2.5-7b-instruct-q5_k_m.gguf'
 OUTPUT_FILE = os.path.join('data', 'verse_explanations.json')
 WWW_OUTPUT_FILE = os.path.join('www', 'data', 'verse_explanations.json')
-
-if not os.path.exists(MODEL_PATH):
-    print(f'ERROR: Model file not found at {MODEL_PATH}')
-    print('Make sure qwen2.5-7b-instruct-q5_k_m.gguf is in the root folder.')
-    sys.exit(1)
 
 os.makedirs('data', exist_ok=True)
 os.makedirs(os.path.join('www', 'data'), exist_ok=True)
 
-# Load existing explanations (crash-proof resume)
+parser = argparse.ArgumentParser(description='Fast Verse Explanation Generator via Groq Cloud AI')
+parser.add_argument('--limit', type=int, default=0, help='Max verses to generate in this batch (e.g. 4135 for feed, or 10000). 0 = unlimited.')
+parser.add_argument('--key', type=str, default='', help='Groq API Key (defaults to saved key)')
+parser.add_argument('--model', type=str, default=DEFAULT_MODEL, help='Groq model to use (default: groq/compound)')
+parser.add_argument('--workers', type=int, default=4, help='Number of parallel request threads (default: 4)')
+args = parser.parse_args()
+
+api_key = args.key or os.environ.get('GROQ_API_KEY') or DEFAULT_KEY
+batch_limit = args.limit
+num_workers = args.workers
+model_name = args.model
+
+# Load existing explanations
 explanations = {}
 if os.path.exists(OUTPUT_FILE):
     try:
         with open(OUTPUT_FILE, 'r', encoding='utf-8') as f:
             explanations = json.load(f)
-        print(f'Found existing progress: {len(explanations)} verses already completed.')
     except Exception as e:
-        print('Warning reading existing explanations:', e)
+        print('Error reading existing explanations:', e)
 
-def save_progress():
-    temp_file = OUTPUT_FILE + '.tmp'
-    with open(temp_file, 'w', encoding='utf-8') as f:
-        json.dump(explanations, f, indent=2, ensure_ascii=False)
-    if os.path.exists(OUTPUT_FILE):
-        os.replace(temp_file, OUTPUT_FILE)
-    else:
-        os.rename(temp_file, OUTPUT_FILE)
-    try:
-        with open(WWW_OUTPUT_FILE, 'w', encoding='utf-8') as f:
-            json.dump(explanations, f, indent=2, ensure_ascii=False)
-    except Exception:
-        pass
+print(f'Found {len(explanations):,} existing explanations.')
 
-print('Scanning all scriptures in data/ ...')
+# Index all scriptures across the app
 verses_by_key = {}
 
 def add_verse(rel, book, chap, ver, text):
@@ -73,6 +68,8 @@ def add_verse(rel, book, chap, ver, text):
         'verse': str(ver),
         'text': str(text).strip()
     }
+
+print('Scanning all scriptures in data/ ...')
 
 # 1. Quran
 quran_file = os.path.join('data', 'quran_v2.json')
@@ -200,10 +197,10 @@ if os.path.exists(philosophy_file):
 
 print(f'Total unique scripture verses indexed: {len(verses_by_key):,}')
 
-# Order verses by Priority:
+# Order queue by Priority:
 # Tier 1: Active feed rankings (Rank 100 -> 70)
 # Tier 2: Master rankings (Rank 69 -> 0)
-# Tier 3: All remaining verses
+# Tier 3: Remaining verses
 prioritized_keys = []
 seen = set()
 
@@ -239,94 +236,144 @@ for k in verses_by_key:
         seen.add(k)
 
 pending = [verses_by_key[k] for k in prioritized_keys if k not in explanations]
-total_count = len(prioritized_keys)
-done_count = total_count - len(pending)
 
-print(f'Prioritized Queue: {total_count:,} verses total.')
-print(f'Already completed: {done_count:,} | Remaining to generate: {len(pending):,}')
+if batch_limit > 0:
+    pending = pending[:batch_limit]
+
+print(f'\nQueue prepared:')
+print(f'- Total indexed in app: {len(verses_by_key):,}')
+print(f'- Already completed: {len(explanations):,}')
+print(f'- To generate in this batch: {len(pending):,}')
 
 if not pending:
-    print('All verses already have individual explanations!')
+    print('All specified verses already have explanations!')
     sys.exit(0)
 
-# Detect CPU threads (leave 1 thread for OS so PC stays responsive)
-threads = max(1, (os.cpu_count() or 4) - 1)
-print(f'\nLoading Qwen 7B model {MODEL_PATH} on {threads} CPU threads...')
-t_start_model = time.time()
-llm = Llama(model_path=MODEL_PATH, n_ctx=1024, n_threads=threads, verbose=False)
-print(f'Model loaded in {time.time() - t_start_model:.2f}s! Ready to generate.\n')
+def save_progress():
+    temp_file = OUTPUT_FILE + '.tmp'
+    try:
+        with open(temp_file, 'w', encoding='utf-8') as f:
+            json.dump(explanations, f, indent=2, ensure_ascii=False)
+        if os.path.exists(OUTPUT_FILE):
+            os.replace(temp_file, OUTPUT_FILE)
+        else:
+            os.rename(temp_file, OUTPUT_FILE)
+        with open(WWW_OUTPUT_FILE, 'w', encoding='utf-8') as f:
+            json.dump(explanations, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f'\nError saving progress: {e}')
+
+def call_groq(verse_item):
+    verse_ref = f"{verse_item['religion']} - {verse_item['book']} {verse_item['chapter']}:{verse_item['verse']}"
+    verse_text = verse_item['text'][:280]
+
+    prompt = (
+        f"Explain this spiritual verse simply in 2 short spaced paragraphs without academic jargon:\n"
+        f"Verse: \"{verse_text}\" ({verse_ref})\n\n"
+        f"Strict rules:\n"
+        f"- Never use emojis.\n"
+        f"- Put a blank line between the 2 paragraphs.\n"
+        f"- Explain the practical life lesson for everyday peace.\n"
+        f"- Keep it punchy, compassionate, and under 45 words total."
+    )
+
+    payload = {
+        'model': model_name,
+        'messages': [{'role': 'user', 'content': prompt}],
+        'max_tokens': 120,
+        'temperature': 0.5
+    }
+    data = json.dumps(payload).encode('utf-8')
+    req = urllib.request.Request(GROQ_URL, data=data, headers={
+        'Authorization': f'Bearer {api_key}',
+        'Content-Type': 'application/json',
+        'User-Agent': 'ReligionApp/1.0'
+    })
+
+    for attempt in range(5):
+        try:
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                res = json.loads(resp.read().decode('utf-8'))
+                raw = res['choices'][0]['message'].get('content', '').strip()
+                cleaned = re.sub(r'^[#*>\s]+', '', raw).strip()
+                return verse_item['key'], cleaned, verse_ref, None
+        except Exception as e:
+            err_str = str(e)
+            if hasattr(e, 'read'):
+                try:
+                    err_body = e.read().decode('utf-8', errors='ignore')
+                    err_str += f" | {err_body}"
+                except Exception:
+                    pass
+            
+            # Rate limit handling (HTTP 429)
+            if '429' in err_str:
+                sleep_time = 3 + attempt * 2
+                time.sleep(sleep_time)
+                continue
+            
+            time.sleep(1.5)
+
+    return verse_item['key'], None, verse_ref, err_str
 
 print('=' * 75)
-print('  STARTING VERSE-BY-VERSE EXPLANATION GENERATOR')
-print('  Auto-saves after EVERY verse. Press Ctrl+C anytime to pause.')
+print(f'  STARTING ULTRA-FAST GROQ CLOUD GENERATOR ({num_workers} parallel workers)')
+print('  Auto-saves continuously. Press Ctrl+C anytime to pause.')
 print('=' * 75)
 
 start_time = time.time()
 completed_this_session = 0
+total_target = len(pending)
 
 try:
-    for item in pending:
-        verse_ref = f"{item['religion']} - {item['book']} {item['chapter']}:{item['verse']}"
-        verse_text = item['text'][:280]
+    with ThreadPoolExecutor(max_workers=num_workers) as executor:
+        idx = 0
+        chunk_size = num_workers * 2
         
-        prompt = (
-            f"Explain this spiritual verse simply in 2 short spaced-out paragraphs without academic jargon:\n"
-            f"Verse: \"{verse_text}\" ({verse_ref})\n"
-            f"Rules:\n"
-            f"- Never use emojis.\n"
-            f"- Put a blank line between the 2 paragraphs.\n"
-            f"- Explain the specific meaning of these words and their practical life lesson.\n"
-            f"- Keep it punchy, compassionate, and under 50 words total."
-        )
-        
-        res = llm.create_chat_completion(
-            messages=[
-                {"role": "system", "content": "You are a compassionate teacher writing short, punchy, spaced-out spiritual reflections for everyday readers. Never use emojis."},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=85,
-            temperature=0.7
-        )
-        
-        content = res['choices'][0]['message']['content'].strip()
-        
-        explanations[item['key']] = {
-            'religion': item['religion'],
-            'book': item['book'],
-            'chapter': item['chapter'],
-            'verse': item['verse'],
-            'text': item['text'],
-            'meaning': content
-        }
-        
-        completed_this_session += 1
-        current_done = done_count + completed_this_session
-        
-        # Save every single verse for 100% crash safety
-        save_progress()
-        
-        elapsed = time.time() - start_time
-        speed = completed_this_session / elapsed if elapsed > 0 else 0
-        rem_items = len(pending) - completed_this_session
-        eta_seconds = rem_items / speed if speed > 0 else 0
-        
-        elapsed_str = str(timedelta(seconds=int(elapsed)))
-        eta_str = str(timedelta(seconds=int(eta_seconds)))
-        pct = (current_done / total_count) * 100
-        
-        bar_len = 20
-        filled = int(bar_len * current_done // total_count)
-        bar = '#' * filled + '-' * (bar_len - filled)
-        
-        # Keep reference display clean
-        ref_short = verse_ref if len(verse_ref) <= 28 else verse_ref[:25] + '...'
-        status_line = f'\r[{bar}] {pct:5.2f}% ({current_done:,}/{total_count:,}) | {speed*60:.1f} v/min | Elapsed: {elapsed_str} | ETA: {eta_str} | {ref_short:<28}'
-        sys.stdout.write(status_line)
-        sys.stdout.flush()
+        while idx < len(pending):
+            chunk = pending[idx:idx + chunk_size]
+            idx += chunk_size
+            
+            futures = [executor.submit(call_groq, item) for item in chunk]
+            for fut in as_completed(futures):
+                vkey, explanation, vref, err = fut.result()
+                if explanation:
+                    explanations[vkey] = {
+                        'text': explanation,
+                        'source': 'groq_ai',
+                        'updated_at': int(time.time() * 1000)
+                    }
+                    completed_this_session += 1
+                
+                # Auto-save every 5 verses
+                if completed_this_session % 5 == 0:
+                    save_progress()
+
+                elapsed = time.time() - start_time
+                speed = completed_this_session / elapsed if elapsed > 0 else 0
+                remaining = total_target - completed_this_session
+                eta_seconds = remaining / speed if speed > 0 else 0
+
+                elapsed_str = str(timedelta(seconds=int(elapsed)))
+                eta_str = str(timedelta(seconds=int(eta_seconds)))
+                pct = (completed_this_session / total_target) * 100
+
+                bar_len = 20
+                filled = int(bar_len * completed_this_session // total_target)
+                bar = '#' * filled + '-' * (bar_len - filled)
+
+                ref_short = vref if len(vref) <= 28 else vref[:25] + '...'
+                status_line = f'\r[{bar}] {pct:5.2f}% ({completed_this_session:,}/{total_target:,}) | {speed*60:.1f} v/min | Elapsed: {elapsed_str} | ETA: {eta_str} | {ref_short:<28}'
+                sys.stdout.write(status_line)
+                sys.stdout.flush()
+                
+            time.sleep(0.15)
 
 except KeyboardInterrupt:
     print('\n\n[PAUSED] Process paused by user. Saving all progress...')
 finally:
     save_progress()
-    print(f'\n[SAVED] Progress saved to {OUTPUT_FILE} and {WWW_OUTPUT_FILE}.')
-    print(f'Total verses with explanations: {len(explanations):,}')
+    total_elapsed = time.time() - start_time
+    print(f'\n\n[SAVED] Progress saved to {OUTPUT_FILE} and {WWW_OUTPUT_FILE}.')
+    print(f'Completed this run: {completed_this_session:,} verses in {total_elapsed/60:.1f} minutes.')
+    print(f'Total verses with explanations in app: {len(explanations):,}')
