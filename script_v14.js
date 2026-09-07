@@ -38351,8 +38351,13 @@ function openUserProfileModal() {
     const signedInActions = document.getElementById('user-modal-signed-in-actions');
     const guestActions = document.getElementById('user-modal-guest-actions');
     
+    const infoWrap = document.getElementById('user-modal-info-wrap');
     if (isSignedIn) {
         if (avatarContainer) avatarContainer.style.display = 'flex';
+        if (infoWrap) {
+            infoWrap.style.marginTop = '10px';
+            infoWrap.style.marginBottom = '20px';
+        }
         const name = (googleUser && googleUser.name) || (user && (user.displayName || user.email)) || 'User';
         const email = (googleUser && googleUser.email) || (user && user.email) || '';
         const picture = (googleUser && googleUser.picture) || (user && user.photoURL) || localStorage.getItem('customUserAvatar') || '';
@@ -38379,6 +38384,10 @@ function openUserProfileModal() {
         if (guestActions) guestActions.style.display = 'none';
     } else {
         if (avatarContainer) avatarContainer.style.display = 'none';
+        if (infoWrap) {
+            infoWrap.style.marginTop = '4px';
+            infoWrap.style.marginBottom = '18px';
+        }
         if (nameEl) {
             nameEl.innerText = 'Guest Account';
             nameEl.style.cursor = 'default';
