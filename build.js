@@ -7,9 +7,13 @@ const destDir = path.join(__dirname, 'www');
 // List of directories/files to include in the Capacitor bundle
 const includeList = [
     'index.html',
+    'privacy.html',
+    'terms.html',
     'script_v14.js',
     'style_v5.css',
     'manifest.json',
+    'logo.png',
+    'feature_graphic.png',
     'data',
     'libs',
     'music'

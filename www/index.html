@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Minimalistic Religion App</title>
-    <link rel="stylesheet" href="style_v5.css?v=421">
+    <link rel="stylesheet" href="style_v5.css?v=425">
     <link rel="preconnect" href="https://huggingface.co" crossorigin>
     <link rel="dns-prefetch" href="https://huggingface.co">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -236,7 +236,11 @@
         <div class="modal-content" onclick="event.stopPropagation()" style="width: 90%; max-width: 360px; max-height: 82vh; display: flex; flex-direction: column; padding: 22px 18px; border-radius: 24px; box-sizing: border-box; background: var(--card-bg); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding: 0 4px;">
                 <h3 style="margin: 0; font-size: 1.25rem; font-family: var(--font-main); color: var(--text-color); font-weight: 600;">Choose Language</h3>
-                <button onclick="closeLanguageModal(event)" style="background: none; border: none; color: var(--text-color); font-size: 1.5rem; cursor: pointer; opacity: 0.6; line-height: 1; padding: 4px;">&times;</button>
+                <button onclick="closeLanguageModal(event)" style="background: none; border: none; color: var(--text-color); cursor: pointer; opacity: 0.6; line-height: 1; padding: 4px; display: flex; align-items: center; justify-content: center;" aria-label="Close">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
             </div>
             <div style="position: relative; margin-bottom: 12px;">
                 <input type="text" id="lang-search-input" oninput="filterLanguages(this.value)" placeholder="Search language..." style="width: 100%; padding: 11px 14px; border-radius: 14px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: var(--text-color); font-size: 0.95rem; font-family: inherit; box-sizing: border-box; outline: none;" />
@@ -250,6 +254,7 @@
     <!-- Credits Modal -->
     <div id="credits-modal" class="modal-overlay hidden" onclick="closeCreditsModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-top-row"><button class="modal-minus-btn" onclick="closeCreditsModal()" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg></button></div>
             <div class="modal-body" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.92rem; line-height: 1.5;">
                 <p style="margin: 0;"><strong>Christianity:</strong> World English Bible (Public Domain)</p>
                 <p style="margin: 0;"><strong>Islam:</strong> Fawaz Ahmed (GitHub open dataset)</p>
@@ -278,6 +283,31 @@
         <div class="toast-progress" id="toast-progress"></div>
     </div>
 
+    <!-- Verse Explanation Modal -->
+    <div id="verse-explanation-modal" class="modal-overlay hidden" onclick="closeVerseExplanationModal(event)">
+        <div class="modal-content explanation-modal-content" onclick="event.stopPropagation()">
+            <div class="explanation-modal-header">
+                <span id="explanation-modal-ref" class="explanation-ref"></span>
+                <button class="explanation-close-btn" onclick="closeVerseExplanationModal()" aria-label="Close">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="explanation-modal-body">
+                <div id="explanation-verse-quote" class="explanation-quote"></div>
+                <div id="explanation-context-block" class="explanation-block hidden">
+                    <div class="explanation-label">Background</div>
+                    <div id="explanation-context-text" class="explanation-text"></div>
+                </div>
+                <div id="explanation-meaning-block" class="explanation-block">
+                    <div id="explanation-meaning-label" class="explanation-label">Verse Analysis</div>
+                    <div id="explanation-meaning-text" class="explanation-text"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Album Selection Modal -->
     <div id="album-modal" class="modal-overlay hidden" onclick="closeAlbumModal(event)">
         <div class="modal-content" style="max-width: 260px; padding: 18px; text-align: center; border-radius: 20px;" onclick="event.stopPropagation()">
@@ -287,7 +317,8 @@
     <!-- Add Folder Modal -->
     <div id="create-bookmark-modal" class="modal-overlay hidden" onclick="closeCreateBookmarkModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
-            <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="modal-top-row"><button class="modal-minus-btn" onclick="closeCreateBookmarkModal()" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg></button></div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
                 <input type="text" id="create-album-name" onkeydown="if(event.key === 'Enter'){ submitCreateAlbum(); return false; }" placeholder="Folder Name" autocomplete="off" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--glass-border); background:var(--card-bg); color:var(--text-color); font-family:inherit;">
                 <button class="album-create-btn" style="width: 100%;" onclick="submitCreateAlbum()">Create Folder</button>
             </div>
@@ -297,7 +328,8 @@
     <!-- Rename Album Modal -->
     <div id="rename-modal" class="modal-overlay hidden" onclick="closeRenameModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
-            <div class="modal-body" style="display:flex; flex-direction:column; gap:12px;">
+            <div class="modal-top-row"><button class="modal-minus-btn" onclick="closeRenameModal()" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg></button></div>
+            <div class="modal-body" style="display:flex; flex-direction:column; gap:12px; margin-top: 10px;">
                 <input type="text" id="rename-album-input" placeholder="New Name" autocomplete="off" onkeydown="if(event.key==='Enter') submitRenameAlbum()" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--glass-border); background:var(--card-bg); color:var(--text-color); font-family:inherit;">
                 <button class="album-create-btn" onclick="submitRenameAlbum()">Rename</button>
             </div>
@@ -307,6 +339,7 @@
     <!-- Email Auth Modal (Sign In / Sign Up) -->
     <div id="email-auth-modal" class="modal-overlay hidden" onclick="closeEmailAuthModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()" style="width: 90%; max-width: 360px; max-height: 90vh; overflow-y: auto; padding: 22px; border-radius: 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px;">
+            <div class="modal-top-row"><button class="modal-minus-btn" onclick="closeEmailAuthModal()" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg></button></div>
             <!-- Tabs -->
             <div style="display: flex; background: rgba(255,255,255,0.06); border-radius: 12px; padding: 3px; border: 1px solid var(--glass-border); box-sizing: border-box; flex-shrink: 0; height: 38px;">
                 <button id="auth-tab-signin" class="auth-tab-btn active" onclick="switchAuthTab('signin')">Sign In</button>
@@ -366,6 +399,7 @@
     <!-- Email Verification Modal -->
     <div id="email-verify-modal" class="modal-overlay hidden" onclick="closeEmailVerifyModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 380px; text-align: center; padding: 25px;">
+            <div class="modal-top-row"><button class="modal-minus-btn" onclick="closeEmailVerifyModal()" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg></button></div>
             <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
                 <p id="verify-modal-desc" style="margin: 0; font-size: 0.9rem; opacity: 0.8; color: var(--text-color); line-height: 1.5;"></p>
                 <div id="verify-error-msg" style="color: var(--accent); opacity: 0.9; font-size: 0.85rem; min-height: 16px; margin-bottom: 5px; font-weight: 500;"></div>
@@ -379,8 +413,9 @@
     <!-- User Profile Modal (Sign Out & Delete Account) -->
     <div id="user-profile-modal" class="modal-overlay hidden" onclick="closeUserProfileModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 380px; text-align: center; padding: 26px 22px;">
+            <div class="modal-top-row"><button class="modal-minus-btn" onclick="closeUserProfileModal()" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg></button></div>
             <div style="display: flex; flex-direction: column; align-items: center;">
-                <div style="position: relative; width: 72px; height: 72px; border-radius: 50%; border: 2px solid var(--glass-border); overflow: hidden; background: var(--card-bg); display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+                <div id="user-modal-avatar-container" style="position: relative; width: 72px; height: 72px; border-radius: 50%; border: 2px solid var(--glass-border); overflow: hidden; background: var(--card-bg); display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
                     <img id="user-modal-avatar-img" referrerpolicy="no-referrer" style="width: 100%; height: 100%; object-fit: cover; display: none;" />
                     <span id="user-modal-avatar-text" style="font-size: 1.8rem; font-weight: bold; color: var(--accent);"></span>
                 </div>
@@ -413,6 +448,7 @@
     <!-- Delete Account Confirmation Modal -->
     <div id="delete-account-confirm-modal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 340px; text-align: center; padding: 26px 20px;">
+            <div class="modal-top-row"><button class="modal-minus-btn" onclick="closeDeleteAccountModal()" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg></button></div>
             <div style="display: flex; flex-direction: column; align-items: center; gap: 14px;">
                 <h3 style="margin: 0; font-size: 1.25rem; font-family: var(--font-main); color: var(--text-color); font-weight: 700;">Delete Account</h3>
                 <p style="margin: 0; font-size: 0.88rem; opacity: 0.8; color: var(--text-color); line-height: 1.5;">
@@ -432,6 +468,7 @@
     <!-- Premium Paywall Modal -->
     <div id="premium-modal" class="modal-overlay hidden" onclick="closePremiumModal()">
         <div class="modal-content premium-paywall" onclick="event.stopPropagation()">
+            <div class="modal-top-row"><button class="modal-minus-btn" onclick="closePremiumModal()" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg></button></div>
             <div class="premium-modal-inner">
                 <h2 class="premium-title">Premium</h2>
                 <div class="premium-features-list">
@@ -478,7 +515,7 @@
     <div id="radial-overlay" class="radial-overlay"></div>
     <script src="libs/localforage.min.js"></script>
     <script src="libs/html2canvas.min.js"></script>
-    <script src="script_v14.js?v=529"></script>
+    <script src="script_v14.js?v=535"></script>
 
 
 

@@ -29962,6 +29962,15 @@ function applyLanguageTranslations(langCode = currentAppLanguage) {
     const langSearch = document.getElementById('lang-search-input');
     if (langSearch) langSearch.placeholder = t('Search language...');
 
+    const accountNotifBtn = document.getElementById('account-daily-notif-btn');
+    if (accountNotifBtn) accountNotifBtn.textContent = t('Notification');
+    const userModalSignOut = document.querySelector('#user-modal-signed-in-actions button');
+    if (userModalSignOut) userModalSignOut.textContent = t('Sign Out');
+    const userModalDelete = document.querySelector('#user-modal-signed-in-actions .modal-action-danger-btn');
+    if (userModalDelete) userModalDelete.textContent = t('Delete Account');
+    const userModalGuestBtn = document.querySelector('#user-modal-guest-actions button');
+    if (userModalGuestBtn) userModalGuestBtn.textContent = t('Sign In / Sign Up');
+
     // 7. Update Search Placeholder
     const libSearchInput = document.getElementById('lib-search-input');
     if (libSearchInput) {
@@ -30233,8 +30242,11 @@ function switchProfile(targetProfileId) {
         showSavedVerses(true);
     }
 
-    const relsChanged = prevRels !== JSON.stringify(globalSelectedRels);
-    if (typeof initializeVerseFeed === 'function' && loadedReligions.size > 0 && (relsChanged || !verseBatches.general || verseBatches.general.length === 0)) {
+    // Always reset and refresh feed for the active profile
+    verseBatches.general = [];
+    currentVerseIndex.general = 0;
+    currentFeedIndex = 0;
+    if (typeof initializeVerseFeed === 'function' && loadedReligions.size > 0) {
         initializeVerseFeed(true);
     }
 
@@ -30273,6 +30285,117 @@ const validReligions = ['Christianity', 'Islam', 'Hinduism', 'Buddhism', 'Sikhis
 let religionVerses = {};
 let religionBooks = {};
 let activeRankings = {};
+let verseExplanations = {};
+
+async function loadVerseExplanations() {
+    if (Object.keys(verseExplanations).length > 0) return;
+    try {
+        const res = await fetch('./data/verse_explanations.json?v=' + Date.now());
+        if (res.ok) {
+            verseExplanations = await res.json();
+        }
+    } catch (e) {
+        console.warn('Could not load verse explanations:', e);
+    }
+}
+
+function getCandidateExplanationKeys(verse) {
+    if (!verse) return [];
+    const rel = String(verse.religion || '').toLowerCase().trim().replace(/\s+/g, '_');
+    const book = String(verse.book || '').toLowerCase().trim().replace(/\s+/g, '_');
+    const chap = String(verse.chapter || verse.chapter_no || '1').toLowerCase().trim().replace(/\s+/g, '_');
+    const ver = String(verse.verse || verse.verse_id || verse.hadith_no || '1').toLowerCase().trim().replace(/\s+/g, '_');
+    const keys = [];
+    if (verse.id) keys.push(String(verse.id).toLowerCase());
+    keys.push(`${rel}_${book}_${chap}_${ver}`);
+    keys.push(`${book}_${chap}_${ver}`);
+    keys.push(`${rel}_${book}_${chap}`);
+    keys.push(`${book}_${chap}`);
+    keys.push(`${rel}_${chap}`);
+    keys.push(`${rel}_${book}`);
+    keys.push(`${book}`);
+    keys.push(`${rel}`);
+    return keys;
+}
+
+async function openVerseExplanation(verse, event) {
+    if (event) {
+        try { event.stopPropagation(); } catch(e){}
+    }
+    const targetVerse = verse || selectedVerse || (typeof getCurrentActiveVerse === 'function' ? getCurrentActiveVerse() : null) || (typeof getVerseAtIndex === 'function' ? getVerseAtIndex(currentVerseIndex.general) : null);
+    if (!targetVerse) return;
+
+    if (Object.keys(verseExplanations).length === 0) {
+        await loadVerseExplanations();
+    }
+    const modal = document.getElementById('verse-explanation-modal');
+    const refEl = document.getElementById('explanation-modal-ref');
+    const quoteEl = document.getElementById('explanation-verse-quote');
+    const ctxBlock = document.getElementById('explanation-context-block');
+    const ctxText = document.getElementById('explanation-context-text');
+    const meaningText = document.getElementById('explanation-meaning-text');
+    if (!modal) return;
+
+    const title = (typeof formatVerseRef === 'function') ? formatVerseRef(targetVerse) : (chap ? `${book} ${chap}${ver ? ':' + ver : ''}` : book);
+
+    if (refEl) refEl.textContent = title;
+    if (quoteEl) quoteEl.textContent = targetVerse.text || '';
+
+    const candidateKeys = getCandidateExplanationKeys(targetVerse);
+    let foundData = null;
+    let foundKey = null;
+    let foundChapterData = null;
+    for (const k of candidateKeys) {
+        if (!foundData && verseExplanations[k]) {
+            foundData = verseExplanations[k];
+            foundKey = k;
+        }
+        if (!foundChapterData && verseExplanations[k] && verseExplanations[k].context) {
+            foundChapterData = verseExplanations[k];
+        }
+    }
+
+    const contextContent = (foundData && foundData.context) || (foundChapterData && foundChapterData.context) || '';
+    const meaningContent = (foundData && foundData.meaning) || (foundChapterData && foundChapterData.meaning) || '';
+
+    const meaningLabel = document.getElementById('explanation-meaning-label');
+    if (meaningLabel) {
+        const isVerseSpecific = foundKey && (foundKey.endsWith(`_${ver}`) || (targetVerse.id && foundKey === String(targetVerse.id).toLowerCase()));
+        const isChapterLevel = foundKey && foundKey.includes(`_${chap}`);
+        if (isVerseSpecific) {
+            meaningLabel.textContent = "Verse Meaning & Analysis";
+        } else if (isChapterLevel) {
+            meaningLabel.textContent = "Chapter Context & Theme";
+        } else {
+            meaningLabel.textContent = "Book Overview & Reflection";
+        }
+    }
+
+    if (contextContent && ctxBlock && ctxText) {
+        ctxText.textContent = contextContent;
+        ctxBlock.classList.remove('hidden');
+    } else if (ctxBlock) {
+        ctxBlock.classList.add('hidden');
+    }
+
+    if (meaningText) {
+        if (meaningContent) {
+            meaningText.textContent = meaningContent;
+        } else {
+            meaningText.textContent = "A simple life reflection for this verse is being added soon.\n\nTake a quiet breath and reflect on what these words speak to your heart today.";
+        }
+    }
+
+    modal.classList.remove('hidden');
+}
+
+function closeVerseExplanationModal(event) {
+    if (event && event.target && event.target.closest && event.target.closest('.modal-content') && !event.target.closest('.explanation-close-btn')) {
+        return;
+    }
+    const modal = document.getElementById('verse-explanation-modal');
+    if (modal) modal.classList.add('hidden');
+}
 
 async function loadActiveRankings() {
     if (Object.keys(activeRankings).length > 0) return;
@@ -31972,6 +32095,7 @@ async function loadReligionData(rel) {
 }
 async function loadSelectedData() {
     await loadActiveRankings();
+    loadVerseExplanations();
     if (!globalSelectedRels || !Array.isArray(globalSelectedRels) || globalSelectedRels.length === 0) {
         globalSelectedRels = [...religions];
     }
@@ -32129,6 +32253,16 @@ function localizeDigits(str, lang = currentAppLanguage) {
     return s.replace(/[0-9]/g, d => map[parseInt(d, 10)]);
 }
 
+const kandaChapterMap = {
+    'balakanda': 1, 'bala': 1,
+    'ayodhyakanda': 2, 'ayodhya': 2,
+    'aranyakanda': 3, 'aranya': 3,
+    'kishkindhakanda': 4, 'kishkindha': 4,
+    'sundarakanda': 5, 'sundara': 5, 'sundar': 5,
+    'yudhhakanda': 6, 'yuddhakanda': 6, 'lanka': 6,
+    'uttarakanda': 7, 'uttar': 7
+};
+
 function formatVerseRef(v, lang = currentAppLanguage) {
     if (!v) return '';
     const targetLang = lang || currentAppLanguage || 'en';
@@ -32136,10 +32270,30 @@ function formatVerseRef(v, lang = currentAppLanguage) {
     let rawBook = (v.book || v.religion || '').trim();
     rawBook = rawBook.replace(/\s+book$/i, '').trim();
 
-    let chap = (v.chapter !== undefined && v.chapter !== null) ? String(v.chapter).trim() : '';
-    chap = chap.replace(/^(?:book|chapter)\s+/i, '').trim();
+    // Clean numeric chapter
+    let chap = '';
+    if (v.chapterNum !== undefined && v.chapterNum !== null && !isNaN(v.chapterNum) && v.chapterNum !== '') {
+        chap = String(v.chapterNum).trim();
+    } else if (v.chapter !== undefined && v.chapter !== null) {
+        const rawChap = String(v.chapter).trim();
+        const cleanLower = rawChap.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (kandaChapterMap[cleanLower]) {
+            chap = String(kandaChapterMap[cleanLower]);
+        } else {
+            const numMatch = rawChap.match(/\d+/);
+            chap = numMatch ? numMatch[0] : rawChap.replace(/^(?:book|chapter)\s+/i, '').trim();
+        }
+    }
 
-    const verse = (v.verse !== undefined && v.verse !== null) ? String(v.verse).trim() : '';
+    // Clean numeric verse
+    let verse = '';
+    if (v.verseNum !== undefined && v.verseNum !== null && !isNaN(v.verseNum) && v.verseNum !== '') {
+        verse = String(v.verseNum).trim();
+    } else if (v.verse !== undefined && v.verse !== null) {
+        const rawVerse = String(v.verse).trim();
+        const vMatch = rawVerse.match(/\d+/);
+        verse = vMatch ? vMatch[0] : rawVerse;
+    }
     
     let chapPart = (chap !== '' && chap !== null && chap !== undefined) ? ' ' + chap : '';
     let versePart = (verse !== '' && verse !== null && verse !== undefined) ? (chapPart ? ':' + verse : ' ' + verse) : '';
@@ -33681,13 +33835,13 @@ function goTo(section, isUserTap = false) {
     if (section === 'verse-feed') {
         const n = document.getElementById('nav-feed'); if (n) n.classList.add('active-nav');
         const t = document.querySelector('.tab-btn[data-target="verse-feed"]'); if (t) t.classList.add('active');
-        if (isAlreadyActive && isUserTap) {
+        if (isUserTap && (isAlreadyActive || !verseBatches.general || verseBatches.general.length === 0)) {
             verseBatches.general = [];
             currentFeedIndex = 0;
-            initializeVerseFeed();
-            
-        } else if (verseBatches.general.length === 0) {
-            initializeVerseFeed();
+            currentVerseIndex.general = 0;
+            initializeVerseFeed(true);
+        } else if (!verseBatches.general || verseBatches.general.length === 0) {
+            initializeVerseFeed(true);
         }
         deselectVerse();
     }
@@ -36496,6 +36650,9 @@ function createActionIconsElement(verseObj, type) {
         `;
         container.innerHTML = `
             ${cycleBtnHtml}
+            <button class="va-btn va-meaning-btn" onclick="openVerseExplanation(selectedVerse, event)" aria-label="Meaning" title="Meaning">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm-2 19c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-1h-4v1zm-1-3h6v-1H9v1z"/></svg>
+            </button>
             <button class="va-btn" onclick="handlePillShare(event)" aria-label="Share" title="Share">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
             </button>
@@ -36510,6 +36667,9 @@ function createActionIconsElement(verseObj, type) {
     container.innerHTML = `
         <button class="va-btn va-cycle-btn" onclick="cycleVerseFolder(selectedVerse, event)" aria-label="Save or Change Folder" title="Save / Change Folder">
             ${cycleIconHtml}
+        </button>
+        <button class="va-btn va-meaning-btn" onclick="openVerseExplanation(selectedVerse, event)" aria-label="Meaning" title="Meaning">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm-2 19c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-1h-4v1zm-1-3h6v-1H9v1z"/></svg>
         </button>
         <button class="va-btn" onclick="handlePillShare(event)" aria-label="Share" title="Share">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
@@ -38183,6 +38343,7 @@ function openUserProfileModal() {
 
     if (typeof cancelNameEditMode === 'function') cancelNameEditMode();
     const modal = document.getElementById('user-profile-modal');
+    const avatarContainer = document.getElementById('user-modal-avatar-container');
     const nameEl = document.getElementById('user-modal-name');
     const emailEl = document.getElementById('user-modal-email');
     const imgEl = document.getElementById('user-modal-avatar-img');
@@ -38191,6 +38352,7 @@ function openUserProfileModal() {
     const guestActions = document.getElementById('user-modal-guest-actions');
     
     if (isSignedIn) {
+        if (avatarContainer) avatarContainer.style.display = 'flex';
         const name = (googleUser && googleUser.name) || (user && (user.displayName || user.email)) || 'User';
         const email = (googleUser && googleUser.email) || (user && user.email) || '';
         const picture = (googleUser && googleUser.picture) || (user && user.photoURL) || localStorage.getItem('customUserAvatar') || '';
@@ -38216,16 +38378,20 @@ function openUserProfileModal() {
         if (signedInActions) signedInActions.style.display = 'flex';
         if (guestActions) guestActions.style.display = 'none';
     } else {
+        if (avatarContainer) avatarContainer.style.display = 'none';
         if (nameEl) {
             nameEl.innerText = 'Guest Account';
             nameEl.style.cursor = 'default';
             nameEl.title = '';
         }
         if (emailEl) emailEl.innerText = 'Sign in to sync your saved verses';
-        if (imgEl && txtEl) {
+        if (imgEl) {
+            imgEl.src = '';
             imgEl.style.display = 'none';
-            txtEl.style.display = 'inline';
-            txtEl.innerText = '👤';
+        }
+        if (txtEl) {
+            txtEl.innerText = '';
+            txtEl.style.display = 'none';
         }
         if (signedInActions) signedInActions.style.display = 'none';
         if (guestActions) guestActions.style.display = 'flex';
@@ -38257,6 +38423,16 @@ function confirmSignOut() {
         updateUserUI();
         if (typeof showSavedVerses === 'function') {
             showSavedVerses(true);
+        }
+        // Force refresh feed according to guest data and return to feed
+        verseBatches.general = [];
+        currentVerseIndex.general = 0;
+        currentFeedIndex = 0;
+        if (typeof initializeVerseFeed === 'function') {
+            initializeVerseFeed(true);
+        }
+        if (typeof goTo === 'function') {
+            goTo('verse-feed', true);
         }
     };
 

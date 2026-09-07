@@ -1478,6 +1478,7 @@ h2 {
 }
 
 .modal-content {
+    position: relative;
     background: #E0D6CA !important;
     border: 1px solid var(--glass-border) !important;
     border-radius: 20px;
@@ -1494,6 +1495,8 @@ h2 {
     background: #1F1D1B !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
 }
+
+
 
 .modal-content input[type="text"],
 .modal-content input[type="email"],
@@ -2897,3 +2900,155 @@ h2 {
     background: rgba(188, 174, 158, 0.28) !important;
     color: inherit !important;
 }
+
+/* Verse Meaning Modal & Button */
+.verse-meaning-btn {
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-color);
+    font-size: 0.72rem;
+    font-weight: 500;
+    padding: 3px 9px;
+    border-radius: 12px;
+    cursor: pointer;
+    opacity: 0.75;
+    transition: all 0.2s ease;
+    margin-left: 8px;
+    letter-spacing: 0.3px;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+}
+.verse-meaning-btn:hover, .verse-meaning-btn:active {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.08);
+    transform: scale(1.04);
+}
+
+.explanation-modal-content {
+    max-width: 420px !important;
+    width: 90% !important;
+    max-height: 82vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 20px 22px !important;
+    box-sizing: border-box !important;
+}
+.explanation-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+}
+.explanation-ref {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-color);
+    letter-spacing: 0.2px;
+}
+.modal-top-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    width: 100%;
+    margin: -8px 0 8px 0;
+    padding: 0;
+}
+
+.modal-minus-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    opacity: 0.65;
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: opacity 0.2s ease, transform 0.15s ease, background 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.modal-minus-btn:hover, .modal-minus-btn:active {
+    opacity: 1;
+    background: rgba(128, 128, 128, 0.15);
+    transform: scale(0.92);
+}
+
+.modal-minus-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.explanation-close-btn {
+    background: rgba(128, 128, 128, 0.15);
+    border: none;
+    color: var(--text-color);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.75;
+    transition: opacity 0.2s, background 0.2s, transform 0.15s;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+.explanation-close-btn:hover, .explanation-close-btn:active {
+    opacity: 1;
+    background: rgba(128, 128, 128, 0.3);
+    transform: scale(0.96);
+}
+.explanation-close-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 2.5;
+}
+
+.explanation-modal-body {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-right: 4px;
+}
+.explanation-quote {
+    font-style: italic;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    opacity: 0.85;
+    padding: 10px 14px;
+    border-left: 3px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 0 8px 8px 0;
+}
+.explanation-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.explanation-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    opacity: 0.55;
+}
+.explanation-text {
+    font-size: 0.92rem;
+    line-height: 1.65;
+    color: var(--text-color);
+    white-space: pre-line;
+}
+

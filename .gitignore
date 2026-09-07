@@ -5,3 +5,5 @@ jdk21/
 *.aab
 android/app/build/
 android/build/
+
+*.gguf
