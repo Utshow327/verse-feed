@@ -38355,8 +38355,8 @@ function openUserProfileModal() {
     if (isSignedIn) {
         if (avatarContainer) avatarContainer.style.display = 'flex';
         if (infoWrap) {
-            infoWrap.style.marginTop = '10px';
-            infoWrap.style.marginBottom = '20px';
+            infoWrap.style.marginTop = '12px';
+            infoWrap.style.marginBottom = '24px';
         }
         const name = (googleUser && googleUser.name) || (user && (user.displayName || user.email)) || 'User';
         const email = (googleUser && googleUser.email) || (user && user.email) || '';
@@ -38385,8 +38385,8 @@ function openUserProfileModal() {
     } else {
         if (avatarContainer) avatarContainer.style.display = 'none';
         if (infoWrap) {
-            infoWrap.style.marginTop = '4px';
-            infoWrap.style.marginBottom = '18px';
+            infoWrap.style.marginTop = '12px';
+            infoWrap.style.marginBottom = '24px';
         }
         if (nameEl) {
             nameEl.innerText = 'Guest Account';
