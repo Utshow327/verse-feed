@@ -37,7 +37,7 @@ jobs:
 
       - name: Run Cloud Explanations Generator
         env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || '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' }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           MAX_MINS="${{ github.event.inputs.max_minutes || '300' }}"
           MAX_COUNT="${{ github.event.inputs.max_verses || '0' }}"

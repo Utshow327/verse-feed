@@ -16,7 +16,7 @@ try:
 except Exception:
     pass
 
-DEFAULT_KEY = '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'
+DEFAULT_KEY = os.environ.get('GROQ_API_KEY', '')
 GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 DEFAULT_MODEL = 'groq/compound'
 

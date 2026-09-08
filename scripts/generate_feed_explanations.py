@@ -20,7 +20,24 @@ parser.add_argument('--max-minutes', type=int, default=0, help='Max minutes to r
 parser.add_argument('--max-count', type=int, default=0, help='Max verses to generate (0 = unlimited)')
 cli_args = parser.parse_args()
 
-API_KEY = os.environ.get('GROQ_API_KEY') or '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'
+API_KEY = os.environ.get('GROQ_API_KEY')
+if not API_KEY:
+    env_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+    if os.path.exists(env_file):
+        try:
+            with open(env_file, 'r', encoding='utf-8') as ef:
+                for line in ef:
+                    line = line.strip()
+                    if line.startswith('GROQ_API_KEY='):
+                        API_KEY = line.split('=', 1)[1].strip(' "\'')
+        except Exception:
+            pass
+
+if not API_KEY:
+    print("ERROR: GROQ_API_KEY is not set.")
+    print("Please configure GROQ_API_KEY in your GitHub Secrets or environment.")
+    sys.exit(1)
+
 GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
 # High-quality fast models with independent quota limits

@@ -9,7 +9,7 @@ import urllib.request
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-API_KEY = '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'
+API_KEY = os.environ.get('GROQ_API_KEY', '')
 URL = 'https://api.groq.com/openai/v1/chat/completions'
 MODEL_NAME = 'groq/compound-mini'
 
