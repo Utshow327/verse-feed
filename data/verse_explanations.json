@@ -30127,13 +30127,13 @@
     "updated_at": 1788879649063
   },
   "isaiah_2_11": {
-    "meaning": "Isaiah 2:11 prophesies divine judgment against human hubris, asserting that Yahweh will humble human arrogance to establish His sole supremacy. This eschatological declaration contrasts transient human pride with the eternal, unchallengeable sovereignty of God, central to prophetic warnings against idolatry.",
+    "meaning": "Humankind is warned that arrogance and pride will be crushed. Key terms include 'haughty look' (arrogance), 'mortals' (humans), and 'GOD' (Yahweh). The context is within a broader message addressing societal flaws and emphasizing reliance on divine power.",
     "context": "",
-    "religion": "Christianity",
+    "religion": "Judaism",
     "book": "Isaiah",
     "chapter": "2",
     "verse": "11",
-    "updated_at": 1788883963102
+    "updated_at": 1788879649063
   },
   "judaism_isaiah_32_17": {
     "meaning": "Isaiah 32:17 prophesies that societal justice yields enduring peace and security. In Second Temple Judaism, this links ethical governance to divine stability, suggesting that righteousness prevents chaos, providing the populace with lasting calm and confidence in their collective future.",
@@ -31396,13 +31396,13 @@
     "updated_at": 1788879752075
   },
   "proverbs_29_6": {
-    "meaning": "This verse (Proverbs 29:6) from Christianity's Book of Proverbs highlights the distinction between an evil person and a righteous person. An evil person (snared by sin) faces consequences, while the righteous can rejoice, indicating their salvation and freedom from sin.",
+    "meaning": "This proverb contrasts the self-destructive nature of wickedness with the freedom of righteousness. It asserts that evil deeds ultimately ensnare the perpetrator, while the righteous enjoy the peace and joy inherent in living in alignment with divine law and communal harmony.",
     "context": "",
-    "religion": "Christianity",
+    "religion": "Judaism",
     "book": "Proverbs",
     "chapter": "29",
     "verse": "6",
-    "updated_at": 1788883841151
+    "updated_at": 1788879752075
   },
   "judaism_job_13_5": {
     "meaning": "In Job 13:5 (Judaism), the verse suggests that maintaining silence can be seen as wisdom. Key terms include 'quiet' (keeping silent), wisdom, and Job, a biblical figure struggling with adversity. The verse highlights the potential value of silence in seeking wisdom and understanding, particularly in the context of Job's spiritual journey.",
@@ -45120,6 +45120,78 @@
     "verse": "18",
     "updated_at": 1788883772007
   },
+  "christianity_ecclesiastes_12_10": {
+    "meaning": "The Preacher searched for pure and perfect words, emphasizing truthfulness in scriptures.",
+    "context": "",
+    "religion": "Christianity",
+    "book": "Ecclesiastes",
+    "chapter": "12",
+    "verse": "10",
+    "updated_at": 1788884378916
+  },
+  "ecclesiastes_12_10": {
+    "meaning": "The Preacher searched for pure and perfect words, emphasizing truthfulness in scriptures.",
+    "context": "",
+    "religion": "Christianity",
+    "book": "Ecclesiastes",
+    "chapter": "12",
+    "verse": "10",
+    "updated_at": 1788884378916
+  },
+  "christianity_song_of_solomon_8_7": {
+    "meaning": "Love cannot be extinguished or submerged by any amount of water or depth of floods.",
+    "context": "",
+    "religion": "Christianity",
+    "book": "Song of Solomon",
+    "chapter": "8",
+    "verse": "7",
+    "updated_at": 1788884378916
+  },
+  "song_of_solomon_8_7": {
+    "meaning": "Love cannot be extinguished or submerged by any amount of water or depth of floods.",
+    "context": "",
+    "religion": "Christianity",
+    "book": "Song of Solomon",
+    "chapter": "8",
+    "verse": "7",
+    "updated_at": 1788884378916
+  },
+  "christianity_song_of_solomon_8_14": {
+    "meaning": "My beloved, leave with me and be like a gentle deer in the fragrant mountains.",
+    "context": "",
+    "religion": "Christianity",
+    "book": "Song of Solomon",
+    "chapter": "8",
+    "verse": "14",
+    "updated_at": 1788884378916
+  },
+  "song_of_solomon_8_14": {
+    "meaning": "My beloved, leave with me and be like a gentle deer in the fragrant mountains.",
+    "context": "",
+    "religion": "Christianity",
+    "book": "Song of Solomon",
+    "chapter": "8",
+    "verse": "14",
+    "updated_at": 1788884378916
+  },
+  "christianity_isaiah_5_15": {
+    "meaning": "Through humbling experiences, mankind is brought low and the proud are made humble.",
+    "context": "",
+    "religion": "Christianity",
+    "book": "Isaiah",
+    "chapter": "5",
+    "verse": "15",
+    "updated_at": 1788884378916
+  },
+  "isaiah_5_15": {
+    "meaning": "Through humbling experiences, mankind is brought low and the proud are made humble.",
+    "context": "",
+    "religion": "Christianity",
+    "book": "Isaiah",
+    "chapter": "5",
+    "verse": "15",
+    "updated_at": 1788884378916
+  },
   "christianity_proverbs_29_6": {
     "meaning": "This verse (Proverbs 29:6) from Christianity's Book of Proverbs highlights the distinction between an evil person and a righteous person. An evil person (snared by sin) faces consequences, while the righteous can rejoice, indicating their salvation and freedom from sin.",
     "context": "",
@@ -45128,24 +45200,6 @@
     "chapter": "29",
     "verse": "6",
     "updated_at": 1788883841151
-  },
-  "christianity_song_of_solomon_8_7": {
-    "meaning": "This Song of Solomon verse uses hyperbolic imagery to declare love's invincibility against natural forces and material wealth. Theologically, it signifies the enduring, unbreakable nature of divine or covenantal love, which transcends physical destruction and cannot be purchased or valued by human standards.",
-    "context": "",
-    "religion": "Christianity",
-    "book": "Song of Solomon",
-    "chapter": "8",
-    "verse": "7",
-    "updated_at": 1788883843513
-  },
-  "song_of_solomon_8_7": {
-    "meaning": "This Song of Solomon verse uses hyperbolic imagery to declare love's invincibility against natural forces and material wealth. Theologically, it signifies the enduring, unbreakable nature of divine or covenantal love, which transcends physical destruction and cannot be purchased or valued by human standards.",
-    "context": "",
-    "religion": "Christianity",
-    "book": "Song of Solomon",
-    "chapter": "8",
-    "verse": "7",
-    "updated_at": 1788883843513
   },
   "christianity_ecclesiastes_7_7": {
     "meaning": "In Christianity, Ecclesiastes 7:7 highlights the dangers of dishonest practices. \"Surely extortion makes the wise man foolish, and a bribe corrupts the understanding\" implies that abusing power for personal gain can lead wise individuals astray, distorting their judgments. This verse emphasizes the importance of integrity and upholding moral principles.",
@@ -45164,42 +45218,6 @@
     "chapter": "7",
     "verse": "7",
     "updated_at": 1788883900367
-  },
-  "christianity_ecclesiastes_12_10": {
-    "meaning": "In Christianity, Ecclesiastes 12:10, the verse highlights the Preacher's pursuit of finding flawless words and truth within scripture. Key terminology includes 'Preacher' referring to the author, Solomon, and 'acceptable words' signifying the search for wisdom. The 'written blamelessly' implies seeking unblemished teachings, while 'words of truth' represent the pursuit of genuine spiritual guidance. This verse emphasizes the importance of studying",
-    "context": "",
-    "religion": "Christianity",
-    "book": "Ecclesiastes",
-    "chapter": "12",
-    "verse": "10",
-    "updated_at": 1788883931755
-  },
-  "ecclesiastes_12_10": {
-    "meaning": "In Christianity, Ecclesiastes 12:10, the verse highlights the Preacher's pursuit of finding flawless words and truth within scripture. Key terminology includes 'Preacher' referring to the author, Solomon, and 'acceptable words' signifying the search for wisdom. The 'written blamelessly' implies seeking unblemished teachings, while 'words of truth' represent the pursuit of genuine spiritual guidance. This verse emphasizes the importance of studying",
-    "context": "",
-    "religion": "Christianity",
-    "book": "Ecclesiastes",
-    "chapter": "12",
-    "verse": "10",
-    "updated_at": 1788883931755
-  },
-  "christianity_song_of_solomon_8_14": {
-    "meaning": "The speaker urges the beloved to flee swiftly, likening his speed to a gazelle or young stag, symbols of agility, in the fragrant mountain region, reflecting the poem’s erotic celebration of love in ancient Israel.",
-    "context": "",
-    "religion": "Christianity",
-    "book": "Song of Solomon",
-    "chapter": "8",
-    "verse": "14",
-    "updated_at": 1788883959309
-  },
-  "song_of_solomon_8_14": {
-    "meaning": "The speaker urges the beloved to flee swiftly, likening his speed to a gazelle or young stag, symbols of agility, in the fragrant mountain region, reflecting the poem’s erotic celebration of love in ancient Israel.",
-    "context": "",
-    "religion": "Christianity",
-    "book": "Song of Solomon",
-    "chapter": "8",
-    "verse": "14",
-    "updated_at": 1788883959309
   },
   "christianity_isaiah_2_11": {
     "meaning": "Isaiah 2:11 prophesies divine judgment against human hubris, asserting that Yahweh will humble human arrogance to establish His sole supremacy. This eschatological declaration contrasts transient human pride with the eternal, unchallengeable sovereignty of God, central to prophetic warnings against idolatry.",

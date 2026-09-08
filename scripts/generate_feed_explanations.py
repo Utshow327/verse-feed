@@ -20,23 +20,38 @@ parser.add_argument('--max-minutes', type=int, default=0, help='Max minutes to r
 parser.add_argument('--max-count', type=int, default=0, help='Max verses to generate (0 = unlimited)')
 cli_args = parser.parse_args()
 
-API_KEY = os.environ.get('GROQ_API_KEY')
-if not API_KEY:
+API_KEYS = []
+raw_keys = os.environ.get('GROQ_API_KEYS') or os.environ.get('GROQ_API_KEY')
+if raw_keys:
+    API_KEYS = [k.strip() for k in raw_keys.split(',') if k.strip()]
+
+if not API_KEYS:
     env_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
     if os.path.exists(env_file):
         try:
             with open(env_file, 'r', encoding='utf-8') as ef:
                 for line in ef:
                     line = line.strip()
-                    if line.startswith('GROQ_API_KEY='):
-                        API_KEY = line.split('=', 1)[1].strip(' "\'')
+                    if line.startswith('GROQ_API_KEYS=') or line.startswith('GROQ_API_KEY='):
+                        val = line.split('=', 1)[1].strip(' "\'')
+                        API_KEYS = [k.strip() for k in val.split(',') if k.strip()]
         except Exception:
             pass
 
-if not API_KEY:
+if not API_KEYS:
     print("ERROR: GROQ_API_KEY is not set.")
     print("Please configure GROQ_API_KEY in your GitHub Secrets or environment.")
     sys.exit(1)
+
+print(f"Loaded {len(API_KEYS)} API key(s) in rotation pool.")
+
+key_index = 0
+def get_next_key():
+    global key_index
+    k = API_KEYS[key_index % len(API_KEYS)]
+    key_index += 1
+    return k
+
 
 GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
@@ -362,34 +377,41 @@ def save_databases():
 
 model_index = 0
 
-def call_ai(verse_item):
-    global model_index
-    v_text = verse_item['text'][:320]
-    v_ref = f"{verse_item['religion']} - {verse_item['book']} {verse_item['chapter']}:{verse_item['verse']}"
-    
-    prompt = (
-        f"You are an expert scholar across world scriptures.\n"
-        f"Explain this spiritual verse clearly, factually, and concisely in 25 to 40 words.\n"
-        f"Verse: \"{v_text}\" ({v_ref})\n\n"
-        f"Strict rules:\n"
-        f"1. Explain the actual meaning, key terminology, and theological or historical context of this specific verse.\n"
-        f"2. Be factual, concise, and humane. Avoid generic self-help cliches or empty moralizing.\n"
-        f"3. Never use emojis.\n"
-        f"4. Never use em dashes or en dashes (use standard commas or periods instead).\n"
-        f"5. Output ONLY the explanation text in one compact paragraph. No headings, no quotes."
-    )
+model_index = 0
 
-    for attempt in range(25):
+def call_ai_batch(verse_batch):
+    global model_index
+    prompt = (
+        "Respond in valid JSON format.\n"
+        "You are an expert scholar across world scriptures.\n"
+        "Explain each of the following spiritual verses clearly, factually, and concisely in 25 to 35 words each.\n\n"
+        "Strict rules for EVERY explanation:\n"
+        "1. Explain the actual theological/historical meaning and key terms of this specific verse.\n"
+        "2. Be factual, concise, and humane. Zero generic filler (never start with 'In this verse').\n"
+        "3. Never use emojis.\n"
+        "4. Never use em dashes or en dashes (use standard commas or periods instead).\n"
+        "5. Return ONLY a valid JSON object mapping each ID ('v1', 'v2', etc.) to its explanation string.\n\n"
+        "Verses to explain:\n"
+    )
+    for idx, item in enumerate(verse_batch):
+        v_text = item['text'][:250]
+        v_ref = f"{item['religion']} - {item['book']} {item['chapter']}:{item['verse']}"
+        prompt += f'v{idx+1}: "{v_text}" ({v_ref})\n'
+
+    max_attempts = 25
+    for attempt in range(max_attempts):
         model = MODELS[(model_index + attempt) % len(MODELS)]
+        curr_key = get_next_key()
         payload = {
             'model': model,
             'messages': [{'role': 'user', 'content': prompt}],
-            'max_tokens': 100,
-            'temperature': 0.3
+            'response_format': {'type': 'json_object'},
+            'max_tokens': 350,
+            'temperature': 0.25
         }
         data = json.dumps(payload).encode('utf-8')
         req = urllib.request.Request(GROQ_URL, data=data, headers={
-            'Authorization': f'Bearer {API_KEY}',
+            'Authorization': f'Bearer {curr_key}',
             'Content-Type': 'application/json',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
         })
@@ -398,25 +420,45 @@ def call_ai(verse_item):
             with urllib.request.urlopen(req, timeout=15) as resp:
                 res = json.loads(resp.read().decode('utf-8'))
                 raw = res['choices'][0]['message'].get('content', '').strip()
-                cleaned = sanitize_text(raw)
-                if len(cleaned.split()) >= 10:
+                raw = re.sub(r'<think>.*?</think>', '', raw, flags=re.DOTALL).strip()
+                parsed = json.loads(raw)
+
+                results = []
+                for idx, v_item in enumerate(verse_batch):
+                    exp_text = parsed.get(f'v{idx+1}') or parsed.get(str(idx+1))
+                    if not exp_text and isinstance(parsed, dict):
+                        for k, val in parsed.items():
+                            if str(idx+1) in k:
+                                exp_text = val
+                                break
+                    if exp_text:
+                        cleaned = sanitize_text(str(exp_text))
+                        if len(cleaned.split()) >= 10:
+                            results.append((v_item, cleaned))
+
+                if len(results) >= max(1, len(verse_batch) // 2):
                     model_index = (model_index + 1) % len(MODELS)
-                    return verse_item, cleaned, None
+                    return results, None
         except urllib.error.HTTPError as e:
             if e.code == 429:
                 model_index = (model_index + 1) % len(MODELS)
-                wait_sec = 2.0 if attempt < len(MODELS) else 5.0
+                err_body = e.read().decode('utf-8', errors='replace')
+                m = re.search(r'try again in (\d+(?:\.\d+)?)(?:m|s)', err_body)
+                wait_sec = 2.0
+                if m:
+                    wait_sec = min(float(m.group(1)) + 0.5, 12.0)
                 time.sleep(wait_sec)
                 continue
             time.sleep(2.0)
-        except Exception as e:
+        except Exception:
             time.sleep(2.0)
 
-    return verse_item, None, "Rate limit cooldown needed"
+    return [], "Rate limit cooldown needed"
 
 print("=" * 70)
 print(f"  STARTING FEED EXPLANATIONS GENERATOR ({len(pending_queue):,} verses queued)")
 print("  Running with auto-rotating models: " + ", ".join(MODELS))
+print(f"  Batching: 4 verses per API call across {len(API_KEYS)} API key(s)")
 print("  Auto-saves continuously. Logs to " + LOG_FILE)
 print("=" * 70)
 
@@ -426,25 +468,27 @@ start_time = time.time()
 last_sync_time = time.time()
 completed = 0
 total_pending = len(pending_queue)
-batch_size = 4
+BATCH_SIZE = 4
+WORKERS = 3
 
 with open(LOG_FILE, 'a', encoding='utf-8') as log_f:
-    log_f.write(f"\n--- Generator Started at {time.ctime()} ({total_pending} verses) ---\n")
+    log_f.write(f"\n--- Generator Started at {time.ctime()} ({total_pending} verses, batch size {BATCH_SIZE}) ---\n")
 
 try:
-    with ThreadPoolExecutor(max_workers=3) as executor:
-        for i in range(0, total_pending, batch_size):
-            chunk = pending_queue[i:i + batch_size]
-            futures = [executor.submit(call_ai, item) for item in chunk]
+    with ThreadPoolExecutor(max_workers=WORKERS) as executor:
+        for i in range(0, total_pending, BATCH_SIZE * WORKERS):
+            round_chunk = pending_queue[i:i + (BATCH_SIZE * WORKERS)]
+            batches = [round_chunk[j:j + BATCH_SIZE] for j in range(0, len(round_chunk), BATCH_SIZE)]
+            futures = [executor.submit(call_ai_batch, b) for b in batches]
 
             for fut in as_completed(futures):
                 try:
-                    v_item, explanation, err = fut.result()
+                    batch_results, err = fut.result()
                 except Exception as fut_err:
-                    print(f"Verse processing error: {fut_err}")
+                    print(f"Batch processing error: {fut_err}")
                     continue
 
-                if explanation:
+                for v_item, explanation in batch_results:
                     feed_k = v_item.get('feed_key') or v_item['key']
                     alt_k = v_item.get('alt_key')
 
@@ -464,19 +508,21 @@ try:
 
                     completed += 1
 
-                    if completed % 5 == 0:
+                if batch_results:
+                    if completed % 8 == 0:
                         save_databases()
 
                     elapsed = time.time() - start_time
                     rate = completed / elapsed if elapsed > 0 else 0
                     eta_mins = (total_pending - completed) / (rate * 60) if rate > 0 else 0
 
-                    status = f"[{completed:,}/{total_pending:,}] ({completed/total_pending*100:.1f}%) | {rate*60:.1f} v/min | ETA: {eta_mins:.1f}m | {v_item['book']} {v_item['chapter']}:{v_item['verse']}"
+                    last_v = batch_results[-1][0]
+                    status = f"[{completed:,}/{total_pending:,}] ({completed/total_pending*100:.1f}%) | {rate*60:.1f} v/min | ETA: {eta_mins:.1f}m | {last_v['book']} {last_v['chapter']}:{last_v['verse']}"
                     print(status)
                     sys.stdout.flush()
 
-                    if cli_args.max_count > 0 and completed >= cli_args.max_count:
-                        break
+                if cli_args.max_count > 0 and completed >= cli_args.max_count:
+                    break
 
             # In GitHub Actions cloud environment, push progress to GitHub every 15 minutes
             if os.environ.get('GITHUB_ACTIONS') == 'true' and (time.time() - last_sync_time) > 900:
