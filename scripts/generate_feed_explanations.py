@@ -1,0 +1,426 @@
+# scripts/generate_feed_explanations.py
+import os
+import sys
+import json
+import time
+import re
+import urllib.request
+import urllib.error
+from datetime import timedelta
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Ensure UTF-8 output on Windows consoles
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+
+API_KEY = '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'
+GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
+
+# High-quality fast models with independent quota limits
+MODELS = [
+    'groq/compound-mini',
+    'allam-2-7b',
+    'openai/gpt-oss-20b'
+]
+
+OUTPUT_FILE = os.path.join('data', 'verse_explanations.json')
+WWW_OUTPUT_FILE = os.path.join('www', 'data', 'verse_explanations.json')
+ACTIVE_RANKINGS_FILE = os.path.join('data', 'active_rankings.json')
+LOG_FILE = os.path.join('scripts', 'feed_generation.log')
+
+os.makedirs('data', exist_ok=True)
+os.makedirs(os.path.join('www', 'data'), exist_ok=True)
+os.makedirs('scripts', exist_ok=True)
+
+# 1. Load existing explanations
+explanations = {}
+if os.path.exists(OUTPUT_FILE):
+    try:
+        with open(OUTPUT_FILE, 'r', encoding='utf-8') as f:
+            explanations = json.load(f)
+    except Exception as e:
+        print(f"Warning reading explanations: {e}")
+
+print(f"Loaded {len(explanations):,} existing explanations.")
+
+# 2. Index all verses across scriptures
+all_verses = {}
+
+def clean_text(text):
+    if not text: return ''
+    text = re.sub(r'[{}[\]\@#*_+=~0-9]', '', str(text))
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+print("Indexing all scriptures across the app...")
+
+# Bible
+if os.path.exists('data/bible.json'):
+    try:
+        with open('data/bible.json', 'r', encoding='utf-8') as f:
+            bible = json.load(f)
+            for bName, bContent in bible.items():
+                if isinstance(bContent, dict):
+                    for cNum, verses in bContent.items():
+                        if isinstance(verses, dict):
+                            for vNum, vText in verses.items():
+                                vid = f'christianity_{bName}_{cNum}_{vNum}'.lower().replace(' ', '_')
+                                all_verses[vid] = {
+                                    'key': vid,
+                                    'religion': 'Christianity',
+                                    'book': bName,
+                                    'chapter': str(cNum),
+                                    'verse': str(vNum),
+                                    'text': clean_text(vText)
+                                }
+    except Exception as e:
+        print(f"Bible index error: {e}")
+
+# Quran
+if os.path.exists('data/quran_v2.json'):
+    try:
+        with open('data/quran_v2.json', 'r', encoding='utf-8') as f:
+            for s in json.load(f):
+                sid = s.get('id')
+                for v in s.get('verses', []):
+                    vid_num = v.get('id')
+                    vid = f'islam_quran_{sid}_{vid_num}'.lower().replace(' ', '_')
+                    all_verses[vid] = {
+                        'key': vid,
+                        'religion': 'Islam',
+                        'book': 'Quran',
+                        'chapter': str(sid),
+                        'verse': str(vid_num),
+                        'text': clean_text(v.get('translation') or v.get('text'))
+                    }
+    except Exception as e:
+        print(f"Quran index error: {e}")
+
+# Hadiths
+if os.path.exists('data/hadiths_v2.json'):
+    try:
+        with open('data/hadiths_v2.json', 'r', encoding='utf-8') as f:
+            for h in json.load(f):
+                coll = h.get('source', '')
+                c = str(h.get('chapter_no') or 1)
+                v = str(h.get('hadith_no') or 1)
+                vid = f'islam_{coll}_{c}_{v}'.lower().replace(' ', '_')
+                all_verses[vid] = {
+                    'key': vid,
+                    'religion': 'Islam',
+                    'book': coll,
+                    'chapter': c,
+                    'verse': v,
+                    'text': clean_text(h.get('text_en', ''))
+                }
+    except Exception as e:
+        print(f"Hadith index error: {e}")
+
+# Gita
+if os.path.exists('data/gita.json'):
+    try:
+        chapterLengths = [47, 72, 43, 42, 29, 47, 30, 28, 34, 42, 55, 20, 35, 27, 20, 24, 28, 78]
+        uniqueVerses = {}
+        with open('data/gita.json', 'r', encoding='utf-8') as f:
+            for g in json.load(f):
+                if g.get('lang', '').lower() == 'english' and g.get('verse_id') not in uniqueVerses:
+                    uniqueVerses[g.get('verse_id')] = g.get('description') or g.get('meaning') or g.get('text')
+        curChap = 1; curVer = 1; chapEnd = chapterLengths[0]
+        for vid in range(1, 702):
+            if vid in uniqueVerses:
+                k = f'hinduism_bhagavad_gita_{curChap}_{curVer}'.lower().replace(' ', '_')
+                all_verses[k] = {
+                    'key': k,
+                    'religion': 'Hinduism',
+                    'book': 'Bhagavad Gita',
+                    'chapter': str(curChap),
+                    'verse': str(curVer),
+                    'text': clean_text(uniqueVerses[vid])
+                }
+            curVer += 1
+            if curVer > chapEnd and curChap < 18:
+                curChap += 1; curVer = 1; chapEnd = chapterLengths[curChap - 1]
+    except Exception as e:
+        print(f"Gita index error: {e}")
+
+# Hindu Books
+if os.path.exists('data/hindu_books.json'):
+    try:
+        with open('data/hindu_books.json', 'r', encoding='utf-8') as f:
+            hb = json.load(f)
+            for bName, bData in hb.items():
+                for chapName, verses in bData.items():
+                    for vKey, text in verses.items():
+                        k = f'hinduism_{bName}_{chapName}_{vKey}'.lower().replace(' ', '_')
+                        all_verses[k] = {
+                            'key': k,
+                            'religion': 'Hinduism',
+                            'book': bName,
+                            'chapter': str(chapName),
+                            'verse': str(vKey),
+                            'text': clean_text(text)
+                        }
+    except Exception as e:
+        print(f"Hindu books index error: {e}")
+
+# Sefaria (Judaism)
+if os.path.exists('data/sefaria.json'):
+    try:
+        with open('data/sefaria.json', 'r', encoding='utf-8') as f:
+            sef = json.load(f)
+            for colName, colBooks in sef.get('collections', {}).items():
+                for bk in colBooks:
+                    bName = bk.get('name', '')
+                    for chap, verses in bk.get('content', {}).items():
+                        for vNum, text in verses.items():
+                            k = f'judaism_{bName}_{chap}_{vNum}'.lower().replace(' ', '_')
+                            all_verses[k] = {
+                                'key': k,
+                                'religion': 'Judaism',
+                                'book': bName,
+                                'chapter': str(chap),
+                                'verse': str(vNum),
+                                'text': clean_text(text)
+                            }
+    except Exception as e:
+        print(f"Sefaria index error: {e}")
+
+# Sikhism (Gurbani)
+if os.path.exists('data/gurbani.json'):
+    try:
+        with open('data/gurbani.json', 'r', encoding='utf-8') as f:
+            for bk in json.load(f).get('books', []):
+                bName = bk.get('name', '')
+                for chap, verses in bk.get('content', {}).items():
+                    for vNum, text in verses.items():
+                        k = f'sikhism_{bName}_{chap}_{vNum}'.lower().replace(' ', '_')
+                        all_verses[k] = {
+                            'key': k,
+                            'religion': 'Sikhism',
+                            'book': bName,
+                            'chapter': str(chap),
+                            'verse': str(vNum),
+                            'text': clean_text(text)
+                        }
+    except Exception as e:
+        print(f"Gurbani index error: {e}")
+
+# Buddhism
+if os.path.exists('data/buddhism.json'):
+    try:
+        with open('data/buddhism.json', 'r', encoding='utf-8') as f:
+            for bName, content in json.load(f).get('books', {}).items():
+                if isinstance(content, dict):
+                    for chap, verses in content.items():
+                        if isinstance(verses, dict):
+                            for vNum, text in verses.items():
+                                k = f'buddhism_{bName}_{chap}_{vNum}'.lower().replace(' ', '_')
+                                all_verses[k] = {
+                                    'key': k,
+                                    'religion': 'Buddhism',
+                                    'book': bName,
+                                    'chapter': str(chap),
+                                    'verse': str(vNum),
+                                    'text': clean_text(text)
+                                }
+    except Exception as e:
+        print(f"Buddhism index error: {e}")
+
+print(f"Total scriptures indexed: {len(all_verses):,}")
+
+# 3. Load active rankings (the feed pool)
+active_rankings = {}
+if os.path.exists(ACTIVE_RANKINGS_FILE):
+    with open(ACTIVE_RANKINGS_FILE, 'r', encoding='utf-8') as f:
+        active_rankings = json.load(f)
+
+print(f"Total verses in active feed rankings: {len(active_rankings):,}")
+
+# Prioritize queue: Rank 100 down to 70
+sorted_active = sorted(active_rankings.items(), key=lambda x: x[1], reverse=True)
+
+pending_queue = []
+for vkey, score in sorted_active:
+    # Check if already completed under exact key or alternate key
+    if vkey in explanations or vkey.lower() in explanations:
+        continue
+    parts = vkey.split('_')
+    alt_key = '_'.join(parts[1:])  # e.g., quran_2_21
+    if alt_key in explanations:
+        continue
+    
+    verse_obj = all_verses.get(vkey)
+    if not verse_obj:
+        for cand_key in [alt_key, f'islam_{alt_key}']:
+            if cand_key in all_verses:
+                verse_obj = all_verses[cand_key]
+                break
+    
+    if verse_obj and verse_obj.get('text') and len(verse_obj['text']) > 5:
+        verse_obj['feed_key'] = vkey
+        verse_obj['alt_key'] = alt_key
+        pending_queue.append(verse_obj)
+
+print(f"Pending feed verses to generate: {len(pending_queue):,}")
+
+if not pending_queue:
+    print("All feed verses already have explanations!")
+    sys.exit(0)
+
+def sanitize_text(text):
+    if not text: return ''
+    # Strip <think> reasoning tags
+    text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
+    text = re.sub(r'Here\'s a thinking.*', '', text, flags=re.DOTALL)
+    text = re.sub(r'<[^>]+>', '', text)
+    # Remove em-dashes and en-dashes
+    text = text.replace('\u2014', ', ').replace('\u2013', ', ').replace('--', ', ')
+    text = text.replace('\u2011', '-')  # Non-breaking hyphen
+    # Remove emojis
+    text = re.sub(r'[\U00010000-\U0010ffff]', '', text)
+    # Remove robotic lead-ins
+    text = re.sub(r'^(?:In this (?:verse|sutra|passage)(?: from [^,]+)?,?|This (?:verse|sutra|passage)(?: from [^,]+)? (?:highlights|emphasizes|teaches|reminds us that|focuses on|underscores)|This passage from [^,]+,?)\s*', '', text, flags=re.IGNORECASE)
+    # Capitalize first letter
+    text = text.strip()
+    if text and text[0].islower():
+        text = text[0].upper() + text[1:]
+    # Clean up double commas
+    while ', ,' in text:
+        text = text.replace(', ,', ',')
+    text = text.replace(' ,', ',')
+    # Strip leading/trailing quotes or markdown
+    text = re.sub(r'^["\'\s*#>-]+', '', text)
+    text = re.sub(r'["\'\s]+$', '', text)
+    return text.strip()
+
+def save_databases():
+    temp_file = OUTPUT_FILE + '.tmp'
+    try:
+        with open(temp_file, 'w', encoding='utf-8') as f:
+            json.dump(explanations, f, indent=2, ensure_ascii=False)
+        if os.path.exists(OUTPUT_FILE):
+            os.replace(temp_file, OUTPUT_FILE)
+        else:
+            os.rename(temp_file, OUTPUT_FILE)
+        with open(WWW_OUTPUT_FILE, 'w', encoding='utf-8') as f:
+            json.dump(explanations, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"Error saving databases: {e}")
+
+model_index = 0
+
+def call_ai(verse_item):
+    global model_index
+    v_text = verse_item['text'][:320]
+    v_ref = f"{verse_item['religion']} - {verse_item['book']} {verse_item['chapter']}:{verse_item['verse']}"
+    
+    prompt = (
+        f"You are an expert scholar across world scriptures.\n"
+        f"Explain this spiritual verse clearly, factually, and concisely in 25 to 40 words.\n"
+        f"Verse: \"{v_text}\" ({v_ref})\n\n"
+        f"Strict rules:\n"
+        f"1. Explain the actual meaning, key terminology, and theological or historical context of this specific verse.\n"
+        f"2. Be factual, concise, and humane. Avoid generic self-help cliches or empty moralizing.\n"
+        f"3. Never use emojis.\n"
+        f"4. Never use em dashes or en dashes (use standard commas or periods instead).\n"
+        f"5. Output ONLY the explanation text in one compact paragraph. No headings, no quotes."
+    )
+
+    for attempt in range(len(MODELS) * 2):
+        model = MODELS[(model_index + attempt) % len(MODELS)]
+        payload = {
+            'model': model,
+            'messages': [{'role': 'user', 'content': prompt}],
+            'max_tokens': 100,
+            'temperature': 0.3
+        }
+        data = json.dumps(payload).encode('utf-8')
+        req = urllib.request.Request(GROQ_URL, data=data, headers={
+            'Authorization': f'Bearer {API_KEY}',
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        })
+
+        try:
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                res = json.loads(resp.read().decode('utf-8'))
+                raw = res['choices'][0]['message'].get('content', '').strip()
+                cleaned = sanitize_text(raw)
+                if len(cleaned.split()) >= 12:
+                    return verse_item, cleaned, None
+        except urllib.error.HTTPError as e:
+            if e.code == 429:
+                model_index = (model_index + 1) % len(MODELS)
+                time.sleep(1.0)
+                continue
+            time.sleep(1.5)
+        except Exception as e:
+            time.sleep(1.5)
+
+    return verse_item, None, "Max retries exceeded"
+
+print("=" * 70)
+print(f"  STARTING FEED EXPLANATIONS GENERATOR ({len(pending_queue):,} verses queued)")
+print("  Running with auto-rotating models: " + ", ".join(MODELS))
+print("  Auto-saves continuously. Logs to " + LOG_FILE)
+print("=" * 70)
+
+start_time = time.time()
+completed = 0
+total_pending = len(pending_queue)
+batch_size = 4
+
+with open(LOG_FILE, 'a', encoding='utf-8') as log_f:
+    log_f.write(f"\n--- Generator Started at {time.ctime()} ({total_pending} verses) ---\n")
+
+try:
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        for i in range(0, total_pending, batch_size):
+            chunk = pending_queue[i:i + batch_size]
+            futures = [executor.submit(call_ai, item) for item in chunk]
+
+            for fut in as_completed(futures):
+                v_item, explanation, err = fut.result()
+                if explanation:
+                    feed_k = v_item.get('feed_key') or v_item['key']
+                    alt_k = v_item.get('alt_key')
+
+                    entry = {
+                        'meaning': explanation,
+                        'context': '',
+                        'religion': v_item['religion'],
+                        'book': v_item['book'],
+                        'chapter': v_item['chapter'],
+                        'verse': v_item['verse'],
+                        'updated_at': int(time.time() * 1000)
+                    }
+
+                    explanations[feed_k] = entry
+                    if alt_k and alt_k != feed_k:
+                        explanations[alt_k] = entry
+
+                    completed += 1
+
+                    if completed % 5 == 0:
+                        save_databases()
+
+                    elapsed = time.time() - start_time
+                    rate = completed / elapsed if elapsed > 0 else 0
+                    eta_mins = (total_pending - completed) / (rate * 60) if rate > 0 else 0
+
+                    status = f"[{completed:,}/{total_pending:,}] ({completed/total_pending*100:.1f}%) | {rate*60:.1f} v/min | ETA: {eta_mins:.1f}m | {v_item['book']} {v_item['chapter']}:{v_item['verse']}"
+                    print(status)
+                    sys.stdout.flush()
+
+                    with open(LOG_FILE, 'a', encoding='utf-8') as log_f:
+                        log_f.write(f"{status} => {explanation[:65]}...\n")
+
+            time.sleep(0.3)
+
+except KeyboardInterrupt:
+    print("\nPaused by user. Saving progress...")
+finally:
+    save_databases()
+    elapsed = time.time() - start_time
+    print(f"\nSession finished: {completed:,} verses generated in {elapsed/60:.1f} mins.")
+    print(f"Total explanations in database: {len(explanations):,}")

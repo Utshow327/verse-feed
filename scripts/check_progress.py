@@ -58,7 +58,7 @@ keys = list(explanations.keys())[-2:]
 print("  LATEST EXPLANATIONS GENERATED:")
 for k in keys:
     val = explanations[k]
-    text = val.get('text', '') if isinstance(val, dict) else str(val)
+    text = (val.get('meaning') or val.get('text', '')) if isinstance(val, dict) else str(val)
     first_line = text.split('\n')[0] if text else ''
     if len(first_line) > 70:
         first_line = first_line[:67] + '...'
