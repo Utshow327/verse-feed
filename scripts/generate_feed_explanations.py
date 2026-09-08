@@ -384,15 +384,14 @@ def call_ai_batch(verse_batch):
     prompt = (
         "Respond in valid JSON format.\n"
         "You explain world scriptures in simple, plain, easy-to-understand English.\n"
-        "Explain each of the following spiritual verses clearly, simply, and concisely in 25 to 35 words each.\n\n"
-        "Strict rules for EVERY explanation:\n"
-        "1. Use simple, everyday words. Avoid complex academic jargon, big words, or difficult theological terms so anyone can easily understand.\n"
-        "2. Clearly explain what the verse means and its simple story or background.\n"
-        "3. Be factual, clear, and direct. Zero generic filler (never start with 'In this verse').\n"
+        "For each verse, provide TWO short parts: 'context' and 'meaning'.\n\n"
+        "Strict rules:\n"
+        "1. 'context': 10 to 18 simple words explaining the story, setting, or background.\n"
+        "2. 'meaning': 15 to 22 simple words explaining the moral lesson or spiritual truth in everyday words.\n"
+        "3. Use easy everyday words. Avoid big words or academic jargon.\n"
         "4. Never use emojis.\n"
-        "5. Never use em dashes or en dashes (use standard commas or periods instead).\n"
-        "6. Target length: strictly between 25 and 35 words.\n"
-        "7. Return ONLY a valid JSON object mapping each ID ('v1', 'v2', etc.) to its explanation string.\n\n"
+        "5. Never use em dashes or en dashes (use standard commas or periods).\n"
+        "6. Return ONLY a valid JSON object mapping each ID ('v1', 'v2', etc.) to an object with 'context' and 'meaning'.\n\n"
         "Verses to explain:\n"
     )
     for idx, item in enumerate(verse_batch):
@@ -407,10 +406,10 @@ def call_ai_batch(verse_batch):
         payload = {
             'model': model,
             'messages': [
-                {'role': 'system', 'content': 'You explain spiritual texts in simple, plain, everyday English. Output valid JSON.'},
+                {'role': 'system', 'content': 'You explain scriptures in simple English with context and meaning. Output valid JSON.'},
                 {'role': 'user', 'content': prompt}
             ],
-            'max_tokens': 500,
+            'max_tokens': 600,
             'temperature': 0.2
         }
         if 'gpt-oss' in model:
@@ -439,16 +438,23 @@ def call_ai_batch(verse_batch):
 
                 results = []
                 for idx, v_item in enumerate(verse_batch):
-                    exp_text = parsed.get(f'v{idx+1}') or parsed.get(str(idx+1))
-                    if not exp_text and isinstance(parsed, dict):
+                    item_data = parsed.get(f'v{idx+1}') or parsed.get(str(idx+1))
+                    if not item_data and isinstance(parsed, dict):
                         for k, val in parsed.items():
                             if str(idx+1) in k:
-                                exp_text = val
+                                item_data = val
                                 break
-                    if exp_text:
-                        cleaned = sanitize_text(str(exp_text))
-                        if len(cleaned.split()) >= 10:
-                            results.append((v_item, cleaned))
+
+                    ctx_val = ''
+                    meaning_val = ''
+                    if isinstance(item_data, dict):
+                        ctx_val = sanitize_text(str(item_data.get('context', '')))
+                        meaning_val = sanitize_text(str(item_data.get('meaning', '')))
+                    elif isinstance(item_data, str):
+                        meaning_val = sanitize_text(item_data)
+
+                    if meaning_val and len(meaning_val.split()) >= 8:
+                        results.append((v_item, ctx_val, meaning_val))
 
                 if len(results) >= max(1, len(verse_batch) // 2):
                     model_index = (model_index + 1) % len(MODELS)
@@ -502,13 +508,13 @@ try:
                     print(f"Batch processing error: {fut_err}")
                     continue
 
-                for v_item, explanation in batch_results:
+                for v_item, ctx_val, meaning_val in batch_results:
                     feed_k = v_item.get('feed_key') or v_item['key']
                     alt_k = v_item.get('alt_key')
 
                     entry = {
-                        'meaning': explanation,
-                        'context': '',
+                        'meaning': meaning_val,
+                        'context': ctx_val,
                         'religion': v_item['religion'],
                         'book': v_item['book'],
                         'chapter': v_item['chapter'],
