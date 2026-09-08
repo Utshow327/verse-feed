@@ -10,6 +10,13 @@ try:
 except Exception:
     pass
 
+if os.environ.get('GITHUB_ACTIONS') != 'true' and os.path.exists('.git'):
+    try:
+        import subprocess
+        subprocess.run(['git', 'pull', '--quiet', 'origin', 'main'], timeout=8)
+    except Exception:
+        pass
+
 EXP_FILE = os.path.join('data', 'verse_explanations.json')
 ACTIVE_FILE = os.path.join('data', 'active_rankings.json')
 

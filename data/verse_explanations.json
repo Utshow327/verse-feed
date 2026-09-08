@@ -23978,5 +23978,41 @@
     "chapter": "41 Part 1",
     "verse": "95",
     "updated_at": 1788861392111
+  },
+  "buddhism_sutras_part_78_4": {
+    "meaning": "The verse expresses Buddhist compassion (karuṇā) and respect for sentient beings, viewing each entity as an autonomous dharma-holder whose choices arise from karma, reflecting Mahayana sutras’ emphasis on universal loving-kindness.",
+    "context": "",
+    "religion": "Buddhism",
+    "book": "Sutras",
+    "chapter": "Part 78",
+    "verse": "4",
+    "updated_at": 1788879108607
+  },
+  "sutras_part_78_4": {
+    "meaning": "The verse expresses Buddhist compassion (karuṇā) and respect for sentient beings, viewing each entity as an autonomous dharma-holder whose choices arise from karma, reflecting Mahayana sutras’ emphasis on universal loving-kindness.",
+    "context": "",
+    "religion": "Buddhism",
+    "book": "Sutras",
+    "chapter": "Part 78",
+    "verse": "4",
+    "updated_at": 1788879108607
+  },
+  "christianity_hebrews_11_29": {
+    "meaning": "By faith refers to trust in God’s promise; Israelites crossed the Red Sea on dry ground through divine miracle, the Egyptian army drowned when waters returned. Hebrews 11 cites this as an exemplar of trusting God.",
+    "context": "",
+    "religion": "Christianity",
+    "book": "Hebrews",
+    "chapter": "11",
+    "verse": "29",
+    "updated_at": 1788879108781
+  },
+  "hebrews_11_29": {
+    "meaning": "By faith refers to trust in God’s promise; Israelites crossed the Red Sea on dry ground through divine miracle, the Egyptian army drowned when waters returned. Hebrews 11 cites this as an exemplar of trusting God.",
+    "context": "",
+    "religion": "Christianity",
+    "book": "Hebrews",
+    "chapter": "11",
+    "verse": "29",
+    "updated_at": 1788879108781
   }
 }

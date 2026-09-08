@@ -40,11 +40,13 @@ if not API_KEY:
 
 GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
-# High-quality fast models with independent quota limits
+# 5 fast models with independent rate limits to maximize throughput
 MODELS = [
     'groq/compound-mini',
+    'openai/gpt-oss-20b',
+    'qwen/qwen3.6-27b',
     'allam-2-7b',
-    'openai/gpt-oss-20b'
+    'qwen/qwen3.8-27b'
 ]
 
 OUTPUT_FILE = os.path.join('data', 'verse_explanations.json')
@@ -377,7 +379,7 @@ def call_ai(verse_item):
         f"5. Output ONLY the explanation text in one compact paragraph. No headings, no quotes."
     )
 
-    for attempt in range(len(MODELS) * 2):
+    for attempt in range(25):
         model = MODELS[(model_index + attempt) % len(MODELS)]
         payload = {
             'model': model,
@@ -393,22 +395,24 @@ def call_ai(verse_item):
         })
 
         try:
-            with urllib.request.urlopen(req, timeout=12) as resp:
+            with urllib.request.urlopen(req, timeout=15) as resp:
                 res = json.loads(resp.read().decode('utf-8'))
                 raw = res['choices'][0]['message'].get('content', '').strip()
                 cleaned = sanitize_text(raw)
-                if len(cleaned.split()) >= 12:
+                if len(cleaned.split()) >= 10:
+                    model_index = (model_index + 1) % len(MODELS)
                     return verse_item, cleaned, None
         except urllib.error.HTTPError as e:
             if e.code == 429:
                 model_index = (model_index + 1) % len(MODELS)
-                time.sleep(1.0)
+                wait_sec = 2.0 if attempt < len(MODELS) else 5.0
+                time.sleep(wait_sec)
                 continue
-            time.sleep(1.5)
+            time.sleep(2.0)
         except Exception as e:
-            time.sleep(1.5)
+            time.sleep(2.0)
 
-    return verse_item, None, "Max retries exceeded"
+    return verse_item, None, "Rate limit cooldown needed"
 
 print("=" * 70)
 print(f"  STARTING FEED EXPLANATIONS GENERATOR ({len(pending_queue):,} verses queued)")
@@ -416,7 +420,10 @@ print("  Running with auto-rotating models: " + ", ".join(MODELS))
 print("  Auto-saves continuously. Logs to " + LOG_FILE)
 print("=" * 70)
 
+import subprocess
+
 start_time = time.time()
+last_sync_time = time.time()
 completed = 0
 total_pending = len(pending_queue)
 batch_size = 4
@@ -431,7 +438,12 @@ try:
             futures = [executor.submit(call_ai, item) for item in chunk]
 
             for fut in as_completed(futures):
-                v_item, explanation, err = fut.result()
+                try:
+                    v_item, explanation, err = fut.result()
+                except Exception as fut_err:
+                    print(f"Verse processing error: {fut_err}")
+                    continue
+
                 if explanation:
                     feed_k = v_item.get('feed_key') or v_item['key']
                     alt_k = v_item.get('alt_key')
@@ -466,6 +478,13 @@ try:
                     if cli_args.max_count > 0 and completed >= cli_args.max_count:
                         break
 
+            # In GitHub Actions cloud environment, push progress to GitHub every 15 minutes
+            if os.environ.get('GITHUB_ACTIONS') == 'true' and (time.time() - last_sync_time) > 900:
+                print("\n[PERIODIC CLOUD SYNC] Pushing progress to GitHub...")
+                save_databases()
+                subprocess.run(['python', 'scripts/cloud_merge_and_push.py'])
+                last_sync_time = time.time()
+
             if cli_args.max_count > 0 and completed >= cli_args.max_count:
                 print(f"\n[TARGET REACHED] Generated {completed} verses. Stopping run.")
                 break
@@ -478,8 +497,11 @@ try:
 
 except KeyboardInterrupt:
     print("\nPaused by user. Saving progress...")
+except Exception as main_err:
+    print(f"\nUnexpected pipeline error: {main_err}")
 finally:
     save_databases()
     elapsed = time.time() - start_time
     print(f"\nSession finished: {completed:,} verses generated in {elapsed/60:.1f} mins.")
     print(f"Total explanations in database: {len(explanations):,}")
+

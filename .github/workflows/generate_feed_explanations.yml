@@ -43,14 +43,12 @@ jobs:
           python scripts/generate_feed_explanations.py --max-minutes "$MAX_MINS" --max-count "$MAX_COUNT"
 
       - name: Check Progress Status
+        if: always()
         run: |
           python scripts/check_progress.py
 
       - name: Commit and Push New Explanations
+        if: always()
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main || true
-          git add data/verse_explanations.json www/data/verse_explanations.json
-          git commit -m "Automated cloud explanation generation [skip ci]" || echo "No changes to commit"
-          git push origin main || echo "Nothing to push or conflict resolved"
+          python scripts/cloud_merge_and_push.py
+
