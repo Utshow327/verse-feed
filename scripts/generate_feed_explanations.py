@@ -58,8 +58,8 @@ GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 # Fast models with independent rate limits to maximize throughput
 # (compound-mini excluded due to its tiny 250 RPD bottleneck)
 MODELS = [
-    'openai/gpt-oss-20b',
     'qwen/qwen3.6-27b',
+    'openai/gpt-oss-20b',
     'qwen/qwen3.8-27b',
     'allam-2-7b'
 ]
@@ -404,11 +404,19 @@ def call_ai_batch(verse_batch):
         curr_key = get_next_key()
         payload = {
             'model': model,
-            'messages': [{'role': 'user', 'content': prompt}],
-            'response_format': {'type': 'json_object'},
-            'max_tokens': 350,
-            'temperature': 0.25
+            'messages': [
+                {'role': 'system', 'content': 'You are a neutral theological scholar across world scriptures. Output valid JSON.'},
+                {'role': 'user', 'content': prompt}
+            ],
+            'max_tokens': 500,
+            'temperature': 0.2
         }
+        if 'gpt-oss' in model:
+            payload['reasoning_effort'] = 'low'
+            payload['reasoning_format'] = 'hidden'
+        elif 'qwen' in model:
+            payload['reasoning_effort'] = 'none'
+
         data = json.dumps(payload).encode('utf-8')
         req = urllib.request.Request(GROQ_URL, data=data, headers={
             'Authorization': f'Bearer {curr_key}',
@@ -421,7 +429,11 @@ def call_ai_batch(verse_batch):
                 res = json.loads(resp.read().decode('utf-8'))
                 raw = res['choices'][0]['message'].get('content', '').strip()
                 raw = re.sub(r'<think>.*?</think>', '', raw, flags=re.DOTALL).strip()
-                parsed = json.loads(raw)
+                json_match = re.search(r'\{.*\}', raw, re.DOTALL)
+                if json_match:
+                    parsed = json.loads(json_match.group(0))
+                else:
+                    parsed = json.loads(raw)
 
                 results = []
                 for idx, v_item in enumerate(verse_batch):
@@ -440,18 +452,18 @@ def call_ai_batch(verse_batch):
                     model_index = (model_index + 1) % len(MODELS)
                     return results, None
         except urllib.error.HTTPError as e:
+            model_index = (model_index + 1) % len(MODELS)
             if e.code == 429:
-                model_index = (model_index + 1) % len(MODELS)
                 err_body = e.read().decode('utf-8', errors='replace')
                 m = re.search(r'try again in (\d+(?:\.\d+)?)(?:m|s)', err_body)
                 wait_sec = 2.0
                 if m:
-                    wait_sec = min(float(m.group(1)) + 0.5, 12.0)
+                    wait_sec = min(float(m.group(1)) + 0.5, 8.0)
                 time.sleep(wait_sec)
                 continue
-            time.sleep(2.0)
+            time.sleep(1.0)
         except Exception:
-            time.sleep(2.0)
+            time.sleep(1.0)
 
     return [], "Rate limit cooldown needed"
 
