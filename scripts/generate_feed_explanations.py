@@ -13,7 +13,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-API_KEY = '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'
+import argparse
+
+parser = argparse.ArgumentParser(description='Feed Explanations Generator')
+parser.add_argument('--max-minutes', type=int, default=0, help='Max minutes to run (0 = unlimited)')
+parser.add_argument('--max-count', type=int, default=0, help='Max verses to generate (0 = unlimited)')
+cli_args = parser.parse_args()
+
+API_KEY = os.environ.get('GROQ_API_KEY') or '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'
 GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
 # High-quality fast models with independent quota limits
@@ -412,8 +419,16 @@ try:
                     print(status)
                     sys.stdout.flush()
 
-                    with open(LOG_FILE, 'a', encoding='utf-8') as log_f:
-                        log_f.write(f"{status} => {explanation[:65]}...\n")
+                    if cli_args.max_count > 0 and completed >= cli_args.max_count:
+                        break
+
+            if cli_args.max_count > 0 and completed >= cli_args.max_count:
+                print(f"\n[TARGET REACHED] Generated {completed} verses. Stopping run.")
+                break
+
+            if cli_args.max_minutes > 0 and (time.time() - start_time) > (cli_args.max_minutes * 60):
+                print(f"\n[TIME LIMIT REACHED] Ran for {cli_args.max_minutes} minutes. Saving and stopping.")
+                break
 
             time.sleep(0.3)
 

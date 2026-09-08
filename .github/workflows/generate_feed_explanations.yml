@@ -1,0 +1,57 @@
+name: Cloud Verse Explanation Generator
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_minutes:
+        description: 'Maximum runtime in minutes (e.g. 60, 120, 300)'
+        required: false
+        default: '300'
+      max_verses:
+        description: 'Maximum verses to generate (0 for unlimited)'
+        required: false
+        default: '0'
+  schedule:
+    # Runs automatically every 4 hours in GitHub's cloud
+    - cron: '0 */4 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Run Cloud Explanations Generator
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || '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' }}
+        run: |
+          MAX_MINS="${{ github.event.inputs.max_minutes || '300' }}"
+          MAX_COUNT="${{ github.event.inputs.max_verses || '0' }}"
+          python scripts/generate_feed_explanations.py --max-minutes "$MAX_MINS" --max-count "$MAX_COUNT"
+
+      - name: Check Progress Status
+        run: |
+          python scripts/check_progress.py
+
+      - name: Commit and Push New Explanations
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main || true
+          git add data/verse_explanations.json www/data/verse_explanations.json
+          git commit -m "Automated cloud explanation generation [skip ci]" || echo "No changes to commit"
+          git push origin main || echo "Nothing to push or conflict resolved"
