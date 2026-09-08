@@ -30365,6 +30365,9 @@ async function openVerseExplanation(verse, event) {
                            (foundChapterData && (foundChapterData.meaning || foundChapterData.text)) || 
                            (typeof foundData === 'string' ? foundData : '') || '';
 
+    const cleanMeaning = meaningContent ? meaningContent.replace(/[—–]/g, ', ').replace(/--/g, ', ') : '';
+    const cleanContext = contextContent ? contextContent.replace(/[—–]/g, ', ').replace(/--/g, ', ') : '';
+
     const meaningLabel = document.getElementById('explanation-meaning-label');
     if (meaningLabel) {
         const isVerseSpecific = foundKey && ((ver && foundKey.endsWith(`_${ver}`)) || (targetVerse.id && foundKey === String(targetVerse.id).toLowerCase()));
@@ -30378,16 +30381,16 @@ async function openVerseExplanation(verse, event) {
         }
     }
 
-    if (contextContent && ctxBlock && ctxText) {
-        ctxText.textContent = contextContent;
+    if (cleanContext && ctxBlock && ctxText) {
+        ctxText.textContent = cleanContext;
         ctxBlock.classList.remove('hidden');
     } else if (ctxBlock) {
         ctxBlock.classList.add('hidden');
     }
 
     if (meaningText) {
-        if (meaningContent) {
-            meaningText.textContent = meaningContent;
+        if (cleanMeaning) {
+            meaningText.textContent = cleanMeaning;
         } else {
             meaningText.textContent = "A simple life reflection for this verse is being added soon.\n\nTake a quiet breath and reflect on what these words speak to your heart today.";
         }
