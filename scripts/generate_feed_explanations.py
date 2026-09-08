@@ -285,10 +285,37 @@ for vkey, score in sorted_active:
         verse_obj['alt_key'] = alt_key
         pending_queue.append(verse_obj)
 
-print(f"Pending feed verses to generate: {len(pending_queue):,}")
+print(f"Pending feed verses (Priority 1): {len(pending_queue):,}")
+
+# 4. Queue ALL remaining library scriptures across all religions (Priority 2)
+queued_keys = set(v.get('feed_key') for v in pending_queue)
+for k in list(explanations.keys()):
+    queued_keys.add(k)
+    queued_keys.add(k.lower())
+
+library_added = 0
+for vkey, v_obj in all_verses.items():
+    if vkey in queued_keys or vkey.lower() in queued_keys:
+        continue
+    parts = vkey.split('_')
+    alt_key = '_'.join(parts[1:])
+    if alt_key in queued_keys or alt_key.lower() in queued_keys:
+        continue
+
+    if v_obj.get('text') and len(v_obj['text']) > 5:
+        item_copy = dict(v_obj)
+        item_copy['feed_key'] = vkey
+        item_copy['alt_key'] = alt_key
+        pending_queue.append(item_copy)
+        queued_keys.add(vkey)
+        queued_keys.add(alt_key)
+        library_added += 1
+
+print(f"Pending library verses (Priority 2): {library_added:,}")
+print(f"TOTAL QUEUED FOR GENERATION: {len(pending_queue):,} verses across entire app")
 
 if not pending_queue:
-    print("All feed verses already have explanations!")
+    print("All scriptures across the entire app have explanations!")
     sys.exit(0)
 
 def sanitize_text(text):
