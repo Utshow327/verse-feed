@@ -383,14 +383,16 @@ def call_ai_batch(verse_batch):
     global model_index
     prompt = (
         "Respond in valid JSON format.\n"
-        "You are an expert scholar across world scriptures.\n"
-        "Explain each of the following spiritual verses clearly, factually, and concisely in 25 to 35 words each.\n\n"
+        "You explain world scriptures in simple, plain, easy-to-understand English.\n"
+        "Explain each of the following spiritual verses clearly, simply, and concisely in 25 to 35 words each.\n\n"
         "Strict rules for EVERY explanation:\n"
-        "1. Explain the actual theological/historical meaning and key terms of this specific verse.\n"
-        "2. Be factual, concise, and humane. Zero generic filler (never start with 'In this verse').\n"
-        "3. Never use emojis.\n"
-        "4. Never use em dashes or en dashes (use standard commas or periods instead).\n"
-        "5. Return ONLY a valid JSON object mapping each ID ('v1', 'v2', etc.) to its explanation string.\n\n"
+        "1. Use simple, everyday words. Avoid complex academic jargon, big words, or difficult theological terms so anyone can easily understand.\n"
+        "2. Clearly explain what the verse means and its simple story or background.\n"
+        "3. Be factual, clear, and direct. Zero generic filler (never start with 'In this verse').\n"
+        "4. Never use emojis.\n"
+        "5. Never use em dashes or en dashes (use standard commas or periods instead).\n"
+        "6. Target length: strictly between 25 and 35 words.\n"
+        "7. Return ONLY a valid JSON object mapping each ID ('v1', 'v2', etc.) to its explanation string.\n\n"
         "Verses to explain:\n"
     )
     for idx, item in enumerate(verse_batch):
@@ -405,7 +407,7 @@ def call_ai_batch(verse_batch):
         payload = {
             'model': model,
             'messages': [
-                {'role': 'system', 'content': 'You are a neutral theological scholar across world scriptures. Output valid JSON.'},
+                {'role': 'system', 'content': 'You explain spiritual texts in simple, plain, everyday English. Output valid JSON.'},
                 {'role': 'user', 'content': prompt}
             ],
             'max_tokens': 500,
