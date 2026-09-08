@@ -30330,21 +30330,15 @@ async function openVerseExplanation(verse, event) {
         await loadVerseExplanations();
     }
     const modal = document.getElementById('verse-explanation-modal');
-    const refEl = document.getElementById('explanation-modal-ref');
-    const quoteEl = document.getElementById('explanation-verse-quote');
     const ctxBlock = document.getElementById('explanation-context-block');
     const ctxText = document.getElementById('explanation-context-text');
+    const ctxLabel = document.getElementById('explanation-context-label');
+    const meaningLabel = document.getElementById('explanation-meaning-label');
     const meaningText = document.getElementById('explanation-meaning-text');
     if (!modal) return;
 
-    const book = targetVerse.book || targetVerse.surah || 'Scripture';
     const chap = targetVerse.chapter || targetVerse.chapter_no || '1';
     const ver = targetVerse.verse || targetVerse.verse_id || targetVerse.hadith_no || '';
-
-    const title = (typeof formatVerseRef === 'function') ? formatVerseRef(targetVerse) : (chap ? `${book} ${chap}${ver ? ':' + ver : ''}` : book);
-
-    if (refEl) refEl.textContent = title;
-    if (quoteEl) quoteEl.textContent = targetVerse.text || targetVerse.translation || '';
 
     const candidateKeys = getCandidateExplanationKeys(targetVerse);
     let foundData = null;
@@ -30368,16 +30362,19 @@ async function openVerseExplanation(verse, event) {
     const cleanMeaning = meaningContent ? meaningContent.replace(/[—–]/g, ', ').replace(/--/g, ', ') : '';
     const cleanContext = contextContent ? contextContent.replace(/[—–]/g, ', ').replace(/--/g, ', ') : '';
 
-    const meaningLabel = document.getElementById('explanation-meaning-label');
+    if (ctxLabel) {
+        ctxLabel.textContent = "Context";
+    }
+
     if (meaningLabel) {
         const isVerseSpecific = foundKey && ((ver && foundKey.endsWith(`_${ver}`)) || (targetVerse.id && foundKey === String(targetVerse.id).toLowerCase()));
         const isChapterLevel = foundKey && chap && foundKey.includes(`_${chap}`);
         if (isVerseSpecific) {
-            meaningLabel.textContent = "Verse Meaning & Analysis";
+            meaningLabel.textContent = "Meaning";
         } else if (isChapterLevel) {
-            meaningLabel.textContent = "Chapter Context & Theme";
+            meaningLabel.textContent = "Theme";
         } else {
-            meaningLabel.textContent = "Book Overview & Reflection";
+            meaningLabel.textContent = "Overview";
         }
     }
 

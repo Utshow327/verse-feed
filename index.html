@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Minimalistic Religion App</title>
-    <link rel="stylesheet" href="style_v5.css?v=428">
+    <link rel="stylesheet" href="style_v5.css?v=429">
     <link rel="preconnect" href="https://huggingface.co" crossorigin>
     <link rel="dns-prefetch" href="https://huggingface.co">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -287,13 +287,12 @@
         <div class="modal-content explanation-modal-content" onclick="event.stopPropagation()">
 
             <div class="explanation-modal-body">
-                <div id="explanation-verse-quote" class="explanation-quote"></div>
                 <div id="explanation-context-block" class="explanation-block hidden">
-                    <div class="explanation-label">Background</div>
+                    <div id="explanation-context-label" class="explanation-label">Context</div>
                     <div id="explanation-context-text" class="explanation-text"></div>
                 </div>
                 <div id="explanation-meaning-block" class="explanation-block">
-                    <div id="explanation-meaning-label" class="explanation-label">Verse Analysis</div>
+                    <div id="explanation-meaning-label" class="explanation-label">Meaning</div>
                     <div id="explanation-meaning-text" class="explanation-text"></div>
                 </div>
             </div>
@@ -500,7 +499,7 @@
     <div id="radial-overlay" class="radial-overlay"></div>
     <script src="libs/localforage.min.js"></script>
     <script src="libs/html2canvas.min.js"></script>
-    <script src="script_v14.js?v=542"></script>
+    <script src="script_v14.js?v=543"></script>
 
 
 
