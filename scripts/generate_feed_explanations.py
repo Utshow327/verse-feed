@@ -55,13 +55,13 @@ def get_next_key():
 
 GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
-# 5 fast models with independent rate limits to maximize throughput
+# Fast models with independent rate limits to maximize throughput
+# (compound-mini excluded due to its tiny 250 RPD bottleneck)
 MODELS = [
-    'groq/compound-mini',
     'openai/gpt-oss-20b',
     'qwen/qwen3.6-27b',
-    'allam-2-7b',
-    'qwen/qwen3.8-27b'
+    'qwen/qwen3.8-27b',
+    'allam-2-7b'
 ]
 
 OUTPUT_FILE = os.path.join('data', 'verse_explanations.json')
