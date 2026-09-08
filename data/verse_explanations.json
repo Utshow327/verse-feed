@@ -23942,5 +23942,41 @@
     "chapter": "Book 6",
     "verse": "1241",
     "updated_at": 1788860689949
+  },
+  "judaism_proverbs_4_5": {
+    "meaning": "The verse urges the listener to seek wisdom (ḥokmah) and discernment (binah), essential virtues in Israelite teaching; it warns against neglecting or deviating from the Torah’s instruction, reflecting Solomon’s counsel in early post-exilic wisdom literature.",
+    "context": "",
+    "religion": "Judaism",
+    "book": "Proverbs",
+    "chapter": "4",
+    "verse": "5",
+    "updated_at": 1788861391930
+  },
+  "proverbs_4_5": {
+    "meaning": "The verse urges the listener to seek wisdom (ḥokmah) and discernment (binah), essential virtues in Israelite teaching; it warns against neglecting or deviating from the Torah’s instruction, reflecting Solomon’s counsel in early post-exilic wisdom literature.",
+    "context": "",
+    "religion": "Judaism",
+    "book": "Proverbs",
+    "chapter": "4",
+    "verse": "5",
+    "updated_at": 1788861391930
+  },
+  "sikhism_guru_granth_41_part_1_95": {
+    "meaning": "Guru Arjan teaches that personal transformation (sadhana) enables direct communion with the Divine, granting inner peace; by surrendering to the beloved (Fareed), one attains spiritual sovereignty, symbolized as possessing the whole world.",
+    "context": "",
+    "religion": "Sikhism",
+    "book": "Guru Granth",
+    "chapter": "41 Part 1",
+    "verse": "95",
+    "updated_at": 1788861392111
+  },
+  "guru_granth_41_part_1_95": {
+    "meaning": "Guru Arjan teaches that personal transformation (sadhana) enables direct communion with the Divine, granting inner peace; by surrendering to the beloved (Fareed), one attains spiritual sovereignty, symbolized as possessing the whole world.",
+    "context": "",
+    "religion": "Sikhism",
+    "book": "Guru Granth",
+    "chapter": "41 Part 1",
+    "verse": "95",
+    "updated_at": 1788861392111
   }
 }
