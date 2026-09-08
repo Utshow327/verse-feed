@@ -30309,6 +30309,7 @@ function getCandidateExplanationKeys(verse) {
     if (verse.id) keys.push(String(verse.id).toLowerCase());
     keys.push(`${rel}_${book}_${chap}_${ver}`);
     keys.push(`${book}_${chap}_${ver}`);
+    keys.push(`${rel}_${chap}_${ver}`);
     keys.push(`${rel}_${book}_${chap}`);
     keys.push(`${book}_${chap}`);
     keys.push(`${rel}_${chap}`);
@@ -30336,10 +30337,14 @@ async function openVerseExplanation(verse, event) {
     const meaningText = document.getElementById('explanation-meaning-text');
     if (!modal) return;
 
+    const book = targetVerse.book || targetVerse.surah || 'Scripture';
+    const chap = targetVerse.chapter || targetVerse.chapter_no || '1';
+    const ver = targetVerse.verse || targetVerse.verse_id || targetVerse.hadith_no || '';
+
     const title = (typeof formatVerseRef === 'function') ? formatVerseRef(targetVerse) : (chap ? `${book} ${chap}${ver ? ':' + ver : ''}` : book);
 
     if (refEl) refEl.textContent = title;
-    if (quoteEl) quoteEl.textContent = targetVerse.text || '';
+    if (quoteEl) quoteEl.textContent = targetVerse.text || targetVerse.translation || '';
 
     const candidateKeys = getCandidateExplanationKeys(targetVerse);
     let foundData = null;
@@ -30356,12 +30361,14 @@ async function openVerseExplanation(verse, event) {
     }
 
     const contextContent = (foundData && foundData.context) || (foundChapterData && foundChapterData.context) || '';
-    const meaningContent = (foundData && foundData.meaning) || (foundChapterData && foundChapterData.meaning) || '';
+    const meaningContent = (foundData && (foundData.meaning || foundData.text)) || 
+                           (foundChapterData && (foundChapterData.meaning || foundChapterData.text)) || 
+                           (typeof foundData === 'string' ? foundData : '') || '';
 
     const meaningLabel = document.getElementById('explanation-meaning-label');
     if (meaningLabel) {
-        const isVerseSpecific = foundKey && (foundKey.endsWith(`_${ver}`) || (targetVerse.id && foundKey === String(targetVerse.id).toLowerCase()));
-        const isChapterLevel = foundKey && foundKey.includes(`_${chap}`);
+        const isVerseSpecific = foundKey && ((ver && foundKey.endsWith(`_${ver}`)) || (targetVerse.id && foundKey === String(targetVerse.id).toLowerCase()));
+        const isChapterLevel = foundKey && chap && foundKey.includes(`_${chap}`);
         if (isVerseSpecific) {
             meaningLabel.textContent = "Verse Meaning & Analysis";
         } else if (isChapterLevel) {
@@ -36651,7 +36658,7 @@ function createActionIconsElement(verseObj, type) {
         container.innerHTML = `
             ${cycleBtnHtml}
             <button class="va-btn va-meaning-btn" onclick="openVerseExplanation(selectedVerse, event)" aria-label="Meaning" title="Meaning">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 14H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg>
             </button>
             <button class="va-btn" onclick="handlePillShare(event)" aria-label="Share" title="Share">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
@@ -36669,7 +36676,7 @@ function createActionIconsElement(verseObj, type) {
             ${cycleIconHtml}
         </button>
         <button class="va-btn va-meaning-btn" onclick="openVerseExplanation(selectedVerse, event)" aria-label="Meaning" title="Meaning">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 14H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg>
         </button>
         <button class="va-btn" onclick="handlePillShare(event)" aria-label="Share" title="Share">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
