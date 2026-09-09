@@ -2074,7 +2074,7 @@ h2 {
 }
 
 .va-meaning-btn {
-    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.22s ease, opacity 0.2s ease, color 0.2s ease !important;
+    transition: color 0.18s ease, opacity 0.18s ease !important;
 }
 
 .va-meaning-btn.va-meaning-active {
@@ -2084,9 +2084,9 @@ h2 {
     border: none !important;
     box-shadow: none !important;
     padding: 0 !important;
-    transform: scale(1.25) !important;
-    color: inherit !important;
-    filter: drop-shadow(0 0 2.5px currentColor) drop-shadow(0 0 6px rgba(188, 174, 158, 0.85)) drop-shadow(0 0 10px rgba(102, 93, 85, 0.4)) !important;
+    transform: none !important;
+    filter: none !important;
+    color: #b87322 !important;
 }
 
 /* --- Card Explanation Layout & Typography --- */
@@ -2244,9 +2244,9 @@ h2 {
     border: none !important;
     box-shadow: none !important;
     padding: 0 !important;
-    transform: scale(1.25) !important;
-    color: inherit !important;
-    filter: drop-shadow(0 0 2.5px currentColor) drop-shadow(0 0 6px rgba(188, 174, 158, 0.85)) drop-shadow(0 0 10px rgba(102, 93, 85, 0.4)) !important;
+    transform: none !important;
+    filter: none !important;
+    color: #b87322 !important;
 }
 
 
