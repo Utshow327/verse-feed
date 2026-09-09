@@ -36651,7 +36651,7 @@ function createActionIconsElement(verseObj, type) {
     const isPhilosophy = verseObj && (String(verseObj.religion || '').toLowerCase() === 'philosophy' || String(verseObj.book || '').toLowerCase() === 'stoicism');
     const meaningBtnHtml = isPhilosophy ? '' : `
         <button class="va-btn va-meaning-btn" onclick="openVerseExplanation(selectedVerse, event)" aria-label="Meaning" title="Meaning">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v.01"/><path d="M12 8v12"/></svg>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v.01"/><path d="M12 9.5v10.5"/></svg>
         </button>
     `;
 
