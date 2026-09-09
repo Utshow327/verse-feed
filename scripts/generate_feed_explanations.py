@@ -367,14 +367,15 @@ def sanitize_text(text):
 def save_databases():
     temp_file = OUTPUT_FILE + '.tmp'
     try:
+        data_copy = dict(explanations)
         with open(temp_file, 'w', encoding='utf-8') as f:
-            json.dump(explanations, f, indent=2, ensure_ascii=False)
+            json.dump(data_copy, f, indent=2, ensure_ascii=False)
         if os.path.exists(OUTPUT_FILE):
             os.replace(temp_file, OUTPUT_FILE)
         else:
             os.rename(temp_file, OUTPUT_FILE)
         with open(WWW_OUTPUT_FILE, 'w', encoding='utf-8') as f:
-            json.dump(explanations, f, indent=2, ensure_ascii=False)
+            json.dump(data_copy, f, indent=2, ensure_ascii=False)
     except Exception as e:
         print(f"Error saving databases: {e}")
 
@@ -634,7 +635,8 @@ except Exception as main_err:
 finally:
     with save_lock:
         save_databases()
-    elapsed = time.time() - start_time
+    elapsed = time.time() - actual_gen_start
     print(f"\nSession finished: {completed:,} verses generated in {elapsed/60:.1f} mins.")
     print(f"Total explanations in database: {len(explanations):,}")
+    sys.exit(0)
 
