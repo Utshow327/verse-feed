@@ -12,8 +12,8 @@ on:
         required: false
         default: '0'
   schedule:
-    # Runs automatically every 4 hours in GitHub's cloud
-    - cron: '0 */4 * * *'
+    # Runs automatically every 3 hours as backup insurance
+    - cron: '0 */3 * * *'
 
 concurrency:
   group: verse-explanation-generator
@@ -21,6 +21,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   generate:
@@ -56,4 +57,16 @@ jobs:
         if: always()
         run: |
           python scripts/cloud_merge_and_push.py
+
+      - name: Trigger Next Run (Continuous Relay)
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f ".all_completed" ]; then
+            echo "All scriptures 100% completed! Continuous relay finished."
+          else
+            echo "Triggering next continuous relay run..."
+            gh workflow run generate_feed_explanations.yml --ref main || echo "Continuous dispatch queued or skipped."
+          fi
 

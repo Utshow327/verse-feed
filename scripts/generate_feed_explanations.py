@@ -277,17 +277,29 @@ if os.path.exists(ACTIVE_RANKINGS_FILE):
 
 print(f"Total verses in active feed rankings: {len(active_rankings):,}")
 
+def is_explanation_complete(key):
+    if not key:
+        return False
+    entry = explanations.get(key) or explanations.get(key.lower())
+    if not entry or not isinstance(entry, dict):
+        return False
+    ctx = entry.get('context')
+    meaning = entry.get('meaning') or entry.get('text')
+    if not ctx or len(str(ctx).strip()) < 5:
+        return False
+    if not meaning or len(str(meaning).strip()) < 5:
+        return False
+    return True
+
 # Prioritize queue: Rank 100 down to 70
 sorted_active = sorted(active_rankings.items(), key=lambda x: x[1], reverse=True)
 
 pending_queue = []
 for vkey, score in sorted_active:
-    # Check if already completed under exact key or alternate key
-    if vkey in explanations or vkey.lower() in explanations:
-        continue
     parts = vkey.split('_')
     alt_key = '_'.join(parts[1:])  # e.g., quran_2_21
-    if alt_key in explanations:
+    # Check if already completed with valid context and meaning
+    if is_explanation_complete(vkey) or is_explanation_complete(alt_key):
         continue
     
     verse_obj = all_verses.get(vkey)
@@ -307,8 +319,9 @@ print(f"Pending feed verses (Priority 1): {len(pending_queue):,}")
 # 4. Queue ALL remaining library scriptures across all religions (Priority 2)
 queued_keys = set(v.get('feed_key') for v in pending_queue)
 for k in list(explanations.keys()):
-    queued_keys.add(k)
-    queued_keys.add(k.lower())
+    if is_explanation_complete(k):
+        queued_keys.add(k)
+        queued_keys.add(k.lower())
 
 library_added = 0
 for vkey, v_obj in all_verses.items():
@@ -317,6 +330,8 @@ for vkey, v_obj in all_verses.items():
     parts = vkey.split('_')
     alt_key = '_'.join(parts[1:])
     if alt_key in queued_keys or alt_key.lower() in queued_keys:
+        continue
+    if is_explanation_complete(vkey) or is_explanation_complete(alt_key):
         continue
 
     if v_obj.get('text') and len(v_obj['text']) > 5:
@@ -332,7 +347,12 @@ print(f"Pending library verses (Priority 2): {library_added:,}")
 print(f"TOTAL QUEUED FOR GENERATION: {len(pending_queue):,} verses across entire app")
 
 if not pending_queue:
-    print("All scriptures across the entire app have explanations!")
+    print("All scriptures across the entire app have full explanations!")
+    try:
+        with open('.all_completed', 'w', encoding='utf-8') as f:
+            f.write('done')
+    except Exception:
+        pass
     sys.exit(0)
 
 def sanitize_text(text):
