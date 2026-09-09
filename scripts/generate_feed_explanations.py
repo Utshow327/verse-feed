@@ -430,12 +430,21 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
             with urllib.request.urlopen(req, timeout=12) as resp:
                 res = json.loads(resp.read().decode('utf-8'))
                 raw = res['choices'][0]['message'].get('content', '').strip()
-                raw = re.sub(r'<think>.*?</think>', '', raw, flags=re.DOTALL).strip()
-                json_match = re.search(r'\{.*\}', raw, re.DOTALL)
-                if json_match:
-                    parsed = json.loads(json_match.group(0))
-                else:
-                    parsed = json.loads(raw)
+                parsed = {}
+                raw_clean = re.sub(r'<think>.*?</think>', '', raw, flags=re.DOTALL).strip()
+                raw_clean = re.sub(r'```(?:json)?', '', raw_clean).strip()
+                m = re.search(r'\{[\s\S]*\}', raw_clean)
+                if m:
+                    try:
+                        parsed = json.loads(m.group(0))
+                    except Exception:
+                        s_idx = raw_clean.find('{')
+                        e_idx = raw_clean.rfind('}')
+                        if s_idx != -1 and e_idx != -1:
+                            try:
+                                parsed = json.loads(raw_clean[s_idx:e_idx+1])
+                            except Exception:
+                                pass
 
                 results = []
                 for idx, v_item in enumerate(verse_batch):
@@ -463,9 +472,9 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
             if e.code == 429:
                 time.sleep(0.3)
                 continue
-            time.sleep(0.5)
+            time.sleep(0.4)
         except Exception:
-            time.sleep(0.5)
+            time.sleep(0.4)
 
     return [], "Rate limit cooldown needed"
 
@@ -476,19 +485,19 @@ print("=" * 70)
 print(f"  STARTING TURBO FEED EXPLANATIONS GENERATOR ({len(pending_queue):,} queued)")
 print(f"  Concurrency: {WORKERS} parallel workers with dedicated keys across {len(API_KEYS)} key(s)")
 print("  Active Models: " + ", ".join(MODELS))
-print("  Continuous pipeline (zero idle wait). Auto-saves to " + OUTPUT_FILE)
+print("  Continuous pipeline (non-blocking async I/O). Auto-saves to " + OUTPUT_FILE)
 print("=" * 70)
 
 import subprocess
 
-start_time = time.time()
-last_sync_time = time.time()
+actual_gen_start = time.time()
 completed = 0
 total_pending = len(pending_queue)
 stop_requested = False
 
 results_lock = Lock()
 save_lock = Lock()
+recent_completed = []
 
 task_queue = Queue()
 for i in range(0, total_pending, BATCH_SIZE):
@@ -497,8 +506,32 @@ for i in range(0, total_pending, BATCH_SIZE):
 with open(LOG_FILE, 'a', encoding='utf-8') as log_f:
     log_f.write(f"\n--- Turbo Generator Started at {time.ctime()} ({total_pending} verses, {WORKERS} workers) ---\n")
 
+def background_saver():
+    while not stop_requested:
+        for _ in range(45):
+            if stop_requested:
+                break
+            time.sleep(1)
+        if not stop_requested:
+            with save_lock:
+                save_databases()
+
+def background_cloud_syncer():
+    if os.environ.get('GITHUB_ACTIONS') != 'true':
+        return
+    while not stop_requested:
+        for _ in range(900):  # 15 minutes
+            if stop_requested:
+                break
+            time.sleep(1)
+        if not stop_requested:
+            print("\n[PERIODIC CLOUD SYNC] Pushing progress to GitHub in background...")
+            with save_lock:
+                save_databases()
+            subprocess.run(['python', 'scripts/cloud_merge_and_push.py'])
+
 def worker_thread(worker_id):
-    global completed, last_sync_time, stop_requested
+    global completed, stop_requested
     while not stop_requested:
         try:
             verse_batch = task_queue.get(timeout=2)
@@ -508,7 +541,7 @@ def worker_thread(worker_id):
         batch_results, err = call_ai_batch_for_worker(verse_batch, worker_id)
         if not batch_results:
             task_queue.put(verse_batch)
-            time.sleep(1.5)
+            time.sleep(1.0)
             continue
 
         with results_lock:
@@ -532,32 +565,28 @@ def worker_thread(worker_id):
 
                 completed += 1
 
-            elapsed = time.time() - start_time
-            rate = completed / elapsed if elapsed > 0 else 0
-            eta_mins = (total_pending - completed) / (rate * 60) if rate > 0 else 0
+            t_now = time.time()
+            recent_completed.append((t_now, len(batch_results)))
+            # Rolling rate over last 60 seconds
+            while recent_completed and t_now - recent_completed[0][0] > 60:
+                recent_completed.pop(0)
+
+            rolling_window = max(1.0, min(60.0, t_now - actual_gen_start))
+            rolling_count = sum(c for _, c in recent_completed)
+            rate = (rolling_count / rolling_window) * 60
+            eta_mins = (total_pending - completed) / rate if rate > 0 else 0
 
             last_v = batch_results[-1][0]
-            status = f"[{completed:,}/{total_pending:,}] ({completed/total_pending*100:.1f}%) | {rate*60:.1f} v/min | ETA: {eta_mins:.1f}m | {last_v['book']} {last_v['chapter']}:{last_v['verse']}"
+            status = f"[{completed:,}/{total_pending:,}] ({completed/total_pending*100:.1f}%) | {rate:.1f} v/min | ETA: {eta_mins:.1f}m | {last_v['book']} {last_v['chapter']}:{last_v['verse']}"
             print(status)
             sys.stdout.flush()
-
-            if completed % 16 == 0:
-                with save_lock:
-                    save_databases()
-
-            if os.environ.get('GITHUB_ACTIONS') == 'true' and (time.time() - last_sync_time) > 900:
-                print("\n[PERIODIC CLOUD SYNC] Pushing progress to GitHub...")
-                with save_lock:
-                    save_databases()
-                subprocess.run(['python', 'scripts/cloud_merge_and_push.py'])
-                last_sync_time = time.time()
 
             if cli_args.max_count > 0 and completed >= cli_args.max_count:
                 print(f"\n[TARGET REACHED] Generated {completed} verses. Stopping run.")
                 stop_requested = True
                 break
 
-            if cli_args.max_minutes > 0 and (time.time() - start_time) > (cli_args.max_minutes * 60):
+            if cli_args.max_minutes > 0 and (t_now - actual_gen_start) > (cli_args.max_minutes * 60):
                 print(f"\n[TIME LIMIT REACHED] Ran for {cli_args.max_minutes} minutes. Saving and stopping.")
                 stop_requested = True
                 break
@@ -566,13 +595,25 @@ def worker_thread(worker_id):
 
 try:
     threads = []
+    # Start background saver thread
+    saver_t = Thread(target=background_saver, daemon=True)
+    saver_t.start()
+    threads.append(saver_t)
+
+    # Start background cloud sync thread
+    syncer_t = Thread(target=background_cloud_syncer, daemon=True)
+    syncer_t.start()
+    threads.append(syncer_t)
+
+    # Start generator workers
+    worker_threads = []
     for w in range(WORKERS):
         t = Thread(target=worker_thread, args=(w,))
         t.daemon = True
         t.start()
-        threads.append(t)
+        worker_threads.append(t)
 
-    for t in threads:
+    for t in worker_threads:
         t.join()
 
 except KeyboardInterrupt:
