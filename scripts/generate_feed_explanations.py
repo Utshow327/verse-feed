@@ -56,12 +56,12 @@ def get_next_key():
 GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
 # Fast models with independent rate limits to maximize throughput
-# (compound-mini excluded due to its tiny 250 RPD bottleneck)
+# Put ultra-fast models (sub-second responses) first
 MODELS = [
-    'qwen/qwen3.6-27b',
     'openai/gpt-oss-20b',
-    'qwen/qwen3.8-27b',
-    'allam-2-7b'
+    'allam-2-7b',
+    'qwen/qwen3.6-27b',
+    'qwen/qwen3.8-27b'
 ]
 
 OUTPUT_FILE = os.path.join('data', 'verse_explanations.json')
@@ -375,12 +375,11 @@ def save_databases():
     except Exception as e:
         print(f"Error saving databases: {e}")
 
-model_index = 0
+from queue import Queue, Empty
+from threading import Thread, Lock
 
-model_index = 0
-
-def call_ai_batch(verse_batch):
-    global model_index
+def call_ai_batch_for_worker(verse_batch, worker_id):
+    start_model_idx = worker_id % len(MODELS)
     prompt = (
         "Respond in valid JSON format.\n"
         "You explain world scriptures in simple, plain, easy-to-understand English.\n"
@@ -399,10 +398,12 @@ def call_ai_batch(verse_batch):
         v_ref = f"{item['religion']} - {item['book']} {item['chapter']}:{item['verse']}"
         prompt += f'v{idx+1}: "{v_text}" ({v_ref})\n'
 
-    max_attempts = 25
+    max_attempts = len(MODELS) * 2
     for attempt in range(max_attempts):
-        model = MODELS[(model_index + attempt) % len(MODELS)]
-        curr_key = get_next_key()
+        model = MODELS[(start_model_idx + attempt) % len(MODELS)]
+        key_idx = (worker_id + (attempt // len(MODELS))) % len(API_KEYS)
+        curr_key = API_KEYS[key_idx]
+
         payload = {
             'model': model,
             'messages': [
@@ -426,7 +427,7 @@ def call_ai_batch(verse_batch):
         })
 
         try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with urllib.request.urlopen(req, timeout=12) as resp:
                 res = json.loads(resp.read().decode('utf-8'))
                 raw = res['choices'][0]['message'].get('content', '').strip()
                 raw = re.sub(r'<think>.*?</think>', '', raw, flags=re.DOTALL).strip()
@@ -457,29 +458,25 @@ def call_ai_batch(verse_batch):
                         results.append((v_item, ctx_val, meaning_val))
 
                 if len(results) >= max(1, len(verse_batch) // 2):
-                    model_index = (model_index + 1) % len(MODELS)
                     return results, None
         except urllib.error.HTTPError as e:
-            model_index = (model_index + 1) % len(MODELS)
             if e.code == 429:
-                err_body = e.read().decode('utf-8', errors='replace')
-                m = re.search(r'try again in (\d+(?:\.\d+)?)(?:m|s)', err_body)
-                wait_sec = 2.0
-                if m:
-                    wait_sec = min(float(m.group(1)) + 0.5, 8.0)
-                time.sleep(wait_sec)
+                time.sleep(0.3)
                 continue
-            time.sleep(1.0)
+            time.sleep(0.5)
         except Exception:
-            time.sleep(1.0)
+            time.sleep(0.5)
 
     return [], "Rate limit cooldown needed"
 
+BATCH_SIZE = 4
+WORKERS = max(4, min(len(API_KEYS), 8))
+
 print("=" * 70)
-print(f"  STARTING FEED EXPLANATIONS GENERATOR ({len(pending_queue):,} verses queued)")
-print("  Running with auto-rotating models: " + ", ".join(MODELS))
-print(f"  Batching: 4 verses per API call across {len(API_KEYS)} API key(s)")
-print("  Auto-saves continuously. Logs to " + LOG_FILE)
+print(f"  STARTING TURBO FEED EXPLANATIONS GENERATOR ({len(pending_queue):,} queued)")
+print(f"  Concurrency: {WORKERS} parallel workers with dedicated keys across {len(API_KEYS)} key(s)")
+print("  Active Models: " + ", ".join(MODELS))
+print("  Continuous pipeline (zero idle wait). Auto-saves to " + OUTPUT_FILE)
 print("=" * 70)
 
 import subprocess
@@ -488,85 +485,105 @@ start_time = time.time()
 last_sync_time = time.time()
 completed = 0
 total_pending = len(pending_queue)
-BATCH_SIZE = 4
-WORKERS = 3
+stop_requested = False
+
+results_lock = Lock()
+save_lock = Lock()
+
+task_queue = Queue()
+for i in range(0, total_pending, BATCH_SIZE):
+    task_queue.put(pending_queue[i:i + BATCH_SIZE])
 
 with open(LOG_FILE, 'a', encoding='utf-8') as log_f:
-    log_f.write(f"\n--- Generator Started at {time.ctime()} ({total_pending} verses, batch size {BATCH_SIZE}) ---\n")
+    log_f.write(f"\n--- Turbo Generator Started at {time.ctime()} ({total_pending} verses, {WORKERS} workers) ---\n")
 
-try:
-    with ThreadPoolExecutor(max_workers=WORKERS) as executor:
-        for i in range(0, total_pending, BATCH_SIZE * WORKERS):
-            round_chunk = pending_queue[i:i + (BATCH_SIZE * WORKERS)]
-            batches = [round_chunk[j:j + BATCH_SIZE] for j in range(0, len(round_chunk), BATCH_SIZE)]
-            futures = [executor.submit(call_ai_batch, b) for b in batches]
+def worker_thread(worker_id):
+    global completed, last_sync_time, stop_requested
+    while not stop_requested:
+        try:
+            verse_batch = task_queue.get(timeout=2)
+        except Empty:
+            break
 
-            for fut in as_completed(futures):
-                try:
-                    batch_results, err = fut.result()
-                except Exception as fut_err:
-                    print(f"Batch processing error: {fut_err}")
-                    continue
+        batch_results, err = call_ai_batch_for_worker(verse_batch, worker_id)
+        if not batch_results:
+            task_queue.put(verse_batch)
+            time.sleep(1.5)
+            continue
 
-                for v_item, ctx_val, meaning_val in batch_results:
-                    feed_k = v_item.get('feed_key') or v_item['key']
-                    alt_k = v_item.get('alt_key')
+        with results_lock:
+            for v_item, ctx_val, meaning_val in batch_results:
+                feed_k = v_item.get('feed_key') or v_item['key']
+                alt_k = v_item.get('alt_key')
 
-                    entry = {
-                        'meaning': meaning_val,
-                        'context': ctx_val,
-                        'religion': v_item['religion'],
-                        'book': v_item['book'],
-                        'chapter': v_item['chapter'],
-                        'verse': v_item['verse'],
-                        'updated_at': int(time.time() * 1000)
-                    }
+                entry = {
+                    'meaning': meaning_val,
+                    'context': ctx_val,
+                    'religion': v_item['religion'],
+                    'book': v_item['book'],
+                    'chapter': v_item['chapter'],
+                    'verse': v_item['verse'],
+                    'updated_at': int(time.time() * 1000)
+                }
 
-                    explanations[feed_k] = entry
-                    if alt_k and alt_k != feed_k:
-                        explanations[alt_k] = entry
+                explanations[feed_k] = entry
+                if alt_k and alt_k != feed_k:
+                    explanations[alt_k] = entry
 
-                    completed += 1
+                completed += 1
 
-                if batch_results:
-                    if completed % 8 == 0:
-                        save_databases()
+            elapsed = time.time() - start_time
+            rate = completed / elapsed if elapsed > 0 else 0
+            eta_mins = (total_pending - completed) / (rate * 60) if rate > 0 else 0
 
-                    elapsed = time.time() - start_time
-                    rate = completed / elapsed if elapsed > 0 else 0
-                    eta_mins = (total_pending - completed) / (rate * 60) if rate > 0 else 0
+            last_v = batch_results[-1][0]
+            status = f"[{completed:,}/{total_pending:,}] ({completed/total_pending*100:.1f}%) | {rate*60:.1f} v/min | ETA: {eta_mins:.1f}m | {last_v['book']} {last_v['chapter']}:{last_v['verse']}"
+            print(status)
+            sys.stdout.flush()
 
-                    last_v = batch_results[-1][0]
-                    status = f"[{completed:,}/{total_pending:,}] ({completed/total_pending*100:.1f}%) | {rate*60:.1f} v/min | ETA: {eta_mins:.1f}m | {last_v['book']} {last_v['chapter']}:{last_v['verse']}"
-                    print(status)
-                    sys.stdout.flush()
+            if completed % 16 == 0:
+                with save_lock:
+                    save_databases()
 
-                if cli_args.max_count > 0 and completed >= cli_args.max_count:
-                    break
-
-            # In GitHub Actions cloud environment, push progress to GitHub every 15 minutes
             if os.environ.get('GITHUB_ACTIONS') == 'true' and (time.time() - last_sync_time) > 900:
                 print("\n[PERIODIC CLOUD SYNC] Pushing progress to GitHub...")
-                save_databases()
+                with save_lock:
+                    save_databases()
                 subprocess.run(['python', 'scripts/cloud_merge_and_push.py'])
                 last_sync_time = time.time()
 
             if cli_args.max_count > 0 and completed >= cli_args.max_count:
                 print(f"\n[TARGET REACHED] Generated {completed} verses. Stopping run.")
+                stop_requested = True
                 break
 
             if cli_args.max_minutes > 0 and (time.time() - start_time) > (cli_args.max_minutes * 60):
                 print(f"\n[TIME LIMIT REACHED] Ran for {cli_args.max_minutes} minutes. Saving and stopping.")
+                stop_requested = True
                 break
 
-            time.sleep(0.3)
+        task_queue.task_done()
+
+try:
+    threads = []
+    for w in range(WORKERS):
+        t = Thread(target=worker_thread, args=(w,))
+        t.daemon = True
+        t.start()
+        threads.append(t)
+
+    for t in threads:
+        t.join()
 
 except KeyboardInterrupt:
     print("\nPaused by user. Saving progress...")
+    stop_requested = True
 except Exception as main_err:
     print(f"\nUnexpected pipeline error: {main_err}")
+    stop_requested = True
 finally:
-    save_databases()
+    with save_lock:
+        save_databases()
     elapsed = time.time() - start_time
     print(f"\nSession finished: {completed:,} verses generated in {elapsed/60:.1f} mins.")
     print(f"Total explanations in database: {len(explanations):,}")
