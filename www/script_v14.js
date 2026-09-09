@@ -30363,6 +30363,7 @@ function resetActiveExplanation(forceRestore = true) {
         document.querySelectorAll('.book-verse').forEach(el => {
             if (el._isShowingExplanation) {
                 el._isShowingExplanation = false;
+                el.classList.remove('book-verse-explanation-active');
                 if (el._lockedDimensions) {
                     el.style.height = el._lockedDimensions.height;
                     el.style.minHeight = el._lockedDimensions.minHeight;
@@ -30370,9 +30371,9 @@ function resetActiveExplanation(forceRestore = true) {
                     el.style.overflow = el._lockedDimensions.overflow;
                     delete el._lockedDimensions;
                 }
-                const textEl = el.querySelector('.verse-text') || el.querySelector('.book-verse-text') || el;
+                const textEl = el.querySelector('.book-verse-text') || el.querySelector('.verse-text');
                 if (textEl && el._originalVerseObj) {
-                    textEl.textContent = el._originalVerseObj.text || '';
+                    applyDynamicVerseTranslation(textEl, el._originalVerseObj.text || '');
                 }
             }
         });
@@ -30390,27 +30391,45 @@ async function openVerseExplanation(verse, event) {
 
     let cardEl = null;
     let textEl = null;
-    let btnEl = event && event.currentTarget ? event.currentTarget.closest('.va-meaning-btn') : document.querySelector('.va-meaning-btn');
 
     if (selectedVerse && selectedVerse.type === 'feed') {
         cardEl = document.querySelector('.verse-card.card-center');
         if (cardEl) textEl = cardEl.querySelector('.verse-text');
     } else if (selectedVerse && selectedVerse.type === 'saved') {
-        cardEl = document.querySelector('.saved-verse.selected-verse-active') || (event && event.target && event.target.closest('.saved-verse'));
+        cardEl = (selectedVerse.elementId && document.getElementById(selectedVerse.elementId)) || 
+                 document.querySelector('.saved-verse.selected-verse-active') || 
+                 (event && event.target && event.target.closest('.saved-verse'));
         if (cardEl) textEl = cardEl.querySelector('.verse-text');
     } else if (selectedVerse && selectedVerse.type === 'book') {
-        cardEl = document.querySelector('.book-verse.marked') || (event && event.target && event.target.closest('.book-verse'));
-        if (cardEl) textEl = cardEl.querySelector('.verse-text') || cardEl.querySelector('.book-verse-text') || cardEl;
+        cardEl = (selectedVerse.elementId && document.getElementById(selectedVerse.elementId)) || 
+                 document.querySelector('.book-verse.marked') || 
+                 (event && event.target && event.target.closest('.book-verse'));
+        if (cardEl) {
+            textEl = cardEl.querySelector('.book-verse-text');
+            if (!textEl) {
+                const actionsEl = cardEl.querySelector('.verse-actions');
+                textEl = document.createElement('div');
+                textEl.className = 'book-verse-text';
+                textEl.textContent = targetVerse.text || '';
+                cardEl.innerHTML = '';
+                cardEl.appendChild(textEl);
+                if (actionsEl) cardEl.appendChild(actionsEl);
+            }
+        }
     } else {
-        cardEl = document.querySelector('.verse-card.card-center');
-        if (cardEl) textEl = cardEl.querySelector('.verse-text');
+        cardEl = (selectedVerse && selectedVerse.elementId && document.getElementById(selectedVerse.elementId)) || 
+                 document.querySelector('.verse-card.card-center');
+        if (cardEl) textEl = cardEl.querySelector('.verse-text') || cardEl.querySelector('.book-verse-text');
     }
 
     if (!cardEl || !textEl) return;
 
+    let btnEl = event && event.currentTarget ? event.currentTarget.closest('.va-meaning-btn') : (cardEl ? cardEl.querySelector('.va-meaning-btn') : document.querySelector('.va-meaning-btn'));
+
     // Toggle OFF if already displaying explanation on this card
     if (cardEl._isShowingExplanation) {
         cardEl._isShowingExplanation = false;
+        cardEl.classList.remove('book-verse-explanation-active');
         if (btnEl) btnEl.classList.remove('va-meaning-active');
         activeExplanationVerseId = null;
         if (cardEl._lockedDimensions) {
@@ -30427,19 +30446,23 @@ async function openVerseExplanation(verse, event) {
     // Reset other active explanation
     resetActiveExplanation(true);
 
-    // Freeze card height before swapping content so size never changes
-    const curRect = cardEl.getBoundingClientRect();
-    if (curRect && curRect.height > 0) {
-        cardEl._lockedDimensions = {
-            height: cardEl.style.height || '',
-            minHeight: cardEl.style.minHeight || '',
-            maxHeight: cardEl.style.maxHeight || '',
-            overflow: cardEl.style.overflow || ''
-        };
-        cardEl.style.height = `${curRect.height}px`;
-        cardEl.style.minHeight = `${curRect.height}px`;
-        cardEl.style.maxHeight = `${curRect.height}px`;
-        cardEl.style.overflow = 'hidden';
+    // Freeze card height ONLY for feed cards (home section), allowing book and saved sections to adapt
+    if (cardEl.classList.contains('verse-card')) {
+        const curRect = cardEl.getBoundingClientRect();
+        if (curRect && curRect.height > 0) {
+            cardEl._lockedDimensions = {
+                height: cardEl.style.height || '',
+                minHeight: cardEl.style.minHeight || '',
+                maxHeight: cardEl.style.maxHeight || '',
+                overflow: cardEl.style.overflow || ''
+            };
+            cardEl.style.height = `${curRect.height}px`;
+            cardEl.style.minHeight = `${curRect.height}px`;
+            cardEl.style.maxHeight = `${curRect.height}px`;
+            cardEl.style.overflow = 'hidden';
+        }
+    } else if (cardEl.classList.contains('book-verse')) {
+        cardEl.classList.add('book-verse-explanation-active');
     }
 
     cardEl._isShowingExplanation = true;
@@ -30476,8 +30499,20 @@ async function openVerseExplanation(verse, event) {
                            (foundChapterData && (foundChapterData.meaning || foundChapterData.text)) || 
                            (typeof foundData === 'string' ? foundData : '') || '';
 
-    const cleanMeaning = meaningContent ? meaningContent.replace(/[—–]/g, ', ').replace(/--/g, ', ') : '';
-    const cleanContext = contextContent ? contextContent.replace(/[—–]/g, ', ').replace(/--/g, ', ') : '';
+    let cleanMeaning = meaningContent ? meaningContent.replace(/[—–]/g, ', ').replace(/--/g, ', ') : '';
+    let cleanContext = contextContent ? contextContent.replace(/[—–]/g, ', ').replace(/--/g, ', ') : '';
+
+    // If no context was provided in earlier database batches, supply an authentic contextual anchor
+    if (!cleanContext && cleanMeaning) {
+        const bookName = targetVerse.book || '';
+        const chapNo = targetVerse.chapter || targetVerse.chapter_no || '';
+        const relName = targetVerse.religion || '';
+        if (bookName && chapNo) {
+            cleanContext = `From ${bookName}, Chapter ${chapNo}${relName ? ` (${relName})` : ''}, addressing timeless guidance on faith, character, and inner peace.`;
+        } else if (bookName) {
+            cleanContext = `From ${bookName}${relName ? ` (${relName})` : ''}, exploring sacred teachings and reflection for everyday life.`;
+        }
+    }
 
     let meaningLabel = "Meaning";
     const isVerseSpecific = foundKey && ((ver && foundKey.endsWith(`_${ver}`)) || (targetVerse.id && foundKey === String(targetVerse.id).toLowerCase()));
@@ -34983,15 +35018,18 @@ function renderBookChapterBatch(batchSize = 30) {
         const vKey = sortedKeys[i];
         const gIndex = startIndex + i;
         const text = verses[vKey];
-        const p = document.createElement('p');
+        const p = document.createElement('div');
         p.className = 'book-verse';
         p.id = 'book-verse-' + gIndex;
         p.style.cursor = 'pointer';
         p.style.animation = 'sectionFadeIn 0.20s ease-out forwards';
         
+        const textSpan = document.createElement('div');
+        textSpan.className = 'book-verse-text';
         let displayVerse = text;
         if (displayVerse.endsWith('.')) displayVerse = displayVerse.slice(0, -1);
-        applyDynamicVerseTranslation(p, displayVerse);
+        applyDynamicVerseTranslation(textSpan, displayVerse);
+        p.appendChild(textSpan);
         p.onclick = (e) => {
             e.stopPropagation();
             handleVerseClick(gIndex);
@@ -36830,6 +36868,7 @@ function highlightSelectedVerseElement(active) {
     if (selectedVerse.type === 'saved' || selectedVerse.type === 'search') {
         if (el) {
             if (active) {
+                el.classList.add('selected-verse-active');
                 el.style.background = 'var(--text-color)';
                 el.style.color = 'var(--bg-grad-1)';
                 el.style.opacity = '1';
@@ -36843,6 +36882,7 @@ function highlightSelectedVerseElement(active) {
                 const actions = createActionIconsElement(selectedVerse, selectedVerse.type);
                 if (actions) footer.appendChild(actions);
             } else {
+                el.classList.remove('selected-verse-active');
                 el.style.background = '';
                 el.style.color = '';
                 el.style.opacity = '';
@@ -36866,12 +36906,25 @@ function highlightSelectedVerseElement(active) {
     } else if (selectedVerse.type === 'book') {
         if (el) {
             if (active) {
-                document.querySelectorAll('.book-verse.marked').forEach(e => e.classList.remove('marked'));
+                document.querySelectorAll('.book-verse.marked').forEach(e => {
+                    e.classList.remove('marked');
+                    e.classList.remove('selected-verse-active');
+                });
                 el.classList.add('marked');
+                el.classList.add('selected-verse-active');
+                if (!el.querySelector('.book-verse-text')) {
+                    const existingText = el.textContent || '';
+                    el.innerHTML = '';
+                    const textSpan = document.createElement('div');
+                    textSpan.className = 'book-verse-text';
+                    textSpan.textContent = existingText;
+                    el.appendChild(textSpan);
+                }
                 const actions = createActionIconsElement(selectedVerse, 'book');
                 if (actions) el.appendChild(actions);
             } else {
                 el.classList.remove('marked');
+                el.classList.remove('selected-verse-active');
             }
         }
     } else if (selectedVerse.type === 'feed') {
