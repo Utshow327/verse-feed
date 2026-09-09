@@ -30321,63 +30321,39 @@ function getCandidateExplanationKeys(verse) {
 
 let activeExplanationVerseId = null;
 
-function animateCardExpand(cardEl, updateContentFn) {
-    if (!cardEl) {
-        if (updateContentFn) updateContentFn();
-        return;
-    }
-
-    if (cardEl._expandAnimTimer) {
-        clearTimeout(cardEl._expandAnimTimer);
-        cardEl._expandAnimTimer = null;
-    }
-
-    const startHeight = cardEl.offsetHeight;
-
-    if (updateContentFn) updateContentFn();
-
-    const targetHeight = cardEl.offsetHeight;
-
-    if (startHeight === targetHeight || startHeight === 0 || targetHeight === 0) {
-        return;
-    }
-
-    cardEl.style.height = `${startHeight}px`;
-    cardEl.style.overflow = 'hidden';
-    void cardEl.offsetHeight; // force reflow
-
-    const duration = 280;
-    cardEl.style.transition = `height ${duration}ms cubic-bezier(0.25, 1, 0.5, 1)`;
-    cardEl.style.height = `${targetHeight}px`;
-
-    cardEl._expandAnimTimer = setTimeout(() => {
-        cardEl.style.height = '';
-        cardEl.style.overflow = '';
-        cardEl.style.transition = '';
-        cardEl._expandAnimTimer = null;
-    }, duration + 20);
-}
-
-function smoothSwapContent(element, updateCallback, onComplete) {
+function fadeSwapContent(element, updateCallback, onComplete) {
     if (!element) {
         if (updateCallback) updateCallback();
         if (onComplete) onComplete();
         return;
     }
 
+    if (element._fadeSwapTimer1) clearTimeout(element._fadeSwapTimer1);
+    if (element._fadeSwapTimer2) clearTimeout(element._fadeSwapTimer2);
+
     element.classList.remove('exp-fade-in');
     element.classList.add('exp-fade-out');
 
-    setTimeout(() => {
+    element._fadeSwapTimer1 = setTimeout(() => {
         if (updateCallback) updateCallback();
         element.classList.remove('exp-fade-out');
         element.classList.add('exp-fade-in');
 
-        setTimeout(() => {
+        element._fadeSwapTimer2 = setTimeout(() => {
             element.classList.remove('exp-fade-in');
+            element._fadeSwapTimer1 = null;
+            element._fadeSwapTimer2 = null;
             if (onComplete) onComplete();
-        }, 280);
-    }, 120);
+        }, 160);
+    }, 110);
+}
+
+function animateCardExpand(cardEl, updateContentFn) {
+    if (updateContentFn) updateContentFn();
+}
+
+function smoothSwapContent(element, updateCallback, onComplete) {
+    fadeSwapContent(element, updateCallback, onComplete);
 }
 
 function resetActiveExplanation(forceRestore = true) {
@@ -30389,12 +30365,14 @@ function resetActiveExplanation(forceRestore = true) {
         const card = document.querySelector('.verse-card.card-center');
         if (card && card._isShowingExplanation) {
             card._isShowingExplanation = false;
-            card.classList.remove('card-explanation-active');
             const textEl = card.querySelector('.verse-text');
             if (textEl && card._originalVerseObj) {
-                smoothSwapContent(textEl, () => {
+                fadeSwapContent(textEl, () => {
+                    card.classList.remove('card-explanation-active');
                     applyDynamicVerseTranslation(textEl, card._originalVerseObj.text || '');
                 });
+            } else {
+                card.classList.remove('card-explanation-active');
             }
         }
 
@@ -30403,12 +30381,14 @@ function resetActiveExplanation(forceRestore = true) {
                 el._isShowingExplanation = false;
                 const textEl = el.querySelector('.verse-text');
                 const origObj = el._originalVerseObj;
-                animateCardExpand(el, () => {
-                    el.classList.remove('saved-verse-explanation-active');
-                    if (textEl && origObj) {
+                if (textEl && origObj) {
+                    fadeSwapContent(textEl, () => {
+                        el.classList.remove('saved-verse-explanation-active');
                         applyDynamicVerseTranslation(textEl, origObj.text || '');
-                    }
-                });
+                    });
+                } else {
+                    el.classList.remove('saved-verse-explanation-active');
+                }
             }
         });
 
@@ -30417,12 +30397,14 @@ function resetActiveExplanation(forceRestore = true) {
                 el._isShowingExplanation = false;
                 const textEl = el.querySelector('.book-verse-text') || el.querySelector('.verse-text');
                 const origObj = el._originalVerseObj;
-                animateCardExpand(el, () => {
-                    el.classList.remove('book-verse-explanation-active');
-                    if (textEl && origObj) {
+                if (textEl && origObj) {
+                    fadeSwapContent(textEl, () => {
+                        el.classList.remove('book-verse-explanation-active');
                         applyDynamicVerseTranslation(textEl, origObj.text || '');
-                    }
-                });
+                    });
+                } else {
+                    el.classList.remove('book-verse-explanation-active');
+                }
             }
         });
     }
@@ -30480,20 +30462,12 @@ async function openVerseExplanation(verse, event) {
         if (btnEl) btnEl.classList.remove('va-meaning-active');
         activeExplanationVerseId = null;
 
-        const isFeedCard = cardEl.classList.contains('verse-card');
-
-        if (isFeedCard) {
+        fadeSwapContent(textEl, () => {
             cardEl.classList.remove('card-explanation-active');
-            smoothSwapContent(textEl, () => {
-                applyDynamicVerseTranslation(textEl, targetVerse.text || '');
-            });
-        } else {
-            animateCardExpand(cardEl, () => {
-                cardEl.classList.remove('book-verse-explanation-active');
-                cardEl.classList.remove('saved-verse-explanation-active');
-                applyDynamicVerseTranslation(textEl, targetVerse.text || '');
-            });
-        }
+            cardEl.classList.remove('book-verse-explanation-active');
+            cardEl.classList.remove('saved-verse-explanation-active');
+            applyDynamicVerseTranslation(textEl, targetVerse.text || '');
+        });
         return;
     }
 
@@ -30593,22 +30567,16 @@ async function openVerseExplanation(verse, event) {
         `;
     }
 
-    const isFeedCard = cardEl.classList.contains('verse-card');
-    if (isFeedCard) {
-        cardEl.classList.add('card-explanation-active');
-        smoothSwapContent(textEl, () => {
-            textEl.innerHTML = expHtml;
-        });
-    } else {
-        animateCardExpand(cardEl, () => {
-            if (cardEl.classList.contains('book-verse')) {
-                cardEl.classList.add('book-verse-explanation-active');
-            } else if (cardEl.classList.contains('saved-verse')) {
-                cardEl.classList.add('saved-verse-explanation-active');
-            }
-            textEl.innerHTML = expHtml;
-        });
-    }
+    fadeSwapContent(textEl, () => {
+        if (cardEl.classList.contains('verse-card')) {
+            cardEl.classList.add('card-explanation-active');
+        } else if (cardEl.classList.contains('book-verse')) {
+            cardEl.classList.add('book-verse-explanation-active');
+        } else if (cardEl.classList.contains('saved-verse')) {
+            cardEl.classList.add('saved-verse-explanation-active');
+        }
+        textEl.innerHTML = expHtml;
+    });
 }
 
 function closeVerseExplanationModal(event) {

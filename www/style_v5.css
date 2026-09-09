@@ -915,7 +915,7 @@ h2 {
     margin-bottom: 14px;
     padding: 10px 14px;
     border-radius: 12px;
-    transition: background 0.3s ease, padding 0.35s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s ease;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
     cursor: pointer;
     font-size: clamp(1.02rem, 3.2vw, 1.18rem);
     line-height: 1.65;
@@ -2095,18 +2095,6 @@ h2 {
     box-sizing: border-box !important;
     margin: auto auto !important;
     padding: 6px 0 !important;
-    animation: expSmoothIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
-}
-
-@keyframes expSmoothIn {
-    0% {
-        opacity: 0;
-        transform: translateY(6px) scale(0.99);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
 }
 
 .card-explanation-section {
@@ -2174,20 +2162,31 @@ h2 {
     box-sizing: border-box !important;
 }
 
-/* Smooth content transitions */
+/* Pure zero-lag opacity fade transitions */
 .exp-fade-out {
     opacity: 0 !important;
-    transform: translateY(-4px) scale(0.98) !important;
-    transition: opacity 0.12s ease, transform 0.12s ease !important;
+    transition: opacity 0.11s ease-out !important;
+    will-change: opacity;
 }
 
 .exp-fade-in {
-    animation: expSmoothIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    opacity: 1 !important;
+    animation: expFadeIn 0.15s ease-out forwards !important;
+    will-change: opacity;
+}
+
+@keyframes expFadeIn {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
 }
 
 /* Book verse in explanation mode */
 .book-verse.book-verse-explanation-active {
-    padding: 12px 14px !important;
+    padding: 10px 14px !important;
     border-radius: 12px !important;
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18) !important;
 }
@@ -2210,7 +2209,7 @@ h2 {
 
 /* Saved verse in explanation mode */
 .saved-verse.saved-verse-explanation-active {
-    padding: 12px 14px !important;
+    padding: 16px 18px !important;
     border-radius: 16px !important;
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18) !important;
 }
