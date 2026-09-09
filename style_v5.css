@@ -2086,7 +2086,11 @@ h2 {
     padding: 0 !important;
     transform: none !important;
     filter: none !important;
-    color: var(--p-gold) !important;
+    color: var(--p-sand) !important;
+}
+
+[data-theme="dark"] .va-meaning-btn.va-meaning-active {
+    color: var(--bg-grad-2) !important;
 }
 
 /* --- Card Explanation Layout & Typography --- */
@@ -2246,7 +2250,12 @@ h2 {
     padding: 0 !important;
     transform: none !important;
     filter: none !important;
-    color: var(--p-gold) !important;
+    color: var(--p-sand) !important;
+}
+
+[data-theme="dark"] .book-verse.marked .va-meaning-btn.va-meaning-active,
+[data-theme="dark"] .saved-verse .va-meaning-btn.va-meaning-active {
+    color: var(--bg-grad-2) !important;
 }
 
 
