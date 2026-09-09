@@ -337,9 +337,12 @@ if not pending_queue:
 
 def sanitize_text(text):
     if not text: return ''
-    # Strip <think> reasoning tags
-    text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
-    text = re.sub(r'Here\'s a thinking.*', '', text, flags=re.DOTALL)
+    # Strip <think> reasoning tags (both closed and unclosed if truncated)
+    text = re.sub(r'<think>[\s\S]*?</think>', '', text)
+    text = re.sub(r'<think>[\s\S]*', '', text)
+    text = re.sub(r'Here\'s a thinking[\s\S]*', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'1\.\s*\*\*Analyze User Input[\s\S]*', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\*\*Role:\*\*[\s\S]*', '', text, flags=re.IGNORECASE)
     text = re.sub(r'<[^>]+>', '', text)
     # Remove em-dashes and en-dashes
     text = text.replace('\u2014', ', ').replace('\u2013', ', ').replace('--', ', ')
@@ -462,6 +465,12 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
                         meaning_val = sanitize_text(str(item_data.get('meaning', '')))
                     elif isinstance(item_data, str):
                         meaning_val = sanitize_text(item_data)
+
+                    # Explicitly reject contaminated or prompt-leaking outputs
+                    bad_indicators = ['<think', 'thinking process', 'user input', 'expert scholar', '**role', '**task', 'strict rules']
+                    if any(b in meaning_val.lower() for b in bad_indicators) or any(b in ctx_val.lower() for b in bad_indicators):
+                        meaning_val = ''
+                        ctx_val = ''
 
                     if meaning_val and len(meaning_val.split()) >= 8:
                         results.append((v_item, ctx_val, meaning_val))
