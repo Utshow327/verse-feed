@@ -331,6 +331,10 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     width: 84%;
     max-width: 760px;
     height: 65vh;
+    min-height: 65vh;
+    max-height: 65vh;
+    box-sizing: border-box;
+    overflow: hidden;
     padding: 24px;
     display: flex;
     flex-direction: column;
@@ -381,12 +385,30 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     line-height: 1.55;
     color: var(--text-color);
     flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+    max-height: 100%;
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
     overflow-y: auto;
     margin-bottom: 40px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--loader-rgb), 0.2) transparent;
+}
+
+.verse-text::-webkit-scrollbar {
+    width: 4px;
+}
+.verse-text::-webkit-scrollbar-track {
+    background: transparent;
+}
+.verse-text::-webkit-scrollbar-thumb {
+    background: rgba(var(--loader-rgb), 0.25);
+    border-radius: 4px;
 }
 
 .card-footer,
@@ -2060,12 +2082,15 @@ h2 {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 14px;
+    gap: 10px;
     width: 100%;
-    max-width: 94%;
+    max-width: 96%;
+    max-height: 100%;
+    box-sizing: border-box;
     text-align: center;
     animation: fadeInExp 0.22s ease-out;
     margin: auto 0;
+    padding: 4px 0;
 }
 
 @keyframes fadeInExp {
@@ -2077,12 +2102,13 @@ h2 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     width: 100%;
+    box-sizing: border-box;
 }
 
 .card-exp-badge {
-    font-size: 0.65rem;
+    font-size: 0.62rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1.2px;
@@ -2092,8 +2118,8 @@ h2 {
 }
 
 .card-exp-text {
-    font-size: clamp(1.05rem, 3.4vw, 1.25rem);
-    line-height: 1.52;
+    font-size: clamp(0.94rem, 3.0vw, 1.12rem);
+    line-height: 1.46;
     font-weight: 400;
     margin: 0;
     padding: 0;
@@ -2105,9 +2131,9 @@ h2 {
     .verse-card {
         width: 60%;
         max-width: 800px;
-        height: auto;
-        min-height: 50vh;
-        max-height: 85vh;
+        height: 65vh;
+        min-height: 65vh;
+        max-height: 65vh;
     }
     .verse-text {
         font-size: 1.5rem;

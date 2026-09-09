@@ -30330,6 +30330,13 @@ function resetActiveExplanation(forceRestore = true) {
         const card = document.querySelector('.verse-card.card-center');
         if (card && card._isShowingExplanation) {
             card._isShowingExplanation = false;
+            if (card._lockedDimensions) {
+                card.style.height = card._lockedDimensions.height;
+                card.style.minHeight = card._lockedDimensions.minHeight;
+                card.style.maxHeight = card._lockedDimensions.maxHeight;
+                card.style.overflow = card._lockedDimensions.overflow;
+                delete card._lockedDimensions;
+            }
             const textEl = card.querySelector('.verse-text');
             if (textEl && card._originalVerseObj) {
                 applyDynamicVerseTranslation(textEl, card._originalVerseObj.text || '');
@@ -30339,6 +30346,13 @@ function resetActiveExplanation(forceRestore = true) {
         document.querySelectorAll('.saved-verse').forEach(el => {
             if (el._isShowingExplanation) {
                 el._isShowingExplanation = false;
+                if (el._lockedDimensions) {
+                    el.style.height = el._lockedDimensions.height;
+                    el.style.minHeight = el._lockedDimensions.minHeight;
+                    el.style.maxHeight = el._lockedDimensions.maxHeight;
+                    el.style.overflow = el._lockedDimensions.overflow;
+                    delete el._lockedDimensions;
+                }
                 const textEl = el.querySelector('.verse-text');
                 if (textEl && el._originalVerseObj) {
                     applyDynamicVerseTranslation(textEl, el._originalVerseObj.text || '');
@@ -30349,6 +30363,13 @@ function resetActiveExplanation(forceRestore = true) {
         document.querySelectorAll('.book-verse').forEach(el => {
             if (el._isShowingExplanation) {
                 el._isShowingExplanation = false;
+                if (el._lockedDimensions) {
+                    el.style.height = el._lockedDimensions.height;
+                    el.style.minHeight = el._lockedDimensions.minHeight;
+                    el.style.maxHeight = el._lockedDimensions.maxHeight;
+                    el.style.overflow = el._lockedDimensions.overflow;
+                    delete el._lockedDimensions;
+                }
                 const textEl = el.querySelector('.verse-text') || el.querySelector('.book-verse-text') || el;
                 if (textEl && el._originalVerseObj) {
                     textEl.textContent = el._originalVerseObj.text || '';
@@ -30392,12 +30413,34 @@ async function openVerseExplanation(verse, event) {
         cardEl._isShowingExplanation = false;
         if (btnEl) btnEl.classList.remove('va-meaning-active');
         activeExplanationVerseId = null;
+        if (cardEl._lockedDimensions) {
+            cardEl.style.height = cardEl._lockedDimensions.height;
+            cardEl.style.minHeight = cardEl._lockedDimensions.minHeight;
+            cardEl.style.maxHeight = cardEl._lockedDimensions.maxHeight;
+            cardEl.style.overflow = cardEl._lockedDimensions.overflow;
+            delete cardEl._lockedDimensions;
+        }
         applyDynamicVerseTranslation(textEl, targetVerse.text || '');
         return;
     }
 
     // Reset other active explanation
     resetActiveExplanation(true);
+
+    // Freeze card height before swapping content so size never changes
+    const curRect = cardEl.getBoundingClientRect();
+    if (curRect && curRect.height > 0) {
+        cardEl._lockedDimensions = {
+            height: cardEl.style.height || '',
+            minHeight: cardEl.style.minHeight || '',
+            maxHeight: cardEl.style.maxHeight || '',
+            overflow: cardEl.style.overflow || ''
+        };
+        cardEl.style.height = `${curRect.height}px`;
+        cardEl.style.minHeight = `${curRect.height}px`;
+        cardEl.style.maxHeight = `${curRect.height}px`;
+        cardEl.style.overflow = 'hidden';
+    }
 
     cardEl._isShowingExplanation = true;
     cardEl._originalVerseObj = targetVerse;
