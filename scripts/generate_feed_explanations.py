@@ -410,7 +410,7 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
                 {'role': 'system', 'content': 'You explain scriptures in simple English with context and meaning. Output valid JSON.'},
                 {'role': 'user', 'content': prompt}
             ],
-            'max_tokens': 600,
+            'max_tokens': 1000,
             'temperature': 0.2
         }
         if 'gpt-oss' in model:
@@ -427,7 +427,7 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
         })
 
         try:
-            with urllib.request.urlopen(req, timeout=12) as resp:
+            with urllib.request.urlopen(req, timeout=15) as resp:
                 res = json.loads(resp.read().decode('utf-8'))
                 raw = res['choices'][0]['message'].get('content', '').strip()
                 parsed = {}
@@ -478,7 +478,7 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
 
     return [], "Rate limit cooldown needed"
 
-BATCH_SIZE = 4
+BATCH_SIZE = 8
 WORKERS = max(4, min(len(API_KEYS), 8))
 
 print("=" * 70)
