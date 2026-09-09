@@ -2086,7 +2086,7 @@ h2 {
     padding: 0 !important;
     transform: none !important;
     filter: none !important;
-    color: #b87322 !important;
+    color: var(--p-gold) !important;
 }
 
 /* --- Card Explanation Layout & Typography --- */
@@ -2246,7 +2246,7 @@ h2 {
     padding: 0 !important;
     transform: none !important;
     filter: none !important;
-    color: #b87322 !important;
+    color: var(--p-gold) !important;
 }
 
 
