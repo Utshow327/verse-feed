@@ -30319,6 +30319,47 @@ function getCandidateExplanationKeys(verse) {
     return keys;
 }
 
+let activeExplanationVerseId = null;
+
+function resetActiveExplanation(forceRestore = true) {
+    document.querySelectorAll('.va-meaning-btn.va-meaning-active').forEach(btn => {
+        btn.classList.remove('va-meaning-active');
+    });
+
+    if (forceRestore) {
+        const card = document.querySelector('.verse-card.card-center');
+        if (card && card._isShowingExplanation) {
+            card._isShowingExplanation = false;
+            const textEl = card.querySelector('.verse-text');
+            if (textEl && card._originalVerseObj) {
+                applyDynamicVerseTranslation(textEl, card._originalVerseObj.text || '');
+            }
+        }
+
+        document.querySelectorAll('.saved-verse').forEach(el => {
+            if (el._isShowingExplanation) {
+                el._isShowingExplanation = false;
+                const textEl = el.querySelector('.verse-text');
+                if (textEl && el._originalVerseObj) {
+                    applyDynamicVerseTranslation(textEl, el._originalVerseObj.text || '');
+                }
+            }
+        });
+
+        document.querySelectorAll('.book-verse').forEach(el => {
+            if (el._isShowingExplanation) {
+                el._isShowingExplanation = false;
+                const textEl = el.querySelector('.verse-text') || el.querySelector('.book-verse-text') || el;
+                if (textEl && el._originalVerseObj) {
+                    textEl.textContent = el._originalVerseObj.text || '';
+                }
+            }
+        });
+    }
+
+    activeExplanationVerseId = null;
+}
+
 async function openVerseExplanation(verse, event) {
     if (event) {
         try { event.stopPropagation(); } catch(e){}
@@ -30326,16 +30367,49 @@ async function openVerseExplanation(verse, event) {
     const targetVerse = verse || selectedVerse || (typeof getCurrentActiveVerse === 'function' ? getCurrentActiveVerse() : null) || (typeof getVerseAtIndex === 'function' ? getVerseAtIndex(currentVerseIndex.general) : null);
     if (!targetVerse) return;
 
+    let cardEl = null;
+    let textEl = null;
+    let btnEl = event && event.currentTarget ? event.currentTarget.closest('.va-meaning-btn') : document.querySelector('.va-meaning-btn');
+
+    if (selectedVerse && selectedVerse.type === 'feed') {
+        cardEl = document.querySelector('.verse-card.card-center');
+        if (cardEl) textEl = cardEl.querySelector('.verse-text');
+    } else if (selectedVerse && selectedVerse.type === 'saved') {
+        cardEl = document.querySelector('.saved-verse.selected-verse-active') || (event && event.target && event.target.closest('.saved-verse'));
+        if (cardEl) textEl = cardEl.querySelector('.verse-text');
+    } else if (selectedVerse && selectedVerse.type === 'book') {
+        cardEl = document.querySelector('.book-verse.marked') || (event && event.target && event.target.closest('.book-verse'));
+        if (cardEl) textEl = cardEl.querySelector('.verse-text') || cardEl.querySelector('.book-verse-text') || cardEl;
+    } else {
+        cardEl = document.querySelector('.verse-card.card-center');
+        if (cardEl) textEl = cardEl.querySelector('.verse-text');
+    }
+
+    if (!cardEl || !textEl) return;
+
+    // Toggle OFF if already displaying explanation on this card
+    if (cardEl._isShowingExplanation) {
+        cardEl._isShowingExplanation = false;
+        if (btnEl) btnEl.classList.remove('va-meaning-active');
+        activeExplanationVerseId = null;
+        applyDynamicVerseTranslation(textEl, targetVerse.text || '');
+        return;
+    }
+
+    // Reset other active explanation
+    resetActiveExplanation(true);
+
+    cardEl._isShowingExplanation = true;
+    cardEl._originalVerseObj = targetVerse;
+    activeExplanationVerseId = targetVerse.id || `${targetVerse.book}_${targetVerse.chapter}_${targetVerse.verse}`;
+    if (btnEl) btnEl.classList.add('va-meaning-active');
+
     if (Object.keys(verseExplanations).length === 0) {
+        textEl.innerHTML = `<div class="card-explanation-view"><div class="card-exp-text">Loading reflection...</div></div>`;
         await loadVerseExplanations();
     }
-    const modal = document.getElementById('verse-explanation-modal');
-    const ctxBlock = document.getElementById('explanation-context-block');
-    const ctxText = document.getElementById('explanation-context-text');
-    const ctxLabel = document.getElementById('explanation-context-label');
-    const meaningLabel = document.getElementById('explanation-meaning-label');
-    const meaningText = document.getElementById('explanation-meaning-text');
-    if (!modal) return;
+
+    if (!cardEl._isShowingExplanation) return;
 
     const chap = targetVerse.chapter || targetVerse.chapter_no || '1';
     const ver = targetVerse.verse || targetVerse.verse_id || targetVerse.hadith_no || '';
@@ -30362,44 +30436,54 @@ async function openVerseExplanation(verse, event) {
     const cleanMeaning = meaningContent ? meaningContent.replace(/[—–]/g, ', ').replace(/--/g, ', ') : '';
     const cleanContext = contextContent ? contextContent.replace(/[—–]/g, ', ').replace(/--/g, ', ') : '';
 
-    if (ctxLabel) {
-        ctxLabel.textContent = "Context";
+    let meaningLabel = "Meaning";
+    const isVerseSpecific = foundKey && ((ver && foundKey.endsWith(`_${ver}`)) || (targetVerse.id && foundKey === String(targetVerse.id).toLowerCase()));
+    const isChapterLevel = foundKey && chap && foundKey.includes(`_${chap}`);
+    if (isVerseSpecific) {
+        meaningLabel = "Meaning";
+    } else if (isChapterLevel) {
+        meaningLabel = "Theme";
+    } else {
+        meaningLabel = "Overview";
     }
 
-    if (meaningLabel) {
-        const isVerseSpecific = foundKey && ((ver && foundKey.endsWith(`_${ver}`)) || (targetVerse.id && foundKey === String(targetVerse.id).toLowerCase()));
-        const isChapterLevel = foundKey && chap && foundKey.includes(`_${chap}`);
-        if (isVerseSpecific) {
-            meaningLabel.textContent = "Meaning";
-        } else if (isChapterLevel) {
-            meaningLabel.textContent = "Theme";
-        } else {
-            meaningLabel.textContent = "Overview";
-        }
+    let expHtml = '';
+    if (cleanContext && cleanMeaning) {
+        expHtml = `
+            <div class="card-explanation-view">
+                <div class="card-explanation-section">
+                    <span class="card-exp-badge">Context</span>
+                    <p class="card-exp-text">${cleanContext}</p>
+                </div>
+                <div class="card-explanation-section">
+                    <span class="card-exp-badge">${meaningLabel}</span>
+                    <p class="card-exp-text">${cleanMeaning}</p>
+                </div>
+            </div>
+        `;
+    } else if (cleanMeaning) {
+        expHtml = `
+            <div class="card-explanation-view">
+                <div class="card-explanation-section">
+                    <span class="card-exp-badge">${meaningLabel}</span>
+                    <p class="card-exp-text">${cleanMeaning}</p>
+                </div>
+            </div>
+        `;
+    } else {
+        expHtml = `
+            <div class="card-explanation-view">
+                <div class="card-explanation-section">
+                    <p class="card-exp-text" style="opacity: 0.85;">A simple life reflection for this verse is being added soon.\n\nTake a quiet breath and reflect on what these words speak to your heart today.</p>
+                </div>
+            </div>
+        `;
     }
 
-    if (cleanContext && ctxBlock && ctxText) {
-        ctxText.textContent = cleanContext;
-        ctxBlock.classList.remove('hidden');
-    } else if (ctxBlock) {
-        ctxBlock.classList.add('hidden');
-    }
-
-    if (meaningText) {
-        if (cleanMeaning) {
-            meaningText.textContent = cleanMeaning;
-        } else {
-            meaningText.textContent = "A simple life reflection for this verse is being added soon.\n\nTake a quiet breath and reflect on what these words speak to your heart today.";
-        }
-    }
-
-    modal.classList.remove('hidden');
+    textEl.innerHTML = expHtml;
 }
 
 function closeVerseExplanationModal(event) {
-    if (event && event.target && event.target.closest && event.target.closest('.modal-content') && !event.target.closest('.explanation-close-btn')) {
-        return;
-    }
     const modal = document.getElementById('verse-explanation-modal');
     if (modal) modal.classList.add('hidden');
 }
@@ -33682,6 +33766,7 @@ function trackVerseDwellTime(verse) {
 }
 
 function renderFeedCard(index, direction = 'none') {
+    resetActiveExplanation(false);
     preloadUpcomingVerses(index);
     const stage = document.getElementById('feed-stage');
     if (!stage) return;
@@ -36585,6 +36670,7 @@ function handlePillDeleteVerse(e) {
 }
 
 function deselectVerse() {
+    resetActiveExplanation(true);
     if (!isSpeaking || isPaused) {
         stopWaveformVisualizer(false);
     }
@@ -36820,6 +36906,10 @@ function selectVerse(verseObj, type, elementId, forceSelect = false) {
         if (isSpeaking && !isPaused) return; // Don't deselect while voice is actively playing
         deselectVerse();
         return;
+    }
+
+    if (isDifferentVerse) {
+        resetActiveExplanation(true);
     }
 
     highlightSelectedVerseElement(false);
