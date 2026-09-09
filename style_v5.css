@@ -2142,21 +2142,16 @@ h2 {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    justify-content: flex-start !important;
+    justify-content: center !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch !important;
-    padding-top: 4px !important;
-    padding-bottom: 24px !important;
-    margin-bottom: 40px !important;
-    height: calc(100% - 50px) !important;
-    max-height: calc(100% - 50px) !important;
     box-sizing: border-box !important;
+    padding: 0 4px !important;
 }
 
 .verse-card.card-explanation-active .card-explanation-view {
-    margin-top: auto !important;
-    margin-bottom: auto !important;
+    margin: auto 0 !important;
     width: 100% !important;
     max-width: 96% !important;
     box-sizing: border-box !important;

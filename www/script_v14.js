@@ -30328,24 +30328,29 @@ function fadeSwapContent(element, updateCallback, onComplete) {
         return;
     }
 
-    if (element._fadeSwapTimer1) clearTimeout(element._fadeSwapTimer1);
-    if (element._fadeSwapTimer2) clearTimeout(element._fadeSwapTimer2);
+    if (element._fadeTimer1) clearTimeout(element._fadeTimer1);
+    if (element._fadeTimer2) clearTimeout(element._fadeTimer2);
 
-    element.classList.remove('exp-fade-in');
-    element.classList.add('exp-fade-out');
+    element.style.transition = 'opacity 0.12s cubic-bezier(0.4, 0, 0.2, 1)';
+    element.style.opacity = '0';
+    element.style.willChange = 'opacity';
 
-    element._fadeSwapTimer1 = setTimeout(() => {
+    element._fadeTimer1 = setTimeout(() => {
         if (updateCallback) updateCallback();
-        element.classList.remove('exp-fade-out');
-        element.classList.add('exp-fade-in');
+        void element.offsetHeight;
 
-        element._fadeSwapTimer2 = setTimeout(() => {
-            element.classList.remove('exp-fade-in');
-            element._fadeSwapTimer1 = null;
-            element._fadeSwapTimer2 = null;
+        element.style.transition = 'opacity 0.16s cubic-bezier(0.4, 0, 0.2, 1)';
+        element.style.opacity = '1';
+
+        element._fadeTimer2 = setTimeout(() => {
+            element.style.transition = '';
+            element.style.opacity = '';
+            element.style.willChange = '';
+            element._fadeTimer1 = null;
+            element._fadeTimer2 = null;
             if (onComplete) onComplete();
-        }, 160);
-    }, 110);
+        }, 170);
+    }, 120);
 }
 
 function animateCardExpand(cardEl, updateContentFn, onComplete) {
@@ -30364,8 +30369,9 @@ function animateCardExpand(cardEl, updateContentFn, onComplete) {
     const startHeight = cardEl.offsetHeight;
 
     if (textEl) {
-        textEl.classList.remove('exp-fade-in');
-        textEl.classList.add('exp-fade-out');
+        textEl.style.transition = 'opacity 0.11s cubic-bezier(0.4, 0, 0.2, 1)';
+        textEl.style.opacity = '0';
+        textEl.style.willChange = 'opacity';
     }
 
     setTimeout(() => {
@@ -30377,12 +30383,15 @@ function animateCardExpand(cardEl, updateContentFn, onComplete) {
 
         if (startHeight === targetHeight || startHeight === 0 || targetHeight === 0) {
             if (textEl) {
-                textEl.classList.remove('exp-fade-out');
-                textEl.classList.add('exp-fade-in');
+                void textEl.offsetHeight;
+                textEl.style.transition = 'opacity 0.16s cubic-bezier(0.4, 0, 0.2, 1)';
+                textEl.style.opacity = '1';
                 setTimeout(() => {
-                    textEl.classList.remove('exp-fade-in');
+                    textEl.style.transition = '';
+                    textEl.style.opacity = '';
+                    textEl.style.willChange = '';
                     if (onComplete) onComplete();
-                }, 160);
+                }, 170);
             } else if (onComplete) {
                 onComplete();
             }
@@ -30398,8 +30407,9 @@ function animateCardExpand(cardEl, updateContentFn, onComplete) {
         cardEl.style.height = `${targetHeight}px`;
 
         if (textEl) {
-            textEl.classList.remove('exp-fade-out');
-            textEl.classList.add('exp-fade-in');
+            void textEl.offsetHeight;
+            textEl.style.transition = 'opacity 0.16s cubic-bezier(0.4, 0, 0.2, 1)';
+            textEl.style.opacity = '1';
         }
 
         cardEl._expandAnimTimer = setTimeout(() => {
@@ -30407,10 +30417,14 @@ function animateCardExpand(cardEl, updateContentFn, onComplete) {
             cardEl.style.overflow = '';
             cardEl.style.transition = '';
             cardEl._expandAnimTimer = null;
-            if (textEl) textEl.classList.remove('exp-fade-in');
+            if (textEl) {
+                textEl.style.transition = '';
+                textEl.style.opacity = '';
+                textEl.style.willChange = '';
+            }
             if (onComplete) onComplete();
         }, duration + 30);
-    }, 90);
+    }, 110);
 }
 
 function smoothSwapContent(element, updateCallback, onComplete) {
@@ -30426,12 +30440,14 @@ function resetActiveExplanation(forceRestore = true) {
         const card = document.querySelector('.verse-card.card-center');
         if (card && card._isShowingExplanation) {
             card._isShowingExplanation = false;
-            card.classList.remove('card-explanation-active');
             const textEl = card.querySelector('.verse-text');
             if (textEl && card._originalVerseObj) {
                 fadeSwapContent(textEl, () => {
+                    card.classList.remove('card-explanation-active');
                     applyDynamicVerseTranslation(textEl, card._originalVerseObj.text || '');
                 });
+            } else {
+                card.classList.remove('card-explanation-active');
             }
         }
 
@@ -30519,8 +30535,8 @@ async function openVerseExplanation(verse, event) {
 
         const isFeedCard = cardEl.classList.contains('verse-card');
         if (isFeedCard) {
-            cardEl.classList.remove('card-explanation-active');
             fadeSwapContent(textEl, () => {
+                cardEl.classList.remove('card-explanation-active');
                 applyDynamicVerseTranslation(textEl, targetVerse.text || '');
             });
         } else {
@@ -30647,8 +30663,8 @@ async function openVerseExplanation(verse, event) {
 
     const isFeedCard = cardEl.classList.contains('verse-card');
     if (isFeedCard) {
-        cardEl.classList.add('card-explanation-active');
         fadeSwapContent(textEl, () => {
+            cardEl.classList.add('card-explanation-active');
             textEl.innerHTML = expHtml;
         });
     } else {
