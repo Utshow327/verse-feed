@@ -2082,26 +2082,26 @@ h2 {
     box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25) !important;
 }
 
+/* --- Card Explanation Layout & Typography --- */
 .card-explanation-view {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
     text-align: center !important;
-    gap: 20px !important;
+    gap: 14px !important;
     width: 100% !important;
-    max-width: 94% !important;
-    max-height: 100% !important;
+    max-width: 96% !important;
     box-sizing: border-box !important;
     margin: auto auto !important;
-    padding: 10px 0 !important;
-    animation: expSmoothIn 0.34s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    padding: 6px 0 !important;
+    animation: expSmoothIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
 @keyframes expSmoothIn {
     0% {
         opacity: 0;
-        transform: translateY(8px) scale(0.98);
+        transform: translateY(6px) scale(0.99);
     }
     100% {
         opacity: 1;
@@ -2115,7 +2115,7 @@ h2 {
     align-items: center !important;
     justify-content: center !important;
     text-align: center !important;
-    gap: 8px !important;
+    gap: 5px !important;
     width: 100% !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
@@ -2123,23 +2123,23 @@ h2 {
 
 .card-exp-badge {
     display: block !important;
-    font-size: 0.86rem !important;
+    font-size: 0.78rem !important;
     font-weight: 800 !important;
     text-transform: uppercase !important;
-    letter-spacing: 2.6px !important;
-    opacity: 0.85 !important;
+    letter-spacing: 2.2px !important;
+    opacity: 0.8 !important;
     font-family: var(--font-main) !important;
     line-height: 1 !important;
     text-align: center !important;
     color: inherit !important;
-    margin: 0 auto 4px auto !important;
+    margin: 0 auto 3px auto !important;
 }
 
 .card-exp-text {
-    font-size: clamp(1.30rem, 4.2vw, 1.56rem) !important;
-    line-height: 1.62 !important;
+    font-size: clamp(1.14rem, 3.6vw, 1.34rem) !important;
+    line-height: 1.54 !important;
     font-weight: 450 !important;
-    letter-spacing: 0.2px !important;
+    letter-spacing: 0.15px !important;
     text-align: center !important;
     margin: 0 auto !important;
     padding: 0 !important;
@@ -2149,74 +2149,91 @@ h2 {
     max-width: 100% !important;
 }
 
+/* Home feed card explanation: strict bounding and natural scroll, never overflows card */
+.verse-card.card-explanation-active .verse-text {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-top: 4px !important;
+    padding-bottom: 24px !important;
+    margin-bottom: 40px !important;
+    height: calc(100% - 50px) !important;
+    max-height: calc(100% - 50px) !important;
+    box-sizing: border-box !important;
+}
+
+.verse-card.card-explanation-active .card-explanation-view {
+    margin-top: auto !important;
+    margin-bottom: auto !important;
+    width: 100% !important;
+    max-width: 96% !important;
+    box-sizing: border-box !important;
+}
+
 /* Smooth content transitions */
 .exp-fade-out {
     opacity: 0 !important;
     transform: translateY(-4px) scale(0.98) !important;
-    transition: opacity 0.14s ease, transform 0.14s ease !important;
+    transition: opacity 0.12s ease, transform 0.12s ease !important;
 }
 
 .exp-fade-in {
-    animation: expSmoothIn 0.34s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    animation: expSmoothIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
+/* Book verse in explanation mode */
 .book-verse.book-verse-explanation-active {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
-    padding: 24px 20px !important;
-    border-radius: 16px !important;
-    box-shadow: 0 6px 26px rgba(0, 0, 0, 0.22) !important;
+    padding: 12px 14px !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18) !important;
 }
 
 .book-verse.book-verse-explanation-active .book-verse-text {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
+    display: block !important;
     width: 100% !important;
 }
 
+/* Action icons MUST remain bottom-right, NEVER middle */
 .book-verse.book-verse-explanation-active .verse-actions {
-    justify-content: center !important;
-    margin: 16px auto 0 auto !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    margin-top: 12px !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
     width: 100% !important;
 }
 
+/* Saved verse in explanation mode */
 .saved-verse.saved-verse-explanation-active {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
-    padding: 24px 20px !important;
+    padding: 12px 14px !important;
     border-radius: 16px !important;
-    box-shadow: 0 6px 26px rgba(0, 0, 0, 0.22) !important;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18) !important;
 }
 
 .saved-verse.saved-verse-explanation-active .verse-text {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
+    display: block !important;
     width: 100% !important;
 }
 
+/* Action icons MUST remain bottom-right, NEVER middle */
 .saved-verse.saved-verse-explanation-active .saved-verse-footer {
     display: flex !important;
-    justify-content: center !important;
+    justify-content: space-between !important;
     align-items: center !important;
     width: 100% !important;
+    margin-top: 12px !important;
 }
 
 .saved-verse.saved-verse-explanation-active .verse-actions {
-    justify-content: center !important;
-    margin: 16px auto 0 auto !important;
-    width: 100% !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    margin-left: auto !important;
 }
 
 .book-verse.marked .va-meaning-btn.va-meaning-active,
