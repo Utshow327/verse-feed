@@ -91,8 +91,7 @@ if GEMINI_API_KEY:
         except Exception as e:
             pass
     if not gemini_valid:
-        print("  Gemini Key: All models exhausted or unavailable.")
-        GEMINI_API_KEY = None
+        print("  Gemini Key: ping busy/throttled, keeping enabled for runtime retries.")
 
 if not API_KEYS and not GEMINI_API_KEY:
     print("ERROR: No valid API keys in rotation pool!")
