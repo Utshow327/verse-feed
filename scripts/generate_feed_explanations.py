@@ -108,6 +108,7 @@ GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 # Put ultra-fast models (sub-second responses) first
 MODELS = [
     'allam-2-7b',
+    'groq/compound',
     'openai/gpt-oss-120b',
     'qwen/qwen3.6-27b',
     'qwen/qwen3.8-27b',
@@ -445,6 +446,24 @@ def sanitize_text(text):
     text = re.sub(r'["\'\s]+$', '', text)
     return text.strip()
 
+def safe_replace(src, dst):
+    for attempt in range(6):
+        try:
+            if os.path.exists(dst):
+                os.replace(src, dst)
+            else:
+                os.rename(src, dst)
+            return
+        except OSError:
+            time.sleep(0.25)
+    try:
+        import shutil
+        shutil.copyfile(src, dst)
+        if os.path.exists(src):
+            os.remove(src)
+    except Exception as e:
+        print(f"safe_replace fallback error: {e}")
+
 def save_databases():
     temp_file = OUTPUT_FILE + '.tmp'
     www_temp = WWW_OUTPUT_FILE + '.tmp'
@@ -452,11 +471,11 @@ def save_databases():
         data_copy = dict(explanations)
         with open(temp_file, 'w', encoding='utf-8') as f:
             json.dump(data_copy, f, indent=2, ensure_ascii=False)
-        os.replace(temp_file, OUTPUT_FILE)
+        safe_replace(temp_file, OUTPUT_FILE)
 
         with open(www_temp, 'w', encoding='utf-8') as f:
             json.dump(data_copy, f, indent=2, ensure_ascii=False)
-        os.replace(www_temp, WWW_OUTPUT_FILE)
+        safe_replace(www_temp, WWW_OUTPUT_FILE)
     except Exception as e:
         print(f"Error saving databases: {e}")
 
@@ -465,15 +484,16 @@ from threading import Thread, Lock
 
 CHANNELS = []
 if GEMINI_API_KEY:
-    CHANNELS.append({
-        'provider': 'gemini',
-        'key': GEMINI_API_KEY,
-        'model': 'gemini-3.1-flash-lite',
-        'label': 'Gemini-3.1-Flash-Lite',
-        'last_call': 0.0,
-        'cooldown_until': 0.0,
-        'min_interval': 4.0
-    })
+    for g_mod in ['gemini-3.1-flash-lite', 'gemini-3.6-flash']:
+        CHANNELS.append({
+            'provider': 'gemini',
+            'key': GEMINI_API_KEY,
+            'model': g_mod,
+            'label': g_mod,
+            'last_call': 0.0,
+            'cooldown_until': 0.0,
+            'min_interval': 4.0
+        })
 
 for ki, k in enumerate(API_KEYS):
     for m in MODELS:
@@ -536,7 +556,7 @@ def call_ai_batch_channel(verse_batch, ch_idx, ch):
         payload = {
             'contents': [{'parts': [{'text': prompt}]}],
             'generationConfig': {
-                'maxOutputTokens': 1000,
+                'maxOutputTokens': 1200,
                 'temperature': 0.2
             }
         }
@@ -550,7 +570,7 @@ def call_ai_batch_channel(verse_batch, ch_idx, ch):
                 {'role': 'system', 'content': 'You provide two-paragraph verse explanations: context explaining characters, and meaning explaining the lesson. Output valid JSON.'},
                 {'role': 'user', 'content': prompt}
             ],
-            'max_tokens': 450,
+            'max_tokens': 600,
             'temperature': 0.2
         }
         if 'gpt-oss' in ch['model']:
@@ -657,7 +677,7 @@ def call_ai_batch_channel(verse_batch, ch_idx, ch):
 
     return [], "Parse failed"
 
-BATCH_SIZE = 6
+BATCH_SIZE = 8
 WORKERS = 6
 
 print("=" * 70)
