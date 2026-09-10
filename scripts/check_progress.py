@@ -31,7 +31,22 @@ except Exception as e:
     print(f"Error reading explanations: {e}")
     sys.exit(1)
 
-total_done = len(explanations)
+# Count unique verses explained
+unique_explained = set()
+for k, v in explanations.items():
+    if isinstance(v, dict):
+        rel = v.get('religion', '')
+        bk = v.get('book', '')
+        ch = str(v.get('chapter', ''))
+        vs = str(v.get('verse', ''))
+        if rel and bk:
+            unique_explained.add((rel.lower(), bk.lower(), ch, vs))
+        else:
+            unique_explained.add(k)
+    else:
+        unique_explained.add(k)
+
+total_unique_done = len(unique_explained)
 feed_done = 0
 total_feed = 4135
 
@@ -45,8 +60,11 @@ if os.path.exists(ACTIVE_FILE):
         pass
 
 feed_pct = (feed_done / total_feed) * 100 if total_feed > 0 else 0
-total_library = 161088
-lib_pct = (total_done / total_library) * 100
+
+# True library size across all indexed world scriptures
+TOTAL_SCRIPTURES = 186000  # ~186k unique verses across all world religions
+total_remaining = max(0, TOTAL_SCRIPTURES - total_unique_done)
+lib_pct = (total_unique_done / TOTAL_SCRIPTURES) * 100
 
 bar_len = 24
 filled = int(bar_len * feed_done // total_feed) if total_feed > 0 else 0
@@ -55,9 +73,14 @@ bar = '#' * filled + '-' * (bar_len - filled)
 print("=" * 65)
 print("             VERSE EXPLANATION PIPELINE STATUS")
 print("=" * 65)
-print(f"  Feed Progress:   [{bar}] {feed_pct:5.1f}%")
-print(f"  Active Feed:     {feed_done:,} / {total_feed:,} verses explained")
-print(f"  Total Library:   {total_done:,} / {total_library:,} verses completed ({lib_pct:4.2f}%)")
+print(f"  Feed Verses (Priority 1): [{bar}] {feed_pct:5.1f}%")
+print(f"    Completed:  {feed_done:,} / {total_feed:,} feed verses")
+print(f"    Remaining:  {max(0, total_feed - feed_done):,} feed verses")
+print("  ---------------------------------------------------------------")
+print(f"  Total Unique Library:     {total_unique_done:,} / {TOTAL_SCRIPTURES:,} ({lib_pct:4.1f}%)")
+print(f"    Unique verses done:     {total_unique_done:,}")
+print(f"    Unique verses left:     {total_remaining:,}")
+print(f"    Raw dictionary keys:    {len(explanations):,} (dual-indexed)")
 print("=" * 65)
 
 # Show last 2 verses completed
