@@ -33541,8 +33541,9 @@ function getFilteredPool(rel) {
     const fullPool = religionVerses[rel] || [];
     if (fullPool.length === 0) return [];
     
-    // Check if activeRankings has scored verses for this religion
-    const hasRankings = Object.keys(activeRankings).length > 0;
+    // Check if activeRankings has scored verses for this religion (bypassed for Sikhism & Buddhism for testing)
+    const isBypassed = String(rel).toLowerCase() === 'sikhism' || String(rel).toLowerCase() === 'buddhism';
+    const hasRankings = !isBypassed && Object.keys(activeRankings).length > 0;
     if (hasRankings) {
         const rankedPool = fullPool.filter(v => {
             if (!v || !v.id || !v.text) return false;
@@ -36942,8 +36943,7 @@ function createActionIconsElement(verseObj, type) {
         cycleIconHtml = `<span class="folder-cycle-badge">${vState.label}</span>`;
     }
 
-    const isPhilosophy = verseObj && (String(verseObj.religion || '').toLowerCase() === 'philosophy' || String(verseObj.book || '').toLowerCase() === 'stoicism');
-    const meaningBtnHtml = isPhilosophy ? '' : `
+    const meaningBtnHtml = `
         <button class="va-btn va-meaning-btn" onclick="openVerseExplanation(selectedVerse, event)" aria-label="Meaning" title="Meaning">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="12" cy="4.5" r="3"/><rect x="9" y="10.5" width="6" height="11.5" rx="3"/></svg>
         </button>

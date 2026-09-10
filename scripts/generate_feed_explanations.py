@@ -59,9 +59,7 @@ GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 # Put ultra-fast models (sub-second responses) first
 MODELS = [
     'openai/gpt-oss-20b',
-    'allam-2-7b',
-    'qwen/qwen3.6-27b',
-    'qwen/qwen3.8-27b'
+    'qwen/qwen3.6-27b'
 ]
 
 OUTPUT_FILE = os.path.join('data', 'verse_explanations.json')
@@ -508,8 +506,8 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
 
     return [], "Rate limit cooldown needed"
 
-BATCH_SIZE = 8
-WORKERS = max(4, min(len(API_KEYS), 8))
+BATCH_SIZE = 10
+WORKERS = min(2, len(API_KEYS))
 
 print("=" * 70)
 print(f"  STARTING TURBO FEED EXPLANATIONS GENERATOR ({len(pending_queue):,} queued)")
@@ -622,6 +620,7 @@ def worker_thread(worker_id):
                 break
 
         task_queue.task_done()
+        time.sleep(1.2)
 
 try:
     threads = []
