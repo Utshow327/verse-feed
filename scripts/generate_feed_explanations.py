@@ -43,7 +43,33 @@ if not API_KEYS:
     print("Please configure GROQ_API_KEY in your GitHub Secrets or environment.")
     sys.exit(1)
 
-print(f"Loaded {len(API_KEYS)} API key(s) in rotation pool.")
+print(f"Validating {len(API_KEYS)} API key(s) in rotation pool...")
+valid_keys = []
+for i, k in enumerate(API_KEYS):
+    req = urllib.request.Request(
+        'https://api.groq.com/openai/v1/chat/completions',
+        data=json.dumps({
+            'model': 'openai/gpt-oss-20b',
+            'messages': [{'role': 'user', 'content': 'hi'}],
+            'max_tokens': 5
+        }).encode('utf-8'),
+        headers={'Authorization': f'Bearer {k}', 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'}
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            valid_keys.append(k)
+            print(f"  Key #{i+1} ({k[:12]}...): ACTIVE")
+    except urllib.error.HTTPError as e:
+        print(f"  Key #{i+1} ({k[:12]}...): REMOVED (HTTP {e.code})")
+    except Exception as e:
+        print(f"  Key #{i+1} ({k[:12]}...): REMOVED ({e})")
+
+API_KEYS = valid_keys
+if not API_KEYS:
+    print("ERROR: All API keys in the pool are invalid or restricted!")
+    sys.exit(1)
+
+print(f"Active working key(s) in rotation pool: {len(API_KEYS)}")
 
 key_index = 0
 def get_next_key():
@@ -515,12 +541,17 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
                 if len(results) >= max(1, len(verse_batch) // 2):
                     return results, None
         except urllib.error.HTTPError as e:
+            err_msg = e.read().decode('utf-8', errors='ignore')[:100]
+            print(f"  [Worker {worker_id}] HTTP {e.code} ({model}): {err_msg}")
+            sys.stdout.flush()
             if e.code == 429:
-                time.sleep(0.3)
+                time.sleep(1.0)
                 continue
-            time.sleep(0.4)
-        except Exception:
-            time.sleep(0.4)
+            time.sleep(0.5)
+        except Exception as e:
+            print(f"  [Worker {worker_id}] Error ({model}): {e}")
+            sys.stdout.flush()
+            time.sleep(0.5)
 
     return [], "Rate limit cooldown needed"
 
