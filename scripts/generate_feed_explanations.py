@@ -18,6 +18,7 @@ import argparse
 parser = argparse.ArgumentParser(description='Feed Explanations Generator')
 parser.add_argument('--max-minutes', type=int, default=0, help='Max minutes to run (0 = unlimited)')
 parser.add_argument('--max-count', type=int, default=0, help='Max verses to generate (0 = unlimited)')
+parser.add_argument('--include-library', action='store_true', help='Include all 124k library scriptures')
 cli_args = parser.parse_args()
 
 API_KEYS = []
@@ -357,35 +358,37 @@ for vkey, score in sorted_active:
 
 print(f"Pending feed verses (Priority 1): {len(pending_queue):,}")
 
-# 4. Queue ALL remaining library scriptures across all religions (Priority 2)
-queued_keys = set(v.get('feed_key') for v in pending_queue)
-for k in list(explanations.keys()):
-    if is_explanation_complete(k):
-        queued_keys.add(k)
-        queued_keys.add(k.lower())
+# 4. Queue remaining library scriptures only if explicitly requested
+if getattr(cli_args, 'include_library', False):
+    queued_keys = set(v.get('feed_key') for v in pending_queue)
+    for k in list(explanations.keys()):
+        if is_explanation_complete(k):
+            queued_keys.add(k)
+            queued_keys.add(k.lower())
 
-library_added = 0
-for vkey, v_obj in all_verses.items():
-    if vkey in queued_keys or vkey.lower() in queued_keys:
-        continue
-    parts = vkey.split('_')
-    alt_key = '_'.join(parts[1:])
-    if alt_key in queued_keys or alt_key.lower() in queued_keys:
-        continue
-    if is_explanation_complete(vkey) or is_explanation_complete(alt_key):
-        continue
+    library_added = 0
+    for vkey, v_obj in all_verses.items():
+        if vkey in queued_keys or vkey.lower() in queued_keys:
+            continue
+        parts = vkey.split('_')
+        alt_key = '_'.join(parts[1:])
+        if alt_key in queued_keys or alt_key.lower() in queued_keys:
+            continue
+        if is_explanation_complete(vkey) or is_explanation_complete(alt_key):
+            continue
 
-    if v_obj.get('text') and len(v_obj['text']) > 5:
-        item_copy = dict(v_obj)
-        item_copy['feed_key'] = vkey
-        item_copy['alt_key'] = alt_key
-        pending_queue.append(item_copy)
-        queued_keys.add(vkey)
-        queued_keys.add(alt_key)
-        library_added += 1
+        if v_obj.get('text') and len(v_obj['text']) > 5:
+            item_copy = dict(v_obj)
+            item_copy['feed_key'] = vkey
+            item_copy['alt_key'] = alt_key
+            pending_queue.append(item_copy)
+            queued_keys.add(vkey)
+            queued_keys.add(alt_key)
+            library_added += 1
 
-print(f"Pending library verses (Priority 2): {library_added:,}")
-print(f"TOTAL QUEUED FOR GENERATION: {len(pending_queue):,} verses across entire app")
+    print(f"Pending library verses (Priority 2): {library_added:,}")
+
+print(f"TOTAL QUEUED FOR GENERATION: {len(pending_queue):,} feed verses")
 
 if not pending_queue:
     print("All scriptures across the entire app have full explanations!")
@@ -546,11 +549,16 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
             if e.code == 429:
                 # Fast failover: if alternative models are available in the rotation, switch in 0.5s!
                 if attempt < len(MODELS) - 1:
+                    next_model = MODELS[(attempt + 1) % len(MODELS)]
+                    print(f"  [Worker {worker_id}] 429 on {model} -> Fast failover to {next_model} (0.5s)")
+                    sys.stdout.flush()
                     time.sleep(0.5)
                     continue
                 else:
                     # All models across rotation need a brief breather
-                    time.sleep(3.5)
+                    print(f"  [Worker {worker_id}] Brief 3s pause for rate limit cooldown...")
+                    sys.stdout.flush()
+                    time.sleep(3.0)
                     continue
             else:
                 err_msg = raw_err[:100]
