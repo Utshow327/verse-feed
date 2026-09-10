@@ -30530,6 +30530,10 @@ async function openVerseExplanation(verse, event) {
     // Toggle OFF if already displaying explanation on this card
     if (cardEl._isShowingExplanation) {
         cardEl._isShowingExplanation = false;
+        cardEl._explanationSpeechText = null;
+        if (typeof isSpeaking !== 'undefined' && isSpeaking) {
+            stopAudio(true);
+        }
         if (btnEl) btnEl.classList.remove('va-meaning-active');
         activeExplanationVerseId = null;
 
@@ -30551,6 +30555,9 @@ async function openVerseExplanation(verse, event) {
 
     // Reset other active explanation
     resetActiveExplanation(true);
+    if (typeof isSpeaking !== 'undefined' && isSpeaking) {
+        stopAudio(true);
+    }
 
     cardEl._isShowingExplanation = true;
     cardEl._originalVerseObj = targetVerse;
@@ -30661,6 +30668,18 @@ async function openVerseExplanation(verse, event) {
         `;
     }
 
+    let speechExplanation = '';
+    if (cleanContext && cleanMeaning) {
+        speechExplanation = `Context. ${cleanContext}. ${meaningLabel}. ${cleanMeaning}`;
+    } else if (cleanMeaning) {
+        speechExplanation = `${meaningLabel}. ${cleanMeaning}`;
+    } else if (cleanContext) {
+        speechExplanation = `Context. ${cleanContext}`;
+    } else {
+        speechExplanation = `Life reflection. Take a quiet breath and reflect on what these words speak to your heart today.`;
+    }
+    cardEl._explanationSpeechText = speechExplanation;
+
     const isFeedCard = cardEl.classList.contains('verse-card');
     if (isFeedCard) {
         fadeSwapContent(textEl, () => {
@@ -30682,6 +30701,77 @@ async function openVerseExplanation(verse, event) {
 function closeVerseExplanationModal(event) {
     const modal = document.getElementById('verse-explanation-modal');
     if (modal) modal.classList.add('hidden');
+}
+
+function extractExplanationTextFromEl(el) {
+    if (!el) return null;
+    const expView = el.classList && el.classList.contains('card-explanation-view') ? el : (el.querySelector ? el.querySelector('.card-explanation-view') : null);
+    if (!expView) return null;
+    const sections = expView.querySelectorAll('.card-explanation-section');
+    let parts = [];
+    sections.forEach(sec => {
+        const badge = sec.querySelector('.card-exp-badge');
+        const textEl = sec.querySelector('.card-exp-text');
+        const label = badge ? badge.textContent.trim() : '';
+        const body = textEl ? textEl.textContent.trim() : '';
+        if (body) {
+            if (label) parts.push(`${label}. ${body}`);
+            else parts.push(body);
+        }
+    });
+    return parts.length > 0 ? parts.join('. ') : null;
+}
+
+function getActiveExplanationSpeech() {
+    // 1. Check if the Explanation Modal is open
+    const modal = document.getElementById('verse-explanation-modal');
+    if (modal && !modal.classList.contains('hidden')) {
+        const ctxEl = document.getElementById('explanation-context-text');
+        const meanEl = document.getElementById('explanation-meaning-text');
+        let parts = [];
+        if (ctxEl && ctxEl.textContent.trim()) {
+            parts.push("Context. " + ctxEl.textContent.trim());
+        }
+        if (meanEl && meanEl.textContent.trim()) {
+            parts.push("Meaning. " + meanEl.textContent.trim());
+        }
+        if (parts.length > 0) return parts.join('. ');
+    }
+
+    // 2. Check feed center card
+    const centerCard = document.querySelector('.verse-card.card-center');
+    if (centerCard && (centerCard._isShowingExplanation || centerCard.classList.contains('card-explanation-active'))) {
+        if (centerCard._explanationSpeechText) return centerCard._explanationSpeechText;
+        const text = extractExplanationTextFromEl(centerCard);
+        if (text) return text;
+    }
+
+    // 3. Check book section active explanation
+    const bookExpCard = document.querySelector('.book-verse.book-verse-explanation-active');
+    if (bookExpCard) {
+        if (bookExpCard._explanationSpeechText) return bookExpCard._explanationSpeechText;
+        const text = extractExplanationTextFromEl(bookExpCard);
+        if (text) return text;
+    }
+
+    // 4. Check saved section active explanation
+    const savedExpCard = document.querySelector('.saved-verse.saved-verse-explanation-active');
+    if (savedExpCard) {
+        if (savedExpCard._explanationSpeechText) return savedExpCard._explanationSpeechText;
+        const text = extractExplanationTextFromEl(savedExpCard);
+        if (text) return text;
+    }
+
+    // 5. Check if any card currently has .card-explanation-view in DOM
+    const anyExpView = document.querySelector('.card-explanation-view');
+    if (anyExpView) {
+        const parentCard = anyExpView.closest('.verse-card, .book-verse, .saved-verse');
+        if (parentCard && parentCard._explanationSpeechText) return parentCard._explanationSpeechText;
+        const text = extractExplanationTextFromEl(parentCard || anyExpView);
+        if (text) return text;
+    }
+
+    return null;
 }
 
 async function loadActiveRankings() {
@@ -32265,6 +32355,13 @@ function speakCurrent(type) {
             return;
         }
     } else {
+        const expSpeech = typeof getActiveExplanationSpeech === 'function' ? getActiveExplanationSpeech() : null;
+        if (expSpeech) {
+            playText(expSpeech, isFeedSection ? 'feed' : (isBookSection ? 'book' : 'saved'));
+            autoMode = false;
+            autoNextBook = false;
+            return;
+        }
         if (isBookSection) {
             const info = globalVerseMap[bookVoiceCurrentVerse];
             if (info) {
@@ -37327,6 +37424,14 @@ function handlePillPlay(e) {
             updatePillUI();
         }
     } else {
+        const expSpeech = typeof getActiveExplanationSpeech === 'function' ? getActiveExplanationSpeech() : null;
+        if (expSpeech) {
+            playText(expSpeech, isFeedSection ? 'feed' : (isBookSection ? 'book' : 'saved'));
+            autoMode = false;
+            autoNextBook = false;
+            updatePillUI();
+            return;
+        }
         if (selectedVerse) {
             if (selectedVerse.type === 'book') {
                 bookVoiceCurrentVerse = selectedVerse.globalIndex;

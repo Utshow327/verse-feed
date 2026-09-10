@@ -407,12 +407,13 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
         "You explain world scriptures in simple, plain, easy-to-understand English.\n"
         "For each verse, provide TWO short parts: 'context' and 'meaning'.\n\n"
         "Strict rules:\n"
-        "1. 'context': 10 to 18 simple words explaining the story, setting, or background.\n"
-        "2. 'meaning': 15 to 22 simple words explaining the moral lesson or spiritual truth in everyday words.\n"
-        "3. Use easy everyday words. Avoid big words or academic jargon.\n"
-        "4. Never use emojis.\n"
-        "5. Never use em dashes or en dashes (use standard commas or periods).\n"
-        "6. Return ONLY a valid JSON object mapping each ID ('v1', 'v2', etc.) to an object with 'context' and 'meaning'.\n\n"
+        "1. 'context': 12 to 24 simple words explaining the story, historical setting, or narrative situation. If the verse mentions an animal, parable, battle, or metaphor, explain the ACTUAL story or scenario behind it, never shallow platitudes.\n"
+        "2. 'meaning': 15 to 28 simple words explaining the deeper life lesson or practical wisdom in everyday language.\n"
+        "3. For parables and allegories: Explain what the imagery symbolizes (e.g. an elephant keeping its trunk coiled in battle symbolizes guarding the mind and speech against fatal spiritual wounds). Never give lazy generic statements like 'care for animals' or 'respect nature'.\n"
+        "4. Use easy everyday words. Avoid big words or academic jargon.\n"
+        "5. Never use emojis.\n"
+        "6. Never use em dashes or en dashes (use standard commas or periods).\n"
+        "7. Return ONLY a valid JSON object mapping each ID ('v1', 'v2', etc.) to an object with 'context' and 'meaning'.\n\n"
         "Verses to explain:\n"
     )
     for idx, item in enumerate(verse_batch):
@@ -429,10 +430,10 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
         payload = {
             'model': model,
             'messages': [
-                {'role': 'system', 'content': 'You explain scriptures in simple English with context and meaning. Output valid JSON.'},
+                {'role': 'system', 'content': 'You explain scriptures in simple English with context and meaning. For stories and parables, explain the narrative metaphor clearly. Output valid JSON.'},
                 {'role': 'user', 'content': prompt}
             ],
-            'max_tokens': 1000,
+            'max_tokens': 1200,
             'temperature': 0.2
         }
         if 'gpt-oss' in model:
