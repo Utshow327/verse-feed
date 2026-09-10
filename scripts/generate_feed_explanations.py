@@ -417,16 +417,16 @@ def sanitize_text(text):
 
 def save_databases():
     temp_file = OUTPUT_FILE + '.tmp'
+    www_temp = WWW_OUTPUT_FILE + '.tmp'
     try:
         data_copy = dict(explanations)
         with open(temp_file, 'w', encoding='utf-8') as f:
             json.dump(data_copy, f, indent=2, ensure_ascii=False)
-        if os.path.exists(OUTPUT_FILE):
-            os.replace(temp_file, OUTPUT_FILE)
-        else:
-            os.rename(temp_file, OUTPUT_FILE)
-        with open(WWW_OUTPUT_FILE, 'w', encoding='utf-8') as f:
+        os.replace(temp_file, OUTPUT_FILE)
+
+        with open(www_temp, 'w', encoding='utf-8') as f:
             json.dump(data_copy, f, indent=2, ensure_ascii=False)
+        os.replace(www_temp, WWW_OUTPUT_FILE)
     except Exception as e:
         print(f"Error saving databases: {e}")
 
@@ -445,7 +445,7 @@ for ki, k in enumerate(API_KEYS):
         })
 
 channel_lock = Lock()
-MIN_CHANNEL_INTERVAL = 3.5
+MIN_CHANNEL_INTERVAL = 2.2
 
 def acquire_channel():
     while not stop_requested:
@@ -480,7 +480,7 @@ def call_ai_batch_channel(verse_batch, ch_idx, ch):
         "Verses:\n"
     )
     for idx, item in enumerate(verse_batch):
-        v_text = item['text'][:250]
+        v_text = item['text'][:180]
         v_ref = f"{item['religion']} - {item['book']} {item['chapter']}:{item['verse']}"
         prompt += f'v{idx+1}: "{v_text}" ({v_ref})\n'
 
@@ -490,7 +490,7 @@ def call_ai_batch_channel(verse_batch, ch_idx, ch):
             {'role': 'system', 'content': 'You provide simple, clear verse explanations and always explain who the characters are. Output valid JSON.'},
             {'role': 'user', 'content': prompt}
         ],
-        'max_tokens': 400,
+        'max_tokens': 320,
         'temperature': 0.2
     }
     if 'gpt-oss' in ch['model']:
@@ -577,8 +577,8 @@ def call_ai_batch_channel(verse_batch, ch_idx, ch):
 
     return [], "Parse failed"
 
-BATCH_SIZE = 5
-WORKERS = min(5, max(3, len(CHANNELS) // 2))
+BATCH_SIZE = 6
+WORKERS = 6
 
 print("=" * 70)
 print(f"  STARTING TURBO FEED EXPLANATIONS GENERATOR ({len(pending_queue):,} queued)")

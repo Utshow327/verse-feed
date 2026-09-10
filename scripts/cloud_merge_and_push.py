@@ -44,13 +44,26 @@ try:
 except Exception as e:
     print(f"Note during remote merge: {e}")
 
-# 5. Save merged databases
-with open(EXP_FILE, "w", encoding="utf-8") as f:
-    json.dump(local_exp, f, indent=2, ensure_ascii=False)
-with open(WWW_EXP_FILE, "w", encoding="utf-8") as f:
-    json.dump(local_exp, f, indent=2, ensure_ascii=False)
+# 5. Save merged databases atomically
+exp_tmp = EXP_FILE + ".tmp"
+www_tmp = WWW_EXP_FILE + ".tmp"
 
-print(f"Total merged explanations: {len(local_exp):,}")
+with open(exp_tmp, "w", encoding="utf-8") as f:
+    json.dump(local_exp, f, indent=2, ensure_ascii=False)
+os.replace(exp_tmp, EXP_FILE)
+
+with open(www_tmp, "w", encoding="utf-8") as f:
+    json.dump(local_exp, f, indent=2, ensure_ascii=False)
+os.replace(www_tmp, WWW_EXP_FILE)
+
+# Verify integrity before staging
+with open(EXP_FILE, "r", encoding="utf-8") as f:
+    v1 = json.load(f)
+with open(WWW_EXP_FILE, "r", encoding="utf-8") as f:
+    v2 = json.load(f)
+assert len(v1) == len(v2) == len(local_exp), "Database size mismatch during validation!"
+
+print(f"Total merged explanations verified: {len(local_exp):,}")
 
 # 6. Reset tree against origin/main so working directory is on top of latest remote
 subprocess.run(["git", "reset", "--mixed", "origin/main"], check=False)
