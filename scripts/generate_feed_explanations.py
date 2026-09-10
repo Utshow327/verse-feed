@@ -26,51 +26,71 @@ raw_keys = os.environ.get('GROQ_API_KEYS') or os.environ.get('GROQ_API_KEY')
 if raw_keys:
     API_KEYS = [k.strip() for k in raw_keys.split(',') if k.strip()]
 
-if not API_KEYS:
-    env_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
-    if os.path.exists(env_file):
-        try:
-            with open(env_file, 'r', encoding='utf-8') as ef:
-                for line in ef:
-                    line = line.strip()
-                    if line.startswith('GROQ_API_KEYS=') or line.startswith('GROQ_API_KEY='):
-                        val = line.split('=', 1)[1].strip(' "\'')
-                        API_KEYS = [k.strip() for k in val.split(',') if k.strip()]
-        except Exception:
-            pass
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
-if not API_KEYS:
-    print("ERROR: GROQ_API_KEY is not set.")
-    print("Please configure GROQ_API_KEY in your GitHub Secrets or environment.")
+env_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+if os.path.exists(env_file):
+    try:
+        with open(env_file, 'r', encoding='utf-8') as ef:
+            for line in ef:
+                line = line.strip()
+                if not API_KEYS and (line.startswith('GROQ_API_KEYS=') or line.startswith('GROQ_API_KEY=')):
+                    val = line.split('=', 1)[1].strip(' "\'')
+                    API_KEYS = [k.strip() for k in val.split(',') if k.strip()]
+                if not GEMINI_API_KEY and line.startswith('GEMINI_API_KEY='):
+                    GEMINI_API_KEY = line.split('=', 1)[1].strip(' "\'')
+    except Exception:
+        pass
+
+if not API_KEYS and not GEMINI_API_KEY:
+    print("ERROR: Neither GROQ_API_KEY nor GEMINI_API_KEY is set.")
     sys.exit(1)
 
-print(f"Validating {len(API_KEYS)} API key(s) in rotation pool...")
+# Validate Groq keys
 valid_keys = []
-for i, k in enumerate(API_KEYS):
+if API_KEYS:
+    print(f"Validating {len(API_KEYS)} Groq API key(s) in rotation pool...")
+    for i, k in enumerate(API_KEYS):
+        req = urllib.request.Request(
+            'https://api.groq.com/openai/v1/chat/completions',
+            data=json.dumps({
+                'model': 'allam-2-7b',
+                'messages': [{'role': 'user', 'content': 'hi'}],
+                'max_tokens': 5
+            }).encode('utf-8'),
+            headers={'Authorization': f'Bearer {k}', 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'}
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                valid_keys.append(k)
+                print(f"  Groq Key #{i+1} ({k[:12]}...): ACTIVE")
+        except urllib.error.HTTPError as e:
+            print(f"  Groq Key #{i+1} ({k[:12]}...): REMOVED (HTTP {e.code})")
+        except Exception as e:
+            print(f"  Groq Key #{i+1} ({k[:12]}...): REMOVED ({e})")
+
+API_KEYS = valid_keys
+
+# Validate Gemini key
+if GEMINI_API_KEY:
+    print("Validating Gemini API key...")
     req = urllib.request.Request(
-        'https://api.groq.com/openai/v1/chat/completions',
-        data=json.dumps({
-            'model': 'openai/gpt-oss-20b',
-            'messages': [{'role': 'user', 'content': 'hi'}],
-            'max_tokens': 5
-        }).encode('utf-8'),
-        headers={'Authorization': f'Bearer {k}', 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'}
+        f'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={GEMINI_API_KEY}',
+        data=json.dumps({'contents': [{'parts': [{'text': 'hi'}]}]}).encode('utf-8'),
+        headers={'Content-Type': 'application/json'}
     )
     try:
         with urllib.request.urlopen(req, timeout=8) as resp:
-            valid_keys.append(k)
-            print(f"  Key #{i+1} ({k[:12]}...): ACTIVE")
-    except urllib.error.HTTPError as e:
-        print(f"  Key #{i+1} ({k[:12]}...): REMOVED (HTTP {e.code})")
+            print(f"  Gemini Key ({GEMINI_API_KEY[:10]}...): ACTIVE")
     except Exception as e:
-        print(f"  Key #{i+1} ({k[:12]}...): REMOVED ({e})")
+        print(f"  Gemini Key: REMOVED ({e})")
+        GEMINI_API_KEY = None
 
-API_KEYS = valid_keys
-if not API_KEYS:
-    print("ERROR: All API keys in the pool are invalid or restricted!")
+if not API_KEYS and not GEMINI_API_KEY:
+    print("ERROR: No valid API keys in rotation pool!")
     sys.exit(1)
 
-print(f"Active working key(s) in rotation pool: {len(API_KEYS)}")
+print(f"Active working Groq keys: {len(API_KEYS)} | Gemini enabled: {bool(GEMINI_API_KEY)}")
 
 key_index = 0
 def get_next_key():
@@ -434,14 +454,27 @@ from queue import Queue, Empty
 from threading import Thread, Lock
 
 CHANNELS = []
+if GEMINI_API_KEY:
+    CHANNELS.append({
+        'provider': 'gemini',
+        'key': GEMINI_API_KEY,
+        'model': 'gemini-3.1-flash-lite',
+        'label': 'Gemini-3.1-Flash-Lite',
+        'last_call': 0.0,
+        'cooldown_until': 0.0,
+        'min_interval': 4.0
+    })
+
 for ki, k in enumerate(API_KEYS):
     for m in MODELS:
         CHANNELS.append({
+            'provider': 'groq',
             'key': k,
             'model': m,
-            'label': f"Key{ki+1}-{m.split('/')[-1]}",
+            'label': f"Groq{ki+1}-{m.split('/')[-1]}",
             'last_call': 0.0,
-            'cooldown_until': 0.0
+            'cooldown_until': 0.0,
+            'min_interval': 2.2
         })
 
 channel_lock = Lock()
@@ -457,7 +490,8 @@ def acquire_channel():
                 if now < ch['cooldown_until']:
                     continue
                 idle = now - ch['last_call']
-                if idle >= MIN_CHANNEL_INTERVAL and idle > longest_idle:
+                req_interval = ch.get('min_interval', MIN_CHANNEL_INTERVAL)
+                if idle >= req_interval and idle > longest_idle:
                     longest_idle = idle
                     best_idx = idx
             if best_idx is not None:
@@ -484,32 +518,52 @@ def call_ai_batch_channel(verse_batch, ch_idx, ch):
         v_ref = f"{item['religion']} - {item['book']} {item['chapter']}:{item['verse']}"
         prompt += f'v{idx+1}: "{v_text}" ({v_ref})\n'
 
-    payload = {
-        'model': ch['model'],
-        'messages': [
-            {'role': 'system', 'content': 'You provide simple, clear verse explanations and always explain who the characters are. Output valid JSON.'},
-            {'role': 'user', 'content': prompt}
-        ],
-        'max_tokens': 320,
-        'temperature': 0.2
-    }
-    if 'gpt-oss' in ch['model']:
-        payload['reasoning_effort'] = 'low'
-        payload['reasoning_format'] = 'hidden'
-    elif 'qwen' in ch['model']:
-        payload['reasoning_effort'] = 'none'
+    is_gemini = ch.get('provider') == 'gemini'
 
-    data = json.dumps(payload).encode('utf-8')
-    req = urllib.request.Request(GROQ_URL, data=data, headers={
-        'Authorization': f"Bearer {ch['key']}",
-        'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-    })
+    if is_gemini:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{ch['model']}:generateContent?key={ch['key']}"
+        payload = {
+            'contents': [{'parts': [{'text': prompt}]}],
+            'generationConfig': {
+                'maxOutputTokens': 1000,
+                'temperature': 0.2
+            }
+        }
+        data = json.dumps(payload).encode('utf-8')
+        req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
+        req_timeout = 25
+    else:
+        payload = {
+            'model': ch['model'],
+            'messages': [
+                {'role': 'system', 'content': 'You provide simple, clear verse explanations and always explain who the characters are. Output valid JSON.'},
+                {'role': 'user', 'content': prompt}
+            ],
+            'max_tokens': 320,
+            'temperature': 0.2
+        }
+        if 'gpt-oss' in ch['model']:
+            payload['reasoning_effort'] = 'low'
+            payload['reasoning_format'] = 'hidden'
+        elif 'qwen' in ch['model']:
+            payload['reasoning_effort'] = 'none'
+
+        data = json.dumps(payload).encode('utf-8')
+        req = urllib.request.Request(GROQ_URL, data=data, headers={
+            'Authorization': f"Bearer {ch['key']}",
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        })
+        req_timeout = 12
 
     try:
-        with urllib.request.urlopen(req, timeout=12) as resp:
+        with urllib.request.urlopen(req, timeout=req_timeout) as resp:
             res = json.loads(resp.read().decode('utf-8'))
-            raw = res['choices'][0]['message'].get('content', '').strip()
+            if is_gemini:
+                raw = res['candidates'][0]['content']['parts'][0].get('text', '').strip()
+            else:
+                raw = res['choices'][0]['message'].get('content', '').strip()
+
             parsed = {}
             raw_clean = re.sub(r'<think>.*?</think>', '', raw, flags=re.DOTALL).strip()
             raw_clean = re.sub(r'```(?:json)?', '', raw_clean).strip()
@@ -553,7 +607,9 @@ def call_ai_batch_channel(verse_batch, ch_idx, ch):
     except urllib.error.HTTPError as e:
         raw_err = e.read().decode('utf-8', errors='ignore')
         retry_after = 15.0
-        if 'retry-after' in e.headers:
+        if is_gemini:
+            retry_after = 6.0
+        elif 'retry-after' in e.headers:
             try:
                 retry_after = max(5.0, float(e.headers['retry-after']))
             except Exception:
