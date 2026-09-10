@@ -85,7 +85,8 @@ GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 # Put ultra-fast models (sub-second responses) first
 MODELS = [
     'openai/gpt-oss-20b',
-    'qwen/qwen3.6-27b'
+    'qwen/qwen3.6-27b',
+    'qwen/qwen3.8-27b'
 ]
 
 OUTPUT_FILE = os.path.join('data', 'verse_explanations.json')
@@ -466,7 +467,7 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
 
     max_attempts = len(MODELS) * 2
     for attempt in range(max_attempts):
-        model = MODELS[(start_model_idx + attempt) % len(MODELS)]
+        model = MODELS[attempt % len(MODELS)]
         key_idx = (worker_id + (attempt // len(MODELS))) % len(API_KEYS)
         curr_key = API_KEYS[key_idx]
 
@@ -476,7 +477,7 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
                 {'role': 'system', 'content': 'You explain world scriptures with authentic religious context, narrative backstory, and spiritual depth from traditional commentaries. For parables and stories, unpack the real metaphor. Output valid JSON.'},
                 {'role': 'user', 'content': prompt}
             ],
-            'max_tokens': 1800,
+            'max_tokens': 950,
             'temperature': 0.2
         }
         if 'gpt-oss' in model:
@@ -541,13 +542,30 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
                 if len(results) >= max(1, len(verse_batch) // 2):
                     return results, None
         except urllib.error.HTTPError as e:
-            err_msg = e.read().decode('utf-8', errors='ignore')[:100]
-            print(f"  [Worker {worker_id}] HTTP {e.code} ({model}): {err_msg}")
-            sys.stdout.flush()
+            raw_err = e.read().decode('utf-8', errors='ignore')
             if e.code == 429:
-                time.sleep(1.0)
+                wait_sec = 6.0 + attempt * 2.5
+                if hasattr(e, 'headers') and e.headers and 'Retry-After' in e.headers:
+                    try:
+                        wait_sec = max(float(e.headers['Retry-After']), 4.0)
+                    except Exception:
+                        pass
+                m_wait = re.search(r'try again in ([\d\.]+)s', raw_err, re.IGNORECASE)
+                if m_wait:
+                    try:
+                        wait_sec = float(m_wait.group(1)) + 0.5
+                    except Exception:
+                        pass
+                wait_sec = min(wait_sec, 20.0)
+                print(f"  [Worker {worker_id}] Quota replenishing for {model}. Pausing {wait_sec:.1f}s...")
+                sys.stdout.flush()
+                time.sleep(wait_sec)
                 continue
-            time.sleep(0.5)
+            else:
+                err_msg = raw_err[:100]
+                print(f"  [Worker {worker_id}] HTTP {e.code} ({model}): {err_msg}")
+                sys.stdout.flush()
+                time.sleep(1.0)
         except Exception as e:
             print(f"  [Worker {worker_id}] Error ({model}): {e}")
             sys.stdout.flush()
@@ -555,7 +573,7 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
 
     return [], "Rate limit cooldown needed"
 
-BATCH_SIZE = 10
+BATCH_SIZE = 5
 WORKERS = min(2, len(API_KEYS))
 
 print("=" * 70)
