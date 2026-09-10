@@ -85,9 +85,11 @@ GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 # Fast models with independent rate limits to maximize throughput
 # Put ultra-fast models (sub-second responses) first
 MODELS = [
-    'openai/gpt-oss-20b',
+    'allam-2-7b',
+    'openai/gpt-oss-120b',
     'qwen/qwen3.6-27b',
-    'qwen/qwen3.8-27b'
+    'qwen/qwen3.8-27b',
+    'openai/gpt-oss-20b'
 ]
 
 OUTPUT_FILE = os.path.join('data', 'verse_explanations.json')
@@ -451,8 +453,45 @@ def save_databases():
 from queue import Queue, Empty
 from threading import Thread, Lock
 
-def call_ai_batch_for_worker(verse_batch, worker_id):
-    start_model_idx = worker_id % len(MODELS)
+CHANNELS = []
+for ki, k in enumerate(API_KEYS):
+    for m in MODELS:
+        CHANNELS.append({
+            'key': k,
+            'model': m,
+            'label': f"Key{ki+1}-{m.split('/')[-1]}",
+            'last_call': 0.0,
+            'cooldown_until': 0.0
+        })
+
+channel_lock = Lock()
+MIN_CHANNEL_INTERVAL = 3.5
+
+def acquire_channel():
+    while not stop_requested:
+        with channel_lock:
+            now = time.time()
+            best_idx = None
+            longest_idle = -1
+            for idx, ch in enumerate(CHANNELS):
+                if now < ch['cooldown_until']:
+                    continue
+                idle = now - ch['last_call']
+                if idle >= MIN_CHANNEL_INTERVAL and idle > longest_idle:
+                    longest_idle = idle
+                    best_idx = idx
+            if best_idx is not None:
+                CHANNELS[best_idx]['last_call'] = now
+                return best_idx, CHANNELS[best_idx]
+        time.sleep(0.05)
+    return None, None
+
+def mark_channel_cooldown(ch_idx, retry_seconds=15.0):
+    with channel_lock:
+        if 0 <= ch_idx < len(CHANNELS):
+            CHANNELS[ch_idx]['cooldown_until'] = time.time() + retry_seconds
+
+def call_ai_batch_channel(verse_batch, ch_idx, ch):
     prompt = (
         "Respond in valid JSON format.\n"
         "Explain these scriptures in clear, simple everyday language for ordinary people.\n"
@@ -470,113 +509,105 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
         v_ref = f"{item['religion']} - {item['book']} {item['chapter']}:{item['verse']}"
         prompt += f'v{idx+1}: "{v_text}" ({v_ref})\n'
 
-    max_attempts = len(MODELS) * 2
-    for attempt in range(max_attempts):
-        model = MODELS[attempt % len(MODELS)]
-        key_idx = (worker_id + (attempt // len(MODELS))) % len(API_KEYS)
-        curr_key = API_KEYS[key_idx]
+    payload = {
+        'model': ch['model'],
+        'messages': [
+            {'role': 'system', 'content': 'You provide simple, practical, everyday meanings of world scriptures. No philosophy. Output valid JSON.'},
+            {'role': 'user', 'content': prompt}
+        ],
+        'max_tokens': 500,
+        'temperature': 0.2
+    }
+    if 'gpt-oss' in ch['model']:
+        payload['reasoning_effort'] = 'low'
+        payload['reasoning_format'] = 'hidden'
+    elif 'qwen' in ch['model']:
+        payload['reasoning_effort'] = 'none'
 
-        payload = {
-            'model': model,
-            'messages': [
-                {'role': 'system', 'content': 'You provide simple, practical, everyday meanings of world scriptures. No philosophy. Output valid JSON.'},
-                {'role': 'user', 'content': prompt}
-            ],
-            'max_tokens': 600,
-            'temperature': 0.2
-        }
-        if 'gpt-oss' in model:
-            payload['reasoning_effort'] = 'low'
-            payload['reasoning_format'] = 'hidden'
-        elif 'qwen' in model:
-            payload['reasoning_effort'] = 'none'
+    data = json.dumps(payload).encode('utf-8')
+    req = urllib.request.Request(GROQ_URL, data=data, headers={
+        'Authorization': f"Bearer {ch['key']}",
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+    })
 
-        data = json.dumps(payload).encode('utf-8')
-        req = urllib.request.Request(GROQ_URL, data=data, headers={
-            'Authorization': f'Bearer {curr_key}',
-            'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-        })
+    try:
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            res = json.loads(resp.read().decode('utf-8'))
+            raw = res['choices'][0]['message'].get('content', '').strip()
+            parsed = {}
+            raw_clean = re.sub(r'<think>.*?</think>', '', raw, flags=re.DOTALL).strip()
+            raw_clean = re.sub(r'```(?:json)?', '', raw_clean).strip()
+            m = re.search(r'\{[\s\S]*\}', raw_clean)
+            if m:
+                try:
+                    parsed = json.loads(m.group(0))
+                except Exception:
+                    s_idx = raw_clean.find('{')
+                    e_idx = raw_clean.rfind('}')
+                    if s_idx != -1 and e_idx != -1:
+                        try:
+                            parsed = json.loads(raw_clean[s_idx:e_idx+1])
+                        except Exception:
+                            pass
 
-        try:
-            with urllib.request.urlopen(req, timeout=12) as resp:
-                res = json.loads(resp.read().decode('utf-8'))
-                raw = res['choices'][0]['message'].get('content', '').strip()
-                parsed = {}
-                raw_clean = re.sub(r'<think>.*?</think>', '', raw, flags=re.DOTALL).strip()
-                raw_clean = re.sub(r'```(?:json)?', '', raw_clean).strip()
-                m = re.search(r'\{[\s\S]*\}', raw_clean)
-                if m:
-                    try:
-                        parsed = json.loads(m.group(0))
-                    except Exception:
-                        s_idx = raw_clean.find('{')
-                        e_idx = raw_clean.rfind('}')
-                        if s_idx != -1 and e_idx != -1:
-                            try:
-                                parsed = json.loads(raw_clean[s_idx:e_idx+1])
-                            except Exception:
-                                pass
+            results = []
+            for idx, v_item in enumerate(verse_batch):
+                item_data = parsed.get(f'v{idx+1}') or parsed.get(str(idx+1))
+                if not item_data and isinstance(parsed, dict):
+                    for k_map, val in parsed.items():
+                        if str(idx+1) in k_map:
+                            item_data = val
+                            break
 
-                results = []
-                for idx, v_item in enumerate(verse_batch):
-                    item_data = parsed.get(f'v{idx+1}') or parsed.get(str(idx+1))
-                    if not item_data and isinstance(parsed, dict):
-                        for k, val in parsed.items():
-                            if str(idx+1) in k:
-                                item_data = val
-                                break
+                exp_val = ''
+                if isinstance(item_data, dict):
+                    exp_val = sanitize_text(str(item_data.get('explanation') or item_data.get('meaning') or item_data.get('context') or ''))
+                elif isinstance(item_data, str):
+                    exp_val = sanitize_text(item_data)
 
+                bad_indicators = ['<think', 'thinking process', 'user input', 'expert scholar', '**role', '**task', 'strict rules']
+                if any(b in exp_val.lower() for b in bad_indicators):
                     exp_val = ''
-                    if isinstance(item_data, dict):
-                        exp_val = sanitize_text(str(item_data.get('explanation') or item_data.get('meaning') or item_data.get('context') or ''))
-                    elif isinstance(item_data, str):
-                        exp_val = sanitize_text(item_data)
 
-                    # Explicitly reject contaminated or prompt-leaking outputs
-                    bad_indicators = ['<think', 'thinking process', 'user input', 'expert scholar', '**role', '**task', 'strict rules']
-                    if any(b in exp_val.lower() for b in bad_indicators):
-                        exp_val = ''
+                if exp_val and len(exp_val.split()) >= 8:
+                    results.append((v_item, exp_val))
 
-                    if exp_val and len(exp_val.split()) >= 8:
-                        results.append((v_item, exp_val))
-
-                if len(results) >= max(1, len(verse_batch) // 2):
-                    return results, None
-        except urllib.error.HTTPError as e:
-            raw_err = e.read().decode('utf-8', errors='ignore')
-            if e.code == 429:
-                # Fast failover: if alternative models are available in the rotation, switch in 0.3s!
-                if attempt < len(MODELS) - 1:
-                    next_model = MODELS[(attempt + 1) % len(MODELS)]
-                    print(f"  [Worker {worker_id}] 429 on {model} -> Fast failover to {next_model} (0.3s)")
-                    sys.stdout.flush()
-                    time.sleep(0.3)
-                    continue
+            if len(results) >= max(1, len(verse_batch) // 2):
+                return results, None
+    except urllib.error.HTTPError as e:
+        raw_err = e.read().decode('utf-8', errors='ignore')
+        retry_after = 15.0
+        if 'retry-after' in e.headers:
+            try:
+                retry_after = max(5.0, float(e.headers['retry-after']))
+            except Exception:
+                pass
+        m_retry = re.search(r'try again in (\d+(?:\.\d+)?s|\d+m\d+(?:\.\d+)?s)', raw_err)
+        if m_retry:
+            time_str = m_retry.group(1)
+            try:
+                if 'm' in time_str:
+                    parts = time_str.split('m')
+                    retry_after = float(parts[0]) * 60 + float(parts[1].rstrip('s'))
                 else:
-                    # All models across rotation need a brief breather
-                    print(f"  [Worker {worker_id}] Brief 2s pause for rate limit cooldown...")
-                    sys.stdout.flush()
-                    time.sleep(2.0)
-                    continue
-            else:
-                err_msg = raw_err[:100]
-                print(f"  [Worker {worker_id}] HTTP {e.code} ({model}): {err_msg}")
-                sys.stdout.flush()
-                time.sleep(0.5)
-        except Exception as e:
-            print(f"  [Worker {worker_id}] Error ({model}): {e}")
-            sys.stdout.flush()
-            time.sleep(0.3)
+                    retry_after = float(time_str.rstrip('s'))
+            except Exception:
+                pass
+        mark_channel_cooldown(ch_idx, retry_after)
+        return [], f"HTTP {e.code} ({ch['label']}): cooldown {retry_after:.1f}s"
+    except Exception as e:
+        mark_channel_cooldown(ch_idx, 3.0)
+        return [], str(e)
 
-    return [], "Rate limit cooldown needed"
+    return [], "Parse failed"
 
 BATCH_SIZE = 5
-WORKERS = max(4, len(API_KEYS) * 2)
+WORKERS = min(5, max(3, len(CHANNELS) // 2))
 
 print("=" * 70)
 print(f"  STARTING TURBO FEED EXPLANATIONS GENERATOR ({len(pending_queue):,} queued)")
-print(f"  Concurrency: {WORKERS} parallel workers with dedicated keys across {len(API_KEYS)} key(s)")
+print(f"  Concurrency: {WORKERS} parallel workers across {len(CHANNELS)} isolated rate-governed channels")
 print("  Active Models: " + ", ".join(MODELS))
 print("  Continuous pipeline (non-blocking async I/O). Auto-saves to " + OUTPUT_FILE)
 print("=" * 70)
@@ -631,7 +662,18 @@ def worker_thread(worker_id):
         except Empty:
             break
 
-        batch_results, err = call_ai_batch_for_worker(verse_batch, worker_id)
+        batch_results = None
+        for attempt in range(len(CHANNELS) + 2):
+            if stop_requested:
+                break
+            ch_idx, ch = acquire_channel()
+            if ch is None:
+                break
+            batch_results, err = call_ai_batch_channel(verse_batch, ch_idx, ch)
+            if batch_results:
+                break
+            time.sleep(0.1)
+
         if not batch_results:
             task_queue.put(verse_batch)
             time.sleep(1.0)
@@ -686,7 +728,6 @@ def worker_thread(worker_id):
                 break
 
         task_queue.task_done()
-        time.sleep(0.3)
 
 try:
     threads = []
