@@ -19,6 +19,8 @@ parser = argparse.ArgumentParser(description='Feed Explanations Generator')
 parser.add_argument('--max-minutes', type=int, default=0, help='Max minutes to run (0 = unlimited)')
 parser.add_argument('--max-count', type=int, default=0, help='Max verses to generate (0 = unlimited)')
 parser.add_argument('--include-library', action='store_true', default=True, help='Include all library scriptures')
+parser.add_argument('--reverse', action='store_true', default=False, help='Process pending queue in reverse order')
+parser.add_argument('--religion', type=str, default='', help='Filter to a specific religion (e.g. Hinduism, Islam, Buddhism)')
 cli_args = parser.parse_args()
 
 API_KEYS = []
@@ -390,6 +392,14 @@ if getattr(cli_args, 'include_library', True):
     print(f"Pending library verses (Priority 2): {library_added:,}")
 
 print(f"TOTAL QUEUED FOR GENERATION: {len(pending_queue):,} verses")
+
+if cli_args.religion:
+    pending_queue = [v for v in pending_queue if v.get('religion', '').lower() == cli_args.religion.lower()]
+    print(f"Filtered queue to religion '{cli_args.religion}': {len(pending_queue):,} verses")
+
+if cli_args.reverse:
+    pending_queue.reverse()
+    print("Reversed pending queue: processing backwards from end of library to prevent runner collision.")
 
 if pending_queue:
     if os.path.exists('.all_completed'):
