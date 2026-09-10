@@ -30606,23 +30606,15 @@ async function openVerseExplanation(verse, event) {
                lower.includes('expert scholar') || 
                lower.includes('**role') || 
                lower.includes('**task') || 
-               lower.includes('strict rules');
+               lower.includes('strict rules') ||
+               lower.includes('key terminology') ||
+               lower.includes('in theological context') ||
+               lower.includes('this quranic verse') ||
+               lower.includes('this biblical verse');
     };
 
     if (isContaminated(cleanMeaning)) cleanMeaning = '';
     if (isContaminated(cleanContext)) cleanContext = '';
-
-    // If no context was provided in earlier database batches, supply an authentic contextual anchor
-    if (!cleanContext && cleanMeaning) {
-        const bookName = targetVerse.book || '';
-        const chapNo = targetVerse.chapter || targetVerse.chapter_no || '';
-        const relName = targetVerse.religion || '';
-        if (bookName && chapNo) {
-            cleanContext = `From ${bookName}, Chapter ${chapNo}${relName ? ` (${relName})` : ''}, addressing timeless guidance on faith, character, and inner peace.`;
-        } else if (bookName) {
-            cleanContext = `From ${bookName}${relName ? ` (${relName})` : ''}, exploring sacred teachings and reflection for everyday life.`;
-        }
-    }
 
     let meaningLabel = "Meaning";
     const isVerseSpecific = foundKey && ((ver && foundKey.endsWith(`_${ver}`)) || (targetVerse.id && foundKey === String(targetVerse.id).toLowerCase()));
