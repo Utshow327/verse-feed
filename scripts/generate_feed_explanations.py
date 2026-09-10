@@ -76,16 +76,22 @@ API_KEYS = valid_keys
 # Validate Gemini key
 if GEMINI_API_KEY:
     print("Validating Gemini API key...")
-    req = urllib.request.Request(
-        f'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={GEMINI_API_KEY}',
-        data=json.dumps({'contents': [{'parts': [{'text': 'hi'}]}]}).encode('utf-8'),
-        headers={'Content-Type': 'application/json'}
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=8) as resp:
-            print(f"  Gemini Key ({GEMINI_API_KEY[:10]}...): ACTIVE")
-    except Exception as e:
-        print(f"  Gemini Key: REMOVED ({e})")
+    gemini_valid = False
+    for test_mod in ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite']:
+        req = urllib.request.Request(
+            f'https://generativelanguage.googleapis.com/v1beta/models/{test_mod}:generateContent?key={GEMINI_API_KEY}',
+            data=json.dumps({'contents': [{'parts': [{'text': 'hi'}]}]}).encode('utf-8'),
+            headers={'Content-Type': 'application/json'}
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                print(f"  Gemini Key ({GEMINI_API_KEY[:10]}...) on {test_mod}: ACTIVE")
+                gemini_valid = True
+                break
+        except Exception as e:
+            pass
+    if not gemini_valid:
+        print("  Gemini Key: All models exhausted or unavailable.")
         GEMINI_API_KEY = None
 
 if not API_KEYS and not GEMINI_API_KEY:
@@ -487,7 +493,7 @@ from threading import Thread, Lock
 
 CHANNELS = []
 if GEMINI_API_KEY:
-    for g_mod in ['gemini-3.1-flash-lite', 'gemini-3.6-flash']:
+    for g_mod in ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite']:
         CHANNELS.append({
             'provider': 'gemini',
             'key': GEMINI_API_KEY,
