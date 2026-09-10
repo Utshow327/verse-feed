@@ -43,10 +43,11 @@ jobs:
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_API_KEYS: ${{ secrets.GROQ_API_KEYS }}
+          PYTHONUNBUFFERED: "1"
         run: |
           MAX_MINS="${{ github.event.inputs.max_minutes || '300' }}"
           MAX_COUNT="${{ github.event.inputs.max_verses || '0' }}"
-          python scripts/generate_feed_explanations.py --max-minutes "$MAX_MINS" --max-count "$MAX_COUNT"
+          python -u scripts/generate_feed_explanations.py --max-minutes "$MAX_MINS" --max-count "$MAX_COUNT"
 
       - name: Check Progress Status
         if: always()
