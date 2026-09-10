@@ -517,10 +517,11 @@ def mark_channel_cooldown(ch_idx, retry_seconds=15.0):
 
 def call_ai_batch_channel(verse_batch, ch_idx, ch):
     prompt = (
-        "Respond in valid JSON: {\"v1\": \"...\", \"v2\": \"...\"}\n"
-        "Explain each verse in simple, clear language (20-30 words).\n"
-        "Always clearly explain who any named characters, figures, or places are so anyone understands.\n"
-        "Start directly with the meaning. No robotic intro.\n\n"
+        "Respond in valid JSON: {\"v1\": {\"context\": \"...\", \"meaning\": \"...\"}}\n"
+        "For each verse, write exactly TWO distinct paragraphs:\n"
+        "1. 'context': 1-2 simple sentences clearly explaining who the characters, figures, or places are and the background setting.\n"
+        "2. 'meaning': 1-2 simple sentences clearly explaining the practical core life lesson, moral, or spiritual takeaway.\n"
+        "Keep each part concise (total ~40-50 words per verse). Start directly without robotic intros.\n\n"
         "Verses:\n"
     )
     for idx, item in enumerate(verse_batch):
@@ -546,10 +547,10 @@ def call_ai_batch_channel(verse_batch, ch_idx, ch):
         payload = {
             'model': ch['model'],
             'messages': [
-                {'role': 'system', 'content': 'You provide simple, clear verse explanations and always explain who the characters are. Output valid JSON.'},
+                {'role': 'system', 'content': 'You provide two-paragraph verse explanations: context explaining characters, and meaning explaining the lesson. Output valid JSON.'},
                 {'role': 'user', 'content': prompt}
             ],
-            'max_tokens': 320,
+            'max_tokens': 450,
             'temperature': 0.2
         }
         if 'gpt-oss' in ch['model']:
@@ -564,7 +565,7 @@ def call_ai_batch_channel(verse_batch, ch_idx, ch):
             'Content-Type': 'application/json',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
         })
-        req_timeout = 12
+        req_timeout = 15
 
     try:
         with urllib.request.urlopen(req, timeout=req_timeout) as resp:
@@ -599,18 +600,31 @@ def call_ai_batch_channel(verse_batch, ch_idx, ch):
                             item_data = val
                             break
 
+                ctx_val = ''
+                mean_val = ''
                 exp_val = ''
                 if isinstance(item_data, dict):
-                    exp_val = sanitize_text(str(item_data.get('explanation') or item_data.get('meaning') or item_data.get('context') or ''))
+                    ctx_val = sanitize_text(str(item_data.get('context') or ''))
+                    mean_val = sanitize_text(str(item_data.get('meaning') or item_data.get('explanation') or ''))
+                    if ctx_val and mean_val:
+                        exp_val = f"{ctx_val}\n\n{mean_val}"
+                    else:
+                        exp_val = ctx_val or mean_val
                 elif isinstance(item_data, str):
                     exp_val = sanitize_text(item_data)
+                    parts = [p.strip() for p in exp_val.split('\n\n') if p.strip()]
+                    if len(parts) > 1:
+                        ctx_val = parts[0]
+                        mean_val = parts[1]
+                    else:
+                        mean_val = exp_val
 
                 bad_indicators = ['<think', 'thinking process', 'user input', 'expert scholar', '**role', '**task', 'strict rules']
                 if any(b in exp_val.lower() for b in bad_indicators):
                     exp_val = ''
 
                 if exp_val and len(exp_val.split()) >= 8:
-                    results.append((v_item, exp_val))
+                    results.append((v_item, (exp_val, ctx_val, mean_val)))
 
             if len(results) >= max(1, len(verse_batch) // 2):
                 return results, None
@@ -721,14 +735,22 @@ def worker_thread(worker_id):
             continue
 
         with results_lock:
-            for v_item, exp_val in batch_results:
+            for v_item, res_item in batch_results:
+                if isinstance(res_item, tuple):
+                    exp_val, ctx_val, mean_val = res_item
+                else:
+                    exp_val = res_item
+                    parts = [p.strip() for p in exp_val.split('\n\n') if p.strip()]
+                    ctx_val = parts[0] if len(parts) > 1 else ''
+                    mean_val = parts[1] if len(parts) > 1 else exp_val
+
                 feed_k = v_item.get('feed_key') or v_item['key']
                 alt_k = v_item.get('alt_key')
 
                 entry = {
                     'explanation': exp_val,
-                    'meaning': exp_val,
-                    'context': '',
+                    'meaning': mean_val or exp_val,
+                    'context': ctx_val or '',
                     'religion': v_item['religion'],
                     'book': v_item['book'],
                     'chapter': v_item['chapter'],

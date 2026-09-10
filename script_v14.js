@@ -30606,7 +30606,7 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         if (foundData.explanation) {
             rawExplanation = foundData.explanation;
         } else if (foundData.meaning && foundData.context) {
-            rawExplanation = `${foundData.context} ${foundData.meaning}`;
+            rawExplanation = `${foundData.context}\n\n${foundData.meaning}`;
         } else if (foundData.meaning || foundData.text) {
             rawExplanation = foundData.meaning || foundData.text;
         } else if (typeof foundData === 'string') {
@@ -30616,7 +30616,7 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         if (foundChapterData.explanation) {
             rawExplanation = foundChapterData.explanation;
         } else if (foundChapterData.meaning && foundChapterData.context) {
-            rawExplanation = `${foundChapterData.context} ${foundChapterData.meaning}`;
+            rawExplanation = `${foundChapterData.context}\n\n${foundChapterData.meaning}`;
         } else if (foundChapterData.meaning || foundChapterData.text) {
             rawExplanation = foundChapterData.meaning || foundChapterData.text;
         }
