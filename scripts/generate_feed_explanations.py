@@ -305,23 +305,6 @@ if os.path.exists(ACTIVE_RANKINGS_FILE):
 
 print(f"Total verses in active feed rankings: {len(active_rankings):,}")
 
-BAD_PLATITUDE_PATTERNS = [
-    'care for animal',
-    'care for the animal',
-    'respect the diversity of all creature',
-    'war harms all living being',
-    'nature continues its cycle',
-    'destruction extends to animal',
-    'treat everyone nicely',
-    'treat others with kindness',
-    'life goes on forever',
-    'animals too, reminding us',
-    'be a nice person',
-    'be a good person',
-    'love and respect all creatures',
-    'harmony with nature',
-]
-
 def is_explanation_complete(key):
     if not key:
         return False
@@ -329,15 +312,7 @@ def is_explanation_complete(key):
     if not entry or not isinstance(entry, dict):
         return False
     exp = str(entry.get('explanation') or entry.get('meaning') or entry.get('text') or '').strip()
-    if len(exp.split()) < 10:
-        return False
-
-    combined = (str(entry.get('context') or '') + ' ' + exp).lower()
-    for bad in BAD_PLATITUDE_PATTERNS:
-        if bad in combined:
-            return False
-
-    return True
+    return len(exp.split()) >= 6
 
 # Prioritize queue: Rank 100 down to 70
 sorted_active = sorted(active_rankings.items(), key=lambda x: x[1], reverse=True)
@@ -498,15 +473,10 @@ def mark_channel_cooldown(ch_idx, retry_seconds=15.0):
 
 def call_ai_batch_channel(verse_batch, ch_idx, ch):
     prompt = (
-        "Respond in valid JSON format.\n"
-        "Provide authentic, scholarly, and insightful explanations of these world scriptures.\n"
-        "For each verse, give a concise scholarly explanation (25 to 45 words) explaining the authentic theological, historical, or contextual meaning of this specific verse.\n\n"
-        "Strict rules:\n"
-        "1. Provide real scholarly substance: illuminate the original context, key theological or spiritual depth, and the precise significance of the text.\n"
-        "2. NO GENERIC PLATITUDES or superficial moralizing (e.g., do not say 'be a nice person', 'care for animals', 'respect nature', or vague good sayings). Explain the authentic scholarly substance of what the scripture conveys.\n"
-        "3. Start directly with the core insight. Never write robotic lead-ins like 'This verse means', 'This passage teaches', or 'In this verse'.\n"
-        "4. Never use emojis, em-dashes, or dashes; use standard commas and periods.\n"
-        "5. Return ONLY a valid JSON object: {\"v1\": {\"explanation\": \"...\"}, \"v2\": ...}\n\n"
+        "Respond in valid JSON: {\"v1\": \"...\", \"v2\": \"...\"}\n"
+        "Explain each verse in simple, clear language (20-30 words).\n"
+        "Always clearly explain who any named characters, figures, or places are so anyone understands.\n"
+        "Start directly with the meaning. No robotic intro.\n\n"
         "Verses:\n"
     )
     for idx, item in enumerate(verse_batch):
@@ -517,10 +487,10 @@ def call_ai_batch_channel(verse_batch, ch_idx, ch):
     payload = {
         'model': ch['model'],
         'messages': [
-            {'role': 'system', 'content': 'You are an authoritative scriptural scholar providing concise, substantive theological, historical, and contextual explanations of world scriptures without superficial platitudes. Output valid JSON.'},
+            {'role': 'system', 'content': 'You provide simple, clear verse explanations and always explain who the characters are. Output valid JSON.'},
             {'role': 'user', 'content': prompt}
         ],
-        'max_tokens': 500,
+        'max_tokens': 400,
         'temperature': 0.2
     }
     if 'gpt-oss' in ch['model']:
