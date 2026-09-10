@@ -30643,6 +30643,7 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         expHtml = `
             <div class="card-explanation-view">
                 <div class="card-explanation-section">
+                    <span class="card-exp-badge">Meaning</span>
                     <p class="card-exp-text">${cleanExplanation}</p>
                 </div>
             </div>
@@ -30652,13 +30653,14 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         expHtml = `
             <div class="card-explanation-view">
                 <div class="card-explanation-section">
+                    <span class="card-exp-badge">Meaning</span>
                     <p class="card-exp-text" style="opacity: 0.85;">A simple life reflection for this verse is being added soon.\n\nTake a quiet breath and reflect on what these words speak to your heart today.</p>
                 </div>
             </div>
         `;
     }
 
-    cardEl._explanationSpeechText = cleanExplanation;
+    cardEl._explanationSpeechText = "Meaning. " + cleanExplanation;
 
     const isFeedCard = cardEl.classList.contains('verse-card');
     if (isFeedCard) {
@@ -30689,7 +30691,7 @@ function extractExplanationTextFromEl(el) {
     if (!expView) return null;
     const textEl = expView.querySelector('.card-exp-text');
     if (textEl && textEl.textContent.trim()) {
-        return textEl.textContent.trim();
+        return "Meaning. " + textEl.textContent.trim();
     }
     return null;
 }

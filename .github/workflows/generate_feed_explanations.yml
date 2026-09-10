@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       max_minutes:
-        description: 'Maximum runtime in minutes (e.g. 60, 120, 300)'
+        description: 'Maximum runtime in minutes (e.g. 60, 90, 180)'
         required: false
-        default: '300'
+        default: '90'
       max_verses:
         description: 'Maximum verses to generate (0 for unlimited)'
         required: false
@@ -17,7 +17,7 @@ on:
 
 concurrency:
   group: verse-explanation-generator
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -45,9 +45,9 @@ jobs:
           GROQ_API_KEYS: ${{ secrets.GROQ_API_KEYS }}
           PYTHONUNBUFFERED: "1"
         run: |
-          MAX_MINS="${{ github.event.inputs.max_minutes || '300' }}"
+          MAX_MINS="${{ github.event.inputs.max_minutes || '90' }}"
           MAX_COUNT="${{ github.event.inputs.max_verses || '0' }}"
-          python -u scripts/generate_feed_explanations.py --max-minutes "$MAX_MINS" --max-count "$MAX_COUNT"
+          python -u scripts/generate_feed_explanations.py --include-library --max-minutes "$MAX_MINS" --max-count "$MAX_COUNT"
 
       - name: Check Progress Status
         if: always()

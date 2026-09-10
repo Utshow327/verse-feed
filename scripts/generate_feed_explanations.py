@@ -18,7 +18,7 @@ import argparse
 parser = argparse.ArgumentParser(description='Feed Explanations Generator')
 parser.add_argument('--max-minutes', type=int, default=0, help='Max minutes to run (0 = unlimited)')
 parser.add_argument('--max-count', type=int, default=0, help='Max verses to generate (0 = unlimited)')
-parser.add_argument('--include-library', action='store_true', help='Include all 124k library scriptures')
+parser.add_argument('--include-library', action='store_true', default=True, help='Include all library scriptures')
 cli_args = parser.parse_args()
 
 API_KEYS = []
@@ -357,8 +357,8 @@ for vkey, score in sorted_active:
 
 print(f"Pending feed verses (Priority 1): {len(pending_queue):,}")
 
-# 4. Queue remaining library scriptures only if explicitly requested
-if getattr(cli_args, 'include_library', False):
+# 4. Queue remaining library scriptures
+if getattr(cli_args, 'include_library', True):
     queued_keys = set(v.get('feed_key') for v in pending_queue)
     for k in list(explanations.keys()):
         if is_explanation_complete(k):
@@ -387,9 +387,15 @@ if getattr(cli_args, 'include_library', False):
 
     print(f"Pending library verses (Priority 2): {library_added:,}")
 
-print(f"TOTAL QUEUED FOR GENERATION: {len(pending_queue):,} feed verses")
+print(f"TOTAL QUEUED FOR GENERATION: {len(pending_queue):,} verses")
 
-if not pending_queue:
+if pending_queue:
+    if os.path.exists('.all_completed'):
+        try:
+            os.remove('.all_completed')
+        except Exception:
+            pass
+else:
     print("All scriptures across the entire app have full explanations!")
     try:
         with open('.all_completed', 'w', encoding='utf-8') as f:
@@ -449,17 +455,15 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
     start_model_idx = worker_id % len(MODELS)
     prompt = (
         "Respond in valid JSON format.\n"
-        "You are an authentic, insightful scholar of world religious scriptures (Buddhism, Christianity, Islam, Hinduism, Judaism, Sikhism).\n"
-        "Explain scriptures with authentic depth, clarity, and spiritual context in simple, accessible language.\n"
-        "For each verse, provide a single, clear 'explanation' (25 to 45 words).\n\n"
+        "Explain these scriptures in clear, simple everyday language for ordinary people.\n"
+        "For each verse, give a single 'explanation' (20 to 35 words) stating its practical meaning and life lesson.\n\n"
         "Strict rules:\n"
-        "1. 'explanation': Provide the authentic backstory or narrative context followed seamlessly by the spiritual/moral wisdom of the verse. Do not separate them into context and meaning. Make it a single, natural, flowing paragraph.\n"
-        "2. Metaphors & Parables: Explicitly unpack what symbolic elements represent in religious teachings. NEVER write lazy platitudes (strictly forbidden: 'care for animals', 'respect nature', 'war is bad', 'be a nice person').\n"
-        "3. Tone: Respectful, insightful, and clear. Avoid overly dense academic jargon, but keep real spiritual substance.\n"
-        "4. Never use emojis.\n"
-        "5. Never use em dashes or en dashes (use standard commas or periods).\n"
-        "6. Return ONLY a valid JSON object mapping each ID ('v1', 'v2', etc.) to an object with 'explanation', e.g. {\"v1\": {\"explanation\": \"...\"}} or {\"v1\": \"...\"}.\n\n"
-        "Verses to explain:\n"
+        "1. NO PHILOSOPHY, abstract metaphysics, or academic jargon. Do not debate theology or write theoretical essays.\n"
+        "2. Explain the real practical meaning and moral takeaway directly and simply so anyone understands immediately.\n"
+        "3. Never write robotic lead-ins like 'This verse means' or 'This passage teaches'. Start directly with the insight.\n"
+        "4. Never use emojis or dashes (use standard commas and periods).\n"
+        "5. Return ONLY a valid JSON object: {\"v1\": {\"explanation\": \"...\"}, \"v2\": ...}\n\n"
+        "Verses:\n"
     )
     for idx, item in enumerate(verse_batch):
         v_text = item['text'][:250]
@@ -475,10 +479,10 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
         payload = {
             'model': model,
             'messages': [
-                {'role': 'system', 'content': 'You explain world scriptures with authentic religious narrative context and spiritual depth from traditional commentaries. For parables and stories, unpack the real metaphor. Output valid JSON.'},
+                {'role': 'system', 'content': 'You provide simple, practical, everyday meanings of world scriptures. No philosophy. Output valid JSON.'},
                 {'role': 'user', 'content': prompt}
             ],
-            'max_tokens': 750,
+            'max_tokens': 600,
             'temperature': 0.2
         }
         if 'gpt-oss' in model:
@@ -495,7 +499,7 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
         })
 
         try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with urllib.request.urlopen(req, timeout=12) as resp:
                 res = json.loads(resp.read().decode('utf-8'))
                 raw = res['choices'][0]['message'].get('content', '').strip()
                 parsed = {}
@@ -534,7 +538,7 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
                     if any(b in exp_val.lower() for b in bad_indicators):
                         exp_val = ''
 
-                    if exp_val and len(exp_val.split()) >= 10:
+                    if exp_val and len(exp_val.split()) >= 8:
                         results.append((v_item, exp_val))
 
                 if len(results) >= max(1, len(verse_batch) // 2):
@@ -542,33 +546,33 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
         except urllib.error.HTTPError as e:
             raw_err = e.read().decode('utf-8', errors='ignore')
             if e.code == 429:
-                # Fast failover: if alternative models are available in the rotation, switch in 0.5s!
+                # Fast failover: if alternative models are available in the rotation, switch in 0.3s!
                 if attempt < len(MODELS) - 1:
                     next_model = MODELS[(attempt + 1) % len(MODELS)]
-                    print(f"  [Worker {worker_id}] 429 on {model} -> Fast failover to {next_model} (0.5s)")
+                    print(f"  [Worker {worker_id}] 429 on {model} -> Fast failover to {next_model} (0.3s)")
                     sys.stdout.flush()
-                    time.sleep(0.5)
+                    time.sleep(0.3)
                     continue
                 else:
                     # All models across rotation need a brief breather
-                    print(f"  [Worker {worker_id}] Brief 3s pause for rate limit cooldown...")
+                    print(f"  [Worker {worker_id}] Brief 2s pause for rate limit cooldown...")
                     sys.stdout.flush()
-                    time.sleep(3.0)
+                    time.sleep(2.0)
                     continue
             else:
                 err_msg = raw_err[:100]
                 print(f"  [Worker {worker_id}] HTTP {e.code} ({model}): {err_msg}")
                 sys.stdout.flush()
-                time.sleep(1.0)
+                time.sleep(0.5)
         except Exception as e:
             print(f"  [Worker {worker_id}] Error ({model}): {e}")
             sys.stdout.flush()
-            time.sleep(0.5)
+            time.sleep(0.3)
 
     return [], "Rate limit cooldown needed"
 
 BATCH_SIZE = 5
-WORKERS = min(2, len(API_KEYS))
+WORKERS = max(4, len(API_KEYS) * 2)
 
 print("=" * 70)
 print(f"  STARTING TURBO FEED EXPLANATIONS GENERATOR ({len(pending_queue):,} queued)")
@@ -682,7 +686,7 @@ def worker_thread(worker_id):
                 break
 
         task_queue.task_done()
-        time.sleep(1.2)
+        time.sleep(0.3)
 
 try:
     threads = []
