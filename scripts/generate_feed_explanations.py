@@ -241,6 +241,9 @@ if os.path.exists('data/hindu_books.json'):
         with open('data/hindu_books.json', 'r', encoding='utf-8') as f:
             hb = json.load(f)
             for bName, bData in hb.items():
+                # Skip giant 78k epics (Mahabharata and Ramayana); feed verses are already 100% completed
+                if bName in ['Mahabharata', 'Ramayana']:
+                    continue
                 for chapName, verses in bData.items():
                     for vKey, text in verses.items():
                         k = f'hinduism_{bName}_{chapName}_{vKey}'.lower().replace(' ', '_')
