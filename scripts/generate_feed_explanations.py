@@ -321,12 +321,11 @@ def is_explanation_complete(key):
     entry = explanations.get(key) or explanations.get(key.lower())
     if not entry or not isinstance(entry, dict):
         return False
-    ctx = str(entry.get('context') or '').strip()
-    meaning = str(entry.get('meaning') or entry.get('text') or '').strip()
-    if len(ctx) < 10 or len(meaning) < 15:
+    exp = str(entry.get('explanation') or entry.get('meaning') or entry.get('text') or '').strip()
+    if len(exp.split()) < 10:
         return False
 
-    combined = (ctx + ' ' + meaning).lower()
+    combined = (str(entry.get('context') or '') + ' ' + exp).lower()
     for bad in BAD_PLATITUDE_PATTERNS:
         if bad in combined:
             return False
@@ -451,16 +450,15 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
     prompt = (
         "Respond in valid JSON format.\n"
         "You are an authentic, insightful scholar of world religious scriptures (Buddhism, Christianity, Islam, Hinduism, Judaism, Sikhism).\n"
-        "Explain scriptures with the authentic depth, story, and theological context understood by followers and traditional commentaries.\n"
-        "For each verse, provide TWO distinct parts: 'context' and 'meaning'.\n\n"
+        "Explain scriptures with authentic depth, clarity, and spiritual context in simple, accessible language.\n"
+        "For each verse, provide a single, clear 'explanation' (25 to 45 words).\n\n"
         "Strict rules:\n"
-        "1. 'context' (14 to 28 words): Explain the concrete backstory, speaker, setting, or narrative situation. If the verse mentions a scene, king, warrior, animal, parable, or battle, explain the ACTUAL story happening in that scripture, never vague generic summaries.\n"
-        "2. 'meaning' (16 to 30 words): Explain the authentic moral, spiritual, or philosophical truth taught by that faith tradition in clear, relatable words.\n"
-        "3. Metaphors & Parables: Explicitly unpack what symbolic elements represent in religious teachings (e.g. an elephant keeping its trunk coiled in battle represents guarding the mind and speech against fatal spiritual wounds). NEVER write lazy, superficial kindergarten platitudes (strictly forbidden: 'care for animals', 'respect nature', 'war is bad', 'be a nice person').\n"
-        "4. Tone: Respectful, insightful, and clear. Avoid overly dense academic jargon, but keep real spiritual substance.\n"
-        "5. Never use emojis.\n"
-        "6. Never use em dashes or en dashes (use standard commas or periods).\n"
-        "7. Return ONLY a valid JSON object mapping each ID ('v1', 'v2', etc.) to an object with 'context' and 'meaning'.\n\n"
+        "1. 'explanation': Provide the authentic backstory or narrative context followed seamlessly by the spiritual/moral wisdom of the verse. Do not separate them into context and meaning. Make it a single, natural, flowing paragraph.\n"
+        "2. Metaphors & Parables: Explicitly unpack what symbolic elements represent in religious teachings. NEVER write lazy platitudes (strictly forbidden: 'care for animals', 'respect nature', 'war is bad', 'be a nice person').\n"
+        "3. Tone: Respectful, insightful, and clear. Avoid overly dense academic jargon, but keep real spiritual substance.\n"
+        "4. Never use emojis.\n"
+        "5. Never use em dashes or en dashes (use standard commas or periods).\n"
+        "6. Return ONLY a valid JSON object mapping each ID ('v1', 'v2', etc.) to an object with 'explanation', e.g. {\"v1\": {\"explanation\": \"...\"}} or {\"v1\": \"...\"}.\n\n"
         "Verses to explain:\n"
     )
     for idx, item in enumerate(verse_batch):
@@ -477,10 +475,10 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
         payload = {
             'model': model,
             'messages': [
-                {'role': 'system', 'content': 'You explain world scriptures with authentic religious context, narrative backstory, and spiritual depth from traditional commentaries. For parables and stories, unpack the real metaphor. Output valid JSON.'},
+                {'role': 'system', 'content': 'You explain world scriptures with authentic religious narrative context and spiritual depth from traditional commentaries. For parables and stories, unpack the real metaphor. Output valid JSON.'},
                 {'role': 'user', 'content': prompt}
             ],
-            'max_tokens': 950,
+            'max_tokens': 750,
             'temperature': 0.2
         }
         if 'gpt-oss' in model:
@@ -525,22 +523,19 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
                                 item_data = val
                                 break
 
-                    ctx_val = ''
-                    meaning_val = ''
+                    exp_val = ''
                     if isinstance(item_data, dict):
-                        ctx_val = sanitize_text(str(item_data.get('context', '')))
-                        meaning_val = sanitize_text(str(item_data.get('meaning', '')))
+                        exp_val = sanitize_text(str(item_data.get('explanation') or item_data.get('meaning') or item_data.get('context') or ''))
                     elif isinstance(item_data, str):
-                        meaning_val = sanitize_text(item_data)
+                        exp_val = sanitize_text(item_data)
 
                     # Explicitly reject contaminated or prompt-leaking outputs
                     bad_indicators = ['<think', 'thinking process', 'user input', 'expert scholar', '**role', '**task', 'strict rules']
-                    if any(b in meaning_val.lower() for b in bad_indicators) or any(b in ctx_val.lower() for b in bad_indicators):
-                        meaning_val = ''
-                        ctx_val = ''
+                    if any(b in exp_val.lower() for b in bad_indicators):
+                        exp_val = ''
 
-                    if meaning_val and len(meaning_val.split()) >= 8:
-                        results.append((v_item, ctx_val, meaning_val))
+                    if exp_val and len(exp_val.split()) >= 10:
+                        results.append((v_item, exp_val))
 
                 if len(results) >= max(1, len(verse_batch) // 2):
                     return results, None
@@ -639,13 +634,14 @@ def worker_thread(worker_id):
             continue
 
         with results_lock:
-            for v_item, ctx_val, meaning_val in batch_results:
+            for v_item, exp_val in batch_results:
                 feed_k = v_item.get('feed_key') or v_item['key']
                 alt_k = v_item.get('alt_key')
 
                 entry = {
-                    'meaning': meaning_val,
-                    'context': ctx_val,
+                    'explanation': exp_val,
+                    'meaning': exp_val,
+                    'context': '',
                     'religion': v_item['religion'],
                     'book': v_item['book'],
                     'chapter': v_item['chapter'],

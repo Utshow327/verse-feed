@@ -30183,7 +30183,7 @@ function switchProfile(targetProfileId) {
     if (typeof updateVisualizerThemeCache === 'function') updateVisualizerThemeCache();
 
     selectedVoice = localStorage.getItem('selectedVoice') || 'en_GB-alan-medium';
-    if (targetProfileId === 'guest' || !isPremiumUser) {
+    if (!isPremiumUser) {
         ttsAnnounceSource = false;
         ttsRandomVoice = false;
     } else {
@@ -30596,13 +30596,28 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         }
     }
 
-    const contextContent = (foundData && foundData.context) || (foundChapterData && foundChapterData.context) || '';
-    const meaningContent = (foundData && (foundData.meaning || foundData.text)) || 
-                           (foundChapterData && (foundChapterData.meaning || foundChapterData.text)) || 
-                           (typeof foundData === 'string' ? foundData : '') || '';
+    let rawExplanation = '';
+    if (foundData) {
+        if (foundData.explanation) {
+            rawExplanation = foundData.explanation;
+        } else if (foundData.meaning && foundData.context) {
+            rawExplanation = `${foundData.context} ${foundData.meaning}`;
+        } else if (foundData.meaning || foundData.text) {
+            rawExplanation = foundData.meaning || foundData.text;
+        } else if (typeof foundData === 'string') {
+            rawExplanation = foundData;
+        }
+    } else if (foundChapterData) {
+        if (foundChapterData.explanation) {
+            rawExplanation = foundChapterData.explanation;
+        } else if (foundChapterData.meaning && foundChapterData.context) {
+            rawExplanation = `${foundChapterData.context} ${foundChapterData.meaning}`;
+        } else if (foundChapterData.meaning || foundChapterData.text) {
+            rawExplanation = foundChapterData.meaning || foundChapterData.text;
+        }
+    }
 
-    let cleanMeaning = meaningContent ? meaningContent.replace(/[—–]/g, ', ').replace(/--/g, ', ') : '';
-    let cleanContext = contextContent ? contextContent.replace(/[—–]/g, ', ').replace(/--/g, ', ') : '';
+    let cleanExplanation = rawExplanation ? rawExplanation.replace(/[—–]/g, ', ').replace(/--/g, ', ').trim() : '';
 
     // Purge any reasoning/thinking prompt leak artifacts
     const isContaminated = (str) => {
@@ -30621,44 +30636,19 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
                lower.includes('this biblical verse');
     };
 
-    if (isContaminated(cleanMeaning)) cleanMeaning = '';
-    if (isContaminated(cleanContext)) cleanContext = '';
-
-    let meaningLabel = "Meaning";
-    const isVerseSpecific = foundKey && ((ver && foundKey.endsWith(`_${ver}`)) || (targetVerse.id && foundKey === String(targetVerse.id).toLowerCase()));
-    const isChapterLevel = foundKey && chap && foundKey.includes(`_${chap}`);
-    if (isVerseSpecific) {
-        meaningLabel = "Meaning";
-    } else if (isChapterLevel) {
-        meaningLabel = "Theme";
-    } else {
-        meaningLabel = "Overview";
-    }
+    if (isContaminated(cleanExplanation)) cleanExplanation = '';
 
     let expHtml = '';
-    if (cleanContext && cleanMeaning) {
+    if (cleanExplanation) {
         expHtml = `
             <div class="card-explanation-view">
                 <div class="card-explanation-section">
-                    <span class="card-exp-badge">Context</span>
-                    <p class="card-exp-text">${cleanContext}</p>
-                </div>
-                <div class="card-explanation-section">
-                    <span class="card-exp-badge">${meaningLabel}</span>
-                    <p class="card-exp-text">${cleanMeaning}</p>
-                </div>
-            </div>
-        `;
-    } else if (cleanMeaning) {
-        expHtml = `
-            <div class="card-explanation-view">
-                <div class="card-explanation-section">
-                    <span class="card-exp-badge">${meaningLabel}</span>
-                    <p class="card-exp-text">${cleanMeaning}</p>
+                    <p class="card-exp-text">${cleanExplanation}</p>
                 </div>
             </div>
         `;
     } else {
+        cleanExplanation = "Take a quiet breath and reflect on what these words speak to your heart today.";
         expHtml = `
             <div class="card-explanation-view">
                 <div class="card-explanation-section">
@@ -30668,17 +30658,7 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         `;
     }
 
-    let speechExplanation = '';
-    if (cleanContext && cleanMeaning) {
-        speechExplanation = `Context. ${cleanContext}. ${meaningLabel}. ${cleanMeaning}`;
-    } else if (cleanMeaning) {
-        speechExplanation = `${meaningLabel}. ${cleanMeaning}`;
-    } else if (cleanContext) {
-        speechExplanation = `Context. ${cleanContext}`;
-    } else {
-        speechExplanation = `Life reflection. Take a quiet breath and reflect on what these words speak to your heart today.`;
-    }
-    cardEl._explanationSpeechText = speechExplanation;
+    cardEl._explanationSpeechText = cleanExplanation;
 
     const isFeedCard = cardEl.classList.contains('verse-card');
     if (isFeedCard) {
@@ -30707,19 +30687,11 @@ function extractExplanationTextFromEl(el) {
     if (!el) return null;
     const expView = el.classList && el.classList.contains('card-explanation-view') ? el : (el.querySelector ? el.querySelector('.card-explanation-view') : null);
     if (!expView) return null;
-    const sections = expView.querySelectorAll('.card-explanation-section');
-    let parts = [];
-    sections.forEach(sec => {
-        const badge = sec.querySelector('.card-exp-badge');
-        const textEl = sec.querySelector('.card-exp-text');
-        const label = badge ? badge.textContent.trim() : '';
-        const body = textEl ? textEl.textContent.trim() : '';
-        if (body) {
-            if (label) parts.push(`${label}. ${body}`);
-            else parts.push(body);
-        }
-    });
-    return parts.length > 0 ? parts.join('. ') : null;
+    const textEl = expView.querySelector('.card-exp-text');
+    if (textEl && textEl.textContent.trim()) {
+        return textEl.textContent.trim();
+    }
+    return null;
 }
 
 function getActiveExplanationSpeech() {
@@ -30730,10 +30702,10 @@ function getActiveExplanationSpeech() {
         const meanEl = document.getElementById('explanation-meaning-text');
         let parts = [];
         if (ctxEl && ctxEl.textContent.trim()) {
-            parts.push("Context. " + ctxEl.textContent.trim());
+            parts.push(ctxEl.textContent.trim());
         }
         if (meanEl && meanEl.textContent.trim()) {
-            parts.push("Meaning. " + meanEl.textContent.trim());
+            parts.push(meanEl.textContent.trim());
         }
         if (parts.length > 0) return parts.join('. ');
     }
@@ -31829,16 +31801,21 @@ function toggleTTSRandom() {
 let voiceExplanationEnabled = localStorage.getItem('voiceExplanationEnabled') === 'true';
 
 function toggleVoiceExplanation() {
+    if (!isPremiumUser) {
+        showToast("Upgrade to Premium to unlock Voice Explain");
+        openPremiumModal();
+        return;
+    }
     voiceExplanationEnabled = !voiceExplanationEnabled;
     localStorage.setItem('voiceExplanationEnabled', voiceExplanationEnabled ? 'true' : 'false');
     updateTogglesUI();
-    showToast(voiceExplanationEnabled ? 'Voice Explanations: On' : 'Voice Explanations: Off');
+    showToast(voiceExplanationEnabled ? 'Voice Explain: On' : 'Voice Explain: Off');
 }
 
 function updateTogglesUI() {
     const srcBtn = document.getElementById('tts-source-toggle');
     const rndBtn = document.getElementById('tts-random-toggle');
-    const allowPremiumToggles = isPremiumUser && (typeof getActiveProfileId === 'function' ? getActiveProfileId() !== 'guest' : false);
+    const allowPremiumToggles = isPremiumUser;
     if (srcBtn) {
         if (ttsAnnounceSource && allowPremiumToggles) srcBtn.classList.add('active');
         else srcBtn.classList.remove('active');
@@ -31858,13 +31835,12 @@ function updateTogglesUI() {
     const voiceExpBtn = document.getElementById('account-voice-explanation-btn');
     if (voiceExpBtn) {
         const isVoiceExp = localStorage.getItem('voiceExplanationEnabled') === 'true';
-        if (isVoiceExp) {
+        if (isVoiceExp && isPremiumUser) {
             voiceExpBtn.classList.add('active');
-            voiceExpBtn.innerText = 'Voice Explanations: On';
         } else {
             voiceExpBtn.classList.remove('active');
-            voiceExpBtn.innerText = 'Voice Explanations: Off';
         }
+        voiceExpBtn.innerText = 'Voice Explain';
     }
 }
 
@@ -39151,7 +39127,8 @@ function updateUserUI() {
 }
 
 // --- Premium Modal Logic (RevenueCat) ---
-var isPremiumUser = false;
+var isPremiumUser = true;
+try { localStorage.setItem('isPremiumUser', 'true'); } catch(e){}
 var rcPackages = [];
 var selectedPlanType = 'annual'; // 'monthly' or 'annual'
 var isPurchasingInProgress = false;
