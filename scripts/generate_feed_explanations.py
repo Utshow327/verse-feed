@@ -28,7 +28,10 @@ raw_keys = os.environ.get('GROQ_API_KEYS') or os.environ.get('GROQ_API_KEY')
 if raw_keys:
     API_KEYS = [k.strip() for k in raw_keys.split(',') if k.strip()]
 
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+GEMINI_API_KEYS = []
+gem_env = os.environ.get('GEMINI_API_KEYS') or os.environ.get('GEMINI_API_KEY')
+if gem_env:
+    GEMINI_API_KEYS = [k.strip() for k in gem_env.split(',') if k.strip()]
 
 env_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
 if os.path.exists(env_file):
@@ -39,13 +42,14 @@ if os.path.exists(env_file):
                 if not API_KEYS and (line.startswith('GROQ_API_KEYS=') or line.startswith('GROQ_API_KEY=')):
                     val = line.split('=', 1)[1].strip(' "\'')
                     API_KEYS = [k.strip() for k in val.split(',') if k.strip()]
-                if not GEMINI_API_KEY and line.startswith('GEMINI_API_KEY='):
-                    GEMINI_API_KEY = line.split('=', 1)[1].strip(' "\'')
+                if not GEMINI_API_KEYS and (line.startswith('GEMINI_API_KEYS=') or line.startswith('GEMINI_API_KEY=')):
+                    val = line.split('=', 1)[1].strip(' "\'')
+                    GEMINI_API_KEYS = [k.strip() for k in val.split(',') if k.strip()]
     except Exception:
         pass
 
-if not API_KEYS and not GEMINI_API_KEY:
-    print("ERROR: Neither GROQ_API_KEY nor GEMINI_API_KEY is set.")
+if not API_KEYS and not GEMINI_API_KEYS:
+    print("ERROR: Neither GROQ_API_KEY nor GEMINI_API_KEYS is set.")
     sys.exit(1)
 
 # Validate Groq keys
@@ -73,31 +77,34 @@ if API_KEYS:
 
 API_KEYS = valid_keys
 
-# Validate Gemini key
-if GEMINI_API_KEY:
-    print("Validating Gemini API key...")
-    gemini_valid = False
-    for test_mod in ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite']:
-        req = urllib.request.Request(
-            f'https://generativelanguage.googleapis.com/v1beta/models/{test_mod}:generateContent?key={GEMINI_API_KEY}',
-            data=json.dumps({'contents': [{'parts': [{'text': 'hi'}]}]}).encode('utf-8'),
-            headers={'Content-Type': 'application/json'}
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=8) as resp:
-                print(f"  Gemini Key ({GEMINI_API_KEY[:10]}...) on {test_mod}: ACTIVE")
-                gemini_valid = True
-                break
-        except Exception as e:
-            pass
-    if not gemini_valid:
-        print("  Gemini Key: ping busy/throttled, keeping enabled for runtime retries.")
+# Validate Gemini keys
+valid_gemini = []
+if GEMINI_API_KEYS:
+    print(f"Validating {len(GEMINI_API_KEYS)} Gemini API key(s)...")
+    for ki, k in enumerate(GEMINI_API_KEYS):
+        gemini_valid = False
+        for test_mod in ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite']:
+            req = urllib.request.Request(
+                f'https://generativelanguage.googleapis.com/v1beta/models/{test_mod}:generateContent?key={k}',
+                data=json.dumps({'contents': [{'parts': [{'text': 'hi'}]}]}).encode('utf-8'),
+                headers={'Content-Type': 'application/json'}
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=8) as resp:
+                    print(f"  Gemini Key #{ki+1} ({k[:10]}...) on {test_mod}: ACTIVE")
+                    gemini_valid = True
+                    break
+            except Exception:
+                pass
+        valid_gemini.append(k)
 
-if not API_KEYS and not GEMINI_API_KEY:
+GEMINI_API_KEYS = valid_gemini
+
+if not API_KEYS and not GEMINI_API_KEYS:
     print("ERROR: No valid API keys in rotation pool!")
     sys.exit(1)
 
-print(f"Active working Groq keys: {len(API_KEYS)} | Gemini enabled: {bool(GEMINI_API_KEY)}")
+print(f"Active working Groq keys: {len(API_KEYS)} | Active Gemini keys: {len(GEMINI_API_KEYS)}")
 
 key_index = 0
 def get_next_key():
@@ -491,13 +498,13 @@ from queue import Queue, Empty
 from threading import Thread, Lock
 
 CHANNELS = []
-if GEMINI_API_KEY:
+for ki, k in enumerate(GEMINI_API_KEYS):
     for g_mod in ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite']:
         CHANNELS.append({
             'provider': 'gemini',
-            'key': GEMINI_API_KEY,
+            'key': k,
             'model': g_mod,
-            'label': g_mod,
+            'label': f"Gemini{ki+1}-{g_mod.replace('gemini-', '')}",
             'last_call': 0.0,
             'cooldown_until': 0.0,
             'min_interval': 4.0
