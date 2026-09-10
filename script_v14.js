@@ -30440,6 +30440,7 @@ function resetActiveExplanation(forceRestore = true) {
         const card = document.querySelector('.verse-card.card-center');
         if (card && card._isShowingExplanation) {
             card._isShowingExplanation = false;
+            card._didReadExplanationInAutoCycle = false;
             const textEl = card.querySelector('.verse-text');
             if (textEl && card._originalVerseObj) {
                 fadeSwapContent(textEl, () => {
@@ -30454,6 +30455,7 @@ function resetActiveExplanation(forceRestore = true) {
         document.querySelectorAll('.saved-verse').forEach(el => {
             if (el._isShowingExplanation) {
                 el._isShowingExplanation = false;
+                el._didReadExplanationInAutoCycle = false;
                 const textEl = el.querySelector('.verse-text');
                 const origObj = el._originalVerseObj;
                 animateCardExpand(el, () => {
@@ -30468,6 +30470,7 @@ function resetActiveExplanation(forceRestore = true) {
         document.querySelectorAll('.book-verse').forEach(el => {
             if (el._isShowingExplanation) {
                 el._isShowingExplanation = false;
+                el._didReadExplanationInAutoCycle = false;
                 const textEl = el.querySelector('.book-verse-text') || el.querySelector('.verse-text');
                 const origObj = el._originalVerseObj;
                 animateCardExpand(el, () => {
@@ -30478,12 +30481,17 @@ function resetActiveExplanation(forceRestore = true) {
                 });
             }
         });
+    } else {
+        const card = document.querySelector('.verse-card.card-center');
+        if (card) {
+            card._didReadExplanationInAutoCycle = false;
+        }
     }
 
     activeExplanationVerseId = null;
 }
 
-async function openVerseExplanation(verse, event) {
+async function openVerseExplanation(verse, event, isAutoTransition = false) {
     if (event) {
         try { event.stopPropagation(); } catch(e){}
     }
@@ -30531,7 +30539,7 @@ async function openVerseExplanation(verse, event) {
     if (cardEl._isShowingExplanation) {
         cardEl._isShowingExplanation = false;
         cardEl._explanationSpeechText = null;
-        if (typeof isSpeaking !== 'undefined' && isSpeaking) {
+        if (!isAutoTransition && typeof isSpeaking !== 'undefined' && isSpeaking) {
             stopAudio(true);
         }
         if (btnEl) btnEl.classList.remove('va-meaning-active');
@@ -30555,7 +30563,7 @@ async function openVerseExplanation(verse, event) {
 
     // Reset other active explanation
     resetActiveExplanation(true);
-    if (typeof isSpeaking !== 'undefined' && isSpeaking) {
+    if (!isAutoTransition && typeof isSpeaking !== 'undefined' && isSpeaking) {
         stopAudio(true);
     }
 
@@ -31818,6 +31826,15 @@ function toggleTTSRandom() {
     updateTogglesUI();
 }
 
+let voiceExplanationEnabled = localStorage.getItem('voiceExplanationEnabled') === 'true';
+
+function toggleVoiceExplanation() {
+    voiceExplanationEnabled = !voiceExplanationEnabled;
+    localStorage.setItem('voiceExplanationEnabled', voiceExplanationEnabled ? 'true' : 'false');
+    updateTogglesUI();
+    showToast(voiceExplanationEnabled ? 'Voice Explanations: On' : 'Voice Explanations: Off');
+}
+
 function updateTogglesUI() {
     const srcBtn = document.getElementById('tts-source-toggle');
     const rndBtn = document.getElementById('tts-random-toggle');
@@ -31837,6 +31854,17 @@ function updateTogglesUI() {
         const notifEnabled = localStorage.getItem('dailyNotificationEnabled') !== 'false';
         if (notifEnabled) notifBtn.classList.add('active');
         else notifBtn.classList.remove('active');
+    }
+    const voiceExpBtn = document.getElementById('account-voice-explanation-btn');
+    if (voiceExpBtn) {
+        const isVoiceExp = localStorage.getItem('voiceExplanationEnabled') === 'true';
+        if (isVoiceExp) {
+            voiceExpBtn.classList.add('active');
+            voiceExpBtn.innerText = 'Voice Explanations: On';
+        } else {
+            voiceExpBtn.classList.remove('active');
+            voiceExpBtn.innerText = 'Voice Explanations: Off';
+        }
     }
 }
 
@@ -31876,6 +31904,8 @@ function stopAudio(preserveAutoMode = false, keepVisualizer = false, isTransitio
         if (!preserveAutoMode) {
             autoMode = false;
             autoNextBook = false;
+            const feedCard = document.querySelector('.verse-card.card-center');
+            if (feedCard) feedCard._didReadExplanationInAutoCycle = false;
         }
         if (!keepVisualizer && !preserveAutoMode && !autoMode && !autoNextBook) {
             stopWaveformVisualizer(false);
@@ -31907,6 +31937,112 @@ let playDebounceTimer = null;
 let autoNextTimeout = null;
 
 let lastRandomVoiceId = null;
+
+async function handleAutoNextFeedVerse() {
+    const isVoiceExpEnabled = localStorage.getItem('voiceExplanationEnabled') === 'true';
+    const card = document.querySelector('.verse-card.card-center');
+    const curVerse = (typeof getVerseAtIndex === 'function') ? getVerseAtIndex(currentVerseIndex.general) : null;
+
+    if (!isVoiceExpEnabled || !card || !curVerse || curVerse.isAd) {
+        if (card) card._didReadExplanationInAutoCycle = false;
+        nextCard(true);
+        return;
+    }
+
+    if (card._didReadExplanationInAutoCycle || card._isShowingExplanation) {
+        card._didReadExplanationInAutoCycle = false;
+        resetActiveExplanation(true);
+        setTimeout(() => {
+            nextCard(true);
+        }, 150);
+        return;
+    }
+
+    card._didReadExplanationInAutoCycle = true;
+    await openVerseExplanation(curVerse, null, true);
+
+    const expSpeech = card._explanationSpeechText || (typeof getActiveExplanationSpeech === 'function' ? getActiveExplanationSpeech() : null);
+    if (expSpeech && expSpeech.trim()) {
+        setTimeout(() => {
+            playText(expSpeech, 'feed');
+            autoMode = true;
+        }, 150);
+    } else {
+        card._didReadExplanationInAutoCycle = false;
+        nextCard(true);
+    }
+}
+
+async function handleAutoNextBookVerse() {
+    const isVoiceExpEnabled = localStorage.getItem('voiceExplanationEnabled') === 'true';
+    const card = document.querySelector('.book-verse.marked');
+    const curVerse = (typeof getBookVerseAtIndex === 'function' && getBookVerseAtIndex(bookVoiceCurrentVerse)) || 
+                     (selectedVerse && selectedVerse.type === 'book' ? selectedVerse : null);
+
+    if (!isVoiceExpEnabled || !card || !curVerse) {
+        if (card) card._didReadExplanationInAutoCycle = false;
+        advanceBookVerse();
+        return;
+    }
+
+    if (card._didReadExplanationInAutoCycle || card._isShowingExplanation) {
+        card._didReadExplanationInAutoCycle = false;
+        resetActiveExplanation(true);
+        setTimeout(() => {
+            advanceBookVerse();
+        }, 150);
+        return;
+    }
+
+    card._didReadExplanationInAutoCycle = true;
+    await openVerseExplanation(curVerse, null, true);
+
+    const expSpeech = card._explanationSpeechText || (typeof getActiveExplanationSpeech === 'function' ? getActiveExplanationSpeech() : null);
+    if (expSpeech && expSpeech.trim()) {
+        setTimeout(() => {
+            playText(expSpeech, 'book');
+            autoNextBook = true;
+        }, 150);
+    } else {
+        card._didReadExplanationInAutoCycle = false;
+        advanceBookVerse();
+    }
+}
+
+async function handleAutoNextSavedVerse() {
+    const isVoiceExpEnabled = localStorage.getItem('voiceExplanationEnabled') === 'true';
+    const card = document.querySelector('.saved-verse.selected-verse-active');
+    const curVerse = selectedVerse && selectedVerse.type === 'saved' ? selectedVerse : null;
+
+    if (!isVoiceExpEnabled || !card || !curVerse) {
+        if (card) card._didReadExplanationInAutoCycle = false;
+        advanceSavedVerse();
+        return;
+    }
+
+    if (card._didReadExplanationInAutoCycle || card._isShowingExplanation) {
+        card._didReadExplanationInAutoCycle = false;
+        resetActiveExplanation(true);
+        setTimeout(() => {
+            advanceSavedVerse();
+        }, 150);
+        return;
+    }
+
+    card._didReadExplanationInAutoCycle = true;
+    await openVerseExplanation(curVerse, null, true);
+
+    const expSpeech = card._explanationSpeechText || (typeof getActiveExplanationSpeech === 'function' ? getActiveExplanationSpeech() : null);
+    if (expSpeech && expSpeech.trim()) {
+        setTimeout(() => {
+            playText(expSpeech, 'saved');
+            autoMode = true;
+        }, 150);
+    } else {
+        card._didReadExplanationInAutoCycle = false;
+        advanceSavedVerse();
+    }
+}
 
 async function playText(text, context) {
     // Stop any current audio with transition flag so UI remains in continuous generating/playing state
@@ -32012,9 +32148,9 @@ async function playText(text, context) {
 
             clearTimeout(autoNextTimeout);
             autoNextTimeout = setTimeout(() => {
-                if (currentContext === 'feed' && wasAutoMode) nextCard(true);
-                else if (currentContext === 'book' && autoNextBook) advanceBookVerse();
-                else if (currentContext === 'saved' && wasAutoMode) advanceSavedVerse();
+                if (currentContext === 'feed' && wasAutoMode) handleAutoNextFeedVerse();
+                else if (currentContext === 'book' && autoNextBook) handleAutoNextBookVerse();
+                else if (currentContext === 'saved' && wasAutoMode) handleAutoNextSavedVerse();
                 else if (currentContext === 'search' && wasAutoMode) advanceSearchVerse();
                 else {
                     if (!isSpeaking) stopWaveformVisualizer(false);
@@ -32230,11 +32366,11 @@ function startAudioPlayback(offset, generationId) {
             clearTimeout(autoNextTimeout);
             autoNextTimeout = setTimeout(() => {
                 if (currentAudioContextType === 'feed' && autoMode) {
-                    nextCard(true);
+                    handleAutoNextFeedVerse();
                 } else if (currentAudioContextType === 'book' && autoNextBook) {
-                    advanceBookVerse();
+                    handleAutoNextBookVerse();
                 } else if (currentAudioContextType === 'saved' && autoMode) {
-                    advanceSavedVerse();
+                    handleAutoNextSavedVerse();
                 } else if (currentAudioContextType === 'search' && autoMode) {
                     advanceSearchVerse();
                 } else {
