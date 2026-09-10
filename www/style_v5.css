@@ -184,8 +184,6 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     will-change: opacity, transform;
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.92) 28%, rgba(0, 0, 0, 0.42) 62%, rgba(0, 0, 0, 0.08) 82%, transparent 100%);
-    mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.92) 28%, rgba(0, 0, 0, 0.42) 62%, rgba(0, 0, 0, 0.08) 82%, transparent 100%);
 }
 #waveform-canvas.active {
     opacity: 1;
@@ -2041,23 +2039,23 @@ h2 {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     background: transparent;
     border: none;
     color: inherit;
     cursor: pointer;
     padding: 0;
     margin: 0;
-    opacity: 0.95;
+    opacity: 0.9;
     line-height: 1;
     transform: none !important;
-    transition: opacity 0.15s ease !important;
+    transition: none !important;
 }
 
 .va-cycle-btn {
-    min-width: 20px;
-    height: 20px;
+    min-width: 18px;
+    height: 18px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -2076,11 +2074,9 @@ h2 {
 }
 
 .va-btn svg {
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
     display: block;
-    shape-rendering: geometricPrecision;
-    text-rendering: geometricPrecision;
 }
 
 .va-btn:hover,

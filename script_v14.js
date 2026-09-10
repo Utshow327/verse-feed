@@ -36369,13 +36369,12 @@ function rebuildVisualizerGradients() {
     if (!waveformCanvasCtx) return;
     try {
         const isDark = (document.body.getAttribute('data-theme') === 'dark') || (document.documentElement.getAttribute('data-theme') === 'dark');
-        const alphas = [0.22, 0.42, 0.70];
+        const alphas = [0.3, 0.55, 0.85];
         cachedGradLayers = alphas.map(alpha => {
-            const grad = waveformCanvasCtx.createLinearGradient(0, visualizerLogicalHeight, 0, visualizerLogicalHeight - 160);
-            const layerAlpha = isDark ? Math.min(0.95, alpha * 1.25) : alpha;
+            const grad = waveformCanvasCtx.createLinearGradient(0, visualizerLogicalHeight, 0, visualizerLogicalHeight - 120);
+            const layerAlpha = isDark ? Math.min(1.0, alpha * 1.35) : alpha;
             grad.addColorStop(0, `rgba(${cachedVisualizerRgb}, ${layerAlpha})`);
-            grad.addColorStop(0.35, `rgba(${cachedVisualizerRgb}, ${layerAlpha * 0.55})`);
-            grad.addColorStop(0.75, `rgba(${cachedVisualizerRgb}, ${layerAlpha * 0.15})`);
+            grad.addColorStop(0.6, `rgba(${cachedVisualizerRgb}, ${layerAlpha * 0.4})`);
             grad.addColorStop(1, `rgba(${cachedVisualizerRgb}, 0.0)`);
             return grad;
         });
@@ -37157,7 +37156,7 @@ function createActionIconsElement(verseObj, type) {
 
     const meaningBtnHtml = `
         <button class="va-btn va-meaning-btn" onclick="openVerseExplanation(selectedVerse, event)" aria-label="Meaning" title="Meaning">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="12" cy="4.5" r="3"/><rect x="9" y="10.5" width="6" height="11.5" rx="3"/></svg>
         </button>
     `;
 
