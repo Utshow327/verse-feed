@@ -37,9 +37,12 @@ button, input, select, textarea, div, svg, canvas, a {
     --font-main: 'Times New Roman', serif;
     --slider-track: rgba(102, 93, 85, 0.25);
     --marked-bg: rgba(188, 174, 158, 0.28);
+:root {
+    background-color: var(--bg-grad-1);
+    color-scheme: light dark;
 }
 
-[data-theme="dark"] {
+:root[data-theme="dark"], html[data-theme="dark"], body[data-theme="dark"], [data-theme="dark"] {
     --bg-grad-1: #1F1D1B;
     --bg-grad-2: #885E43;
     --text-color: var(--p-sand);
@@ -77,9 +80,18 @@ html, body {
     min-height: 100vh;
     min-height: 100dvh;
     overflow: hidden;
-    background: var(--bg-grad-1);
+    background-color: var(--bg-grad-1) !important;
+    background: var(--bg-grad-1) !important;
     color: var(--text-color);
     overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Instant flash suppression during tab/view switches */
+.flash-suppress,
+.flash-suppress * {
+    transition: none !important;
+    animation: none !important;
 }
 
 /* --- Loading Screen (Upward Curtain Reveal) --- */
@@ -172,6 +184,8 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     will-change: opacity, transform;
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
+    -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.92) 28%, rgba(0, 0, 0, 0.42) 62%, rgba(0, 0, 0, 0.08) 82%, transparent 100%);
+    mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.92) 28%, rgba(0, 0, 0, 0.42) 62%, rgba(0, 0, 0, 0.08) 82%, transparent 100%);
 }
 #waveform-canvas.active {
     opacity: 1;
@@ -2027,23 +2041,23 @@ h2 {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     background: transparent;
     border: none;
     color: inherit;
     cursor: pointer;
     padding: 0;
     margin: 0;
-    opacity: 0.9;
+    opacity: 0.95;
     line-height: 1;
     transform: none !important;
-    transition: none !important;
+    transition: opacity 0.15s ease !important;
 }
 
 .va-cycle-btn {
-    min-width: 18px;
-    height: 18px;
+    min-width: 20px;
+    height: 20px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -2062,9 +2076,11 @@ h2 {
 }
 
 .va-btn svg {
-    width: 15px;
-    height: 15px;
+    width: 16px;
+    height: 16px;
     display: block;
+    shape-rendering: geometricPrecision;
+    text-rendering: geometricPrecision;
 }
 
 .va-btn:hover,

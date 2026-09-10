@@ -313,8 +313,13 @@ BAD_PLATITUDE_PATTERNS = [
     'nature continues its cycle',
     'destruction extends to animal',
     'treat everyone nicely',
+    'treat others with kindness',
     'life goes on forever',
     'animals too, reminding us',
+    'be a nice person',
+    'be a good person',
+    'love and respect all creatures',
+    'harmony with nature',
 ]
 
 def is_explanation_complete(key):
@@ -494,13 +499,13 @@ def mark_channel_cooldown(ch_idx, retry_seconds=15.0):
 def call_ai_batch_channel(verse_batch, ch_idx, ch):
     prompt = (
         "Respond in valid JSON format.\n"
-        "Explain these scriptures in clear, simple everyday language for ordinary people.\n"
-        "For each verse, give a single 'explanation' (20 to 35 words) stating its practical meaning and life lesson.\n\n"
+        "Provide authentic, scholarly, and insightful explanations of these world scriptures.\n"
+        "For each verse, give a concise scholarly explanation (25 to 45 words) explaining the authentic theological, historical, or contextual meaning of this specific verse.\n\n"
         "Strict rules:\n"
-        "1. NO PHILOSOPHY, abstract metaphysics, or academic jargon. Do not debate theology or write theoretical essays.\n"
-        "2. Explain the real practical meaning and moral takeaway directly and simply so anyone understands immediately.\n"
-        "3. Never write robotic lead-ins like 'This verse means' or 'This passage teaches'. Start directly with the insight.\n"
-        "4. Never use emojis or dashes (use standard commas and periods).\n"
+        "1. Provide real scholarly substance: illuminate the original context, key theological or spiritual depth, and the precise significance of the text.\n"
+        "2. NO GENERIC PLATITUDES or superficial moralizing (e.g., do not say 'be a nice person', 'care for animals', 'respect nature', or vague good sayings). Explain the authentic scholarly substance of what the scripture conveys.\n"
+        "3. Start directly with the core insight. Never write robotic lead-ins like 'This verse means', 'This passage teaches', or 'In this verse'.\n"
+        "4. Never use emojis, em-dashes, or dashes; use standard commas and periods.\n"
         "5. Return ONLY a valid JSON object: {\"v1\": {\"explanation\": \"...\"}, \"v2\": ...}\n\n"
         "Verses:\n"
     )
@@ -512,7 +517,7 @@ def call_ai_batch_channel(verse_batch, ch_idx, ch):
     payload = {
         'model': ch['model'],
         'messages': [
-            {'role': 'system', 'content': 'You provide simple, practical, everyday meanings of world scriptures. No philosophy. Output valid JSON.'},
+            {'role': 'system', 'content': 'You are an authoritative scriptural scholar providing concise, substantive theological, historical, and contextual explanations of world scriptures without superficial platitudes. Output valid JSON.'},
             {'role': 'user', 'content': prompt}
         ],
         'max_tokens': 500,
