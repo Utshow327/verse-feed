@@ -275,18 +275,34 @@ if os.path.exists(ACTIVE_RANKINGS_FILE):
 
 print(f"Total verses in active feed rankings: {len(active_rankings):,}")
 
+BAD_PLATITUDE_PATTERNS = [
+    'care for animal',
+    'care for the animal',
+    'respect the diversity of all creature',
+    'war harms all living being',
+    'nature continues its cycle',
+    'destruction extends to animal',
+    'treat everyone nicely',
+    'life goes on forever',
+    'animals too, reminding us',
+]
+
 def is_explanation_complete(key):
     if not key:
         return False
     entry = explanations.get(key) or explanations.get(key.lower())
     if not entry or not isinstance(entry, dict):
         return False
-    ctx = entry.get('context')
-    meaning = entry.get('meaning') or entry.get('text')
-    if not ctx or len(str(ctx).strip()) < 5:
+    ctx = str(entry.get('context') or '').strip()
+    meaning = str(entry.get('meaning') or entry.get('text') or '').strip()
+    if len(ctx) < 10 or len(meaning) < 15:
         return False
-    if not meaning or len(str(meaning).strip()) < 5:
-        return False
+
+    combined = (ctx + ' ' + meaning).lower()
+    for bad in BAD_PLATITUDE_PATTERNS:
+        if bad in combined:
+            return False
+
     return True
 
 # Prioritize queue: Rank 100 down to 70
@@ -404,13 +420,14 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
     start_model_idx = worker_id % len(MODELS)
     prompt = (
         "Respond in valid JSON format.\n"
-        "You explain world scriptures in simple, plain, easy-to-understand English.\n"
-        "For each verse, provide TWO short parts: 'context' and 'meaning'.\n\n"
+        "You are an authentic, insightful scholar of world religious scriptures (Buddhism, Christianity, Islam, Hinduism, Judaism, Sikhism).\n"
+        "Explain scriptures with the authentic depth, story, and theological context understood by followers and traditional commentaries.\n"
+        "For each verse, provide TWO distinct parts: 'context' and 'meaning'.\n\n"
         "Strict rules:\n"
-        "1. 'context': 12 to 24 simple words explaining the story, historical setting, or narrative situation. If the verse mentions an animal, parable, battle, or metaphor, explain the ACTUAL story or scenario behind it, never shallow platitudes.\n"
-        "2. 'meaning': 15 to 28 simple words explaining the deeper life lesson or practical wisdom in everyday language.\n"
-        "3. For parables and allegories: Explain what the imagery symbolizes (e.g. an elephant keeping its trunk coiled in battle symbolizes guarding the mind and speech against fatal spiritual wounds). Never give lazy generic statements like 'care for animals' or 'respect nature'.\n"
-        "4. Use easy everyday words. Avoid big words or academic jargon.\n"
+        "1. 'context' (14 to 28 words): Explain the concrete backstory, speaker, setting, or narrative situation. If the verse mentions a scene, king, warrior, animal, parable, or battle, explain the ACTUAL story happening in that scripture, never vague generic summaries.\n"
+        "2. 'meaning' (16 to 30 words): Explain the authentic moral, spiritual, or philosophical truth taught by that faith tradition in clear, relatable words.\n"
+        "3. Metaphors & Parables: Explicitly unpack what symbolic elements represent in religious teachings (e.g. an elephant keeping its trunk coiled in battle represents guarding the mind and speech against fatal spiritual wounds). NEVER write lazy, superficial kindergarten platitudes (strictly forbidden: 'care for animals', 'respect nature', 'war is bad', 'be a nice person').\n"
+        "4. Tone: Respectful, insightful, and clear. Avoid overly dense academic jargon, but keep real spiritual substance.\n"
         "5. Never use emojis.\n"
         "6. Never use em dashes or en dashes (use standard commas or periods).\n"
         "7. Return ONLY a valid JSON object mapping each ID ('v1', 'v2', etc.) to an object with 'context' and 'meaning'.\n\n"
@@ -430,10 +447,10 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
         payload = {
             'model': model,
             'messages': [
-                {'role': 'system', 'content': 'You explain scriptures in simple English with context and meaning. For stories and parables, explain the narrative metaphor clearly. Output valid JSON.'},
+                {'role': 'system', 'content': 'You explain world scriptures with authentic religious context, narrative backstory, and spiritual depth from traditional commentaries. For parables and stories, unpack the real metaphor. Output valid JSON.'},
                 {'role': 'user', 'content': prompt}
             ],
-            'max_tokens': 1200,
+            'max_tokens': 1800,
             'temperature': 0.2
         }
         if 'gpt-oss' in model:
