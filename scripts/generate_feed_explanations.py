@@ -544,23 +544,14 @@ def call_ai_batch_for_worker(verse_batch, worker_id):
         except urllib.error.HTTPError as e:
             raw_err = e.read().decode('utf-8', errors='ignore')
             if e.code == 429:
-                wait_sec = 6.0 + attempt * 2.5
-                if hasattr(e, 'headers') and e.headers and 'Retry-After' in e.headers:
-                    try:
-                        wait_sec = max(float(e.headers['Retry-After']), 4.0)
-                    except Exception:
-                        pass
-                m_wait = re.search(r'try again in ([\d\.]+)s', raw_err, re.IGNORECASE)
-                if m_wait:
-                    try:
-                        wait_sec = float(m_wait.group(1)) + 0.5
-                    except Exception:
-                        pass
-                wait_sec = min(wait_sec, 20.0)
-                print(f"  [Worker {worker_id}] Quota replenishing for {model}. Pausing {wait_sec:.1f}s...")
-                sys.stdout.flush()
-                time.sleep(wait_sec)
-                continue
+                # Fast failover: if alternative models are available in the rotation, switch in 0.5s!
+                if attempt < len(MODELS) - 1:
+                    time.sleep(0.5)
+                    continue
+                else:
+                    # All models across rotation need a brief breather
+                    time.sleep(3.5)
+                    continue
             else:
                 err_msg = raw_err[:100]
                 print(f"  [Worker {worker_id}] HTTP {e.code} ({model}): {err_msg}")
