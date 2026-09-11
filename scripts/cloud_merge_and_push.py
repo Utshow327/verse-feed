@@ -44,6 +44,23 @@ try:
 except Exception as e:
     print(f"Note during remote merge: {e}")
 
+# 4b. Canonical Deduplication: enforce religion-prefixed keys and eliminate redundant alt keys
+religions = ['islam', 'christianity', 'judaism', 'hinduism', 'buddhism', 'sikhism', 'taoism', 'shinto', 'zoroastrianism', 'bahai', 'jainism']
+dedup_exp = {}
+for k, v in local_exp.items():
+    has_rel = any(k.startswith(r + '_') for r in religions)
+    if has_rel:
+        dedup_exp[k] = v
+    else:
+        rel = (v.get('religion') or '').lower().strip().replace(' ', '_')
+        if rel:
+            can_k = f"{rel}_{k}"
+            if can_k not in dedup_exp:
+                dedup_exp[can_k] = v
+if len(dedup_exp) < len(local_exp):
+    print(f"Deduplicated {len(local_exp):,} keys down to {len(dedup_exp):,} canonical keys (saved {(len(local_exp)-len(dedup_exp)):,} redundant entries).")
+local_exp = dedup_exp
+
 # 5. Save merged databases atomically
 exp_tmp = EXP_FILE + ".tmp"
 www_tmp = WWW_EXP_FILE + ".tmp"

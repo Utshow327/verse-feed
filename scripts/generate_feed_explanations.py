@@ -83,7 +83,7 @@ if GEMINI_API_KEYS:
     print(f"Validating {len(GEMINI_API_KEYS)} Gemini API key(s)...")
     for ki, k in enumerate(GEMINI_API_KEYS):
         gemini_valid = False
-        for test_mod in ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite']:
+        for test_mod in ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite']:
             req = urllib.request.Request(
                 f'https://generativelanguage.googleapis.com/v1beta/models/{test_mod}:generateContent?key={k}',
                 data=json.dumps({'contents': [{'parts': [{'text': 'hi'}]}]}).encode('utf-8'),
@@ -492,12 +492,23 @@ def save_databases():
     www_temp = WWW_OUTPUT_FILE + '.tmp'
     try:
         data_copy = dict(explanations)
+        religions = ['islam', 'christianity', 'judaism', 'hinduism', 'buddhism', 'sikhism', 'taoism', 'shinto', 'zoroastrianism', 'bahai', 'jainism']
+        dedup_data = {}
+        for k, v in data_copy.items():
+            if any(k.startswith(r + '_') for r in religions):
+                dedup_data[k] = v
+            else:
+                rel = (v.get('religion') or '').lower().strip().replace(' ', '_')
+                if rel:
+                    can_k = f"{rel}_{k}"
+                    if can_k not in dedup_data:
+                        dedup_data[can_k] = v
         with open(temp_file, 'w', encoding='utf-8') as f:
-            json.dump(data_copy, f, separators=(',', ':'), ensure_ascii=False)
+            json.dump(dedup_data, f, separators=(',', ':'), ensure_ascii=False)
         safe_replace(temp_file, OUTPUT_FILE)
 
         with open(www_temp, 'w', encoding='utf-8') as f:
-            json.dump(data_copy, f, separators=(',', ':'), ensure_ascii=False)
+            json.dump(dedup_data, f, separators=(',', ':'), ensure_ascii=False)
         safe_replace(www_temp, WWW_OUTPUT_FILE)
     except Exception as e:
         print(f"Error saving databases: {e}")
@@ -505,9 +516,19 @@ def save_databases():
 from queue import Queue, Empty
 from threading import Thread, Lock
 
+GEMINI_MODELS = [
+    'gemini-3.5-flash',
+    'gemini-3.6-flash',
+    'gemini-3.7-flash',
+    'gemini-3-flash-preview',
+    'gemini-3.5-flash-lite',
+    'gemini-flash-lite-latest',
+    'gemini-3.1-flash-lite'
+]
+
 CHANNELS = []
 for ki, k in enumerate(GEMINI_API_KEYS):
-    for g_mod in ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite']:
+    for g_mod in GEMINI_MODELS:
         CHANNELS.append({
             'provider': 'gemini',
             'key': k,
@@ -515,7 +536,8 @@ for ki, k in enumerate(GEMINI_API_KEYS):
             'label': f"Gemini{ki+1}-{g_mod.replace('gemini-', '')}",
             'last_call': 0.0,
             'cooldown_until': 0.0,
-            'min_interval': 4.0
+            'min_interval': 4.0,
+            'disabled': False
         })
 
 for ki, k in enumerate(API_KEYS):
@@ -527,7 +549,8 @@ for ki, k in enumerate(API_KEYS):
             'label': f"Groq{ki+1}-{m.split('/')[-1]}",
             'last_call': 0.0,
             'cooldown_until': 0.0,
-            'min_interval': 2.2
+            'min_interval': 2.2,
+            'disabled': False
         })
 
 channel_lock = Lock()
@@ -539,7 +562,11 @@ def acquire_channel():
             now = time.time()
             best_idx = None
             longest_idle = -1
+            available_active = 0
             for idx, ch in enumerate(CHANNELS):
+                if ch.get('disabled'):
+                    continue
+                available_active += 1
                 if now < ch['cooldown_until']:
                     continue
                 idle = now - ch['last_call']
@@ -550,6 +577,9 @@ def acquire_channel():
             if best_idx is not None:
                 CHANNELS[best_idx]['last_call'] = now
                 return best_idx, CHANNELS[best_idx]
+            if available_active == 0:
+                print("\n[WARNING] All API channels are currently disabled.")
+                return None, None
         time.sleep(0.05)
     return None, None
 
@@ -579,8 +609,11 @@ def call_ai_batch_channel(verse_batch, ch_idx, ch):
         payload = {
             'contents': [{'parts': [{'text': prompt}]}],
             'generationConfig': {
-                'maxOutputTokens': 1200,
-                'temperature': 0.2
+                'maxOutputTokens': 1500,
+                'temperature': 0.2,
+                'thinkingConfig': {
+                    'thinkingBudget': 0
+                }
             }
         }
         data = json.dumps(payload).encode('utf-8')
@@ -673,9 +706,22 @@ def call_ai_batch_channel(verse_batch, ch_idx, ch):
                 return results, None
     except urllib.error.HTTPError as e:
         raw_err = e.read().decode('utf-8', errors='ignore')
+        if e.code in (400, 401, 403) or 'NOT_FOUND' in raw_err:
+            ch['disabled'] = True
+            return [], f"HTTP {e.code} ({ch['label']}): disabled permanently"
+
         retry_after = 15.0
         if is_gemini:
-            retry_after = 6.0
+            retry_after = 28.0
+            try:
+                err_data = json.loads(raw_err)
+                for item in err_data.get('error', {}).get('details', []):
+                    if 'retryDelay' in item:
+                        rd = str(item['retryDelay']).rstrip('s')
+                        retry_after = max(5.0, float(rd) + 2.0)
+                        break
+            except Exception:
+                pass
         elif 'retry-after' in e.headers:
             try:
                 retry_after = max(5.0, float(e.headers['retry-after']))
@@ -701,12 +747,12 @@ def call_ai_batch_channel(verse_batch, ch_idx, ch):
     return [], "Parse failed"
 
 BATCH_SIZE = 8
-WORKERS = 6
+WORKERS = 10
 
 print("=" * 70)
 print(f"  STARTING TURBO FEED EXPLANATIONS GENERATOR ({len(pending_queue):,} queued)")
 print(f"  Concurrency: {WORKERS} parallel workers across {len(CHANNELS)} isolated rate-governed channels")
-print("  Active Models: " + ", ".join(MODELS))
+print("  Active Models: " + ", ".join(GEMINI_MODELS))
 print("  Continuous pipeline (non-blocking async I/O). Auto-saves to " + OUTPUT_FILE)
 print("=" * 70)
 
