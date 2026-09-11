@@ -856,13 +856,18 @@ def worker_thread(worker_id):
 
             t_now = time.time()
             recent_completed.append((t_now, len(batch_results)))
-            # Rolling rate over last 60 seconds
-            while recent_completed and t_now - recent_completed[0][0] > 60:
+            # Keep sliding window of completed batches within last 60s
+            while len(recent_completed) > 1 and (t_now - recent_completed[0][0]) > 60:
                 recent_completed.pop(0)
 
-            rolling_window = max(1.0, min(60.0, t_now - actual_gen_start))
-            rolling_count = sum(c for _, c in recent_completed)
-            rate = (rolling_count / rolling_window) * 60
+            if len(recent_completed) >= 2:
+                window_seconds = max(0.5, t_now - recent_completed[0][0])
+                rolling_count = sum(c for _, c in recent_completed[1:])
+                rate = (rolling_count / window_seconds) * 60.0
+            else:
+                elapsed_total = max(1.0, t_now - actual_gen_start)
+                rate = (completed / elapsed_total) * 60.0
+
             eta_mins = (total_pending - completed) / rate if rate > 0 else 0
 
             last_v = batch_results[-1][0]
