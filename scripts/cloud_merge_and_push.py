@@ -49,11 +49,11 @@ exp_tmp = EXP_FILE + ".tmp"
 www_tmp = WWW_EXP_FILE + ".tmp"
 
 with open(exp_tmp, "w", encoding="utf-8") as f:
-    json.dump(local_exp, f, indent=2, ensure_ascii=False)
+    json.dump(local_exp, f, separators=(',', ':'), ensure_ascii=False)
 os.replace(exp_tmp, EXP_FILE)
 
 with open(www_tmp, "w", encoding="utf-8") as f:
-    json.dump(local_exp, f, indent=2, ensure_ascii=False)
+    json.dump(local_exp, f, separators=(',', ':'), ensure_ascii=False)
 os.replace(www_tmp, WWW_EXP_FILE)
 
 # Verify integrity before staging

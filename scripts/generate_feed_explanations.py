@@ -347,6 +347,14 @@ def is_explanation_complete(key):
     if not key:
         return False
     entry = explanations.get(key) or explanations.get(key.lower())
+    if not entry:
+        kl = key.lower()
+        for r in ['christianity_', 'islam_', 'hinduism_', 'buddhism_', 'judaism_', 'sikhism_']:
+            if not kl.startswith(r):
+                cand = f"{r}{kl}"
+                if cand in explanations:
+                    entry = explanations[cand]
+                    break
     if not entry or not isinstance(entry, dict):
         return False
     exp = str(entry.get('explanation') or entry.get('meaning') or entry.get('text') or '').strip()
@@ -485,11 +493,11 @@ def save_databases():
     try:
         data_copy = dict(explanations)
         with open(temp_file, 'w', encoding='utf-8') as f:
-            json.dump(data_copy, f, indent=2, ensure_ascii=False)
+            json.dump(data_copy, f, separators=(',', ':'), ensure_ascii=False)
         safe_replace(temp_file, OUTPUT_FILE)
 
         with open(www_temp, 'w', encoding='utf-8') as f:
-            json.dump(data_copy, f, indent=2, ensure_ascii=False)
+            json.dump(data_copy, f, separators=(',', ':'), ensure_ascii=False)
         safe_replace(www_temp, WWW_OUTPUT_FILE)
     except Exception as e:
         print(f"Error saving databases: {e}")
@@ -793,9 +801,9 @@ def worker_thread(worker_id):
                     'updated_at': int(time.time() * 1000)
                 }
 
-                explanations[feed_k] = entry
-                if alt_k and alt_k != feed_k:
-                    explanations[alt_k] = entry
+                rel_prefix = f"{v_item['religion'].lower().replace(' ', '_')}_"
+                can_k = feed_k if feed_k.startswith(rel_prefix) else f"{rel_prefix}{feed_k}"
+                explanations[can_k] = entry
 
                 completed += 1
 
