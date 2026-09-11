@@ -7,6 +7,8 @@ import subprocess
 
 EXP_FILE = os.path.join("data", "verse_explanations.json")
 WWW_EXP_FILE = os.path.join("www", "data", "verse_explanations.json")
+EPICS_FILE = os.path.join("data", "explanations_epics.json")
+WWW_EPICS_FILE = os.path.join("www", "data", "explanations_epics.json")
 
 print("--- STARTING CLOUD MERGE AND PUSH ---")
 
@@ -19,74 +21,89 @@ local_exp = {}
 if os.path.exists(EXP_FILE):
     try:
         with open(EXP_FILE, "r", encoding="utf-8") as f:
-            local_exp = json.load(f)
+            local_exp.update(json.load(f))
     except Exception as e:
         print(f"Error reading local explanations: {e}")
+
+if os.path.exists(EPICS_FILE):
+    try:
+        with open(EPICS_FILE, "r", encoding="utf-8") as f:
+            local_exp.update(json.load(f))
+    except Exception as e:
+        print(f"Error reading epics explanations: {e}")
 
 print(f"Local explanations loaded: {len(local_exp):,}")
 
 # 3. Fetch latest from origin main
 subprocess.run(["git", "fetch", "origin", "main"], check=False)
 
-# 4. Fetch remote version and merge
-try:
-    proc = subprocess.run(["git", "show", "origin/main:data/verse_explanations.json"], capture_output=True, text=True, encoding="utf-8")
-    if proc.returncode == 0 and proc.stdout.strip():
-        remote_exp = json.loads(proc.stdout)
-        print(f"Remote explanations fetched: {len(remote_exp):,}")
-        merged_count = 0
-        for k, v in remote_exp.items():
-            if k not in local_exp:
-                local_exp[k] = v
-                merged_count += 1
-        if merged_count > 0:
-            print(f"Merged {merged_count:,} explanations from remote origin/main.")
-except Exception as e:
-    print(f"Note during remote merge: {e}")
+# 4. Fetch remote versions and merge
+for rfile in [EXP_FILE, EPICS_FILE]:
+    try:
+        proc = subprocess.run(["git", "show", f"origin/main:{rfile.replace(os.sep, '/')}"], capture_output=True, text=True, encoding="utf-8")
+        if proc.returncode == 0 and proc.stdout.strip():
+            remote_exp = json.loads(proc.stdout)
+            print(f"Remote {rfile} fetched: {len(remote_exp):,}")
+            merged_count = 0
+            for k, v in remote_exp.items():
+                if k not in local_exp:
+                    local_exp[k] = v
+                    merged_count += 1
+            if merged_count > 0:
+                print(f"Merged {merged_count:,} explanations from remote {rfile}.")
+    except Exception as e:
+        print(f"Note during remote merge of {rfile}: {e}")
 
-# 4b. Canonical Deduplication: enforce religion-prefixed keys and eliminate redundant alt keys
-religions = ['islam', 'christianity', 'judaism', 'hinduism', 'buddhism', 'sikhism', 'taoism', 'shinto', 'zoroastrianism', 'bahai', 'jainism']
-dedup_exp = {}
+# 4b. Canonical Deduplication & Splitting
+def is_epic_entry(k, v):
+    book = str(v.get('book', '')).lower() if isinstance(v, dict) else ''
+    kl = str(k).lower()
+    return 'mahabharata' in book or 'ramayana' in book or 'mahabharata' in kl or 'ramayana' in kl
+
+religions = ['islam', 'christianity', 'judaism', 'hinduism', 'buddhism', 'sikhism', 'taoism', 'shinto', 'zoroastrianism', 'bahai', 'jainism', 'philosophy']
+core_data = {}
+epics_data = {}
+
 for k, v in local_exp.items():
     has_rel = any(k.startswith(r + '_') for r in religions)
     if has_rel:
-        dedup_exp[k] = v
+        can_k = k
     else:
         rel = (v.get('religion') or '').lower().strip().replace(' ', '_')
-        if rel:
-            can_k = f"{rel}_{k}"
-            if can_k not in dedup_exp:
-                dedup_exp[can_k] = v
-if len(dedup_exp) < len(local_exp):
-    print(f"Deduplicated {len(local_exp):,} keys down to {len(dedup_exp):,} canonical keys (saved {(len(local_exp)-len(dedup_exp)):,} redundant entries).")
-local_exp = dedup_exp
+        can_k = f"{rel}_{k}" if rel else k
+
+    if is_epic_entry(can_k, v):
+        if can_k not in epics_data:
+            epics_data[can_k] = v
+    else:
+        if can_k not in core_data:
+            core_data[can_k] = v
+
+print(f"Total unified explanations: {len(core_data) + len(epics_data):,} (Core: {len(core_data):,}, Epics: {len(epics_data):,})")
 
 # 5. Save merged databases atomically
-exp_tmp = EXP_FILE + ".tmp"
-www_tmp = WWW_EXP_FILE + ".tmp"
+def atomic_save(data_dict, file1, file2):
+    tmp1 = file1 + ".tmp"
+    tmp2 = file2 + ".tmp"
+    with open(tmp1, "w", encoding="utf-8") as f:
+        json.dump(data_dict, f, separators=(',', ':'), ensure_ascii=False)
+    os.replace(tmp1, file1)
+    with open(tmp2, "w", encoding="utf-8") as f:
+        json.dump(data_dict, f, separators=(',', ':'), ensure_ascii=False)
+    os.replace(tmp2, file2)
 
-with open(exp_tmp, "w", encoding="utf-8") as f:
-    json.dump(local_exp, f, separators=(',', ':'), ensure_ascii=False)
-os.replace(exp_tmp, EXP_FILE)
-
-with open(www_tmp, "w", encoding="utf-8") as f:
-    json.dump(local_exp, f, separators=(',', ':'), ensure_ascii=False)
-os.replace(www_tmp, WWW_EXP_FILE)
-
-# Verify integrity before staging
-with open(EXP_FILE, "r", encoding="utf-8") as f:
-    v1 = json.load(f)
-with open(WWW_EXP_FILE, "r", encoding="utf-8") as f:
-    v2 = json.load(f)
-assert len(v1) == len(v2) == len(local_exp), "Database size mismatch during validation!"
-
-print(f"Total merged explanations verified: {len(local_exp):,}")
+atomic_save(core_data, EXP_FILE, WWW_EXP_FILE)
+if epics_data:
+    atomic_save(epics_data, EPICS_FILE, WWW_EPICS_FILE)
 
 # 6. Reset tree against origin/main so working directory is on top of latest remote
 subprocess.run(["git", "reset", "--mixed", "origin/main"], check=False)
 
 # 7. Add only the explanations files
-subprocess.run(["git", "add", EXP_FILE, WWW_EXP_FILE], check=False)
+files_to_add = [EXP_FILE, WWW_EXP_FILE]
+if os.path.exists(EPICS_FILE):
+    files_to_add.extend([EPICS_FILE, WWW_EPICS_FILE])
+subprocess.run(["git", "add"] + files_to_add, check=False)
 
 # 8. Check if there are staged changes
 diff_check = subprocess.run(["git", "diff", "--cached", "--quiet"])

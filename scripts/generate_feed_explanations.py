@@ -129,6 +129,8 @@ MODELS = [
 
 OUTPUT_FILE = os.path.join('data', 'verse_explanations.json')
 WWW_OUTPUT_FILE = os.path.join('www', 'data', 'verse_explanations.json')
+EPICS_OUTPUT_FILE = os.path.join('data', 'explanations_epics.json')
+WWW_EPICS_OUTPUT_FILE = os.path.join('www', 'data', 'explanations_epics.json')
 ACTIVE_RANKINGS_FILE = os.path.join('data', 'active_rankings.json')
 LOG_FILE = os.path.join('scripts', 'feed_generation.log')
 
@@ -141,9 +143,16 @@ explanations = {}
 if os.path.exists(OUTPUT_FILE):
     try:
         with open(OUTPUT_FILE, 'r', encoding='utf-8') as f:
-            explanations = json.load(f)
+            explanations.update(json.load(f))
     except Exception as e:
         print(f"Warning reading explanations: {e}")
+
+if os.path.exists(EPICS_OUTPUT_FILE):
+    try:
+        with open(EPICS_OUTPUT_FILE, 'r', encoding='utf-8') as f:
+            explanations.update(json.load(f))
+    except Exception as e:
+        print(f"Warning reading epics explanations: {e}")
 
 print(f"Loaded {len(explanations):,} existing explanations.")
 
@@ -253,9 +262,6 @@ if os.path.exists('data/hindu_books.json'):
         with open('data/hindu_books.json', 'r', encoding='utf-8') as f:
             hb = json.load(f)
             for bName, bData in hb.items():
-                # Skip giant 78k epics (Mahabharata and Ramayana); feed verses are already 100% completed
-                if bName in ['Mahabharata', 'Ramayana']:
-                    continue
                 for chapName, verses in bData.items():
                     for vKey, text in verses.items():
                         k = f'hinduism_{bName}_{chapName}_{vKey}'.lower().replace(' ', '_')
@@ -332,6 +338,28 @@ if os.path.exists('data/buddhism.json'):
                                 }
     except Exception as e:
         print(f"Buddhism index error: {e}")
+
+# Philosophy
+if os.path.exists('data/philosophy.json'):
+    try:
+        with open('data/philosophy.json', 'r', encoding='utf-8') as f:
+            p_data = json.load(f)
+            for catName, catBooks in p_data.get('books', {}).items():
+                if isinstance(catBooks, dict):
+                    for chap, verses in catBooks.items():
+                        if isinstance(verses, dict):
+                            for vNum, text in verses.items():
+                                k = f'philosophy_{catName}_{chap}_{vNum}'.lower().replace(' ', '_')
+                                all_verses[k] = {
+                                    'key': k,
+                                    'religion': 'Philosophy',
+                                    'book': catName,
+                                    'chapter': str(chap),
+                                    'verse': str(vNum),
+                                    'text': clean_text(text)
+                                }
+    except Exception as e:
+        print(f"Philosophy index error: {e}")
 
 print(f"Total scriptures indexed: {len(all_verses):,}")
 
@@ -415,6 +443,23 @@ if getattr(cli_args, 'include_library', True):
 
     print(f"Pending library verses (Priority 2): {library_added:,}")
 
+def is_epic_entry(k, v):
+    book = str(v.get('book', '')).lower() if isinstance(v, dict) else ''
+    kl = str(k).lower()
+    return 'mahabharata' in book or 'ramayana' in book or 'mahabharata' in kl or 'ramayana' in kl
+
+# Prioritize: Feed (0) -> Philosophy (1) -> Core Library (2) -> Epics (3)
+def get_priority(item):
+    if item.get('feed_key') in active_rankings:
+        return 0
+    if item.get('religion') == 'Philosophy':
+        return 1
+    if not is_epic_entry(item.get('key'), item):
+        return 2
+    return 3
+
+pending_queue.sort(key=get_priority)
+
 print(f"TOTAL QUEUED FOR GENERATION: {len(pending_queue):,} verses")
 
 if cli_args.religion:
@@ -490,26 +535,44 @@ def safe_replace(src, dst):
 def save_databases():
     temp_file = OUTPUT_FILE + '.tmp'
     www_temp = WWW_OUTPUT_FILE + '.tmp'
+    epics_temp = EPICS_OUTPUT_FILE + '.tmp'
+    www_epics_temp = WWW_EPICS_OUTPUT_FILE + '.tmp'
     try:
         data_copy = dict(explanations)
-        religions = ['islam', 'christianity', 'judaism', 'hinduism', 'buddhism', 'sikhism', 'taoism', 'shinto', 'zoroastrianism', 'bahai', 'jainism']
-        dedup_data = {}
+        religions = ['islam', 'christianity', 'judaism', 'hinduism', 'buddhism', 'sikhism', 'taoism', 'shinto', 'zoroastrianism', 'bahai', 'jainism', 'philosophy']
+        core_data = {}
+        epics_data = {}
         for k, v in data_copy.items():
-            if any(k.startswith(r + '_') for r in religions):
-                dedup_data[k] = v
+            has_rel = any(k.startswith(r + '_') for r in religions)
+            if has_rel:
+                can_k = k
             else:
                 rel = (v.get('religion') or '').lower().strip().replace(' ', '_')
-                if rel:
-                    can_k = f"{rel}_{k}"
-                    if can_k not in dedup_data:
-                        dedup_data[can_k] = v
+                can_k = f"{rel}_{k}" if rel else k
+
+            if is_epic_entry(can_k, v):
+                if can_k not in epics_data:
+                    epics_data[can_k] = v
+            else:
+                if can_k not in core_data:
+                    core_data[can_k] = v
+
         with open(temp_file, 'w', encoding='utf-8') as f:
-            json.dump(dedup_data, f, separators=(',', ':'), ensure_ascii=False)
+            json.dump(core_data, f, separators=(',', ':'), ensure_ascii=False)
         safe_replace(temp_file, OUTPUT_FILE)
 
         with open(www_temp, 'w', encoding='utf-8') as f:
-            json.dump(dedup_data, f, separators=(',', ':'), ensure_ascii=False)
+            json.dump(core_data, f, separators=(',', ':'), ensure_ascii=False)
         safe_replace(www_temp, WWW_OUTPUT_FILE)
+
+        if epics_data:
+            with open(epics_temp, 'w', encoding='utf-8') as f:
+                json.dump(epics_data, f, separators=(',', ':'), ensure_ascii=False)
+            safe_replace(epics_temp, EPICS_OUTPUT_FILE)
+
+            with open(www_epics_temp, 'w', encoding='utf-8') as f:
+                json.dump(epics_data, f, separators=(',', ':'), ensure_ascii=False)
+            safe_replace(www_epics_temp, WWW_EPICS_OUTPUT_FILE)
     except Exception as e:
         print(f"Error saving databases: {e}")
 

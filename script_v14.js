@@ -30302,6 +30302,13 @@ async function loadVerseExplanations() {
     } catch (e) {
         console.warn('Could not load verse explanations:', e);
     }
+    try {
+        const epicsRes = await fetch('./data/explanations_epics.json?v=' + Date.now());
+        if (epicsRes.ok) {
+            const epicsData = await epicsRes.json();
+            Object.assign(verseExplanations, epicsData);
+        }
+    } catch (e) {}
 }
 
 function getCandidateExplanationKeys(verse) {
