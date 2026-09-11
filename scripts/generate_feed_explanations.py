@@ -748,7 +748,7 @@ def call_ai_batch_channel(verse_batch, ch_idx, ch):
     return [], "Parse failed"
 
 BATCH_SIZE = 4
-WORKERS = 8
+WORKERS = 14
 
 print("=" * 70)
 print(f"  STARTING TURBO FEED EXPLANATIONS GENERATOR ({len(pending_queue):,} queued)")
