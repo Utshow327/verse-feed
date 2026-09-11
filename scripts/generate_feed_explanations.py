@@ -83,7 +83,7 @@ if GEMINI_API_KEYS:
     print(f"Validating {len(GEMINI_API_KEYS)} Gemini API key(s)...")
     for ki, k in enumerate(GEMINI_API_KEYS):
         gemini_valid = False
-        for test_mod in ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite']:
+        for test_mod in ['gemini-robotics-er-2-preview', 'gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite']:
             req = urllib.request.Request(
                 f'https://generativelanguage.googleapis.com/v1beta/models/{test_mod}:generateContent?key={k}',
                 data=json.dumps({'contents': [{'parts': [{'text': 'hi'}]}]}).encode('utf-8'),
@@ -517,6 +517,7 @@ from queue import Queue, Empty
 from threading import Thread, Lock
 
 GEMINI_MODELS = [
+    'gemini-robotics-er-2-preview',
     'gemini-3.5-flash',
     'gemini-3.6-flash',
     'gemini-3.7-flash',
@@ -746,8 +747,8 @@ def call_ai_batch_channel(verse_batch, ch_idx, ch):
 
     return [], "Parse failed"
 
-BATCH_SIZE = 8
-WORKERS = 10
+BATCH_SIZE = 4
+WORKERS = 8
 
 print("=" * 70)
 print(f"  STARTING TURBO FEED EXPLANATIONS GENERATOR ({len(pending_queue):,} queued)")
