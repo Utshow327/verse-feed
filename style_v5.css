@@ -333,6 +333,9 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .verse-card {
@@ -356,12 +359,20 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     will-change: transform, opacity;
     transform: translateZ(0);
     opacity: 1;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: grab;
+}
+
+.feed-stage:active .verse-card.card-center {
+    cursor: grabbing;
 }
 
 .card-center {
-    transform: translateX(0) scale(1);
+    transform: translateX(0) scale(1) translateZ(0);
     opacity: 1;
     z-index: 10;
+    pointer-events: auto;
 }
 
 .card-peek-left {
