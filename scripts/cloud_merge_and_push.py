@@ -82,27 +82,32 @@ for k, v in local_exp.items():
 print(f"Total unified explanations: {len(core_data) + len(epics_data):,} (Core: {len(core_data):,}, Epics: {len(epics_data):,})")
 
 # 5. Save merged databases atomically
-def atomic_save(data_dict, file1, file2):
-    tmp1 = file1 + ".tmp"
-    tmp2 = file2 + ".tmp"
-    with open(tmp1, "w", encoding="utf-8") as f:
+def atomic_save(data_dict, file_path):
+    tmp = file_path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data_dict, f, separators=(',', ':'), ensure_ascii=False)
-    os.replace(tmp1, file1)
-    with open(tmp2, "w", encoding="utf-8") as f:
-        json.dump(data_dict, f, separators=(',', ':'), ensure_ascii=False)
-    os.replace(tmp2, file2)
+    os.replace(tmp, file_path)
 
-atomic_save(core_data, EXP_FILE, WWW_EXP_FILE)
+atomic_save(core_data, EXP_FILE)
 if epics_data:
-    atomic_save(epics_data, EPICS_FILE, WWW_EPICS_FILE)
+    atomic_save(epics_data, EPICS_FILE)
+
+# Generate modular cloud chunks and keep www stubs at 2 bytes
+try:
+    from scripts.build_chunks import build_chunks
+    chunk_files = build_chunks()
+except Exception as e:
+    print(f"Error building chunks: {e}")
+    chunk_files = []
 
 # 6. Reset tree against origin/main so working directory is on top of latest remote
 subprocess.run(["git", "reset", "--mixed", "origin/main"], check=False)
 
-# 7. Add only the explanations files
+# 7. Add explanations files and chunk files
 files_to_add = [EXP_FILE, WWW_EXP_FILE]
 if os.path.exists(EPICS_FILE):
     files_to_add.extend([EPICS_FILE, WWW_EPICS_FILE])
+files_to_add.extend(chunk_files)
 subprocess.run(["git", "add"] + files_to_add, check=False)
 
 # 8. Check if there are staged changes

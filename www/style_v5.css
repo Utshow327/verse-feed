@@ -3232,3 +3232,114 @@ h2 {
     white-space: pre-line;
 }
 
+/* --- Optimistic Loading Shimmer & Offline Prompt for Reflections --- */
+.card-explanation-view.is-loading {
+    min-height: 120px;
+}
+
+.exp-shimmer-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 320px;
+    margin: 8px auto;
+}
+
+.exp-shimmer-bar {
+    height: 14px;
+    border-radius: 7px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 25%, rgba(255, 255, 255, 0.22) 50%, rgba(255, 255, 255, 0.08) 75%);
+    background-size: 200% 100%;
+    animation: expShimmer 1.4s infinite linear;
+}
+
+[data-theme="light"] .exp-shimmer-bar {
+    background: linear-gradient(90deg, rgba(0, 0, 0, 0.06) 25%, rgba(0, 0, 0, 0.16) 50%, rgba(0, 0, 0, 0.06) 75%);
+    background-size: 200% 100%;
+}
+
+@keyframes expShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.exp-shimmer-bar.w-80 { width: 80%; }
+.exp-shimmer-bar.w-95 { width: 95%; }
+.exp-shimmer-bar.w-60 { width: 60%; }
+
+.exp-loading-hint {
+    font-size: 0.88rem !important;
+    font-style: italic !important;
+    opacity: 0.72 !important;
+    margin: 8px auto 0 auto !important;
+    letter-spacing: 0.3px !important;
+    color: inherit !important;
+}
+
+.exp-offline-box {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    padding: 12px 14px !important;
+    text-align: center !important;
+}
+
+.exp-offline-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+    opacity: 0.9;
+    margin-top: 2px;
+}
+
+.exp-offline-title {
+    font-size: 1.05rem !important;
+    font-weight: 650 !important;
+    margin: 2px 0 0 0 !important;
+    letter-spacing: 0.2px !important;
+    color: inherit !important;
+}
+
+.exp-offline-desc {
+    font-size: 0.88rem !important;
+    line-height: 1.45 !important;
+    opacity: 0.78 !important;
+    max-width: 290px !important;
+    margin: 0 auto !important;
+    color: inherit !important;
+}
+
+.exp-offline-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 7px !important;
+    margin-top: 6px !important;
+    padding: 8px 20px !important;
+    border-radius: 20px !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    color: inherit !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: transform 0.15s ease, background 0.15s ease !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+}
+
+[data-theme="light"] .exp-offline-btn {
+    background: rgba(0, 0, 0, 0.08) !important;
+    border-color: rgba(0, 0, 0, 0.16) !important;
+}
+
+.exp-offline-btn:active {
+    transform: scale(0.95) !important;
+    background: rgba(255, 255, 255, 0.22) !important;
+}
+
+

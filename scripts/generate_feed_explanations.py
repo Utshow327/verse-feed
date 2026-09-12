@@ -561,8 +561,9 @@ def save_databases():
             json.dump(core_data, f, separators=(',', ':'), ensure_ascii=False)
         safe_replace(temp_file, OUTPUT_FILE)
 
+        # www stubs remain empty {} to keep app bundle tiny (~10MB)
         with open(www_temp, 'w', encoding='utf-8') as f:
-            json.dump(core_data, f, separators=(',', ':'), ensure_ascii=False)
+            f.write('{}')
         safe_replace(www_temp, WWW_OUTPUT_FILE)
 
         if epics_data:
@@ -571,8 +572,14 @@ def save_databases():
             safe_replace(epics_temp, EPICS_OUTPUT_FILE)
 
             with open(www_epics_temp, 'w', encoding='utf-8') as f:
-                json.dump(epics_data, f, separators=(',', ':'), ensure_ascii=False)
+                f.write('{}')
             safe_replace(www_epics_temp, WWW_EPICS_OUTPUT_FILE)
+
+        try:
+            from scripts.build_chunks import build_chunks
+            build_chunks()
+        except Exception as e:
+            print(f"Error building chunks: {e}")
     except Exception as e:
         print(f"Error saving databases: {e}")
 

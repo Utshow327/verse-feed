@@ -30291,24 +30291,89 @@ let religionVerses = {};
 let religionBooks = {};
 let activeRankings = {};
 let verseExplanations = {};
+const EXPLANATION_CDN_PRIMARY = 'https://utshow327.github.io/verse-feed/data/';
+const EXPLANATION_CDN_FALLBACK = 'https://raw.githubusercontent.com/Utshow327/verse-feed/main/data/';
+const loadedExplanationChunks = new Set();
+const pendingExplanationFetches = {};
+
+async function fetchOnlineExplanationChunk(chunkName) {
+    if (loadedExplanationChunks.has(chunkName)) return true;
+    if (pendingExplanationFetches[chunkName]) return pendingExplanationFetches[chunkName];
+
+    const promise = (async () => {
+        const urls = [
+            `${EXPLANATION_CDN_PRIMARY}${chunkName}?v=2`,
+            `${EXPLANATION_CDN_FALLBACK}${chunkName}`
+        ];
+        for (const url of urls) {
+            try {
+                const res = await fetch(url, { cache: 'default' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && typeof data === 'object') {
+                        Object.assign(verseExplanations, data);
+                        loadedExplanationChunks.add(chunkName);
+                        return true;
+                    }
+                }
+            } catch (err) {
+                // Try fallback URL
+            }
+        }
+        return false;
+    })();
+
+    pendingExplanationFetches[chunkName] = promise;
+    const ok = await promise;
+    delete pendingExplanationFetches[chunkName];
+    return ok;
+}
+
+function getAppropriateChunkForVerse(verse) {
+    if (!verse) return 'explanations_feed.json';
+    const rel = String(verse.religion || '').toLowerCase().trim();
+    const book = String(verse.book || '').toLowerCase().trim();
+    if (book.includes('mahabharata') || book.includes('ramayana')) {
+        return 'explanations_epics.json';
+    }
+    if (rel.includes('islam')) return 'explanations_islam.json';
+    if (rel.includes('christianity')) return 'explanations_christianity.json';
+    if (rel.includes('buddhism')) return 'explanations_buddhism.json';
+    if (rel.includes('hinduism')) return 'explanations_hinduism.json';
+    if (rel.includes('sikhism')) return 'explanations_sikhism.json';
+    if (rel.includes('judaism')) return 'explanations_judaism.json';
+    if (rel.includes('philosophy')) return 'explanations_philosophy.json';
+    return 'explanations_feed.json';
+}
+
+function findExplanationInCache(verse) {
+    if (!verse || !verseExplanations) return null;
+    const candidateKeys = getCandidateExplanationKeys(verse);
+    for (const k of candidateKeys) {
+        if (verseExplanations[k]) {
+            return { key: k, data: verseExplanations[k] };
+        }
+    }
+    return null;
+}
 
 async function loadVerseExplanations() {
-    if (Object.keys(verseExplanations).length > 0) return;
-    try {
-        const res = await fetch('./data/verse_explanations.json?v=' + Date.now());
-        if (res.ok) {
-            verseExplanations = await res.json();
-        }
-    } catch (e) {
-        console.warn('Could not load verse explanations:', e);
+    // Only prefetch lightweight 1.6MB feed chunk if online
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        return;
     }
     try {
-        const epicsRes = await fetch('./data/explanations_epics.json?v=' + Date.now());
-        if (epicsRes.ok) {
-            const epicsData = await epicsRes.json();
-            Object.assign(verseExplanations, epicsData);
+        await fetchOnlineExplanationChunk('explanations_feed.json');
+    } catch(e) {}
+}
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('online', () => {
+        const card = document.querySelector('.verse-card.card-center');
+        if (card && card._isShowingExplanation && card.querySelector('.exp-offline-box')) {
+            openVerseExplanation(card._originalVerseObj);
         }
-    } catch (e) {}
+    });
 }
 
 function getCandidateExplanationKeys(verse) {
@@ -30581,15 +30646,96 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
 
     cardEl._isShowingExplanation = true;
     cardEl._originalVerseObj = targetVerse;
-    activeExplanationVerseId = targetVerse.id || `${targetVerse.book}_${targetVerse.chapter}_${targetVerse.verse}`;
+    const targetVerseId = targetVerse.id || `${targetVerse.book}_${targetVerse.chapter}_${targetVerse.verse}`;
+    activeExplanationVerseId = targetVerseId;
     if (btnEl) btnEl.classList.add('va-meaning-active');
 
-    if (Object.keys(verseExplanations).length === 0) {
-        textEl.innerHTML = `<div class="card-explanation-view"><div class="card-exp-text">Loading reflection...</div></div>`;
-        await loadVerseExplanations();
+    const isFeedCard = cardEl.classList.contains('verse-card');
+    let cached = findExplanationInCache(targetVerse);
+
+    // 1. If not cached, handle offline vs optimistic online loading
+    if (!cached) {
+        const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+
+        if (isOffline) {
+            const offlineHtml = `
+                <div class="card-explanation-view">
+                    <div class="card-explanation-section exp-offline-box">
+                        <span class="card-exp-badge" style="background: rgba(255,180,0,0.18); color: #ffb400; padding: 4px 10px; border-radius: 12px;">Internet Required</span>
+                        <div class="exp-offline-icon">📶</div>
+                        <h4 class="exp-offline-title">Connect to Unlock Reflections</h4>
+                        <p class="exp-offline-desc">Turn on Wi-Fi or mobile data to unlock spiritual reflections, historical context, and deep meanings.</p>
+                        <button class="exp-offline-btn" onclick="openVerseExplanation(null, event)">
+                            <i class="fa fa-refresh"></i> Retry Connection
+                        </button>
+                    </div>
+                </div>
+            `;
+            if (isFeedCard) {
+                fadeSwapContent(textEl, () => {
+                    cardEl.classList.add('card-explanation-active');
+                    textEl.innerHTML = offlineHtml;
+                });
+            } else {
+                animateCardExpand(cardEl, () => {
+                    if (cardEl.classList.contains('book-verse')) cardEl.classList.add('book-verse-explanation-active');
+                    else if (cardEl.classList.contains('saved-verse')) cardEl.classList.add('saved-verse-explanation-active');
+                    textEl.innerHTML = offlineHtml;
+                });
+            }
+            if (typeof showToast === 'function') {
+                showToast("Connect to internet to read reflections");
+            }
+            return;
+        }
+
+        // Online -> Optimistic Shimmer Skeleton Loading
+        const shimmerHtml = `
+            <div class="card-explanation-view is-loading">
+                <div class="card-explanation-section">
+                    <span class="card-exp-badge">Meaning</span>
+                    <div class="exp-shimmer-wrap">
+                        <div class="exp-shimmer-bar w-80"></div>
+                        <div class="exp-shimmer-bar w-95"></div>
+                        <div class="exp-shimmer-bar w-60"></div>
+                    </div>
+                    <p class="exp-loading-hint">✨ Unfolding spiritual reflection...</p>
+                </div>
+            </div>
+        `;
+        if (isFeedCard) {
+            fadeSwapContent(textEl, () => {
+                cardEl.classList.add('card-explanation-active');
+                textEl.innerHTML = shimmerHtml;
+            });
+        } else {
+            animateCardExpand(cardEl, () => {
+                if (cardEl.classList.contains('book-verse')) cardEl.classList.add('book-verse-explanation-active');
+                else if (cardEl.classList.contains('saved-verse')) cardEl.classList.add('saved-verse-explanation-active');
+                textEl.innerHTML = shimmerHtml;
+            });
+        }
+
+        const targetChunk = getAppropriateChunkForVerse(targetVerse);
+        if (!loadedExplanationChunks.has('explanations_feed.json')) {
+            await fetchOnlineExplanationChunk('explanations_feed.json');
+            cached = findExplanationInCache(targetVerse);
+        }
+        if (!cached && targetChunk !== 'explanations_feed.json') {
+            await fetchOnlineExplanationChunk(targetChunk);
+            cached = findExplanationInCache(targetVerse);
+        }
+        if (!cached && targetChunk !== 'explanations_epics.json') {
+            const b = String(targetVerse.book || '').toLowerCase();
+            if (b.includes('mahabharata') || b.includes('ramayana')) {
+                await fetchOnlineExplanationChunk('explanations_epics.json');
+                cached = findExplanationInCache(targetVerse);
+            }
+        }
     }
 
     if (!cardEl._isShowingExplanation) return;
+    if (activeExplanationVerseId !== targetVerseId) return;
 
     const chap = targetVerse.chapter || targetVerse.chapter_no || '1';
     const ver = targetVerse.verse || targetVerse.verse_id || targetVerse.hadith_no || '';
@@ -30674,7 +30820,6 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
 
     cardEl._explanationSpeechText = "Meaning. " + cleanExplanation;
 
-    const isFeedCard = cardEl.classList.contains('verse-card');
     if (isFeedCard) {
         fadeSwapContent(textEl, () => {
             cardEl.classList.add('card-explanation-active');
