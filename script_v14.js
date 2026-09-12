@@ -31705,14 +31705,6 @@ function getActiveBookStack() {
             type: 'bookList'
         };
     }
-    if (libHome && !libHome.classList.contains('hidden')) {
-        const feedSection = document.getElementById('verse-feed');
-        return {
-            current: libHome,
-            prev: feedSection,
-            type: 'home'
-        };
-    }
     return null;
 }
 
@@ -31750,8 +31742,6 @@ function executeBookBack(type) {
         stopAudio();
         deactivatePillUI();
         showReligions();
-    } else if (type === 'home') {
-        goTo('verse-feed');
     }
 }
 
@@ -31761,20 +31751,9 @@ function animateBookLayerPop(current, prev, onComplete) {
         return;
     }
     isBookLayerAnimating = true;
-    const isHomePrev = (prev.id === 'verse-feed');
-    if (isHomePrev) {
-        prev.style.display = 'flex';
-        prev.style.position = 'fixed';
-        prev.style.top = '0';
-        prev.style.left = '0';
-        prev.style.width = '100%';
-        prev.style.height = '100%';
-        prev.style.zIndex = '1';
-    } else {
-        prev.classList.remove('hidden');
-        prev.style.display = 'block';
-        prev.style.zIndex = '10';
-    }
+    prev.classList.remove('hidden');
+    prev.style.display = 'block';
+    prev.style.zIndex = '10';
     prev.style.transition = 'none';
     prev.style.transform = `translateX(${-window.innerWidth * 0.25}px) translateZ(0)`;
 
@@ -31893,21 +31872,11 @@ function setupBookLayerSlide() {
         if (!bookBackIsHorizontal) {
             if (diffX > 7 && diffX > Math.abs(diffY) * 1.2) {
                 bookBackIsHorizontal = true;
-                const { current, prev, type } = activeBookLayerStack;
+                const { current, prev } = activeBookLayerStack;
 
-                if (type === 'home') {
-                    prev.style.display = 'flex';
-                    prev.style.position = 'fixed';
-                    prev.style.top = '0';
-                    prev.style.left = '0';
-                    prev.style.width = '100%';
-                    prev.style.height = '100%';
-                    prev.style.zIndex = '1';
-                } else {
-                    prev.classList.remove('hidden');
-                    prev.style.display = 'block';
-                    prev.style.zIndex = '10';
-                }
+                prev.classList.remove('hidden');
+                prev.style.display = 'block';
+                prev.style.zIndex = '10';
                 prev.style.transition = 'none';
 
                 current.style.zIndex = '20';
@@ -32018,17 +31987,8 @@ function setupBookLayerSlide() {
                 prev.style.transition = '';
                 prev.style.transform = '';
                 prev.style.zIndex = '';
-                if (type === 'home') {
-                    prev.style.display = '';
-                    prev.style.position = '';
-                    prev.style.top = '';
-                    prev.style.left = '';
-                    prev.style.width = '';
-                    prev.style.height = '';
-                } else {
-                    prev.classList.add('hidden');
-                    prev.style.display = '';
-                }
+                prev.classList.add('hidden');
+                prev.style.display = '';
 
                 if (backdrop) {
                     backdrop.style.display = 'none';
@@ -35072,6 +35032,7 @@ function goBack() {
             });
             return;
         }
+        return;
     }
     goTo('verse-feed');
 }
