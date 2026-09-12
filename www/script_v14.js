@@ -35308,7 +35308,7 @@ function showBooks(rel) {
     list.appendChild(h2);
 
     // Render Daily Curated Audiobook at Top (Hidden if user is premium)
-    const isUserPremium = (typeof isPremiumUser !== 'undefined' && isPremiumUser) || localStorage.getItem('isPremiumUser') === 'true';
+    const isUserPremium = (typeof isPremiumUser !== 'undefined' && isPremiumUser);
     const dailyBook = getDailyAudiobook(rel);
     if (dailyBook && !isUserPremium) {
         const adBtn = document.createElement('button');
@@ -39292,13 +39292,34 @@ function updateUserUI() {
 }
 
 // --- Premium Modal Logic (RevenueCat) ---
-var isPremiumUser = true;
-try { localStorage.setItem('isPremiumUser', 'true'); } catch(e){}
+let _isPremiumUser = false;
+try { localStorage.removeItem('isPremiumUser'); } catch(e){}
+
+function _setVerifiedPremium(status) {
+    _isPremiumUser = !!status;
+    if (!_isPremiumUser) {
+        try { localStorage.removeItem('isPremiumUser'); } catch(e){}
+    }
+}
+
+try {
+    Object.defineProperty(window, 'isPremiumUser', {
+        get: function() { return _isPremiumUser; },
+        set: function() {
+            // Tamper protection: ignore console overrides
+        },
+        configurable: false
+    });
+} catch(e) {
+    window.isPremiumUser = false;
+}
+
 var rcPackages = [];
 var selectedPlanType = 'annual'; // 'monthly' or 'annual'
 var isPurchasingInProgress = false;
 
 async function initRevenueCat() {
+    _setVerifiedPremium(false);
     try {
         const Purchases = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) || window.Purchases;
         if (Purchases) {
@@ -39307,13 +39328,11 @@ async function initRevenueCat() {
             // Check existing customer info
             try {
                 const customerInfo = await Purchases.getCustomerInfo();
-                const hasActive = customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && Object.keys(customerInfo.entitlements.active).length > 0;
-                if (hasActive) {
-                    isPremiumUser = true;
-                    localStorage.setItem('isPremiumUser', 'true');
-                }
+                const hasActive = !!(customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && Object.keys(customerInfo.entitlements.active).length > 0);
+                _setVerifiedPremium(hasActive);
             } catch (custErr) {
                 console.warn("CustomerInfo check error:", custErr);
+                _setVerifiedPremium(false);
             }
             
             // Fetch offerings in background
@@ -39548,9 +39567,9 @@ async function handlePremiumSubscribeClick(e) {
 
                     const result = await doPurchase();
                     const customerInfo = result && (result.customerInfo || result);
-                    if (customerInfo) {
-                        isPremiumUser = true;
-                        localStorage.setItem('isPremiumUser', 'true');
+                    const hasActive = !!(customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && Object.keys(customerInfo.entitlements.active).length > 0);
+                    if (hasActive) {
+                        _setVerifiedPremium(true);
                         closePremiumModal();
                         updateTogglesUI();
                         buildSettings();
@@ -39576,13 +39595,15 @@ async function restorePurchases() {
         const Purchases = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) || window.Purchases;
         if (Purchases) {
             const customerInfo = await Purchases.restorePurchases();
-            const hasActiveEntitlement = customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && Object.keys(customerInfo.entitlements.active).length > 0;
-            if (hasActiveEntitlement) {
-                isPremiumUser = true;
-                localStorage.setItem('isPremiumUser', 'true');
+            const hasActive = !!(customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && Object.keys(customerInfo.entitlements.active).length > 0);
+            _setVerifiedPremium(hasActive);
+            if (hasActive) {
                 closePremiumModal();
                 updateTogglesUI();
                 buildSettings();
+                showToast("Purchases restored");
+            } else {
+                showToast("No active subscription found");
             }
         }
     } catch (e) {
