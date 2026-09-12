@@ -409,18 +409,9 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     pointer-events: auto;
 }
 
-.card-peek-left {
-    transform: translateX(-104%) scale(0.92);
-    opacity: 0.3;
-    z-index: 4;
-    pointer-events: none;
-}
-
+.card-peek-left,
 .card-peek-right {
-    transform: translateX(104%) scale(0.92);
-    opacity: 0.3;
-    z-index: 4;
-    pointer-events: none;
+    display: none !important;
 }
 
 .card-left {

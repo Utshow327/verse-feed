@@ -31524,7 +31524,7 @@ function setupGestures() {
     if (!feedStage) return;
 
     function handleStart(clientX, clientY, target) {
-        if (!appLoaded || (typeof isFeedAnimating !== 'undefined' && isFeedAnimating)) return false;
+        if (!appLoaded || isFeedAnimating) return false;
         const activeModal = document.querySelector('.modal-overlay:not(.hidden)');
         if (activeModal) return false;
         if (target && target.closest && (target.closest('.bookmark-btn') || target.closest('.speak-btn') || target.closest('.modal-overlay') || target.closest('button') || target.closest('a'))) return false;
@@ -31536,15 +31536,11 @@ function setupGestures() {
         feedTouchStartTime = Date.now();
         feedCurrentDeltaX = 0;
         touchStartTarget = target;
-
-        if (typeof mountFeedPeeks === 'function') {
-            mountFeedPeeks(currentVerseIndex.general);
-        }
         return true;
     }
 
     function handleMove(clientX, clientY) {
-        if (!isDraggingFeed || (typeof isFeedAnimating !== 'undefined' && isFeedAnimating)) return;
+        if (!isDraggingFeed || isFeedAnimating) return;
         const diffX = clientX - feedTouchStartX;
         const diffY = clientY - feedTouchStartY;
 
@@ -31560,52 +31556,14 @@ function setupGestures() {
         if (feedIsHorizontalGesture) {
             feedCurrentDeltaX = diffX;
             const currentCard = feedStage.querySelector('.verse-card.card-center');
-            const nextCard = feedStage.querySelector(`.verse-card[data-card-index="${currentVerseIndex.general + 1}"]`) || feedStage.querySelector('.verse-card.card-peek-right');
-            const prevCard = feedStage.querySelector(`.verse-card[data-card-index="${currentVerseIndex.general - 1}"]`) || feedStage.querySelector('.verse-card.card-peek-left');
-
             if (currentCard) {
-                const cardWidth = currentCard.offsetWidth || (window.innerWidth * 0.84);
-                const cardOffset = cardWidth * 1.04;
-                const norm = diffX / cardOffset;
-
                 let actualDiffX = diffX;
                 if (diffX > 0 && currentVerseIndex.general === 0) {
                     actualDiffX = diffX * 0.35;
                 }
-
                 currentCard.style.transition = 'none';
-                const centerScale = Math.max(0.92, 1 - Math.abs(norm) * 0.08);
-                const centerOpacity = Math.max(0.3, 1 - Math.abs(norm) * 0.7);
-                currentCard.style.transform = `translateX(${actualDiffX}px) scale(${centerScale}) translateZ(0)`;
-                currentCard.style.opacity = centerOpacity;
-
-                if (diffX < 0 && nextCard) {
-                    nextCard.style.transition = 'none';
-                    const nextTx = cardOffset + diffX;
-                    const nextProg = Math.min(1, Math.max(0, -norm));
-                    const nextScale = 0.92 + nextProg * 0.08;
-                    const nextOpacity = 0.3 + nextProg * 0.7;
-                    nextCard.style.transform = `translateX(${nextTx}px) scale(${nextScale}) translateZ(0)`;
-                    nextCard.style.opacity = nextOpacity;
-                    if (prevCard) {
-                        prevCard.style.transition = 'none';
-                        prevCard.style.transform = `translateX(${-cardOffset + diffX * 0.3}px) scale(0.92) translateZ(0)`;
-                        prevCard.style.opacity = '0.15';
-                    }
-                } else if (diffX > 0 && prevCard) {
-                    prevCard.style.transition = 'none';
-                    const prevTx = -cardOffset + diffX;
-                    const prevProg = Math.min(1, Math.max(0, norm));
-                    const prevScale = 0.92 + prevProg * 0.08;
-                    const prevOpacity = 0.3 + prevProg * 0.7;
-                    prevCard.style.transform = `translateX(${prevTx}px) scale(${prevScale}) translateZ(0)`;
-                    prevCard.style.opacity = prevOpacity;
-                    if (nextCard) {
-                        nextCard.style.transition = 'none';
-                        nextCard.style.transform = `translateX(${cardOffset + diffX * 0.3}px) scale(0.92) translateZ(0)`;
-                        nextCard.style.opacity = '0.15';
-                    }
-                }
+                const scale = Math.max(0.92, 1 - (Math.abs(diffX) / window.innerWidth) * 0.08);
+                currentCard.style.transform = `translateX(${actualDiffX}px) scale(${scale})`;
             }
         }
     }
@@ -31615,39 +31573,23 @@ function setupGestures() {
         isDraggingFeed = false;
 
         const currentCard = feedStage.querySelector('.verse-card.card-center');
-        const nextCard = feedStage.querySelector(`.verse-card[data-card-index="${currentVerseIndex.general + 1}"]`) || feedStage.querySelector('.verse-card.card-peek-right');
-        const prevCard = feedStage.querySelector(`.verse-card[data-card-index="${currentVerseIndex.general - 1}"]`) || feedStage.querySelector('.verse-card.card-peek-left');
-
         if (feedIsHorizontalGesture && currentCard) {
             const cardWidth = currentCard.offsetWidth || (window.innerWidth * 0.84);
-            const cardOffset = cardWidth * 1.04;
-            const threshold = Math.min(cardOffset * 0.20, 75);
+            const threshold = Math.min(cardWidth * 0.18, 55);
             const elapsed = Math.max(1, Date.now() - feedTouchStartTime);
             const velocity = Math.abs(feedCurrentDeltaX) / elapsed;
-            const isFlick = velocity > 0.35 && Math.abs(feedCurrentDeltaX) > 25;
+            const isFlick = velocity > 0.32 && Math.abs(feedCurrentDeltaX) > 20;
 
-            if (feedCurrentDeltaX < -threshold || (feedCurrentDeltaX < -25 && isFlick)) {
+            if (feedCurrentDeltaX < -threshold || (feedCurrentDeltaX < -20 && isFlick)) {
                 lastSwipeTime = Date.now();
                 nextCard();
-            } else if ((feedCurrentDeltaX > threshold || (feedCurrentDeltaX > 25 && isFlick)) && currentVerseIndex.general > 0) {
+            } else if ((feedCurrentDeltaX > threshold || (feedCurrentDeltaX > 20 && isFlick)) && currentVerseIndex.general > 0) {
                 lastSwipeTime = Date.now();
                 prevCard();
             } else {
-                const snapEase = 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease';
-                currentCard.style.transition = snapEase;
-                currentCard.style.transform = 'translateX(0px) scale(1) translateZ(0)';
+                currentCard.style.transition = 'transform 0.28s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.28s ease';
+                currentCard.style.transform = 'translateX(0) scale(1)';
                 currentCard.style.opacity = '1';
-
-                if (nextCard) {
-                    nextCard.style.transition = snapEase;
-                    nextCard.style.transform = 'translateX(104%) scale(0.92) translateZ(0)';
-                    nextCard.style.opacity = '0.3';
-                }
-                if (prevCard) {
-                    prevCard.style.transition = snapEase;
-                    prevCard.style.transform = 'translateX(-104%) scale(0.92) translateZ(0)';
-                    prevCard.style.opacity = '0.3';
-                }
             }
         }
         feedIsHorizontalGesture = false;
@@ -31703,14 +31645,11 @@ function setupGestures() {
         const isFeed = document.getElementById('verse-feed').classList.contains('active-section');
         if (!isFeed) return;
 
-        const isPeekLeft = e.target.closest && e.target.closest('.card-peek-left');
-        const isPeekRight = e.target.closest && e.target.closest('.card-peek-right');
-        
-        if (isPeekLeft || clickX < width * 0.28) {
+        if (clickX < width * 0.28) {
             prevCard();
             return;
         }
-        if (isPeekRight || clickX > width * 0.72) {
+        if (clickX > width * 0.72) {
             nextCard();
             return;
         }
@@ -34882,78 +34821,6 @@ function trackVerseDwellTime(verse) {
     }, 2000);
 }
 
-let feedAnimationStartTime = 0;
-
-function mountFeedPeeks(centerIndex) {
-    const stage = document.getElementById('feed-stage');
-    if (!stage) return;
-
-    let centerCard = stage.querySelector(`.verse-card[data-card-index="${centerIndex}"]`);
-    if (!centerCard) {
-        centerCard = stage.querySelector('.verse-card.card-center');
-        if (centerCard) {
-            centerCard.setAttribute('data-card-index', centerIndex);
-            centerCard.id = 'feed-card-' + centerIndex;
-        }
-    }
-    if (centerCard) {
-        centerCard.classList.remove('card-peek-left', 'card-peek-right', 'card-left', 'card-right');
-        centerCard.classList.add('card-center');
-        centerCard.style.pointerEvents = 'auto';
-        centerCard.style.transform = '';
-        centerCard.style.transition = '';
-        centerCard.style.opacity = '';
-    }
-
-    const nextIdx = centerIndex + 1;
-    const nextVerse = getVerseAtIndex(nextIdx);
-    let nextCard = stage.querySelector(`.verse-card[data-card-index="${nextIdx}"]`);
-    if (!nextCard && nextVerse) {
-        nextCard = createFeedCardDOM(nextVerse, 'card-peek-right');
-        nextCard.setAttribute('data-card-index', nextIdx);
-        nextCard.id = 'feed-card-' + nextIdx;
-        nextCard.style.pointerEvents = 'none';
-        stage.appendChild(nextCard);
-    } else if (nextCard) {
-        nextCard.classList.remove('card-center', 'card-peek-left', 'card-left', 'card-right');
-        nextCard.classList.add('card-peek-right');
-        nextCard.style.pointerEvents = 'none';
-        nextCard.style.transform = '';
-        nextCard.style.transition = '';
-        nextCard.style.opacity = '';
-    }
-
-    const prevIdx = centerIndex - 1;
-    if (prevIdx >= 0) {
-        const prevVerse = getVerseAtIndex(prevIdx);
-        let prevCard = stage.querySelector(`.verse-card[data-card-index="${prevIdx}"]`);
-        if (!prevCard && prevVerse) {
-            prevCard = createFeedCardDOM(prevVerse, 'card-peek-left');
-            prevCard.setAttribute('data-card-index', prevIdx);
-            prevCard.id = 'feed-card-' + prevIdx;
-            prevCard.style.pointerEvents = 'none';
-            stage.insertBefore(prevCard, stage.firstChild);
-        } else if (prevCard) {
-            prevCard.classList.remove('card-center', 'card-peek-right', 'card-left', 'card-right');
-            prevCard.classList.add('card-peek-left');
-            prevCard.style.pointerEvents = 'none';
-            prevCard.style.transform = '';
-            prevCard.style.transition = '';
-            prevCard.style.opacity = '';
-        }
-    }
-
-    stage.querySelectorAll('.verse-card').forEach(c => {
-        const idxAttr = c.getAttribute('data-card-index');
-        if (idxAttr !== null) {
-            const idxNum = parseInt(idxAttr, 10);
-            if (idxNum < centerIndex - 1 || idxNum > centerIndex + 1) {
-                try { c.remove(); } catch(e) {}
-            }
-        }
-    });
-}
-
 function renderFeedCard(index, direction = 'none') {
     resetActiveExplanation(false);
     preloadUpcomingVerses(index);
@@ -34964,139 +34831,48 @@ function renderFeedCard(index, direction = 'none') {
 
     trackVerseDwellTime(verse);
 
-    if (direction === 'none') {
-        stage.innerHTML = '';
-        const card = createFeedCardDOM(verse, 'card-center');
-        card.setAttribute('data-card-index', index);
-        card.id = 'feed-card-' + index;
+    const oldCards = Array.from(stage.querySelectorAll('.verse-card'));
+
+    let card = null;
+    if (direction === 'next') card = createFeedCardDOM(verse, 'card-right');
+    else if (direction === 'prev') card = createFeedCardDOM(verse, 'card-left');
+    else card = createFeedCardDOM(verse, 'card-center');
+
+    card.id = 'feed-card-' + index;
+
+    if (direction !== 'none' && oldCards.length > 0) {
+        isFeedAnimating = true;
         stage.appendChild(card);
-        mountFeedPeeks(index);
+        oldCards.forEach(oldCard => {
+            oldCard.style.transform = '';
+            oldCard.style.transition = 'transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.32s ease';
+            oldCard.classList.remove('card-center', 'card-right', 'card-left');
+            if (direction === 'next') oldCard.classList.add('card-left');
+            else oldCard.classList.add('card-right');
+            oldCard.style.pointerEvents = 'none';
+            setTimeout(() => {
+                try { if (oldCard && oldCard.parentNode) oldCard.parentNode.removeChild(oldCard); } catch(e){}
+            }, 340);
+        });
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                card.classList.remove('card-right', 'card-left');
+                card.classList.add('card-center');
+            });
+        });
+        setTimeout(() => {
+            isFeedAnimating = false;
+        }, 340);
+    } else {
+        stage.innerHTML = '';
+        card.classList.add('card-center');
+        stage.appendChild(card);
         isFeedAnimating = false;
-        return;
-    }
-
-    isFeedAnimating = true;
-    feedAnimationStartTime = Date.now();
-    const animEase = 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.28s ease';
-
-    if (direction === 'next') {
-        const prevIdx = index - 1;
-        let oldCenter = stage.querySelector(`.verse-card[data-card-index="${prevIdx}"]`) || stage.querySelector('.verse-card.card-center');
-        let newCenter = stage.querySelector(`.verse-card[data-card-index="${index}"]`) || stage.querySelector('.verse-card.card-peek-right');
-
-        if (!newCenter) {
-            newCenter = createFeedCardDOM(verse, 'card-peek-right');
-            newCenter.setAttribute('data-card-index', index);
-            newCenter.id = 'feed-card-' + index;
-            stage.appendChild(newCenter);
-        }
-
-        stage.querySelectorAll('.verse-card').forEach(c => {
-            const idx = c.getAttribute('data-card-index');
-            if (idx !== null && parseInt(idx, 10) < prevIdx) {
-                c.style.transition = animEase;
-                c.style.transform = 'translateX(-120%) scale(0.9) translateZ(0)';
-                c.style.opacity = '0';
-                c.style.pointerEvents = 'none';
-                setTimeout(() => { try { c.remove(); } catch(e){} }, 300);
-            }
-        });
-
-        if (oldCenter) {
-            oldCenter.style.pointerEvents = 'none';
-            oldCenter.style.transition = animEase;
-            oldCenter.style.transform = 'translateX(-104%) scale(0.92) translateZ(0)';
-            oldCenter.style.opacity = '0.3';
-            oldCenter.classList.remove('card-center', 'card-peek-right', 'card-right');
-            oldCenter.classList.add('card-peek-left');
-        }
-
-        newCenter.style.pointerEvents = 'auto';
-        newCenter.style.transition = animEase;
-        newCenter.style.transform = 'translateX(0px) scale(1) translateZ(0)';
-        newCenter.style.opacity = '1';
-        newCenter.classList.remove('card-peek-right', 'card-right', 'card-peek-left', 'card-left');
-        newCenter.classList.add('card-center');
-
-        const nextIdx = index + 1;
-        const nextVerse = getVerseAtIndex(nextIdx);
-        if (nextVerse && !stage.querySelector(`.verse-card[data-card-index="${nextIdx}"]`)) {
-            const nextPeek = createFeedCardDOM(nextVerse, 'card-peek-right');
-            nextPeek.setAttribute('data-card-index', nextIdx);
-            nextPeek.id = 'feed-card-' + nextIdx;
-            nextPeek.style.pointerEvents = 'none';
-            nextPeek.style.transform = 'translateX(104%) scale(0.92) translateZ(0)';
-            nextPeek.style.opacity = '0.3';
-            stage.appendChild(nextPeek);
-        }
-
-        setTimeout(() => {
-            mountFeedPeeks(index);
-            isFeedAnimating = false;
-        }, 300);
-
-    } else if (direction === 'prev') {
-        const nextIdx = index + 1;
-        let oldCenter = stage.querySelector(`.verse-card[data-card-index="${nextIdx}"]`) || stage.querySelector('.verse-card.card-center');
-        let newCenter = stage.querySelector(`.verse-card[data-card-index="${index}"]`) || stage.querySelector('.verse-card.card-peek-left');
-
-        if (!newCenter) {
-            newCenter = createFeedCardDOM(verse, 'card-peek-left');
-            newCenter.setAttribute('data-card-index', index);
-            newCenter.id = 'feed-card-' + index;
-            stage.insertBefore(newCenter, stage.firstChild);
-        }
-
-        stage.querySelectorAll('.verse-card').forEach(c => {
-            const idx = c.getAttribute('data-card-index');
-            if (idx !== null && parseInt(idx, 10) > nextIdx) {
-                c.style.transition = animEase;
-                c.style.transform = 'translateX(120%) scale(0.9) translateZ(0)';
-                c.style.opacity = '0';
-                c.style.pointerEvents = 'none';
-                setTimeout(() => { try { c.remove(); } catch(e){} }, 300);
-            }
-        });
-
-        if (oldCenter) {
-            oldCenter.style.pointerEvents = 'none';
-            oldCenter.style.transition = animEase;
-            oldCenter.style.transform = 'translateX(104%) scale(0.92) translateZ(0)';
-            oldCenter.style.opacity = '0.3';
-            oldCenter.classList.remove('card-center', 'card-peek-left', 'card-left');
-            oldCenter.classList.add('card-peek-right');
-        }
-
-        newCenter.style.pointerEvents = 'auto';
-        newCenter.style.transition = animEase;
-        newCenter.style.transform = 'translateX(0px) scale(1) translateZ(0)';
-        newCenter.style.opacity = '1';
-        newCenter.classList.remove('card-peek-left', 'card-left', 'card-peek-right', 'card-right');
-        newCenter.classList.add('card-center');
-
-        const prevIdx = index - 1;
-        if (prevIdx >= 0) {
-            const prevVerse = getVerseAtIndex(prevIdx);
-            if (prevVerse && !stage.querySelector(`.verse-card[data-card-index="${prevIdx}"]`)) {
-                const prevPeek = createFeedCardDOM(prevVerse, 'card-peek-left');
-                prevPeek.setAttribute('data-card-index', prevIdx);
-                prevPeek.id = 'feed-card-' + prevIdx;
-                prevPeek.style.pointerEvents = 'none';
-                prevPeek.style.transform = 'translateX(-104%) scale(0.92) translateZ(0)';
-                prevPeek.style.opacity = '0.3';
-                stage.insertBefore(prevPeek, stage.firstChild);
-            }
-        }
-
-        setTimeout(() => {
-            mountFeedPeeks(index);
-            isFeedAnimating = false;
-        }, 300);
     }
 }
 
 function nextCard(isAuto = false) {
-    if (!isAuto && isFeedAnimating && Date.now() - feedAnimationStartTime < 350) return;
+    if (!isAuto && isFeedAnimating) return;
     const wasPlaying = (isSpeaking && !isPaused) || isGenerating;
     if (wasPlaying || isAuto) {
         stopAudio(true, true, true);
@@ -35143,7 +34919,7 @@ function nextCard(isAuto = false) {
 }
 
 function prevCard() {
-    if (isFeedAnimating && Date.now() - feedAnimationStartTime < 350) return;
+    if (isFeedAnimating) return;
     const wasPlaying = (isSpeaking && !isPaused) || isGenerating;
     if (wasPlaying) {
         stopAudio(true, true, true);
