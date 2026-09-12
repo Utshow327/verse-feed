@@ -1,3 +1,25 @@
+// --- Verified Premium System & Anti-Tamper Protection ---
+let _isPremiumUser = false;
+try { localStorage.removeItem('isPremiumUser'); } catch(e){}
+
+function _setVerifiedPremium(status) {
+    _isPremiumUser = !!status;
+    if (!_isPremiumUser) {
+        try { localStorage.removeItem('isPremiumUser'); } catch(e){}
+    }
+}
+
+try {
+    Object.defineProperty(window, 'isPremiumUser', {
+        get: function() { return _isPremiumUser; },
+        set: function() {
+            // Tamper protection: ignore console overrides
+        },
+        configurable: false
+    });
+} catch(e) {
+    window.isPremiumUser = false;
+}
 
 // Eradicate corrupted machine-translation cache
 try {
@@ -39292,28 +39314,6 @@ function updateUserUI() {
 }
 
 // --- Premium Modal Logic (RevenueCat) ---
-let _isPremiumUser = false;
-try { localStorage.removeItem('isPremiumUser'); } catch(e){}
-
-function _setVerifiedPremium(status) {
-    _isPremiumUser = !!status;
-    if (!_isPremiumUser) {
-        try { localStorage.removeItem('isPremiumUser'); } catch(e){}
-    }
-}
-
-try {
-    Object.defineProperty(window, 'isPremiumUser', {
-        get: function() { return _isPremiumUser; },
-        set: function() {
-            // Tamper protection: ignore console overrides
-        },
-        configurable: false
-    });
-} catch(e) {
-    window.isPremiumUser = false;
-}
-
 var rcPackages = [];
 var selectedPlanType = 'annual'; // 'monthly' or 'annual'
 var isPurchasingInProgress = false;
