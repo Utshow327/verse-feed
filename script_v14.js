@@ -31518,6 +31518,8 @@ let feedTouchStartY = 0;
 let feedCurrentDeltaX = 0;
 let feedIsHorizontalGesture = false;
 let feedTouchStartTime = 0;
+let feedNeighborCard = null;
+let feedNeighborType = null;
 
 function setupGestures() {
     const feedStage = document.getElementById('feed-stage');
@@ -31529,6 +31531,14 @@ function setupGestures() {
         if (activeModal) return false;
         if (target && target.closest && (target.closest('.bookmark-btn') || target.closest('.speak-btn') || target.closest('.modal-overlay') || target.closest('button') || target.closest('a'))) return false;
 
+        const cards = feedStage.querySelectorAll('.verse-card');
+        if (cards.length > 1) {
+            const centerCard = feedStage.querySelector('.verse-card.card-center');
+            cards.forEach(c => {
+                if (c !== centerCard) try { c.remove(); } catch(e){}
+            });
+        }
+
         isDraggingFeed = true;
         feedIsHorizontalGesture = false;
         feedTouchStartX = clientX;
@@ -31536,6 +31546,8 @@ function setupGestures() {
         feedTouchStartTime = Date.now();
         feedCurrentDeltaX = 0;
         touchStartTarget = target;
+        feedNeighborCard = null;
+        feedNeighborType = null;
         return true;
     }
 
@@ -31556,14 +31568,79 @@ function setupGestures() {
         if (feedIsHorizontalGesture) {
             feedCurrentDeltaX = diffX;
             const currentCard = feedStage.querySelector('.verse-card.card-center');
-            if (currentCard) {
-                let actualDiffX = diffX;
-                if (diffX > 0 && currentVerseIndex.general === 0) {
-                    actualDiffX = diffX * 0.35;
-                }
+            if (!currentCard) return;
+
+            const width = window.innerWidth;
+            let actualDiffX = diffX;
+
+            if (diffX > 0 && currentVerseIndex.general === 0) {
+                actualDiffX = diffX * 0.35;
                 currentCard.style.transition = 'none';
-                const scale = Math.max(0.92, 1 - (Math.abs(diffX) / window.innerWidth) * 0.08);
-                currentCard.style.transform = `translateX(${actualDiffX}px) scale(${scale})`;
+                currentCard.style.transform = `translateX(${actualDiffX}px) translateZ(0)`;
+                if (feedNeighborCard) {
+                    try { feedNeighborCard.remove(); } catch(e){}
+                    feedNeighborCard = null;
+                    feedNeighborType = null;
+                }
+                return;
+            }
+
+            if (diffX < 0) {
+                if (feedNeighborType === 'prev' && feedNeighborCard) {
+                    try { feedNeighborCard.remove(); } catch(e){}
+                    feedNeighborCard = null;
+                    feedNeighborType = null;
+                }
+
+                if (!feedNeighborCard) {
+                    const nextIdx = currentVerseIndex.general + 1;
+                    const nextVerse = getVerseAtIndex(nextIdx);
+                    if (nextVerse) {
+                        feedNeighborCard = createFeedCardDOM(nextVerse, 'card-center');
+                        feedNeighborCard.id = 'feed-card-' + nextIdx;
+                        feedNeighborCard.style.pointerEvents = 'none';
+                        feedNeighborCard.style.transition = 'none';
+                        feedNeighborCard.style.transform = `translateX(${width + diffX}px) translateZ(0)`;
+                        feedStage.appendChild(feedNeighborCard);
+                        feedNeighborType = 'next';
+                    }
+                }
+
+                currentCard.style.transition = 'none';
+                currentCard.style.transform = `translateX(${diffX}px) translateZ(0)`;
+
+                if (feedNeighborCard) {
+                    feedNeighborCard.style.transition = 'none';
+                    feedNeighborCard.style.transform = `translateX(${width + diffX}px) translateZ(0)`;
+                }
+            } else if (diffX > 0 && currentVerseIndex.general > 0) {
+                if (feedNeighborType === 'next' && feedNeighborCard) {
+                    try { feedNeighborCard.remove(); } catch(e){}
+                    feedNeighborCard = null;
+                    feedNeighborType = null;
+                }
+
+                if (!feedNeighborCard) {
+                    const prevIdx = currentVerseIndex.general - 1;
+                    const prevVerse = getVerseAtIndex(prevIdx);
+                    if (prevVerse) {
+                        feedNeighborCard = createFeedCardDOM(prevVerse, 'card-center');
+                        feedNeighborCard.id = 'feed-card-' + prevIdx;
+                        feedNeighborCard.style.pointerEvents = 'none';
+                        feedNeighborCard.style.transition = 'none';
+                        feedNeighborCard.style.transform = `translateX(${-width + diffX}px) translateZ(0)`;
+                        feedStage.insertBefore(feedNeighborCard, feedStage.firstChild);
+                        feedNeighborType = 'prev';
+                    }
+                }
+
+                currentCard.style.transition = 'none';
+                currentCard.style.transform = `translateX(${diffX}px) translateZ(0)`;
+
+                if (feedNeighborCard) {
+                    feedNeighborCard.style.transition = 'none';
+                    feedNeighborCard.style.transform = `translateX(${-width + diffX}px) translateZ(0)`;
+                }
             }
         }
     }
@@ -31574,22 +31651,155 @@ function setupGestures() {
 
         const currentCard = feedStage.querySelector('.verse-card.card-center');
         if (feedIsHorizontalGesture && currentCard) {
-            const cardWidth = currentCard.offsetWidth || (window.innerWidth * 0.84);
-            const threshold = Math.min(cardWidth * 0.18, 55);
+            lastSwipeTime = Date.now();
+            const width = window.innerWidth;
+            const threshold = Math.min(width * 0.22, 75);
             const elapsed = Math.max(1, Date.now() - feedTouchStartTime);
             const velocity = Math.abs(feedCurrentDeltaX) / elapsed;
             const isFlick = velocity > 0.32 && Math.abs(feedCurrentDeltaX) > 20;
 
-            if (feedCurrentDeltaX < -threshold || (feedCurrentDeltaX < -20 && isFlick)) {
-                lastSwipeTime = Date.now();
-                nextCard();
-            } else if ((feedCurrentDeltaX > threshold || (feedCurrentDeltaX > 20 && isFlick)) && currentVerseIndex.general > 0) {
-                lastSwipeTime = Date.now();
-                prevCard();
+            let neighborCard = feedNeighborCard;
+            let neighborType = feedNeighborType;
+            feedNeighborCard = null;
+            feedNeighborType = null;
+
+            if (!neighborCard) {
+                if (feedCurrentDeltaX < 0) {
+                    const nextIdx = currentVerseIndex.general + 1;
+                    const nextVerse = getVerseAtIndex(nextIdx);
+                    if (nextVerse) {
+                        neighborCard = createFeedCardDOM(nextVerse, 'card-center');
+                        neighborCard.id = 'feed-card-' + nextIdx;
+                        neighborCard.style.pointerEvents = 'none';
+                        neighborCard.style.transition = 'none';
+                        neighborCard.style.transform = `translateX(${width + feedCurrentDeltaX}px) translateZ(0)`;
+                        feedStage.appendChild(neighborCard);
+                        neighborType = 'next';
+                    }
+                } else if (feedCurrentDeltaX > 0 && currentVerseIndex.general > 0) {
+                    const prevIdx = currentVerseIndex.general - 1;
+                    const prevVerse = getVerseAtIndex(prevIdx);
+                    if (prevVerse) {
+                        neighborCard = createFeedCardDOM(prevVerse, 'card-center');
+                        neighborCard.id = 'feed-card-' + prevIdx;
+                        neighborCard.style.pointerEvents = 'none';
+                        neighborCard.style.transition = 'none';
+                        neighborCard.style.transform = `translateX(${-width + feedCurrentDeltaX}px) translateZ(0)`;
+                        feedStage.insertBefore(neighborCard, feedStage.firstChild);
+                        neighborType = 'prev';
+                    }
+                }
+            }
+
+            if ((feedCurrentDeltaX < -threshold || (feedCurrentDeltaX < -20 && isFlick)) && neighborCard && neighborType === 'next') {
+                isFeedAnimating = true;
+                const wasPlaying = (isSpeaking && !isPaused) || isGenerating;
+                if (wasPlaying) {
+                    stopAudio(true, true, true);
+                }
+
+                const animEase = 'transform 0.26s cubic-bezier(0.22, 1, 0.36, 1)';
+
+                currentCard.style.transition = animEase;
+                currentCard.style.transform = `translateX(${-width}px) translateZ(0)`;
+                currentCard.style.pointerEvents = 'none';
+
+                neighborCard.style.transition = animEase;
+                neighborCard.style.transform = 'translateX(0px) translateZ(0)';
+
+                setTimeout(() => {
+                    try { currentCard.remove(); } catch(e){}
+                    neighborCard.style.transition = '';
+                    neighborCard.style.transform = '';
+                    neighborCard.style.pointerEvents = 'auto';
+
+                    currentVerseIndex.general++;
+                    const newVerse = getVerseAtIndex(currentVerseIndex.general);
+                    trackVerseDwellTime(newVerse);
+                    resetActiveExplanation(false);
+                    preloadUpcomingVerses(currentVerseIndex.general);
+
+                    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
+
+                    if (wasPlaying) {
+                        handleAudioForNewVerse(newVerse);
+                    } else {
+                        deselectVerse();
+                    }
+
+                    Array.from(feedStage.querySelectorAll('.verse-card')).forEach(c => {
+                        if (c !== neighborCard) { try { c.remove(); } catch(e){} }
+                    });
+                    isFeedAnimating = false;
+                }, 280);
+            } else if ((feedCurrentDeltaX > threshold || (feedCurrentDeltaX > 20 && isFlick)) && neighborCard && neighborType === 'prev' && currentVerseIndex.general > 0) {
+                isFeedAnimating = true;
+                const wasPlaying = (isSpeaking && !isPaused) || isGenerating;
+                if (wasPlaying) {
+                    stopAudio(true, true, true);
+                }
+
+                const animEase = 'transform 0.26s cubic-bezier(0.22, 1, 0.36, 1)';
+
+                currentCard.style.transition = animEase;
+                currentCard.style.transform = `translateX(${width}px) translateZ(0)`;
+                currentCard.style.pointerEvents = 'none';
+
+                neighborCard.style.transition = animEase;
+                neighborCard.style.transform = 'translateX(0px) translateZ(0)';
+
+                setTimeout(() => {
+                    try { currentCard.remove(); } catch(e){}
+                    neighborCard.style.transition = '';
+                    neighborCard.style.transform = '';
+                    neighborCard.style.pointerEvents = 'auto';
+
+                    currentVerseIndex.general--;
+                    const newVerse = getVerseAtIndex(currentVerseIndex.general);
+                    trackVerseDwellTime(newVerse);
+                    resetActiveExplanation(false);
+                    preloadUpcomingVerses(currentVerseIndex.general);
+
+                    if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
+
+                    if (wasPlaying) {
+                        handleAudioForNewVerse(newVerse);
+                    } else {
+                        deselectVerse();
+                    }
+
+                    Array.from(feedStage.querySelectorAll('.verse-card')).forEach(c => {
+                        if (c !== neighborCard) { try { c.remove(); } catch(e){} }
+                    });
+                    isFeedAnimating = false;
+                }, 280);
             } else {
-                currentCard.style.transition = 'transform 0.28s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.28s ease';
-                currentCard.style.transform = 'translateX(0) scale(1)';
-                currentCard.style.opacity = '1';
+                isFeedAnimating = true;
+                const snapEase = 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)';
+
+                currentCard.style.transition = snapEase;
+                currentCard.style.transform = 'translateX(0px) scale(1) translateZ(0)';
+
+                if (neighborCard) {
+                    neighborCard.style.transition = snapEase;
+                    if (neighborType === 'next') {
+                        neighborCard.style.transform = `translateX(${width}px) translateZ(0)`;
+                    } else {
+                        neighborCard.style.transform = `translateX(${-width}px) translateZ(0)`;
+                    }
+                }
+
+                setTimeout(() => {
+                    currentCard.style.transition = '';
+                    currentCard.style.transform = '';
+                    if (neighborCard) {
+                        try { neighborCard.remove(); } catch(e){}
+                    }
+                    Array.from(feedStage.querySelectorAll('.verse-card')).forEach(c => {
+                        if (c !== currentCard) { try { c.remove(); } catch(e){} }
+                    });
+                    isFeedAnimating = false;
+                }, 240);
             }
         }
         feedIsHorizontalGesture = false;
@@ -34831,16 +35041,41 @@ function renderFeedCard(index, direction = 'none') {
     }
 }
 
+function handleAudioForNewVerse(newVerse) {
+    stopAudio(true, true, true);
+    isGenerating = true;
+    isSpeaking = true;
+    isPaused = false;
+    updateSpeakButton('speak-general');
+
+    if (newVerse && !newVerse.isAd) {
+        let spokenText = newVerse.spoken_text || newVerse.text;
+        if (!spokenText.endsWith('.')) spokenText += '.';
+        
+        if (ttsAnnounceSource) {
+            spokenText += '. ' + newVerse.book + '.';
+        }
+
+        setTimeout(() => {
+            playText(spokenText, 'feed');
+            autoMode = true;
+        }, 260);
+    } else if (newVerse && newVerse.isAd) {
+        if (!newVerse.funnyLine) {
+            newVerse.funnyLine = getNextFunnyLine();
+        }
+        const adSpokenText = "VerseFeed Premium. " + newVerse.funnyLine;
+        setTimeout(() => {
+            playText(adSpokenText, 'feed');
+            autoMode = true;
+        }, 100);
+    }
+}
+
 function nextCard(isAuto = false) {
     if (!isAuto && isFeedAnimating) return;
     const wasPlaying = (isSpeaking && !isPaused) || isGenerating;
-    if (wasPlaying || isAuto) {
-        stopAudio(true, true, true);
-        isGenerating = true;
-        isSpeaking = true;
-        isPaused = false;
-        updateSpeakButton('speak-general');
-    } else {
+    if (!wasPlaying && !isAuto) {
         stopAudio();
     }
 
@@ -34851,28 +35086,7 @@ function nextCard(isAuto = false) {
     const newVerse = getVerseAtIndex(currentVerseIndex.general);
 
     if (isAuto || wasPlaying) {
-        if (newVerse && !newVerse.isAd) {
-            let spokenText = newVerse.spoken_text || newVerse.text;
-            if (!spokenText.endsWith('.')) spokenText += '.';
-            
-            if (ttsAnnounceSource) {
-                spokenText += '. ' + newVerse.book + '.';
-            }
-
-            setTimeout(() => {
-                playText(spokenText, 'feed');
-                autoMode = true;
-            }, 260);
-        } else if (newVerse && newVerse.isAd) {
-            if (!newVerse.funnyLine) {
-                newVerse.funnyLine = getNextFunnyLine();
-            }
-            const adSpokenText = "VerseFeed Premium. " + newVerse.funnyLine;
-            setTimeout(() => {
-                playText(adSpokenText, 'feed');
-                autoMode = true;
-            }, 100);
-        }
+        handleAudioForNewVerse(newVerse);
     } else {
         deselectVerse();
     }
@@ -34881,13 +35095,7 @@ function nextCard(isAuto = false) {
 function prevCard() {
     if (isFeedAnimating) return;
     const wasPlaying = (isSpeaking && !isPaused) || isGenerating;
-    if (wasPlaying) {
-        stopAudio(true, true, true);
-        isGenerating = true;
-        isSpeaking = true;
-        isPaused = false;
-        updateSpeakButton('speak-general');
-    } else {
+    if (!wasPlaying) {
         stopAudio();
     }
 
@@ -34896,27 +35104,8 @@ function prevCard() {
         if (typeof playScrollSound === 'function') try { playScrollSound(); } catch(e){}
         renderFeedCard(currentVerseIndex.general, 'prev');
         const newVerse = getVerseAtIndex(currentVerseIndex.general);
-        if (wasPlaying && newVerse && !newVerse.isAd) {
-            let spokenText = newVerse.spoken_text || newVerse.text;
-            if (!spokenText.endsWith('.')) spokenText += '.';
-            
-            if (ttsAnnounceSource) {
-                spokenText += '. ' + newVerse.book + '.';
-            }
-
-            setTimeout(() => {
-                playText(spokenText, 'feed');
-                autoMode = true;
-            }, 260);
-        } else if (wasPlaying && newVerse && newVerse.isAd) {
-            if (!newVerse.funnyLine) {
-                newVerse.funnyLine = getNextFunnyLine();
-            }
-            const adSpokenText = "VerseFeed Premium. " + newVerse.funnyLine;
-            setTimeout(() => {
-                playText(adSpokenText, 'feed');
-                autoMode = true;
-            }, 100);
+        if (wasPlaying) {
+            handleAudioForNewVerse(newVerse);
         } else {
             deselectVerse();
         }
