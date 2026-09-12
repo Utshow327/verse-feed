@@ -30691,7 +30691,6 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
             const offlineHtml = `
                 <div class="card-explanation-view">
                     <div class="card-explanation-section exp-offline-box">
-                        <span class="card-exp-badge">Meaning</span>
                         <p class="exp-offline-desc">Connect to the internet to view reflections.</p>
                     </div>
                 </div>
