@@ -371,6 +371,12 @@ if os.path.exists(ACTIVE_RANKINGS_FILE):
 
 print(f"Total verses in active feed rankings: {len(active_rankings):,}")
 
+FLAWED_TRIGGERS = [
+    '<think', 'thinking process', 'analyze user input', 'expert scholar', 
+    '**role', '**task', 'strict rules', 'key terminology', 'in theological context', 
+    'this quranic verse', 'this biblical verse'
+]
+
 def is_explanation_complete(key):
     if not key:
         return False
@@ -386,7 +392,14 @@ def is_explanation_complete(key):
     if not entry or not isinstance(entry, dict):
         return False
     exp = str(entry.get('explanation') or entry.get('meaning') or entry.get('text') or '').strip()
-    return len(exp.split()) >= 6
+    if len(exp.split()) < 10:
+        return False
+    lower = exp.lower()
+    if any(t in lower for t in FLAWED_TRIGGERS):
+        return False
+    if exp and exp[-1] not in '.!?\"\'”)':
+        return False
+    return True
 
 # Prioritize queue: Rank 100 down to 70
 sorted_active = sorted(active_rankings.items(), key=lambda x: x[1], reverse=True)
