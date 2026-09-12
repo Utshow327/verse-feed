@@ -3284,62 +3284,22 @@ h2 {
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 10px !important;
-    padding: 12px 14px !important;
+    gap: 12px !important;
+    padding: 16px 20px !important;
     text-align: center !important;
-}
-
-.exp-offline-icon {
-    font-size: 1.8rem;
-    line-height: 1;
-    opacity: 0.9;
-    margin-top: 2px;
-}
-
-.exp-offline-title {
-    font-size: 1.05rem !important;
-    font-weight: 650 !important;
-    margin: 2px 0 0 0 !important;
-    letter-spacing: 0.2px !important;
-    color: inherit !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 .exp-offline-desc {
-    font-size: 0.88rem !important;
-    line-height: 1.45 !important;
-    opacity: 0.78 !important;
-    max-width: 290px !important;
+    font-size: clamp(1.22rem, 3.8vw, 1.45rem) !important;
+    line-height: 1.55 !important;
+    font-weight: 450 !important;
+    opacity: 0.88 !important;
+    max-width: 90% !important;
     margin: 0 auto !important;
+    text-align: center !important;
     color: inherit !important;
-}
-
-.exp-offline-btn {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 7px !important;
-    margin-top: 6px !important;
-    padding: 8px 20px !important;
-    border-radius: 20px !important;
-    background: rgba(255, 255, 255, 0.12) !important;
-    border: 1px solid rgba(255, 255, 255, 0.22) !important;
-    color: inherit !important;
-    font-size: 0.85rem !important;
-    font-weight: 600 !important;
-    cursor: pointer !important;
-    transition: transform 0.15s ease, background 0.15s ease !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-}
-
-[data-theme="light"] .exp-offline-btn {
-    background: rgba(0, 0, 0, 0.08) !important;
-    border-color: rgba(0, 0, 0, 0.16) !important;
-}
-
-.exp-offline-btn:active {
-    transform: scale(0.95) !important;
-    background: rgba(255, 255, 255, 0.22) !important;
 }
 
 

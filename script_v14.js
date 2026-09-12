@@ -30370,8 +30370,16 @@ async function loadVerseExplanations() {
 if (typeof window !== 'undefined') {
     window.addEventListener('online', () => {
         const card = document.querySelector('.verse-card.card-center');
-        if (card && card._isShowingExplanation && card.querySelector('.exp-offline-box')) {
+        if (card && card._isShowingExplanation && card.querySelector('.exp-offline-box') && card._originalVerseObj) {
             openVerseExplanation(card._originalVerseObj);
+        }
+        const bookExp = document.querySelector('.book-verse.book-verse-explanation-active');
+        if (bookExp && bookExp.querySelector('.exp-offline-box') && bookExp._originalVerseObj) {
+            openVerseExplanation(bookExp._originalVerseObj);
+        }
+        const savedExp = document.querySelector('.saved-verse.saved-verse-explanation-active');
+        if (savedExp && savedExp.querySelector('.exp-offline-box') && savedExp._originalVerseObj) {
+            openVerseExplanation(savedExp._originalVerseObj);
         }
     });
 }
@@ -30661,12 +30669,8 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
             const offlineHtml = `
                 <div class="card-explanation-view">
                     <div class="card-explanation-section exp-offline-box">
-                        <span class="card-exp-badge">Offline</span>
-                        <h4 class="exp-offline-title">Internet Required</h4>
-                        <p class="exp-offline-desc">Connect to internet to view reflections.</p>
-                        <button class="exp-offline-btn" onclick="openVerseExplanation(null, event)">
-                            <i class="fa fa-refresh"></i> Retry
-                        </button>
+                        <span class="card-exp-badge">Meaning</span>
+                        <p class="exp-offline-desc">Connect to the internet to view reflections.</p>
                     </div>
                 </div>
             `;
