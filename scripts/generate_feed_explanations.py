@@ -1,6 +1,7 @@
 # scripts/generate_feed_explanations.py
 import os
 import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import time
 import re
@@ -391,13 +392,22 @@ def is_explanation_complete(key):
                     break
     if not entry or not isinstance(entry, dict):
         return False
-    exp = str(entry.get('explanation') or entry.get('meaning') or entry.get('text') or '').strip()
-    if len(exp.split()) < 10:
+
+    ctx = str(entry.get('context') or '').strip()
+    mng = str(entry.get('meaning') or '').strip()
+    exp = str(entry.get('explanation') or '').strip()
+
+    if ctx and mng and len(ctx.split()) >= 4 and len(mng.split()) >= 5:
+        full_text = f"{ctx}\n\n{mng}"
+    elif exp and ('\n\n' in exp or '\n' in exp) and len(exp.split()) >= 15:
+        full_text = exp
+    else:
         return False
-    lower = exp.lower()
+
+    lower = full_text.lower()
     if any(t in lower for t in FLAWED_TRIGGERS):
         return False
-    if exp and exp[-1] not in '.!?\"\'”)':
+    if full_text and full_text[-1] not in '.!?\"\'”)':
         return False
     return True
 
@@ -783,7 +793,7 @@ def call_ai_batch_channel(verse_batch, ch_idx, ch):
                 if any(b in exp_val.lower() for b in bad_indicators):
                     exp_val = ''
 
-                if exp_val and len(exp_val.split()) >= 8:
+                if exp_val and ctx_val and mean_val and len(ctx_val.split()) >= 4 and len(mean_val.split()) >= 5:
                     results.append((v_item, (exp_val, ctx_val, mean_val)))
 
             if len(results) >= max(1, len(verse_batch) // 2):
