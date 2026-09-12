@@ -30691,7 +30691,7 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
             const offlineHtml = `
                 <div class="card-explanation-view">
                     <div class="card-explanation-section exp-offline-box">
-                        <p class="exp-offline-desc">Connect to the internet to view reflections.</p>
+                        <p class="exp-offline-desc">Connect to the internet to view information.</p>
                     </div>
                 </div>
             `;
@@ -30708,7 +30708,7 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
                 });
             }
             if (typeof showToast === 'function') {
-                showToast("Connect to internet to view reflections");
+                showToast("Connect to internet to view information");
             }
             return;
         }
@@ -30717,13 +30717,13 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         const shimmerHtml = `
             <div class="card-explanation-view is-loading">
                 <div class="card-explanation-section">
-                    <span class="card-exp-badge">Meaning</span>
+                    <span class="card-exp-badge">Information</span>
                     <div class="exp-shimmer-wrap">
                         <div class="exp-shimmer-bar w-80"></div>
                         <div class="exp-shimmer-bar w-95"></div>
                         <div class="exp-shimmer-bar w-60"></div>
                     </div>
-                    <p class="exp-loading-hint">Loading reflection...</p>
+                    <p class="exp-loading-hint">Loading information...</p>
                 </div>
             </div>
         `;
@@ -30825,7 +30825,7 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         expHtml = `
             <div class="card-explanation-view">
                 <div class="card-explanation-section">
-                    <span class="card-exp-badge">Meaning</span>
+                    <span class="card-exp-badge">Information</span>
                     <p class="card-exp-text">${cleanExplanation}</p>
                 </div>
             </div>
@@ -30835,14 +30835,14 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         expHtml = `
             <div class="card-explanation-view">
                 <div class="card-explanation-section">
-                    <span class="card-exp-badge">Meaning</span>
-                    <p class="card-exp-text" style="opacity: 0.85;">A simple life reflection for this verse is being added soon.\n\nTake a quiet breath and reflect on what these words speak to your heart today.</p>
+                    <span class="card-exp-badge">Information</span>
+                    <p class="card-exp-text" style="opacity: 0.85;">Information for this verse is being added soon.\n\nTake a quiet breath and reflect on what these words speak to your heart today.</p>
                 </div>
             </div>
         `;
     }
 
-    cardEl._explanationSpeechText = "Meaning. " + cleanExplanation;
+    cardEl._explanationSpeechText = "Information. " + cleanExplanation;
 
     if (isFeedCard) {
         fadeSwapContent(textEl, () => {
@@ -30872,7 +30872,7 @@ function extractExplanationTextFromEl(el) {
     if (!expView) return null;
     const textEl = expView.querySelector('.card-exp-text');
     if (textEl && textEl.textContent.trim()) {
-        return "Meaning. " + textEl.textContent.trim();
+        return "Information. " + textEl.textContent.trim();
     }
     return null;
 }
@@ -31988,14 +31988,14 @@ let voiceExplanationEnabled = localStorage.getItem('voiceExplanationEnabled') ==
 
 function toggleVoiceExplanation() {
     if (!isPremiumUser) {
-        showToast("Upgrade to Premium to unlock Voice Explain");
+        showToast("Upgrade to Premium to unlock Voice Info");
         openPremiumModal();
         return;
     }
     voiceExplanationEnabled = !voiceExplanationEnabled;
     localStorage.setItem('voiceExplanationEnabled', voiceExplanationEnabled ? 'true' : 'false');
     updateTogglesUI();
-    showToast(voiceExplanationEnabled ? 'Voice Explain: On' : 'Voice Explain: Off');
+    showToast(voiceExplanationEnabled ? 'Voice Info: On' : 'Voice Info: Off');
 }
 
 function updateTogglesUI() {
@@ -32026,7 +32026,7 @@ function updateTogglesUI() {
         } else {
             voiceExpBtn.classList.remove('active');
         }
-        voiceExpBtn.innerText = 'Voice Explain';
+        voiceExpBtn.innerText = 'Voice Info';
     }
 }
 
@@ -37331,7 +37331,7 @@ function createActionIconsElement(verseObj, type) {
     }
 
     const meaningBtnHtml = `
-        <button class="va-btn va-meaning-btn" onclick="openVerseExplanation(selectedVerse, event)" aria-label="Meaning" title="Meaning">
+        <button class="va-btn va-meaning-btn" onclick="openVerseExplanation(selectedVerse, event)" aria-label="Information" title="Information">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="12" cy="4.5" r="3"/><rect x="9" y="10.5" width="6" height="11.5" rx="3"/></svg>
         </button>
     `;
