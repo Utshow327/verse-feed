@@ -9,4 +9,7 @@ android/build/
 *.gguf
 .env
 .env.*
+__pycache__/
+*.pyc
+.all_completed
 
