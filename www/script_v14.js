@@ -30661,12 +30661,11 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
             const offlineHtml = `
                 <div class="card-explanation-view">
                     <div class="card-explanation-section exp-offline-box">
-                        <span class="card-exp-badge" style="background: rgba(255,180,0,0.18); color: #ffb400; padding: 4px 10px; border-radius: 12px;">Internet Required</span>
-                        <div class="exp-offline-icon">📶</div>
-                        <h4 class="exp-offline-title">Connect to Unlock Reflections</h4>
-                        <p class="exp-offline-desc">Turn on Wi-Fi or mobile data to unlock spiritual reflections, historical context, and deep meanings.</p>
+                        <span class="card-exp-badge">Offline</span>
+                        <h4 class="exp-offline-title">Internet Required</h4>
+                        <p class="exp-offline-desc">Connect to internet to view reflections.</p>
                         <button class="exp-offline-btn" onclick="openVerseExplanation(null, event)">
-                            <i class="fa fa-refresh"></i> Retry Connection
+                            <i class="fa fa-refresh"></i> Retry
                         </button>
                     </div>
                 </div>
@@ -30684,7 +30683,7 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
                 });
             }
             if (typeof showToast === 'function') {
-                showToast("Connect to internet to read reflections");
+                showToast("Connect to internet to view reflections");
             }
             return;
         }
@@ -30699,7 +30698,7 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
                         <div class="exp-shimmer-bar w-95"></div>
                         <div class="exp-shimmer-bar w-60"></div>
                     </div>
-                    <p class="exp-loading-hint">✨ Unfolding spiritual reflection...</p>
+                    <p class="exp-loading-hint">Loading reflection...</p>
                 </div>
             </div>
         `;
