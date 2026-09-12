@@ -30668,6 +30668,27 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         return;
     }
 
+    // Free vs Premium Information Check (3 free views)
+    if (!isAutoTransition && !isPremiumUser) {
+        let unlockedVerses = [];
+        try {
+            unlockedVerses = JSON.parse(localStorage.getItem('freeUnlockedInfoVerses') || '[]');
+            if (!Array.isArray(unlockedVerses)) unlockedVerses = [];
+        } catch(e) { unlockedVerses = []; }
+
+        const verseSig = targetVerse.id || `${targetVerse.religion || ''}_${targetVerse.book || ''}_${targetVerse.chapter || ''}_${targetVerse.verse || ''}`;
+        if (!unlockedVerses.includes(verseSig)) {
+            if (unlockedVerses.length >= 3) {
+                showToast("Upgrade to Premium for unlimited Information");
+                openPremiumModal();
+                return;
+            }
+            unlockedVerses.push(verseSig);
+            localStorage.setItem('freeUnlockedInfoVerses', JSON.stringify(unlockedVerses));
+            localStorage.setItem('freeInfoCount', String(unlockedVerses.length));
+        }
+    }
+
     // Reset other active explanation
     resetActiveExplanation(true);
     if (!isAutoTransition && typeof isSpeaking !== 'undefined' && isSpeaking) {
@@ -30857,6 +30878,21 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
                 cardEl.classList.add('saved-verse-explanation-active');
             }
             textEl.innerHTML = expHtml;
+        }, () => {
+            if (cardEl.classList.contains('book-verse')) {
+                const container = document.getElementById('book-content-view');
+                const wheelContainer = document.getElementById('chapter-scroll-wheel-container');
+                if (container && wheelContainer) {
+                    const wheelHeight = Math.max(wheelContainer.offsetHeight, wheelContainer.getBoundingClientRect().height);
+                    const rect = cardEl.getBoundingClientRect();
+                    const contRect = container.getBoundingClientRect();
+                    const safeTop = contRect.top + wheelHeight + 20;
+                    if (rect.top < safeTop) {
+                        const diff = safeTop - rect.top;
+                        container.scrollBy({ top: -diff, behavior: 'smooth' });
+                    }
+                }
+            }
         });
     }
 }
@@ -36419,7 +36455,7 @@ function syncWheelsToCurrent() {
 function setupWheelListeners() {
     // Mouse wheel scrolling for home feed verse cards disabled per user request
 }
-function scrollToBookVerse(verseIndex) {
+function scrollToBookVerse(verseIndex, isUserClick = false) {
     const info = globalVerseMap[verseIndex];
     if (!info) return;
     if (info.chapter !== currentRenderedChapter) {
@@ -36436,11 +36472,31 @@ function scrollToBookVerse(verseIndex) {
     }
     if (el) {
         const container = document.getElementById('book-content-view') || document.getElementById('read-books');
+        if (!container) return;
+
+        const wheelContainer = document.getElementById('chapter-scroll-wheel-container');
+        const wheelHeight = wheelContainer ? Math.max(wheelContainer.offsetHeight, wheelContainer.getBoundingClientRect().height) : 130;
+        const safeTopMargin = wheelHeight + 20;
+
         const rect = el.getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();
+
+        if (isUserClick) {
+            const isAboveWheel = rect.top < (containerRect.top + safeTopMargin);
+            const isBelowScreen = rect.bottom > (containerRect.bottom - 100);
+
+            // If already comfortably visible, keep the verse stationary
+            if (!isAboveWheel && !isBelowScreen) {
+                markVerse();
+                return;
+            }
+        }
+
         const currentScroll = container.scrollTop;
         const relativeTop = rect.top - containerRect.top + currentScroll;
-        const targetScroll = relativeTop - (container.clientHeight * 0.35);
+        const desiredTopOffset = Math.max(safeTopMargin + 15, container.clientHeight * 0.30);
+        let targetScroll = relativeTop - desiredTopOffset;
+        if (targetScroll < 0) targetScroll = 0;
 
         container.scrollTo({
             top: targetScroll,
@@ -38184,7 +38240,7 @@ function selectVerse(verseObj, type, elementId, forceSelect = false) {
                     const targetIdx = selectedVerse.globalIndex;
                     bookVoiceCurrentVerse = targetIdx;
                     syncWheelsToCurrent();
-                    scrollToBookVerse(targetIdx);
+                    scrollToBookVerse(targetIdx, Boolean(verseObj && verseObj.isManual));
                     markVerse();
                     playBookVerse(targetIdx);
                     autoNextBook = true;
@@ -38204,7 +38260,7 @@ function selectVerse(verseObj, type, elementId, forceSelect = false) {
             if (selectedVerse.globalIndex !== undefined) {
                 bookVoiceCurrentVerse = selectedVerse.globalIndex;
                 syncWheelsToCurrent();
-                scrollToBookVerse(selectedVerse.globalIndex);
+                scrollToBookVerse(selectedVerse.globalIndex, Boolean(verseObj && verseObj.isManual));
                 markVerse();
             }
         }
@@ -38213,7 +38269,7 @@ function selectVerse(verseObj, type, elementId, forceSelect = false) {
             if (selectedVerse.globalIndex !== undefined) {
                 bookVoiceCurrentVerse = selectedVerse.globalIndex;
                 syncWheelsToCurrent();
-                scrollToBookVerse(selectedVerse.globalIndex);
+                scrollToBookVerse(selectedVerse.globalIndex, Boolean(verseObj && verseObj.isManual));
                 markVerse();
             }
         }

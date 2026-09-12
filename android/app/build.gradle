@@ -7,8 +7,8 @@ android {
         applicationId "com.verse.feed"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 329
-        versionName "3.9.149"
+        versionCode 330
+        versionName "3.9.150"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

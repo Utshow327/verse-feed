@@ -332,6 +332,7 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
 #book-content-view {
     padding-top: 0;
     padding-bottom: 90px;
+    scroll-padding-top: max(140px, calc(env(safe-area-inset-top, 20px) + 90px));
 }
 .book-layer-backdrop {
     position: absolute;
@@ -967,6 +968,7 @@ h2 {
     cursor: pointer;
     font-size: clamp(1.02rem, 3.2vw, 1.18rem);
     line-height: 1.65;
+    scroll-margin-top: max(140px, calc(env(safe-area-inset-top, 20px) + 90px));
 }
 
 .book-verse-text {
