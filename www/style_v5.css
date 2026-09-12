@@ -3302,4 +3302,39 @@ h2 {
     color: inherit !important;
 }
 
+/* User Profile Avatar Safety & Anti-Broken-Image */
+#google-avatar-img,
+#user-modal-avatar-img {
+    image-rendering: -webkit-optimize-contrast;
+}
+#google-avatar-img:not([src]),
+#google-avatar-img[src=""],
+#user-modal-avatar-img:not([src]),
+#user-modal-avatar-img[src=""] {
+    display: none !important;
+}
+#google-avatar-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: var(--text-color);
+    user-select: none;
+}
+#user-modal-avatar-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--accent);
+    user-select: none;
+}
+
+
 

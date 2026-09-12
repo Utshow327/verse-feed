@@ -39088,14 +39088,39 @@ function openUserProfileModal() {
         if (emailEl) emailEl.innerText = email;
         
         if (imgEl && txtEl) {
-            if (picture) {
-                imgEl.src = picture;
-                imgEl.style.display = 'block';
-                txtEl.style.display = 'none';
+            let initial = 'U';
+            if (name && typeof name === 'string' && name.trim().length > 0) {
+                initial = name.trim().charAt(0).toUpperCase();
+            } else if (email && typeof email === 'string' && email.trim().length > 0) {
+                initial = email.trim().charAt(0).toUpperCase();
+            }
+            txtEl.innerText = initial;
+            txtEl.style.display = 'flex';
+            imgEl.style.display = 'none';
+
+            const photoUrl = (picture && typeof picture === 'string' && picture.trim().length > 0) ? picture.trim() : null;
+            if (photoUrl) {
+                imgEl.onload = function() {
+                    if (imgEl.naturalWidth > 0 && imgEl.naturalHeight > 0) {
+                        imgEl.style.display = 'block';
+                        txtEl.style.display = 'none';
+                    }
+                };
+                imgEl.onerror = function() {
+                    imgEl.onerror = null;
+                    imgEl.style.display = 'none';
+                    txtEl.style.display = 'flex';
+                };
+                if (imgEl.src === photoUrl && imgEl.complete && imgEl.naturalWidth > 0) {
+                    imgEl.style.display = 'block';
+                    txtEl.style.display = 'none';
+                } else {
+                    imgEl.src = photoUrl;
+                }
             } else {
                 imgEl.style.display = 'none';
-                txtEl.style.display = 'inline';
-                txtEl.innerText = name ? name.charAt(0).toUpperCase() : 'U';
+                imgEl.removeAttribute('src');
+                txtEl.style.display = 'flex';
             }
         }
         if (signedInActions) signedInActions.style.display = 'flex';
@@ -39288,26 +39313,67 @@ function updateUserUI() {
     
     if (googleUser) {
         svg.classList.add('hidden');
+        svg.style.display = 'none';
+
+        let initial = 'U';
+        if (googleUser.name && typeof googleUser.name === 'string' && googleUser.name.trim().length > 0) {
+            initial = googleUser.name.trim().charAt(0).toUpperCase();
+        } else if (googleUser.email && typeof googleUser.email === 'string' && googleUser.email.trim().length > 0) {
+            initial = googleUser.email.trim().charAt(0).toUpperCase();
+        }
+        txt.innerText = initial;
         
-        if (googleUser.picture && img) {
-            img.src = googleUser.picture;
-            img.classList.remove('hidden');
-            img.style.display = 'block';
-            txt.classList.add('hidden');
+        const photoUrl = (googleUser.picture && typeof googleUser.picture === 'string' && googleUser.picture.trim().length > 0) ? googleUser.picture.trim() : null;
+
+        if (photoUrl && img) {
+            // Default to showing text avatar until image confirms successful load
+            txt.classList.remove('hidden');
+            txt.style.display = 'flex';
+            img.classList.add('hidden');
+            img.style.display = 'none';
+
+            img.onload = function() {
+                if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                    img.classList.remove('hidden');
+                    img.style.display = 'block';
+                    txt.classList.add('hidden');
+                    txt.style.display = 'none';
+                }
+            };
+            img.onerror = function() {
+                img.onerror = null;
+                img.classList.add('hidden');
+                img.style.display = 'none';
+                txt.classList.remove('hidden');
+                txt.style.display = 'flex';
+            };
+
+            if (img.src === photoUrl && img.complete && img.naturalWidth > 0) {
+                img.classList.remove('hidden');
+                img.style.display = 'block';
+                txt.classList.add('hidden');
+                txt.style.display = 'none';
+            } else {
+                img.src = photoUrl;
+            }
         } else {
             if (img) {
                 img.classList.add('hidden');
                 img.style.display = 'none';
+                img.removeAttribute('src');
             }
             txt.classList.remove('hidden');
-            txt.innerText = googleUser.name ? googleUser.name.charAt(0).toUpperCase() : 'U';
+            txt.style.display = 'flex';
         }
     } else {
         svg.classList.remove('hidden');
+        svg.style.display = 'block';
         txt.classList.add('hidden');
+        txt.style.display = 'none';
         if (img) {
             img.classList.add('hidden');
             img.style.display = 'none';
+            img.removeAttribute('src');
         }
     }
 }

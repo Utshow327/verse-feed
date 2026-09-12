@@ -145,13 +145,13 @@
                     </button>
                        <!-- Login / Profile disc button -->
                     <button id="user-google-btn" onclick="toggleGoogleAuth()" title="Account / Sign In" style="position: relative; overflow: hidden; width: 50px; height: 50px; border-radius: 50%; background: var(--card-bg); border: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s ease; flex-shrink: 0; padding: 0; color: var(--text-color); font-family: inherit;">
-                        <img id="google-avatar-img" class="hidden" referrerpolicy="no-referrer" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+                        <img id="google-avatar-img" class="hidden" referrerpolicy="no-referrer" onerror="this.classList.add('hidden'); this.style.display='none'; const t=document.getElementById('google-avatar-text'); if(t){t.classList.remove('hidden'); t.style.display='flex';}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: none;" />
                         <svg id="google-icon-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
                             <polyline points="10 17 15 12 10 7"></polyline>
                             <line x1="15" y1="12" x2="3" y2="12"></line>
                         </svg>
-                        <span id="google-avatar-text" class="hidden" style="font-weight: bold; font-size: 1.1rem;">D</span>
+                        <span id="google-avatar-text" class="hidden" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-weight: 600; font-size: 1.25rem; color: var(--text-color); user-select: none;"></span>
                     </button>
                 </div>
                 
@@ -411,8 +411,8 @@
         <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 380px; text-align: center; padding: 26px 22px;">
             <div style="display: flex; flex-direction: column; align-items: center;">
                 <div id="user-modal-avatar-container" style="position: relative; width: 72px; height: 72px; border-radius: 50%; border: 2px solid var(--glass-border); overflow: hidden; background: var(--card-bg); display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
-                    <img id="user-modal-avatar-img" referrerpolicy="no-referrer" style="width: 100%; height: 100%; object-fit: cover; display: none;" />
-                    <span id="user-modal-avatar-text" style="font-size: 1.8rem; font-weight: bold; color: var(--accent);"></span>
+                    <img id="user-modal-avatar-img" referrerpolicy="no-referrer" onerror="this.style.display='none'; const t=document.getElementById('user-modal-avatar-text'); if(t) t.style.display='flex';" style="width: 100%; height: 100%; object-fit: cover; display: none;" />
+                    <span id="user-modal-avatar-text" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 2rem; font-weight: 600; color: var(--accent); user-select: none;"></span>
                 </div>
                 <div id="user-modal-info-wrap" style="margin-top: 12px; margin-bottom: 24px;">
                     <h3 id="user-modal-name" onclick="enableNameEditMode()" title="Click to edit name" style="margin: 0 0 4px 0; font-size: 1.2rem; font-family: var(--font-main); color: var(--text-color); cursor: pointer; display: inline-block; padding: 2px 8px; border-radius: 6px; transition: background 0.2s ease;"></h3>
@@ -511,7 +511,7 @@
     <div id="radial-overlay" class="radial-overlay"></div>
     <script src="libs/localforage.min.js"></script>
     <script src="libs/html2canvas.min.js"></script>
-    <script src="script_v14.js?v=563"></script>
+    <script src="script_v14.js?v=564"></script>
 
 
 
