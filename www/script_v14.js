@@ -31424,6 +31424,7 @@ async function initApp() {
         setTimeout(() => {
             setupGestures();
             setupWheelListeners();
+            setupBookLayerSlide();
             if (typeof initDailyVerseNotifications === 'function') {
                 initDailyVerseNotifications();
             }
@@ -31727,6 +31728,422 @@ function setupGestures() {
 }
 
 function handleGesture() {}
+
+let isBookBackDragging = false;
+let bookBackStartX = 0;
+let bookBackStartY = 0;
+let bookBackStartTime = 0;
+let bookBackCurrentDeltaX = 0;
+let bookBackIsHorizontal = false;
+let activeBookLayerStack = null;
+let isBookLayerAnimating = false;
+
+function getActiveBookStack() {
+    const bookContent = document.getElementById('book-content-view');
+    const subBookList = document.getElementById('sub-book-list-view');
+    const bookList = document.getElementById('book-list-view');
+    const libHome = document.getElementById('library-home');
+
+    if (bookContent && !bookContent.classList.contains('hidden')) {
+        const isNested = currentBookObj && currentBookObj.isNested && currentBookObj.subBookOrder && currentBookObj.subBookOrder.length > 1;
+        return {
+            current: bookContent,
+            prev: isNested ? subBookList : bookList,
+            type: 'content'
+        };
+    }
+    if (subBookList && !subBookList.classList.contains('hidden')) {
+        return {
+            current: subBookList,
+            prev: bookList,
+            type: 'subBook'
+        };
+    }
+    if (bookList && !bookList.classList.contains('hidden')) {
+        return {
+            current: bookList,
+            prev: libHome,
+            type: 'bookList'
+        };
+    }
+    if (libHome && !libHome.classList.contains('hidden')) {
+        const feedSection = document.getElementById('verse-feed');
+        return {
+            current: libHome,
+            prev: feedSection,
+            type: 'home'
+        };
+    }
+    return null;
+}
+
+function resetBookLayerStyles() {
+    ['library-home', 'book-list-view', 'sub-book-list-view', 'book-content-view'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.style.transform = '';
+            el.style.boxShadow = '';
+            el.style.transition = '';
+            el.style.zIndex = '';
+        }
+    });
+    const bd = document.getElementById('book-layer-backdrop');
+    if (bd) {
+        bd.style.display = 'none';
+        bd.style.opacity = '0';
+    }
+}
+
+function executeBookBack(type) {
+    if (type === 'content') {
+        stopAudio();
+        deactivatePillUI();
+        if (currentBookObj && currentBookObj.isNested && currentBookObj.subBookOrder && currentBookObj.subBookOrder.length > 1) {
+            showBookContent(currentReligion, currentBookObj);
+        } else {
+            showBooks(currentReligion);
+        }
+    } else if (type === 'subBook') {
+        stopAudio();
+        deactivatePillUI();
+        showBooks(currentReligion);
+    } else if (type === 'bookList') {
+        stopAudio();
+        deactivatePillUI();
+        showReligions();
+    } else if (type === 'home') {
+        goTo('verse-feed');
+    }
+}
+
+function animateBookLayerPop(current, prev, onComplete) {
+    if (!current || !prev || isBookLayerAnimating) {
+        if (onComplete) onComplete();
+        return;
+    }
+    isBookLayerAnimating = true;
+    const isHomePrev = (prev.id === 'verse-feed');
+    if (isHomePrev) {
+        prev.style.display = 'flex';
+        prev.style.position = 'fixed';
+        prev.style.top = '0';
+        prev.style.left = '0';
+        prev.style.width = '100%';
+        prev.style.height = '100%';
+        prev.style.zIndex = '1';
+    } else {
+        prev.classList.remove('hidden');
+        prev.style.display = 'block';
+        prev.style.zIndex = '10';
+    }
+    prev.style.transition = 'none';
+    prev.style.transform = `translateX(${-window.innerWidth * 0.25}px) translateZ(0)`;
+
+    current.style.zIndex = '20';
+    current.style.transition = 'none';
+    current.style.transform = 'translateX(0px) translateZ(0)';
+    current.style.boxShadow = '-12px 0 32px rgba(0, 0, 0, 0.3)';
+
+    let backdrop = document.getElementById('book-layer-backdrop');
+    if (!backdrop) {
+        const rb = document.getElementById('read-books');
+        if (rb) {
+            backdrop = document.createElement('div');
+            backdrop.id = 'book-layer-backdrop';
+            backdrop.className = 'book-layer-backdrop';
+            rb.appendChild(backdrop);
+        }
+    }
+    if (backdrop) {
+        backdrop.style.display = 'block';
+        backdrop.style.transition = 'none';
+        backdrop.style.zIndex = '15';
+        backdrop.style.opacity = '0.35';
+    }
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            const animEase = 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease';
+            current.style.transition = animEase;
+            current.style.transform = `translateX(${window.innerWidth}px) translateZ(0)`;
+            current.style.boxShadow = 'none';
+
+            prev.style.transition = animEase;
+            prev.style.transform = 'translateX(0px) translateZ(0)';
+
+            if (backdrop) {
+                backdrop.style.transition = 'opacity 0.28s ease';
+                backdrop.style.opacity = '0';
+            }
+
+            setTimeout(() => {
+                current.style.transition = '';
+                current.style.transform = '';
+                current.style.boxShadow = '';
+                current.style.zIndex = '';
+                current.classList.add('hidden');
+
+                prev.style.transition = '';
+                prev.style.transform = '';
+                prev.style.zIndex = '';
+
+                if (backdrop) {
+                    backdrop.style.display = 'none';
+                    backdrop.style.opacity = '0';
+                }
+
+                isBookLayerAnimating = false;
+                if (onComplete) onComplete();
+            }, 300);
+        });
+    });
+}
+
+function setupBookLayerSlide() {
+    const readBooks = document.getElementById('read-books');
+    if (!readBooks || readBooks.dataset.layerSlideInit) return;
+    readBooks.dataset.layerSlideInit = 'true';
+
+    let backdrop = document.getElementById('book-layer-backdrop');
+    if (!backdrop) {
+        backdrop = document.createElement('div');
+        backdrop.id = 'book-layer-backdrop';
+        backdrop.className = 'book-layer-backdrop';
+        readBooks.appendChild(backdrop);
+    }
+
+    function handleStart(clientX, clientY, target) {
+        if (!appLoaded || isBookLayerAnimating) return false;
+        const isReadBooks = readBooks.classList.contains('active-section');
+        if (!isReadBooks) return false;
+
+        const activeModal = document.querySelector('.modal-overlay:not(.hidden)');
+        if (activeModal) return false;
+
+        if (target && target.closest && (
+            target.closest('#chapter-scroll-wheel-container') ||
+            target.closest('#library-search') ||
+            target.tagName === 'INPUT' ||
+            target.closest('.pill-container') ||
+            target.closest('.modal-overlay')
+        )) {
+            return false;
+        }
+
+        const edgeThreshold = window.innerWidth * 0.22;
+        if (clientX > edgeThreshold) return false;
+
+        const stack = getActiveBookStack();
+        if (!stack || !stack.current || !stack.prev) return false;
+
+        activeBookLayerStack = stack;
+        bookBackStartX = clientX;
+        bookBackStartY = clientY;
+        bookBackStartTime = Date.now();
+        bookBackCurrentDeltaX = 0;
+        bookBackIsHorizontal = false;
+        isBookBackDragging = true;
+        return true;
+    }
+
+    function handleMove(clientX, clientY) {
+        if (!isBookBackDragging || !activeBookLayerStack || isBookLayerAnimating) return;
+        const diffX = clientX - bookBackStartX;
+        const diffY = clientY - bookBackStartY;
+
+        if (!bookBackIsHorizontal) {
+            if (diffX > 7 && diffX > Math.abs(diffY) * 1.2) {
+                bookBackIsHorizontal = true;
+                const { current, prev, type } = activeBookLayerStack;
+
+                if (type === 'home') {
+                    prev.style.display = 'flex';
+                    prev.style.position = 'fixed';
+                    prev.style.top = '0';
+                    prev.style.left = '0';
+                    prev.style.width = '100%';
+                    prev.style.height = '100%';
+                    prev.style.zIndex = '1';
+                } else {
+                    prev.classList.remove('hidden');
+                    prev.style.display = 'block';
+                    prev.style.zIndex = '10';
+                }
+                prev.style.transition = 'none';
+
+                current.style.zIndex = '20';
+                current.style.transition = 'none';
+
+                if (backdrop) {
+                    backdrop.style.display = 'block';
+                    backdrop.style.transition = 'none';
+                    backdrop.style.zIndex = '15';
+                }
+            } else if (Math.abs(diffY) > 8 || diffX < -5) {
+                isBookBackDragging = false;
+                activeBookLayerStack = null;
+                return;
+            }
+        }
+
+        if (bookBackIsHorizontal) {
+            bookBackCurrentDeltaX = Math.max(0, diffX);
+            const { current, prev } = activeBookLayerStack;
+            const progress = Math.min(1, bookBackCurrentDeltaX / window.innerWidth);
+
+            current.style.transform = `translateX(${bookBackCurrentDeltaX}px) translateZ(0)`;
+            current.style.boxShadow = '-12px 0 32px rgba(0, 0, 0, 0.3)';
+
+            const prevShift = -window.innerWidth * 0.25 * (1 - progress);
+            prev.style.transform = `translateX(${prevShift}px) translateZ(0)`;
+
+            if (backdrop) {
+                backdrop.style.opacity = (0.35 * (1 - progress)).toString();
+            }
+        }
+    }
+
+    function handleEnd() {
+        if (!isBookBackDragging || !activeBookLayerStack) return;
+        isBookBackDragging = false;
+
+        if (!bookBackIsHorizontal) {
+            activeBookLayerStack = null;
+            return;
+        }
+
+        const { current, prev, type } = activeBookLayerStack;
+        const elapsed = Math.max(1, Date.now() - bookBackStartTime);
+        const velocity = bookBackCurrentDeltaX / elapsed;
+        const isFlick = velocity > 0.32 && bookBackCurrentDeltaX > 25;
+        const threshold = window.innerWidth * 0.28;
+
+        isBookLayerAnimating = true;
+        const animEase = 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease';
+
+        if (bookBackCurrentDeltaX > threshold || isFlick) {
+            current.style.transition = animEase;
+            current.style.transform = `translateX(${window.innerWidth}px) translateZ(0)`;
+            current.style.boxShadow = 'none';
+
+            prev.style.transition = animEase;
+            prev.style.transform = 'translateX(0px) translateZ(0)';
+
+            if (backdrop) {
+                backdrop.style.transition = 'opacity 0.28s ease';
+                backdrop.style.opacity = '0';
+            }
+
+            setTimeout(() => {
+                current.style.transition = '';
+                current.style.transform = '';
+                current.style.boxShadow = '';
+                current.style.zIndex = '';
+                current.classList.add('hidden');
+
+                prev.style.transition = '';
+                prev.style.transform = '';
+                prev.style.zIndex = '';
+
+                if (backdrop) {
+                    backdrop.style.display = 'none';
+                    backdrop.style.opacity = '0';
+                }
+
+                executeBookBack(type);
+
+                isBookLayerAnimating = false;
+                activeBookLayerStack = null;
+            }, 300);
+
+        } else {
+            const snapEase = 'transform 0.24s cubic-bezier(0.25, 1, 0.5, 1)';
+            current.style.transition = snapEase;
+            current.style.transform = 'translateX(0px) translateZ(0)';
+            current.style.boxShadow = 'none';
+
+            prev.style.transition = snapEase;
+            prev.style.transform = `translateX(${-window.innerWidth * 0.25}px) translateZ(0)`;
+
+            if (backdrop) {
+                backdrop.style.transition = 'opacity 0.24s ease';
+                backdrop.style.opacity = '0.35';
+            }
+
+            setTimeout(() => {
+                current.style.transition = '';
+                current.style.transform = '';
+                current.style.boxShadow = '';
+                current.style.zIndex = '';
+
+                prev.style.transition = '';
+                prev.style.transform = '';
+                prev.style.zIndex = '';
+                if (type === 'home') {
+                    prev.style.display = '';
+                    prev.style.position = '';
+                    prev.style.top = '';
+                    prev.style.left = '';
+                    prev.style.width = '';
+                    prev.style.height = '';
+                } else {
+                    prev.classList.add('hidden');
+                    prev.style.display = '';
+                }
+
+                if (backdrop) {
+                    backdrop.style.display = 'none';
+                    backdrop.style.opacity = '0';
+                }
+
+                isBookLayerAnimating = false;
+                activeBookLayerStack = null;
+            }, 260);
+        }
+
+        bookBackIsHorizontal = false;
+        bookBackCurrentDeltaX = 0;
+    }
+
+    readBooks.addEventListener('touchstart', e => {
+        if (e.touches && e.touches[0]) {
+            handleStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
+        }
+    }, { passive: true });
+
+    readBooks.addEventListener('touchmove', e => {
+        if (e.touches && e.touches[0]) {
+            handleMove(e.touches[0].clientX, e.touches[0].clientY);
+        }
+    }, { passive: true });
+
+    readBooks.addEventListener('touchend', () => {
+        handleEnd();
+    }, { passive: true });
+
+    readBooks.addEventListener('touchcancel', () => {
+        handleEnd();
+    }, { passive: true });
+
+    let isMouseDown = false;
+    readBooks.addEventListener('mousedown', e => {
+        if (e.button !== 0) return;
+        if (handleStart(e.clientX, e.clientY, e.target)) {
+            isMouseDown = true;
+        }
+    });
+
+    document.addEventListener('mousemove', e => {
+        if (!isMouseDown) return;
+        handleMove(e.clientX, e.clientY);
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (!isMouseDown) return;
+        isMouseDown = false;
+        handleEnd();
+    });
+}
 // --- Piper TTS Audio Initialization ---
 let piperSession = null;
 let piperInitializing = false;
@@ -34853,27 +35270,30 @@ function goTo(section, isUserTap = false) {
 window.switchTab = goTo;
 
 function goBack() {
-    const current = document.querySelector('.app-section.active-section').id;
+    const current = document.querySelector('.app-section.active-section')?.id;
 
     if (current === 'read-books') {
         const bookContent = document.getElementById('book-content-view');
         const bookList = document.getElementById('book-list-view');
         const subBookList = document.getElementById('sub-book-list-view');
         
-        if (!bookContent.classList.contains('hidden')) {
-            if (currentBookObj && currentBookObj.isNested && currentBookObj.subBookOrder.length > 1) {
-                // Go back to sub-books list
-                showBookContent(currentReligion, currentBookObj);
-            } else {
-                showBooks(currentReligion);
-            }
+        if (bookContent && !bookContent.classList.contains('hidden')) {
+            const isNested = currentBookObj && currentBookObj.isNested && currentBookObj.subBookOrder && currentBookObj.subBookOrder.length > 1;
+            const targetPrev = isNested ? subBookList : bookList;
+            animateBookLayerPop(bookContent, targetPrev, () => {
+                executeBookBack('content');
+            });
             return;
-        } else if (!subBookList.classList.contains('hidden')) {
-            // Go back to main books list
-            showBooks(currentReligion);
+        } else if (subBookList && !subBookList.classList.contains('hidden')) {
+            animateBookLayerPop(subBookList, bookList, () => {
+                executeBookBack('subBook');
+            });
             return;
-        } else if (!bookList.classList.contains('hidden')) {
-            showReligions();
+        } else if (bookList && !bookList.classList.contains('hidden')) {
+            const libHome = document.getElementById('library-home');
+            animateBookLayerPop(bookList, libHome, () => {
+                executeBookBack('bookList');
+            });
             return;
         }
     }
@@ -35348,6 +35768,7 @@ function openAudibleAudiobook(title, author) {
 }
 
 function showReligions() {
+    if (typeof resetBookLayerStyles === 'function') resetBookLayerStyles();
     const list = document.getElementById('rel-list');
     list.innerHTML = '';
     document.getElementById('library-home').classList.remove('hidden');
@@ -35569,19 +35990,24 @@ function setupSearchScrollListener() {
     if (isSearchScrollListenerAttached) return;
     isSearchScrollListenerAttached = true;
     
-    const container = document.getElementById('read-books');
-    if (!container) return;
-    
-    container.addEventListener('scroll', () => {
+    const onSearchScroll = (e) => {
+        const target = e.currentTarget || e.target;
+        if (!target) return;
         if (!window.currentSearchResultsMatches || window.currentSearchResultsMatches.length === 0) return;
         if (currentSearchRenderedCount >= window.currentSearchResultsMatches.length) return;
         
-        if (container.scrollTop + container.clientHeight >= container.scrollHeight - 300) {
+        if (target.scrollTop + target.clientHeight >= target.scrollHeight - 300) {
             renderSearchBatch(20);
         }
-    }, { passive: true });
+    };
+
+    const container1 = document.getElementById('book-list-view');
+    if (container1) container1.addEventListener('scroll', onSearchScroll, { passive: true });
+    const container2 = document.getElementById('read-books');
+    if (container2) container2.addEventListener('scroll', onSearchScroll, { passive: true });
 }
 function showBooks(rel) {
+    if (typeof resetBookLayerStyles === 'function') resetBookLayerStyles();
     currentReligion = rel;
     document.getElementById('library-home').classList.add('hidden');
     document.getElementById('book-list-view').classList.remove('hidden');
@@ -35640,6 +36066,7 @@ let currentSubBook = null;
 
 
 function showBookContent(rel, book) {
+    if (typeof resetBookLayerStyles === 'function') resetBookLayerStyles();
     stopAudio();
     deactivatePillUI();
     currentBookName = book.name;
@@ -35681,6 +36108,7 @@ function showBookContent(rel, book) {
 }
 
 function showSubBookContent(subBookName) {
+    if (typeof resetBookLayerStyles === 'function') resetBookLayerStyles();
     stopAudio();
     deactivatePillUI();
     currentSubBook = subBookName;
@@ -35842,20 +36270,24 @@ function setupBookChapterScrollListener() {
     if (isBookChapterScrollAttached) return;
     isBookChapterScrollAttached = true;
     
-    const scrollContainer = document.getElementById('read-books');
-    if (!scrollContainer) return;
-    
-    scrollContainer.addEventListener('scroll', () => {
+    const onChapterScroll = (e) => {
+        const target = e.currentTarget || e.target;
+        if (!target) return;
         const bookContent = document.getElementById('book-content-view');
         if (!bookContent || bookContent.classList.contains('hidden')) return;
         if (!currentBookChapterState) return;
         
         if (currentBookChapterRenderedCount >= currentBookChapterState.sortedKeys.length) return;
         
-        if (scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 400) {
+        if (target.scrollTop + target.clientHeight >= target.scrollHeight - 400) {
             renderBookChapterBatch(30);
         }
-    }, { passive: true });
+    };
+
+    const c1 = document.getElementById('book-content-view');
+    if (c1) c1.addEventListener('scroll', onChapterScroll, { passive: true });
+    const c2 = document.getElementById('read-books');
+    if (c2) c2.addEventListener('scroll', onChapterScroll, { passive: true });
 }
 function populateChapterWheel() {
     const wheel = document.getElementById('chapter-scroll-wheel');
@@ -36077,7 +36509,7 @@ function scrollToBookVerse(verseIndex) {
         }
     }
     if (el) {
-        const container = document.getElementById('read-books');
+        const container = document.getElementById('book-content-view') || document.getElementById('read-books');
         const rect = el.getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();
         const currentScroll = container.scrollTop;

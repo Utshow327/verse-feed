@@ -305,11 +305,45 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
 
 #read-books {
     padding-top: 0;
+    padding-bottom: 0;
+    overflow: hidden !important;
+}
+#library-home,
+#book-list-view,
+#sub-book-list-view,
+#book-content-view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+    background: var(--bg-grad-1);
+    will-change: transform;
 }
 #library-home,
 #book-list-view,
 #sub-book-list-view {
     padding-top: max(20px, env(safe-area-inset-top, 20px));
+    padding-bottom: 90px;
+}
+#book-content-view {
+    padding-top: 0;
+    padding-bottom: 90px;
+}
+.book-layer-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 15;
+    pointer-events: none;
+    opacity: 0;
+    display: none;
 }
 
 .hidden {
