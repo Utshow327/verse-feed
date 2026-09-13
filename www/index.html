@@ -14,7 +14,7 @@
             } catch(e) {}
         })();
     </script>
-    <link rel="stylesheet" href="style_v5.css?v=450">
+    <link rel="stylesheet" href="style_v5.css?v=451">
     <link rel="preconnect" href="https://huggingface.co" crossorigin>
     <link rel="dns-prefetch" href="https://huggingface.co">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -309,6 +309,33 @@
         </div>
     </div>
 
+    <!-- Information Reward Ad Modal -->
+    <div id="info-reward-modal" class="modal-overlay hidden" onclick="closeInfoRewardModal(event)">
+        <div class="modal-content info-reward-modal-content" onclick="event.stopPropagation()">
+            <div class="info-reward-icon-wrap">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+            </div>
+            <h3 class="info-reward-title">Unlock Information</h3>
+            <p class="info-reward-desc">Watch a short ad to view deep historical context and meaning for this verse.</p>
+            <div class="info-reward-actions">
+                <button class="info-reward-watch-btn" onclick="handleWatchAdForInfo()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    <span>Watch Ad</span>
+                </button>
+                <button class="info-reward-premium-btn" onclick="handleInfoGoPremium()">
+                    <span>Go Premium</span>
+                </button>
+            </div>
+            <button class="info-reward-close-btn" onclick="closeInfoRewardModal()">Not Now</button>
+        </div>
+    </div>
+
     <!-- Album Selection Modal -->
     <div id="album-modal" class="modal-overlay hidden" onclick="closeAlbumModal(event)">
         <div class="modal-content" style="max-width: 260px; padding: 18px; text-align: center; border-radius: 20px;" onclick="event.stopPropagation()">
@@ -426,6 +453,12 @@
                     <button id="account-voice-explanation-btn" class="modal-action-btn" onclick="toggleVoiceExplanation()">
                         Voice Info
                     </button>
+                    <button id="account-test-ad-btn" class="modal-action-btn" onclick="testRewardedInterstitialAd()">
+                        Test Rewarded Ad
+                    </button>
+                    <button id="account-test-flow-btn" class="modal-action-btn" onclick="toggleTestInfoAdFlow()">
+                        Test Info Ad Lock
+                    </button>
                     <div id="user-modal-signed-in-actions" style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
                         <button onclick="confirmSignOut()" class="modal-action-btn">
                             Sign Out
@@ -512,7 +545,7 @@
     <div id="radial-overlay" class="radial-overlay"></div>
     <script src="libs/localforage.min.js"></script>
     <script src="libs/html2canvas.min.js"></script>
-    <script src="script_v14.js?v=577"></script>
+    <script src="script_v14.js?v=578"></script>
 
 
 

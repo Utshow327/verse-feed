@@ -30664,8 +30664,9 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         return;
     }
 
-    // Free vs Premium Information Check (3 free views)
-    if (!isAutoTransition && !isPremiumUser) {
+    // Free vs Premium Information Check (3 free views, then Rewarded Interstitial ad)
+    const isTestAdMode = localStorage.getItem('test_info_ad_flow') === 'true';
+    if (!isAutoTransition && (!isPremiumUser || isTestAdMode)) {
         let unlockedVerses = [];
         try {
             unlockedVerses = JSON.parse(localStorage.getItem('freeUnlockedInfoVerses') || '[]');
@@ -30675,8 +30676,7 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         const verseSig = targetVerse.id || `${targetVerse.religion || ''}_${targetVerse.book || ''}_${targetVerse.chapter || ''}_${targetVerse.verse || ''}`;
         if (!unlockedVerses.includes(verseSig)) {
             if (unlockedVerses.length >= 3) {
-                showToast("Upgrade to Premium for unlimited Information");
-                openPremiumModal();
+                openInfoRewardModal(targetVerse);
                 return;
             }
             unlockedVerses.push(verseSig);
@@ -30733,10 +30733,11 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
             <div class="card-explanation-section">
                 <span class="card-exp-badge">Information</span>
                 <div class="exp-shimmer-wrap">
-                    <div class="exp-shimmer-bar w-90"></div>
-                    <div class="exp-shimmer-bar w-100"></div>
-                    <div class="exp-shimmer-bar w-80"></div>
-                    <div class="exp-shimmer-bar w-50"></div>
+                    <div class="exp-shimmer-bar exp-w-95"></div>
+                    <div class="exp-shimmer-bar exp-w-100"></div>
+                    <div class="exp-shimmer-bar exp-w-85"></div>
+                    <div class="exp-shimmer-bar exp-w-90"></div>
+                    <div class="exp-shimmer-bar exp-w-60"></div>
                 </div>
             </div>
         </div>
@@ -30775,9 +30776,9 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         }
     }
 
-    // Guarantee skeleton shimmer is visible for a smooth, enjoyable duration (500ms)
+    // Guarantee skeleton shimmer is visible for a smooth, enjoyable duration (750ms)
     const elapsedShimmer = Date.now() - shimmerStartTime;
-    const minShimmerDuration = 500;
+    const minShimmerDuration = 750;
     if (elapsedShimmer < minShimmerDuration) {
         await new Promise(r => setTimeout(r, minShimmerDuration - elapsedShimmer));
     }
@@ -30903,6 +30904,220 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
 function closeVerseExplanationModal(event) {
     const modal = document.getElementById('verse-explanation-modal');
     if (modal) modal.classList.add('hidden');
+}
+
+// --- AdMob Rewarded Interstitial for Information ---
+const ADMOB_REWARDED_INTERSTITIAL_LIVE_ID = 'ca-app-pub-5829734517659644/3810392610';
+const ADMOB_REWARDED_INTERSTITIAL_TEST_ID = 'ca-app-pub-3940256099942544/5354046379';
+let isAdMobInitialized = false;
+let isRewardedInterstitialReady = false;
+let isRewardedInterstitialLoading = false;
+let usedAdMobFallbackTest = false;
+let pendingRewardVerse = null;
+
+async function initAdMob() {
+    if (isAdMobInitialized) return;
+    try {
+        const AdMob = window.Capacitor?.Plugins?.AdMob;
+        if (!AdMob) return;
+        await AdMob.initialize({
+            initializeForTesting: false
+        });
+        isAdMobInitialized = true;
+
+        AdMob.addListener('onRewardedInterstitialAdLoaded', () => {
+            isRewardedInterstitialReady = true;
+            isRewardedInterstitialLoading = false;
+        });
+        AdMob.addListener('onRewardedInterstitialAdFailedToLoad', () => {
+            isRewardedInterstitialReady = false;
+            isRewardedInterstitialLoading = false;
+            if (!usedAdMobFallbackTest) {
+                usedAdMobFallbackTest = true;
+                preloadRewardedInterstitialAd(true);
+            }
+        });
+        AdMob.addListener('onRewardedInterstitialAdDismissed', () => {
+            isRewardedInterstitialReady = false;
+            preloadRewardedInterstitialAd(usedAdMobFallbackTest);
+        });
+        AdMob.addListener('onRewardedInterstitialAdReward', () => {
+            grantInfoReward();
+        });
+
+        // Preload first ad unit
+        preloadRewardedInterstitialAd(false);
+    } catch(e) {
+        console.warn('initAdMob error:', e);
+    }
+}
+
+async function preloadRewardedInterstitialAd(forceTest = false) {
+    const AdMob = window.Capacitor?.Plugins?.AdMob;
+    if (!AdMob || isRewardedInterstitialLoading) return;
+    if (isRewardedInterstitialReady && !forceTest) return;
+
+    isRewardedInterstitialLoading = true;
+    const adUnitId = forceTest ? ADMOB_REWARDED_INTERSTITIAL_TEST_ID : ADMOB_REWARDED_INTERSTITIAL_LIVE_ID;
+    try {
+        await AdMob.prepareRewardInterstitialAd({
+            adId: adUnitId,
+            isTesting: forceTest
+        });
+        isRewardedInterstitialReady = true;
+        isRewardedInterstitialLoading = false;
+    } catch(e) {
+        isRewardedInterstitialReady = false;
+        isRewardedInterstitialLoading = false;
+        if (!forceTest && !usedAdMobFallbackTest) {
+            usedAdMobFallbackTest = true;
+            preloadRewardedInterstitialAd(true);
+        }
+    }
+}
+
+async function showRewardedInterstitialAd() {
+    const AdMob = window.Capacitor?.Plugins?.AdMob;
+    if (!AdMob) return false;
+
+    if (!isRewardedInterstitialReady) {
+        await preloadRewardedInterstitialAd(usedAdMobFallbackTest);
+    }
+
+    try {
+        await AdMob.showRewardInterstitialAd();
+        return true;
+    } catch(err) {
+        console.warn('showRewardInterstitialAd fallback to video:', err);
+        try {
+            await AdMob.prepareRewardVideoAd({
+                adId: usedAdMobFallbackTest ? 'ca-app-pub-3940256099942544/5224354917' : ADMOB_REWARDED_INTERSTITIAL_LIVE_ID,
+                isTesting: usedAdMobFallbackTest
+            });
+            await AdMob.showRewardVideoAd();
+            return true;
+        } catch(videoErr) {
+            console.warn('showRewardVideoAd failed:', videoErr);
+            return false;
+        }
+    }
+}
+
+function openInfoRewardModal(targetVerse) {
+    pendingRewardVerse = targetVerse;
+    const modal = document.getElementById('info-reward-modal');
+    if (modal) modal.classList.remove('hidden');
+    preloadRewardedInterstitialAd(usedAdMobFallbackTest);
+}
+
+function closeInfoRewardModal(event) {
+    if (event) {
+        try { event.stopPropagation(); } catch(e){}
+    }
+    const modal = document.getElementById('info-reward-modal');
+    if (modal) modal.classList.add('hidden');
+    pendingRewardVerse = null;
+}
+
+function handleInfoGoPremium() {
+    closeInfoRewardModal();
+    if (typeof openPremiumModal === 'function') {
+        openPremiumModal();
+    }
+}
+
+function grantInfoReward() {
+    const targetVerse = pendingRewardVerse;
+    pendingRewardVerse = null;
+    if (!targetVerse) return;
+
+    let unlockedVerses = [];
+    try {
+        unlockedVerses = JSON.parse(localStorage.getItem('freeUnlockedInfoVerses') || '[]');
+        if (!Array.isArray(unlockedVerses)) unlockedVerses = [];
+    } catch(e) { unlockedVerses = []; }
+
+    const verseSig = targetVerse.id || `${targetVerse.religion || ''}_${targetVerse.book || ''}_${targetVerse.chapter || ''}_${targetVerse.verse || ''}`;
+    if (!unlockedVerses.includes(verseSig)) {
+        unlockedVerses.push(verseSig);
+        localStorage.setItem('freeUnlockedInfoVerses', JSON.stringify(unlockedVerses));
+        localStorage.setItem('freeInfoCount', String(unlockedVerses.length));
+    }
+
+    closeInfoRewardModal();
+    if (typeof showToast === 'function') {
+        showToast("Information unlocked");
+    }
+    setTimeout(() => {
+        openVerseExplanation(targetVerse);
+    }, 200);
+}
+
+async function handleWatchAdForInfo() {
+    const watchBtn = document.querySelector('.info-reward-watch-btn');
+    if (watchBtn) {
+        watchBtn.style.opacity = '0.7';
+        watchBtn.style.pointerEvents = 'none';
+        const span = watchBtn.querySelector('span');
+        if (span) span.innerText = 'Loading Ad...';
+    }
+
+    const AdMob = window.Capacitor?.Plugins?.AdMob;
+    if (!AdMob) {
+        grantInfoReward();
+        return;
+    }
+
+    try {
+        let showed = await showRewardedInterstitialAd();
+        if (!showed) {
+            grantInfoReward();
+        }
+    } catch(e) {
+        grantInfoReward();
+    } finally {
+        if (watchBtn) {
+            watchBtn.style.opacity = '1';
+            watchBtn.style.pointerEvents = 'auto';
+            const span = watchBtn.querySelector('span');
+            if (span) span.innerText = 'Watch Ad';
+        }
+    }
+}
+
+async function testRewardedInterstitialAd() {
+    if (typeof showToast === 'function') showToast("Loading ad...");
+    const AdMob = window.Capacitor?.Plugins?.AdMob;
+    if (!AdMob) {
+        if (typeof showToast === 'function') showToast("AdMob requires Android app environment");
+        return;
+    }
+    try {
+        let showed = await showRewardedInterstitialAd();
+        if (showed) {
+            if (typeof showToast === 'function') showToast("Ad displayed successfully");
+        } else {
+            if (typeof showToast === 'function') showToast("Ad load failed (waiting for fill)");
+        }
+    } catch(e) {
+        if (typeof showToast === 'function') showToast("Ad error: " + (e.message || e));
+    }
+}
+
+function toggleTestInfoAdFlow() {
+    const current = localStorage.getItem('test_info_ad_flow') === 'true';
+    if (!current) {
+        localStorage.setItem('test_info_ad_flow', 'true');
+        localStorage.setItem('freeUnlockedInfoVerses', '[]');
+        localStorage.setItem('freeInfoCount', '0');
+        if (typeof showToast === 'function') showToast("Info Ad Lock ON: 3 free then ad required");
+    } else {
+        localStorage.removeItem('test_info_ad_flow');
+        if (typeof showToast === 'function') showToast("Info Ad Lock OFF: Unlimited info restored");
+    }
+    if (typeof updateTogglesUI === 'function') {
+        updateTogglesUI();
+    }
 }
 
 function extractExplanationTextFromEl(el) {
@@ -32747,6 +32962,17 @@ function updateTogglesUI() {
             voiceExpBtn.classList.remove('active');
         }
         voiceExpBtn.innerText = 'Voice Info';
+    }
+    const testFlowBtn = document.getElementById('account-test-flow-btn');
+    if (testFlowBtn) {
+        const isTesting = localStorage.getItem('test_info_ad_flow') === 'true';
+        if (isTesting) {
+            testFlowBtn.classList.add('active');
+            testFlowBtn.innerText = 'Info Ad Lock: Active';
+        } else {
+            testFlowBtn.classList.remove('active');
+            testFlowBtn.innerText = 'Test Info Ad Lock';
+        }
     }
 }
 
@@ -40433,6 +40659,7 @@ async function restorePurchases() {
 
 window.addEventListener('load', async () => {
     await initRevenueCat();
+    await initAdMob();
 });
 
 
