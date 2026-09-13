@@ -34930,12 +34930,13 @@ function createFeedCardDOM(verse, initialPositionClass = 'card-center') {
         card.classList.add('premium-ad-card');
         card.style.position = 'relative';
 
-        // Top-Left subtle "Sponsored" tag
+        // Top-Left subtle "Ad" tag (matches book ad cards)
         const tagEl = document.createElement('span');
-        tagEl.style.cssText = 'position: absolute; top: 18px; left: 22px; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.45; font-weight: 600; color: var(--text-color); pointer-events: none;';
-        tagEl.textContent = t('Sponsored');
+        tagEl.className = 'home-ad-tag';
+        tagEl.style.cssText = 'position: absolute; top: 18px; left: 22px; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.5; font-weight: 600; color: var(--text-color); pointer-events: none;';
+        tagEl.textContent = t('Ad') || 'Ad';
         if (getAppBaseLanguage(currentAppLanguage) !== 'en' && /[a-zA-Z]{2,}/.test(tagEl.textContent)) {
-            translateTextAsync('Sponsored', currentAppLanguage).then(tr => {
+            translateTextAsync('Ad', currentAppLanguage).then(tr => {
                 if (tr) tagEl.textContent = tr;
             }).catch(() => {});
         }
