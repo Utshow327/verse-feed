@@ -2252,25 +2252,46 @@ h2 {
 }
 
 /* Book verse in explanation mode */
-.book-verse.book-verse-explanation-active,
+.book-verse.book-verse-explanation-active {
+    padding: 10px 14px !important;
+    border-radius: 10px !important;
+}
+
 .book-verse.marked.book-verse-explanation-active {
-    background: var(--card-bg) !important;
-    color: var(--text-color) !important;
-    border: 1px solid var(--glass-border) !important;
-    padding: 12px 14px !important;
-    border-radius: 14px !important;
+    background: var(--text-color) !important;
+    color: var(--bg-grad-1) !important;
+    padding: 10px 14px !important;
+    border-radius: 10px !important;
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18) !important;
 }
 
-.book-verse.book-verse-explanation-active .book-verse-text,
 .book-verse.marked.book-verse-explanation-active .book-verse-text {
     display: block !important;
     width: 100% !important;
-    color: var(--text-color) !important;
+    color: var(--bg-grad-1) !important;
+}
+
+.book-verse.marked.book-verse-explanation-active .card-explanation-view,
+.book-verse.marked.book-verse-explanation-active .card-exp-text {
+    color: var(--bg-grad-1) !important;
+}
+
+.book-verse.marked.book-verse-explanation-active .card-exp-badge {
+    color: var(--bg-grad-1) !important;
+    opacity: 0.85 !important;
+}
+
+.book-verse.marked.book-verse-explanation-active .exp-shimmer-bar {
+    background: rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme="light"] .book-verse.marked.book-verse-explanation-active .exp-shimmer-bar {
+    background: rgba(255, 255, 255, 0.3) !important;
 }
 
 /* Action icons MUST remain bottom-right, NEVER middle */
-.book-verse.book-verse-explanation-active .verse-actions {
+.book-verse.book-verse-explanation-active .verse-actions,
+.book-verse.marked.book-verse-explanation-active .verse-actions {
     display: flex !important;
     justify-content: flex-end !important;
     align-items: center !important;
@@ -2278,6 +2299,29 @@ h2 {
     margin-left: auto !important;
     margin-right: 0 !important;
     width: 100% !important;
+}
+
+.book-verse.marked.book-verse-explanation-active .verse-actions .va-btn {
+    color: var(--bg-grad-1) !important;
+}
+
+.book-verse.marked .va-meaning-btn.va-meaning-active,
+.book-verse.marked.book-verse-explanation-active .va-meaning-btn.va-meaning-active {
+    background: transparent !important;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    transform: none !important;
+    filter: none !important;
+    color: var(--p-gold, #c5a059) !important;
+    opacity: 1 !important;
+}
+
+[data-theme="dark"] .book-verse.marked .va-meaning-btn.va-meaning-active,
+[data-theme="dark"] .book-verse.marked.book-verse-explanation-active .va-meaning-btn.va-meaning-active {
+    color: var(--p-gold, #c5a059) !important;
+    opacity: 1 !important;
 }
 
 /* Saved verse in explanation mode */
@@ -2308,7 +2352,6 @@ h2 {
     margin-left: auto !important;
 }
 
-.book-verse.marked .va-meaning-btn.va-meaning-active,
 .saved-verse .va-meaning-btn.va-meaning-active {
     background: transparent !important;
     border-radius: 0 !important;
@@ -2320,7 +2363,6 @@ h2 {
     color: var(--p-sand) !important;
 }
 
-[data-theme="dark"] .book-verse.marked .va-meaning-btn.va-meaning-active,
 [data-theme="dark"] .saved-verse .va-meaning-btn.va-meaning-active {
     color: var(--bg-grad-2) !important;
 }
