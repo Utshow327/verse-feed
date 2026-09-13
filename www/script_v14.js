@@ -30740,11 +30740,11 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
                 <div class="card-explanation-section">
                     <span class="card-exp-badge">Information</span>
                     <div class="exp-shimmer-wrap">
+                        <div class="exp-shimmer-bar w-90"></div>
+                        <div class="exp-shimmer-bar w-100"></div>
                         <div class="exp-shimmer-bar w-80"></div>
-                        <div class="exp-shimmer-bar w-95"></div>
-                        <div class="exp-shimmer-bar w-60"></div>
+                        <div class="exp-shimmer-bar w-50"></div>
                     </div>
-                    <p class="exp-loading-hint">Loading information...</p>
                 </div>
             </div>
         `;
@@ -31548,12 +31548,14 @@ let lastSwipeTime = 0;
 let touchStartTarget = null;
 
 let isFeedAnimating = false;
+let lastFeedAnimStartTime = 0;
 let isDraggingFeed = false;
 let feedTouchStartX = 0;
 let feedTouchStartY = 0;
 let feedCurrentDeltaX = 0;
 let feedIsHorizontalGesture = false;
 let feedTouchStartTime = 0;
+let feedActiveCard = null;
 let feedNeighborCard = null;
 let feedNeighborType = null;
 
@@ -31562,19 +31564,38 @@ function setupGestures() {
     if (!feedStage) return;
 
     function handleStart(clientX, clientY, target) {
-        if (!appLoaded || isFeedAnimating) return false;
+        if (!appLoaded) return false;
+        if (isFeedAnimating) {
+            if (Date.now() - lastFeedAnimStartTime > 400) {
+                isFeedAnimating = false;
+            } else {
+                return false;
+            }
+        }
         const activeModal = document.querySelector('.modal-overlay:not(.hidden)');
         if (activeModal) return false;
         if (target && target.closest && (target.closest('.bookmark-btn') || target.closest('.speak-btn') || target.closest('.modal-overlay') || target.closest('button') || target.closest('a'))) return false;
 
+        let currentCard = feedStage.querySelector('.verse-card.card-center') || feedStage.querySelector('.verse-card');
+        if (!currentCard) {
+            renderFeedCard(currentVerseIndex.general);
+            currentCard = feedStage.querySelector('.verse-card.card-center') || feedStage.querySelector('.verse-card');
+            if (!currentCard) return false;
+        }
+
         const cards = feedStage.querySelectorAll('.verse-card');
         if (cards.length > 1) {
-            const centerCard = feedStage.querySelector('.verse-card.card-center');
             cards.forEach(c => {
-                if (c !== centerCard) try { c.remove(); } catch(e){}
+                if (c !== currentCard) try { c.remove(); } catch(e){}
             });
         }
 
+        currentCard.classList.remove('card-neighbor');
+        currentCard.classList.add('card-center');
+        currentCard.style.pointerEvents = 'auto';
+        currentCard.style.zIndex = '10';
+
+        feedActiveCard = currentCard;
         isDraggingFeed = true;
         feedIsHorizontalGesture = false;
         feedTouchStartX = clientX;
@@ -31588,7 +31609,7 @@ function setupGestures() {
     }
 
     function handleMove(clientX, clientY) {
-        if (!isDraggingFeed || isFeedAnimating) return;
+        if (!isDraggingFeed || isFeedAnimating || !feedActiveCard) return;
         const diffX = clientX - feedTouchStartX;
         const diffY = clientY - feedTouchStartY;
 
@@ -31603,16 +31624,13 @@ function setupGestures() {
 
         if (feedIsHorizontalGesture) {
             feedCurrentDeltaX = diffX;
-            const currentCard = feedStage.querySelector('.verse-card.card-center');
-            if (!currentCard) return;
-
             const width = window.innerWidth;
             let actualDiffX = diffX;
 
             if (diffX > 0 && currentVerseIndex.general === 0) {
                 actualDiffX = diffX * 0.35;
-                currentCard.style.transition = 'none';
-                currentCard.style.transform = `translateX(${actualDiffX}px) translateZ(0)`;
+                feedActiveCard.style.transition = 'none';
+                feedActiveCard.style.transform = `translateX(${actualDiffX}px) translateZ(0)`;
                 if (feedNeighborCard) {
                     try { feedNeighborCard.remove(); } catch(e){}
                     feedNeighborCard = null;
@@ -31632,7 +31650,7 @@ function setupGestures() {
                     const nextIdx = currentVerseIndex.general + 1;
                     const nextVerse = getVerseAtIndex(nextIdx);
                     if (nextVerse) {
-                        feedNeighborCard = createFeedCardDOM(nextVerse, 'card-center');
+                        feedNeighborCard = createFeedCardDOM(nextVerse, 'card-neighbor');
                         feedNeighborCard.id = 'feed-card-' + nextIdx;
                         feedNeighborCard.style.pointerEvents = 'none';
                         feedNeighborCard.style.transition = 'none';
@@ -31642,8 +31660,8 @@ function setupGestures() {
                     }
                 }
 
-                currentCard.style.transition = 'none';
-                currentCard.style.transform = `translateX(${diffX}px) translateZ(0)`;
+                feedActiveCard.style.transition = 'none';
+                feedActiveCard.style.transform = `translateX(${diffX}px) translateZ(0)`;
 
                 if (feedNeighborCard) {
                     feedNeighborCard.style.transition = 'none';
@@ -31660,7 +31678,7 @@ function setupGestures() {
                     const prevIdx = currentVerseIndex.general - 1;
                     const prevVerse = getVerseAtIndex(prevIdx);
                     if (prevVerse) {
-                        feedNeighborCard = createFeedCardDOM(prevVerse, 'card-center');
+                        feedNeighborCard = createFeedCardDOM(prevVerse, 'card-neighbor');
                         feedNeighborCard.id = 'feed-card-' + prevIdx;
                         feedNeighborCard.style.pointerEvents = 'none';
                         feedNeighborCard.style.transition = 'none';
@@ -31670,8 +31688,8 @@ function setupGestures() {
                     }
                 }
 
-                currentCard.style.transition = 'none';
-                currentCard.style.transform = `translateX(${diffX}px) translateZ(0)`;
+                feedActiveCard.style.transition = 'none';
+                feedActiveCard.style.transform = `translateX(${diffX}px) translateZ(0)`;
 
                 if (feedNeighborCard) {
                     feedNeighborCard.style.transition = 'none';
@@ -31685,8 +31703,22 @@ function setupGestures() {
         if (!isDraggingFeed) return;
         isDraggingFeed = false;
 
-        const currentCard = feedStage.querySelector('.verse-card.card-center');
-        if (feedIsHorizontalGesture && currentCard) {
+        const activeCard = feedActiveCard;
+        feedActiveCard = null;
+
+        if (activeCard && !feedIsHorizontalGesture) {
+            activeCard.style.transition = '';
+            activeCard.style.transform = '';
+            if (feedNeighborCard) {
+                try { feedNeighborCard.remove(); } catch(e){}
+                feedNeighborCard = null;
+                feedNeighborType = null;
+            }
+        }
+
+        if (!activeCard) return;
+
+        if (feedIsHorizontalGesture) {
             lastSwipeTime = Date.now();
             const width = window.innerWidth;
             const threshold = Math.min(width * 0.22, 75);
@@ -31704,7 +31736,7 @@ function setupGestures() {
                     const nextIdx = currentVerseIndex.general + 1;
                     const nextVerse = getVerseAtIndex(nextIdx);
                     if (nextVerse) {
-                        neighborCard = createFeedCardDOM(nextVerse, 'card-center');
+                        neighborCard = createFeedCardDOM(nextVerse, 'card-neighbor');
                         neighborCard.id = 'feed-card-' + nextIdx;
                         neighborCard.style.pointerEvents = 'none';
                         neighborCard.style.transition = 'none';
@@ -31716,7 +31748,7 @@ function setupGestures() {
                     const prevIdx = currentVerseIndex.general - 1;
                     const prevVerse = getVerseAtIndex(prevIdx);
                     if (prevVerse) {
-                        neighborCard = createFeedCardDOM(prevVerse, 'card-center');
+                        neighborCard = createFeedCardDOM(prevVerse, 'card-neighbor');
                         neighborCard.id = 'feed-card-' + prevIdx;
                         neighborCard.style.pointerEvents = 'none';
                         neighborCard.style.transition = 'none';
@@ -31729,6 +31761,7 @@ function setupGestures() {
 
             if ((feedCurrentDeltaX < -threshold || (feedCurrentDeltaX < -20 && isFlick)) && neighborCard && neighborType === 'next') {
                 isFeedAnimating = true;
+                lastFeedAnimStartTime = Date.now();
                 const wasPlaying = (isSpeaking && !isPaused) || isGenerating;
                 if (wasPlaying) {
                     stopAudio(true, true, true);
@@ -31736,18 +31769,21 @@ function setupGestures() {
 
                 const animEase = 'transform 0.26s cubic-bezier(0.22, 1, 0.36, 1)';
 
-                currentCard.style.transition = animEase;
-                currentCard.style.transform = `translateX(${-width}px) translateZ(0)`;
-                currentCard.style.pointerEvents = 'none';
+                activeCard.style.transition = animEase;
+                activeCard.style.transform = `translateX(${-width}px) translateZ(0)`;
+                activeCard.style.pointerEvents = 'none';
 
                 neighborCard.style.transition = animEase;
                 neighborCard.style.transform = 'translateX(0px) translateZ(0)';
 
                 setTimeout(() => {
-                    try { currentCard.remove(); } catch(e){}
+                    try { activeCard.remove(); } catch(e){}
+                    neighborCard.classList.remove('card-neighbor');
+                    neighborCard.classList.add('card-center');
                     neighborCard.style.transition = '';
                     neighborCard.style.transform = '';
                     neighborCard.style.pointerEvents = 'auto';
+                    neighborCard.style.zIndex = '10';
 
                     currentVerseIndex.general++;
                     const newVerse = getVerseAtIndex(currentVerseIndex.general);
@@ -31770,6 +31806,7 @@ function setupGestures() {
                 }, 280);
             } else if ((feedCurrentDeltaX > threshold || (feedCurrentDeltaX > 20 && isFlick)) && neighborCard && neighborType === 'prev' && currentVerseIndex.general > 0) {
                 isFeedAnimating = true;
+                lastFeedAnimStartTime = Date.now();
                 const wasPlaying = (isSpeaking && !isPaused) || isGenerating;
                 if (wasPlaying) {
                     stopAudio(true, true, true);
@@ -31777,18 +31814,21 @@ function setupGestures() {
 
                 const animEase = 'transform 0.26s cubic-bezier(0.22, 1, 0.36, 1)';
 
-                currentCard.style.transition = animEase;
-                currentCard.style.transform = `translateX(${width}px) translateZ(0)`;
-                currentCard.style.pointerEvents = 'none';
+                activeCard.style.transition = animEase;
+                activeCard.style.transform = `translateX(${width}px) translateZ(0)`;
+                activeCard.style.pointerEvents = 'none';
 
                 neighborCard.style.transition = animEase;
                 neighborCard.style.transform = 'translateX(0px) translateZ(0)';
 
                 setTimeout(() => {
-                    try { currentCard.remove(); } catch(e){}
+                    try { activeCard.remove(); } catch(e){}
+                    neighborCard.classList.remove('card-neighbor');
+                    neighborCard.classList.add('card-center');
                     neighborCard.style.transition = '';
                     neighborCard.style.transform = '';
                     neighborCard.style.pointerEvents = 'auto';
+                    neighborCard.style.zIndex = '10';
 
                     currentVerseIndex.general--;
                     const newVerse = getVerseAtIndex(currentVerseIndex.general);
@@ -31811,10 +31851,11 @@ function setupGestures() {
                 }, 280);
             } else {
                 isFeedAnimating = true;
+                lastFeedAnimStartTime = Date.now();
                 const snapEase = 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)';
 
-                currentCard.style.transition = snapEase;
-                currentCard.style.transform = 'translateX(0px) scale(1) translateZ(0)';
+                activeCard.style.transition = snapEase;
+                activeCard.style.transform = 'translateX(0px) scale(1) translateZ(0)';
 
                 if (neighborCard) {
                     neighborCard.style.transition = snapEase;
@@ -31826,13 +31867,16 @@ function setupGestures() {
                 }
 
                 setTimeout(() => {
-                    currentCard.style.transition = '';
-                    currentCard.style.transform = '';
+                    activeCard.style.transition = '';
+                    activeCard.style.transform = '';
+                    activeCard.classList.add('card-center');
+                    activeCard.style.pointerEvents = 'auto';
+                    activeCard.style.zIndex = '10';
                     if (neighborCard) {
                         try { neighborCard.remove(); } catch(e){}
                     }
                     Array.from(feedStage.querySelectorAll('.verse-card')).forEach(c => {
-                        if (c !== currentCard) { try { c.remove(); } catch(e){} }
+                        if (c !== activeCard) { try { c.remove(); } catch(e){} }
                     });
                     isFeedAnimating = false;
                 }, 240);
