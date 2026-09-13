@@ -32138,7 +32138,7 @@ function setupBookLayerSlide() {
             return false;
         }
 
-        const edgeThreshold = window.innerWidth * 0.22;
+        const edgeThreshold = window.innerWidth * 0.30;
         if (clientX > edgeThreshold) return false;
 
         const stack = getActiveBookStack();
@@ -32214,7 +32214,7 @@ function setupBookLayerSlide() {
         const elapsed = Math.max(1, Date.now() - bookBackStartTime);
         const velocity = bookBackCurrentDeltaX / elapsed;
         const isFlick = velocity > 0.32 && bookBackCurrentDeltaX > 25;
-        const threshold = window.innerWidth * 0.28;
+        const threshold = window.innerWidth * 0.30;
 
         isBookLayerAnimating = true;
         const animEase = 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease';
