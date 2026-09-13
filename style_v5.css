@@ -733,6 +733,7 @@ h2 {
     padding: 24px 20px 14px 20px !important;
     background: linear-gradient(135deg, var(--p-gold), var(--p-sand), var(--bg-grad-1), var(--p-gold)) !important;
     background-size: 300% 300% !important;
+    -webkit-animation: premiumGradientShine 8s ease infinite !important;
     animation: premiumGradientShine 8s ease infinite !important;
     border: none !important;
     border-radius: 20px !important;
@@ -2825,6 +2826,7 @@ h2 {
     border: none !important;
     background: linear-gradient(135deg, var(--p-gold), var(--p-sand), var(--bg-grad-1), var(--p-gold));
     background-size: 300% 300%;
+    -webkit-animation: premiumGradientShine 8s ease infinite;
     animation: premiumGradientShine 8s ease infinite;
     box-shadow: var(--glass-shadow);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -2905,6 +2907,11 @@ h2 {
     transform: scale(0.97);
 }
 
+@-webkit-keyframes premiumGradientShine {
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 0% 0%; }
+}
 @keyframes premiumGradientShine {
     0% { background-position: 0% 0%; }
     50% { background-position: 100% 100%; }
@@ -2917,6 +2924,7 @@ h2 {
     border: none !important;
     background: linear-gradient(135deg, var(--p-gold), var(--p-sand), var(--bg-grad-1), var(--p-gold)) !important;
     background-size: 300% 300% !important;
+    -webkit-animation: premiumGradientShine 8s ease infinite !important;
     animation: premiumGradientShine 8s ease infinite !important;
     box-shadow: var(--glass-shadow) !important;
 }
@@ -2926,6 +2934,7 @@ h2 {
     border: none !important;
     background: linear-gradient(135deg, #3d352e, #574b42, #473c33, #3d352e) !important;
     background-size: 300% 300% !important;
+    -webkit-animation: premiumGradientShine 8s ease infinite !important;
     animation: premiumGradientShine 8s ease infinite !important;
 }
 
@@ -3125,6 +3134,11 @@ h2 {
     font-weight: 700;
     font-family: inherit;
     letter-spacing: 0.3px;
+}
+@-webkit-keyframes premiumShimmer {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 @keyframes premiumShimmer {
     0% { background-position: 0% 50%; }
@@ -3373,40 +3387,22 @@ h2 {
     position: relative;
     height: 13px;
     border-radius: 7px;
-    background-color: rgba(255, 255, 255, 0.08);
-    background-image: linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0.08) 0%,
-        rgba(255, 255, 255, 0.24) 35%,
-        rgba(255, 255, 255, 0.32) 50%,
-        rgba(255, 255, 255, 0.24) 65%,
-        rgba(255, 255, 255, 0.08) 100%
-    );
-    background-size: 250% 100%;
-    background-repeat: no-repeat;
-    animation: ytShimmerWave 1.4s ease-in-out infinite;
-    will-change: background-position;
+    background: rgba(255, 255, 255, 0.13);
+    -webkit-animation: shimmerPulse 1.2s ease-in-out infinite;
+    animation: shimmerPulse 1.2s ease-in-out infinite;
 }
 
 [data-theme="light"] .exp-shimmer-bar {
-    background-color: rgba(0, 0, 0, 0.06);
-    background-image: linear-gradient(
-        90deg,
-        rgba(0, 0, 0, 0.06) 0%,
-        rgba(0, 0, 0, 0.18) 35%,
-        rgba(0, 0, 0, 0.24) 50%,
-        rgba(0, 0, 0, 0.18) 65%,
-        rgba(0, 0, 0, 0.06) 100%
-    );
+    background: rgba(0, 0, 0, 0.09);
 }
 
-@keyframes ytShimmerWave {
-    0% {
-        background-position: 200% 0;
-    }
-    100% {
-        background-position: -200% 0;
-    }
+@-webkit-keyframes shimmerPulse {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 1; }
+}
+@keyframes shimmerPulse {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 1; }
 }
 
 .exp-shimmer-bar.w-100, .exp-shimmer-bar.exp-w-100 { width: 100%; }
