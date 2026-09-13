@@ -36045,10 +36045,9 @@ function showBooks(rel) {
     applyDynamicVerseTranslation(h2, rel);
     list.appendChild(h2);
 
-    // Render Daily Curated Audiobook at Top (Hidden if user is premium)
-    const isUserPremium = (typeof isPremiumUser !== 'undefined' && isPremiumUser);
+    // Render Daily Curated Audiobook at Top
     const dailyBook = getDailyAudiobook(rel);
-    if (dailyBook && !isUserPremium) {
+    if (dailyBook) {
         const adBtn = document.createElement('button');
         adBtn.className = 'audiobook-minimal-btn';
         adBtn.innerHTML = `
@@ -36096,6 +36095,19 @@ function showBookContent(rel, book) {
         const h2 = document.createElement('h2');
         applyDynamicVerseTranslation(h2, book.name);
         list.appendChild(h2);
+
+        const subDailyBook = getDailyAudiobook(currentReligion || rel);
+        if (subDailyBook) {
+            const adBtn = document.createElement('button');
+            adBtn.className = 'audiobook-minimal-btn';
+            adBtn.innerHTML = `
+                <span class="audiobook-ad-tag">Ad</span>
+                <span class="audiobook-min-title">${subDailyBook.title}</span>
+                <span class="audiobook-min-author">by ${subDailyBook.author}</span>
+            `;
+            adBtn.onclick = () => openAudibleAudiobook(subDailyBook.title, subDailyBook.author);
+            list.appendChild(adBtn);
+        }
         
         book.subBookOrder.forEach(sub => {
             const btn = document.createElement('button');
