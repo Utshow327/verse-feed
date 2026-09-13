@@ -30404,22 +30404,58 @@ if (typeof window !== 'undefined') {
 
 function getCandidateExplanationKeys(verse) {
     if (!verse) return [];
-    const rel = String(verse.religion || '').toLowerCase().trim().replace(/\s+/g, '_');
+    const rel = String(verse.religion || (typeof currentReligion !== 'undefined' ? currentReligion : '') || '').toLowerCase().trim().replace(/\s+/g, '_');
     const book = String(verse.book || '').toLowerCase().trim().replace(/\s+/g, '_');
-    const chap = String(verse.chapter || verse.chapter_no || '1').toLowerCase().trim().replace(/\s+/g, '_');
-    const ver = String(verse.verse || verse.verse_id || verse.hadith_no || '1').toLowerCase().trim().replace(/\s+/g, '_');
+    const subBook = String(verse.subBook || (typeof currentSubBook !== 'undefined' ? currentSubBook : '') || '').toLowerCase().trim().replace(/\s+/g, '_');
+    const parentBook = String(verse.parentBook || (typeof currentBookName !== 'undefined' ? currentBookName : '') || '').toLowerCase().trim().replace(/\s+/g, '_');
+
+    const rawChap = String(verse.chapter || verse.chapter_no || '1');
+    const rawVer = String(verse.verse || verse.verse_id || verse.hadith_no || '1');
+    const numChap = rawChap.replace(/[^0-9]/g, '');
+    const numVer = rawVer.replace(/[^0-9]/g, '');
+    const cleanChap = rawChap.toLowerCase().trim().replace(/\s+/g, '_');
+    const cleanVer = rawVer.toLowerCase().trim().replace(/\s+/g, '_');
+
+    const chapVariants = Array.from(new Set([numChap, cleanChap].filter(Boolean)));
+    const verVariants = Array.from(new Set([numVer, cleanVer].filter(Boolean)));
+
+    const bookNames = new Set([book, subBook, parentBook].filter(Boolean));
+    if (book.includes('gita') || subBook.includes('gita')) {
+        bookNames.add('gita');
+        bookNames.add('bhagavad_gita');
+    }
+    if (book.includes('quran') || parentBook.includes('quran')) {
+        bookNames.add('quran');
+    }
+
     const keys = [];
     if (verse.id) keys.push(String(verse.id).toLowerCase());
-    keys.push(`${rel}_${book}_${chap}_${ver}`);
-    keys.push(`${book}_${chap}_${ver}`);
-    keys.push(`${rel}_${chap}_${ver}`);
-    keys.push(`${rel}_${book}_${chap}`);
-    keys.push(`${book}_${chap}`);
-    keys.push(`${rel}_${chap}`);
-    keys.push(`${rel}_${book}`);
-    keys.push(`${book}`);
-    keys.push(`${rel}`);
-    return keys;
+
+    bookNames.forEach(b => {
+        if (!b) return;
+        chapVariants.forEach(c => {
+            verVariants.forEach(v => {
+                if (rel) keys.push(`${rel}_${b}_${c}_${v}`);
+                keys.push(`${b}_${c}_${v}`);
+            });
+            if (rel) keys.push(`${rel}_${b}_${c}`);
+            keys.push(`${b}_${c}`);
+        });
+        if (rel) keys.push(`${rel}_${b}`);
+        keys.push(b);
+    });
+
+    if (rel) {
+        chapVariants.forEach(c => {
+            verVariants.forEach(v => {
+                keys.push(`${rel}_${c}_${v}`);
+            });
+            keys.push(`${rel}_${c}`);
+        });
+        keys.push(rel);
+    }
+
+    return Array.from(new Set(keys));
 }
 
 let activeExplanationVerseId = null;
@@ -30594,6 +30630,93 @@ function resetActiveExplanation(forceRestore = true) {
     activeExplanationVerseId = null;
 }
 
+function resolveExplanationText(targetVerse) {
+    if (!targetVerse) return { text: '', isFallback: true };
+    const candidateKeys = getCandidateExplanationKeys(targetVerse);
+    let foundData = null;
+    let foundKey = null;
+    let foundChapterData = null;
+    for (const k of candidateKeys) {
+        if (!foundData && verseExplanations[k]) {
+            foundData = verseExplanations[k];
+            foundKey = k;
+        }
+        if (!foundChapterData && verseExplanations[k] && verseExplanations[k].context) {
+            foundChapterData = verseExplanations[k];
+        }
+    }
+
+    let rawExplanation = '';
+    if (foundData) {
+        if (foundData.explanation) {
+            rawExplanation = foundData.explanation;
+        } else if (foundData.meaning && foundData.context) {
+            rawExplanation = `${foundData.context}\n\n${foundData.meaning}`;
+        } else if (foundData.meaning || foundData.text) {
+            rawExplanation = foundData.meaning || foundData.text;
+        } else if (typeof foundData === 'string') {
+            rawExplanation = foundData;
+        }
+    } else if (foundChapterData) {
+        if (foundChapterData.explanation) {
+            rawExplanation = foundChapterData.explanation;
+        } else if (foundChapterData.meaning && foundChapterData.context) {
+            rawExplanation = `${foundChapterData.context}\n\n${foundChapterData.meaning}`;
+        } else if (foundChapterData.meaning || foundChapterData.text) {
+            rawExplanation = foundChapterData.meaning || foundChapterData.text;
+        }
+    }
+
+    let cleanExplanation = rawExplanation ? rawExplanation.replace(/[—–]/g, ', ').replace(/--/g, ', ').trim() : '';
+
+    const isContaminated = (str) => {
+        if (!str) return false;
+        const lower = str.toLowerCase();
+        return lower.includes('<think') || 
+               lower.includes('thinking process') || 
+               lower.includes('analyze user input') || 
+               lower.includes('expert scholar') || 
+               lower.includes('**role') || 
+               lower.includes('**task') || 
+               lower.includes('strict rules') ||
+               lower.includes('key terminology') ||
+               lower.includes('in theological context') ||
+               lower.includes('this quranic verse') ||
+               lower.includes('this biblical verse');
+    };
+
+    if (isContaminated(cleanExplanation)) cleanExplanation = '';
+
+    if (cleanExplanation) {
+        return { text: cleanExplanation, isFallback: false };
+    }
+    return {
+        text: "Take a quiet breath and reflect on what these words speak to your heart today.",
+        isFallback: true
+    };
+}
+
+function buildExplanationHtml(cleanExplanation, isFallback = false) {
+    if (!isFallback) {
+        return `
+            <div class="card-explanation-view">
+                <div class="card-explanation-section">
+                    <span class="card-exp-badge">Information</span>
+                    <p class="card-exp-text">${cleanExplanation}</p>
+                </div>
+            </div>
+        `;
+    }
+    return `
+        <div class="card-explanation-view">
+            <div class="card-explanation-section">
+                <span class="card-exp-badge">Information</span>
+                <p class="card-exp-text" style="opacity: 0.85;">Information for this verse is being added soon.\n\nTake a quiet breath and reflect on what these words speak to your heart today.</p>
+            </div>
+        </div>
+    `;
+}
+
 async function openVerseExplanation(verse, event, isAutoTransition = false) {
     if (event) {
         try { event.stopPropagation(); } catch(e){}
@@ -30698,10 +30821,57 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
     if (btnEl) btnEl.classList.add('va-meaning-active');
 
     const isFeedCard = cardEl.classList.contains('verse-card');
-    let cached = findExplanationInCache(targetVerse);
-    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
 
-    if (!cached && isOffline) {
+    const renderResolvedUI = (expResult) => {
+        if (!cardEl._isShowingExplanation) return;
+        if (activeExplanationVerseId !== targetVerseId) return;
+
+        cardEl._explanationSpeechText = "Information. " + expResult.text;
+        const expHtml = buildExplanationHtml(expResult.text, expResult.isFallback);
+
+        if (isFeedCard) {
+            fadeSwapContent(textEl, () => {
+                cardEl.classList.add('card-explanation-active');
+                textEl.innerHTML = expHtml;
+            });
+        } else {
+            animateCardExpand(cardEl, () => {
+                if (cardEl.classList.contains('book-verse')) {
+                    cardEl.classList.add('book-verse-explanation-active');
+                } else if (cardEl.classList.contains('saved-verse')) {
+                    cardEl.classList.add('saved-verse-explanation-active');
+                }
+                textEl.innerHTML = expHtml;
+            }, () => {
+                if (cardEl.classList.contains('book-verse')) {
+                    const container = document.getElementById('book-content-view');
+                    const wheelContainer = document.getElementById('chapter-scroll-wheel-container');
+                    if (container && wheelContainer) {
+                        const wheelHeight = Math.max(wheelContainer.offsetHeight, wheelContainer.getBoundingClientRect().height);
+                        const rect = cardEl.getBoundingClientRect();
+                        const contRect = container.getBoundingClientRect();
+                        const safeTop = contRect.top + wheelHeight + 20;
+                        if (rect.top < safeTop) {
+                            const diff = safeTop - rect.top;
+                            container.scrollBy({ top: -diff, behavior: 'smooth' });
+                        }
+                    }
+                }
+            });
+        }
+    };
+
+    let cached = findExplanationInCache(targetVerse);
+
+    // OPTIMISTIC RENDER: If already cached in memory, render immediately with 0 delay!
+    if (cached) {
+        const expResult = resolveExplanationText(targetVerse);
+        renderResolvedUI(expResult);
+        return;
+    }
+
+    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+    if (isOffline) {
         const offlineHtml = `
             <div class="card-explanation-view">
                 <div class="card-explanation-section exp-offline-box">
@@ -30727,7 +30897,7 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         return;
     }
 
-    // Always display skeleton shimmer first so user sees the animated loading
+    // Uncached verse: show skeleton shimmer while fetching
     const shimmerHtml = `
         <div class="card-explanation-view is-loading">
             <div class="card-explanation-section">
@@ -30755,150 +30925,32 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         });
     }
 
-    const shimmerStartTime = Date.now();
-
-    if (!cached) {
-        const targetChunk = getAppropriateChunkForVerse(targetVerse);
-        if (!loadedExplanationChunks.has('explanations_feed.json')) {
-            await fetchOnlineExplanationChunk('explanations_feed.json');
-            cached = findExplanationInCache(targetVerse);
-        }
-        if (!cached && targetChunk !== 'explanations_feed.json') {
-            await fetchOnlineExplanationChunk(targetChunk);
-            cached = findExplanationInCache(targetVerse);
-        }
-        if (!cached && targetChunk !== 'explanations_epics.json') {
-            const b = String(targetVerse.book || '').toLowerCase();
-            if (b.includes('mahabharata') || b.includes('ramayana')) {
-                await fetchOnlineExplanationChunk('explanations_epics.json');
-                cached = findExplanationInCache(targetVerse);
-            }
-        }
+    const targetChunk = getAppropriateChunkForVerse(targetVerse);
+    const fetchPromises = [];
+    if (!loadedExplanationChunks.has('explanations_feed.json')) {
+        fetchPromises.push(fetchOnlineExplanationChunk('explanations_feed.json'));
+    }
+    if (targetChunk && targetChunk !== 'explanations_feed.json' && !loadedExplanationChunks.has(targetChunk)) {
+        fetchPromises.push(fetchOnlineExplanationChunk(targetChunk));
+    }
+    const b = String(targetVerse.book || '').toLowerCase();
+    if ((b.includes('mahabharata') || b.includes('ramayana')) && !loadedExplanationChunks.has('explanations_epics.json')) {
+        fetchPromises.push(fetchOnlineExplanationChunk('explanations_epics.json'));
     }
 
-    // Guarantee skeleton shimmer is visible for a smooth, enjoyable duration (750ms)
-    const elapsedShimmer = Date.now() - shimmerStartTime;
-    const minShimmerDuration = 750;
-    if (elapsedShimmer < minShimmerDuration) {
-        await new Promise(r => setTimeout(r, minShimmerDuration - elapsedShimmer));
+    // Race background downloads against a 1.8-second timeout so the skeleton never gets stuck
+    if (fetchPromises.length > 0) {
+        await Promise.race([
+            Promise.all(fetchPromises),
+            new Promise(r => setTimeout(r, 1800))
+        ]).catch(() => {});
     }
 
     if (!cardEl._isShowingExplanation) return;
     if (activeExplanationVerseId !== targetVerseId) return;
 
-    const chap = targetVerse.chapter || targetVerse.chapter_no || '1';
-    const ver = targetVerse.verse || targetVerse.verse_id || targetVerse.hadith_no || '';
-
-    const candidateKeys = getCandidateExplanationKeys(targetVerse);
-    let foundData = null;
-    let foundKey = null;
-    let foundChapterData = null;
-    for (const k of candidateKeys) {
-        if (!foundData && verseExplanations[k]) {
-            foundData = verseExplanations[k];
-            foundKey = k;
-        }
-        if (!foundChapterData && verseExplanations[k] && verseExplanations[k].context) {
-            foundChapterData = verseExplanations[k];
-        }
-    }
-
-    let rawExplanation = '';
-    if (foundData) {
-        if (foundData.explanation) {
-            rawExplanation = foundData.explanation;
-        } else if (foundData.meaning && foundData.context) {
-            rawExplanation = `${foundData.context}\n\n${foundData.meaning}`;
-        } else if (foundData.meaning || foundData.text) {
-            rawExplanation = foundData.meaning || foundData.text;
-        } else if (typeof foundData === 'string') {
-            rawExplanation = foundData;
-        }
-    } else if (foundChapterData) {
-        if (foundChapterData.explanation) {
-            rawExplanation = foundChapterData.explanation;
-        } else if (foundChapterData.meaning && foundChapterData.context) {
-            rawExplanation = `${foundChapterData.context}\n\n${foundChapterData.meaning}`;
-        } else if (foundChapterData.meaning || foundChapterData.text) {
-            rawExplanation = foundChapterData.meaning || foundChapterData.text;
-        }
-    }
-
-    let cleanExplanation = rawExplanation ? rawExplanation.replace(/[—–]/g, ', ').replace(/--/g, ', ').trim() : '';
-
-    // Purge any reasoning/thinking prompt leak artifacts
-    const isContaminated = (str) => {
-        if (!str) return false;
-        const lower = str.toLowerCase();
-        return lower.includes('<think') || 
-               lower.includes('thinking process') || 
-               lower.includes('analyze user input') || 
-               lower.includes('expert scholar') || 
-               lower.includes('**role') || 
-               lower.includes('**task') || 
-               lower.includes('strict rules') ||
-               lower.includes('key terminology') ||
-               lower.includes('in theological context') ||
-               lower.includes('this quranic verse') ||
-               lower.includes('this biblical verse');
-    };
-
-    if (isContaminated(cleanExplanation)) cleanExplanation = '';
-
-    let expHtml = '';
-    if (cleanExplanation) {
-        expHtml = `
-            <div class="card-explanation-view">
-                <div class="card-explanation-section">
-                    <span class="card-exp-badge">Information</span>
-                    <p class="card-exp-text">${cleanExplanation}</p>
-                </div>
-            </div>
-        `;
-    } else {
-        cleanExplanation = "Take a quiet breath and reflect on what these words speak to your heart today.";
-        expHtml = `
-            <div class="card-explanation-view">
-                <div class="card-explanation-section">
-                    <span class="card-exp-badge">Information</span>
-                    <p class="card-exp-text" style="opacity: 0.85;">Information for this verse is being added soon.\n\nTake a quiet breath and reflect on what these words speak to your heart today.</p>
-                </div>
-            </div>
-        `;
-    }
-
-    cardEl._explanationSpeechText = "Information. " + cleanExplanation;
-
-    if (isFeedCard) {
-        fadeSwapContent(textEl, () => {
-            cardEl.classList.add('card-explanation-active');
-            textEl.innerHTML = expHtml;
-        });
-    } else {
-        animateCardExpand(cardEl, () => {
-            if (cardEl.classList.contains('book-verse')) {
-                cardEl.classList.add('book-verse-explanation-active');
-            } else if (cardEl.classList.contains('saved-verse')) {
-                cardEl.classList.add('saved-verse-explanation-active');
-            }
-            textEl.innerHTML = expHtml;
-        }, () => {
-            if (cardEl.classList.contains('book-verse')) {
-                const container = document.getElementById('book-content-view');
-                const wheelContainer = document.getElementById('chapter-scroll-wheel-container');
-                if (container && wheelContainer) {
-                    const wheelHeight = Math.max(wheelContainer.offsetHeight, wheelContainer.getBoundingClientRect().height);
-                    const rect = cardEl.getBoundingClientRect();
-                    const contRect = container.getBoundingClientRect();
-                    const safeTop = contRect.top + wheelHeight + 20;
-                    if (rect.top < safeTop) {
-                        const diff = safeTop - rect.top;
-                        container.scrollBy({ top: -diff, behavior: 'smooth' });
-                    }
-                }
-            }
-        });
-    }
+    const expResult = resolveExplanationText(targetVerse);
+    renderResolvedUI(expResult);
 }
 
 function closeVerseExplanationModal(event) {
@@ -36352,6 +36404,12 @@ function showBookContent(rel, book) {
         
         currentBookContent = content;
         initializeChapterView(content, chapterOrder);
+        try {
+            const chunk = getAppropriateChunkForVerse({ religion: rel, book: book.name, subBook: currentSubBook });
+            if (chunk && !loadedExplanationChunks.has(chunk)) {
+                fetchOnlineExplanationChunk(chunk).catch(() => {});
+            }
+        } catch(e) {}
     }
 }
 
@@ -36366,6 +36424,12 @@ function showSubBookContent(subBookName) {
     const subBookData = currentBookObj.subBooks[subBookName];
     currentBookContent = subBookData.content;
     initializeChapterView(subBookData.content, subBookData.chapterOrder);
+    try {
+        const chunk = getAppropriateChunkForVerse({ religion: currentReligion, book: currentBookName, subBook: subBookName });
+        if (chunk && !loadedExplanationChunks.has(chunk)) {
+            fetchOnlineExplanationChunk(chunk).catch(() => {});
+        }
+    } catch(e) {}
 }
 
 function initializeChapterView(content, chapterOrder) {
@@ -36405,7 +36469,9 @@ function initializeChapterView(content, chapterOrder) {
                 text: content[chap][vers],
                 globalIndex: globalIndex,
                 religion: currentReligion,
-                book: currentBookName
+                book: currentSubBook || currentBookName,
+                subBook: currentSubBook,
+                parentBook: currentBookName
             });
             globalIndex++;
         });
