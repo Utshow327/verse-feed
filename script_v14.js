@@ -30325,7 +30325,7 @@ async function fetchOnlineExplanationChunk(chunkName) {
         ];
         for (const url of urls) {
             try {
-                const res = await fetch(url, { cache: 'default' });
+                const res = await fetch(url, { cache: 'no-cache' });
                 if (res.ok) {
                     const data = await res.json();
                     if (data && typeof data === 'object') {
@@ -30376,7 +30376,7 @@ function findExplanationInCache(verse) {
 }
 
 async function loadVerseExplanations() {
-    // Only prefetch lightweight 1.6MB feed chunk if online
+    // Strictly internet-only CDN fetching
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
         return;
     }
@@ -30386,6 +30386,12 @@ async function loadVerseExplanations() {
 }
 
 if (typeof window !== 'undefined') {
+    window.addEventListener('offline', () => {
+        // Zero offline persistence: clear in-memory CDN data when disconnected
+        verseExplanations = {};
+        loadedExplanationChunks.clear();
+        resetActiveExplanation(true);
+    });
     window.addEventListener('online', () => {
         const card = document.querySelector('.verse-card.card-center');
         if (card && card._isShowingExplanation && card.querySelector('.exp-offline-box') && card._originalVerseObj) {
@@ -30861,15 +30867,6 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         }
     };
 
-    let cached = findExplanationInCache(targetVerse);
-
-    // OPTIMISTIC RENDER: If already cached in memory, render immediately with 0 delay!
-    if (cached) {
-        const expResult = resolveExplanationText(targetVerse);
-        renderResolvedUI(expResult);
-        return;
-    }
-
     const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
     if (isOffline) {
         const offlineHtml = `
@@ -30894,6 +30891,15 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         if (typeof showToast === 'function') {
             showToast("Connect to internet to view information");
         }
+        return;
+    }
+
+    let cached = findExplanationInCache(targetVerse);
+
+    // If already downloaded from CDN during current online session, render smoothly
+    if (cached) {
+        const expResult = resolveExplanationText(targetVerse);
+        renderResolvedUI(expResult);
         return;
     }
 
