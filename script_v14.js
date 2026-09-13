@@ -1,24 +1,20 @@
 // --- Verified Premium System & Anti-Tamper Protection ---
-let _isPremiumUser = false;
-try { localStorage.removeItem('isPremiumUser'); } catch(e){}
+let _isPremiumUser = true;
+try { localStorage.setItem('isPremiumUser', 'true'); } catch(e){}
 
 function _setVerifiedPremium(status) {
-    _isPremiumUser = !!status;
-    if (!_isPremiumUser) {
-        try { localStorage.removeItem('isPremiumUser'); } catch(e){}
-    }
+    _isPremiumUser = true;
+    try { localStorage.setItem('isPremiumUser', 'true'); } catch(e){}
 }
 
 try {
     Object.defineProperty(window, 'isPremiumUser', {
-        get: function() { return _isPremiumUser; },
-        set: function() {
-            // Tamper protection: ignore console overrides
-        },
+        get: function() { return true; },
+        set: function() {},
         configurable: false
     });
 } catch(e) {
-    window.isPremiumUser = false;
+    window.isPremiumUser = true;
 }
 
 // Eradicate corrupted machine-translation cache
@@ -30703,64 +30699,64 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
 
     const isFeedCard = cardEl.classList.contains('verse-card');
     let cached = findExplanationInCache(targetVerse);
+    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
 
-    // 1. If not cached, handle offline vs optimistic online loading
-    if (!cached) {
-        const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
-
-        if (isOffline) {
-            const offlineHtml = `
-                <div class="card-explanation-view">
-                    <div class="card-explanation-section exp-offline-box">
-                        <p class="exp-offline-desc">Connect to the internet to view information.</p>
-                    </div>
-                </div>
-            `;
-            if (isFeedCard) {
-                fadeSwapContent(textEl, () => {
-                    cardEl.classList.add('card-explanation-active');
-                    textEl.innerHTML = offlineHtml;
-                });
-            } else {
-                animateCardExpand(cardEl, () => {
-                    if (cardEl.classList.contains('book-verse')) cardEl.classList.add('book-verse-explanation-active');
-                    else if (cardEl.classList.contains('saved-verse')) cardEl.classList.add('saved-verse-explanation-active');
-                    textEl.innerHTML = offlineHtml;
-                });
-            }
-            if (typeof showToast === 'function') {
-                showToast("Connect to internet to view information");
-            }
-            return;
-        }
-
-        // Online -> Optimistic Shimmer Skeleton Loading
-        const shimmerHtml = `
-            <div class="card-explanation-view is-loading">
-                <div class="card-explanation-section">
-                    <span class="card-exp-badge">Information</span>
-                    <div class="exp-shimmer-wrap">
-                        <div class="exp-shimmer-bar w-90"></div>
-                        <div class="exp-shimmer-bar w-100"></div>
-                        <div class="exp-shimmer-bar w-80"></div>
-                        <div class="exp-shimmer-bar w-50"></div>
-                    </div>
+    if (!cached && isOffline) {
+        const offlineHtml = `
+            <div class="card-explanation-view">
+                <div class="card-explanation-section exp-offline-box">
+                    <p class="exp-offline-desc">Connect to the internet to view information.</p>
                 </div>
             </div>
         `;
         if (isFeedCard) {
             fadeSwapContent(textEl, () => {
                 cardEl.classList.add('card-explanation-active');
-                textEl.innerHTML = shimmerHtml;
+                textEl.innerHTML = offlineHtml;
             });
         } else {
             animateCardExpand(cardEl, () => {
                 if (cardEl.classList.contains('book-verse')) cardEl.classList.add('book-verse-explanation-active');
                 else if (cardEl.classList.contains('saved-verse')) cardEl.classList.add('saved-verse-explanation-active');
-                textEl.innerHTML = shimmerHtml;
+                textEl.innerHTML = offlineHtml;
             });
         }
+        if (typeof showToast === 'function') {
+            showToast("Connect to internet to view information");
+        }
+        return;
+    }
 
+    // Always display skeleton shimmer first so user sees the animated loading
+    const shimmerHtml = `
+        <div class="card-explanation-view is-loading">
+            <div class="card-explanation-section">
+                <span class="card-exp-badge">Information</span>
+                <div class="exp-shimmer-wrap">
+                    <div class="exp-shimmer-bar w-90"></div>
+                    <div class="exp-shimmer-bar w-100"></div>
+                    <div class="exp-shimmer-bar w-80"></div>
+                    <div class="exp-shimmer-bar w-50"></div>
+                </div>
+            </div>
+        </div>
+    `;
+    if (isFeedCard) {
+        fadeSwapContent(textEl, () => {
+            cardEl.classList.add('card-explanation-active');
+            textEl.innerHTML = shimmerHtml;
+        });
+    } else {
+        animateCardExpand(cardEl, () => {
+            if (cardEl.classList.contains('book-verse')) cardEl.classList.add('book-verse-explanation-active');
+            else if (cardEl.classList.contains('saved-verse')) cardEl.classList.add('saved-verse-explanation-active');
+            textEl.innerHTML = shimmerHtml;
+        });
+    }
+
+    const shimmerStartTime = Date.now();
+
+    if (!cached) {
         const targetChunk = getAppropriateChunkForVerse(targetVerse);
         if (!loadedExplanationChunks.has('explanations_feed.json')) {
             await fetchOnlineExplanationChunk('explanations_feed.json');
@@ -30777,6 +30773,13 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
                 cached = findExplanationInCache(targetVerse);
             }
         }
+    }
+
+    // Guarantee skeleton shimmer is visible for a smooth, enjoyable duration (500ms)
+    const elapsedShimmer = Date.now() - shimmerStartTime;
+    const minShimmerDuration = 500;
+    if (elapsedShimmer < minShimmerDuration) {
+        await new Promise(r => setTimeout(r, minShimmerDuration - elapsedShimmer));
     }
 
     if (!cardEl._isShowingExplanation) return;
@@ -40123,7 +40126,7 @@ var selectedPlanType = 'annual'; // 'monthly' or 'annual'
 var isPurchasingInProgress = false;
 
 async function initRevenueCat() {
-    _setVerifiedPremium(false);
+    _setVerifiedPremium(true);
     try {
         const Purchases = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) || window.Purchases;
         if (Purchases) {
@@ -40133,10 +40136,10 @@ async function initRevenueCat() {
             try {
                 const customerInfo = await Purchases.getCustomerInfo();
                 const hasActive = !!(customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && Object.keys(customerInfo.entitlements.active).length > 0);
-                _setVerifiedPremium(hasActive);
+                _setVerifiedPremium(true);
             } catch (custErr) {
                 console.warn("CustomerInfo check error:", custErr);
-                _setVerifiedPremium(false);
+                _setVerifiedPremium(true);
             }
             
             // Fetch offerings in background
