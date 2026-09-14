@@ -30319,7 +30319,13 @@ async function fetchOnlineExplanationChunk(chunkName) {
     if (pendingExplanationFetches[chunkName]) return pendingExplanationFetches[chunkName];
 
     const promise = (async () => {
-        const urls = [
+        const isLocalhost = typeof window !== 'undefined' && 
+            (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+        const urls = isLocalhost ? [
+            `data/${chunkName}`,
+            `${EXPLANATION_CDN_PRIMARY}${chunkName}?v=2`,
+            `${EXPLANATION_CDN_FALLBACK}${chunkName}`
+        ] : [
             `${EXPLANATION_CDN_PRIMARY}${chunkName}?v=2`,
             `${EXPLANATION_CDN_FALLBACK}${chunkName}`
         ];
@@ -30329,7 +30335,16 @@ async function fetchOnlineExplanationChunk(chunkName) {
                 if (res.ok) {
                     const data = await res.json();
                     if (data && typeof data === 'object') {
-                        Object.assign(verseExplanations, data);
+                        for (const [key, val] of Object.entries(data)) {
+                            verseExplanations[key] = val;
+                            const parts = key.split('_');
+                            if (parts.length >= 3) {
+                                const suffix = parts.slice(1).join('_');
+                                if (!verseExplanations[suffix]) {
+                                    verseExplanations[suffix] = val;
+                                }
+                            }
+                        }
                         loadedExplanationChunks.add(chunkName);
                         return true;
                     }
@@ -30723,6 +30738,70 @@ function buildExplanationHtml(cleanExplanation, isFallback = false) {
     `;
 }
 
+function computeWordWrappedLineWidths(paraText, maxCharsPerLine = 36) {
+    if (!paraText) return [80];
+    const words = paraText.trim().split(/\s+/);
+    const lines = [];
+    let cur = '';
+    for (const w of words) {
+        if ((cur + ' ' + w).trim().length <= maxCharsPerLine) {
+            cur = (cur + ' ' + w).trim();
+        } else {
+            if (cur) lines.push(cur);
+            cur = w;
+        }
+    }
+    if (cur) lines.push(cur);
+
+    return lines.map((line, idx) => {
+        const ratio = line.length / maxCharsPerLine;
+        if (idx === lines.length - 1 && lines.length > 1) {
+            return Math.max(38, Math.min(84, Math.round(ratio * 100)));
+        }
+        return Math.max(76, Math.min(100, Math.round(ratio * 100)));
+    });
+}
+
+function getDeterministicFallbackLines(targetVerse) {
+    const verseStr = String((targetVerse && (targetVerse.text || targetVerse.id || targetVerse.verse)) || 'verse');
+    let hash = 0;
+    for (let i = 0; i < verseStr.length; i++) {
+        hash = ((hash << 5) - hash) + verseStr.charCodeAt(i);
+        hash |= 0;
+    }
+    hash = Math.abs(hash);
+
+    const textLen = targetVerse && targetVerse.text ? targetVerse.text.length : 80;
+    const isSinglePara = textLen < 55 && (hash % 3 === 0);
+
+    if (isSinglePara) {
+        const lineCount = 2 + (hash % 2);
+        const lines = [];
+        for (let i = 0; i < lineCount; i++) {
+            if (i === lineCount - 1) lines.push(42 + ((hash + i * 7) % 32));
+            else lines.push(80 + ((hash + i * 13) % 19));
+        }
+        return [lines];
+    }
+
+    const p1Count = textLen > 140 ? (3 + (hash % 2)) : (2 + (hash % 2));
+    const p2Count = textLen > 160 ? (3 + ((hash >> 2) % 2)) : (2 + ((hash >> 2) % 2));
+
+    const p1 = [];
+    for (let i = 0; i < p1Count; i++) {
+        if (i === p1Count - 1) p1.push(44 + ((hash + i * 11) % 32));
+        else p1.push(78 + ((hash + i * 17) % 21));
+    }
+
+    const p2 = [];
+    for (let i = 0; i < p2Count; i++) {
+        if (i === p2Count - 1) p2.push(40 + (((hash >> 3) + i * 9) % 34));
+        else p2.push(80 + (((hash >> 2) + i * 13) % 19));
+    }
+
+    return [p1, p2];
+}
+
 function buildExplanationShimmerHtml(targetVerse, knownExplanationText = null) {
     let text = knownExplanationText;
     if (!text && targetVerse) {
@@ -30747,55 +30826,9 @@ function buildExplanationShimmerHtml(targetVerse, knownExplanationText = null) {
 
     let paraBars = [];
     if (paragraphs.length >= 1) {
-        paraBars = paragraphs.map((para, pIdx) => {
-            const charsPerLine = 36;
-            const lineCount = Math.max(1, Math.ceil(para.length / charsPerLine));
-            const lines = [];
-            for (let i = 0; i < lineCount; i++) {
-                if (i === lineCount - 1) {
-                    const rem = para.length % charsPerLine;
-                    const ratio = rem === 0 ? 0.72 : (rem / charsPerLine);
-                    const pct = Math.max(48, Math.min(88, Math.round(ratio * 100)));
-                    lines.push(pct);
-                } else {
-                    const variance = ((pIdx * 5 + i * 11) % 7);
-                    lines.push(100 - variance);
-                }
-            }
-            return lines;
-        });
+        paraBars = paragraphs.map(para => computeWordWrappedLineWidths(para, 36));
     } else {
-        const verseStr = String((targetVerse && (targetVerse.id || targetVerse.text || targetVerse.verse)) || '');
-        let hash = 0;
-        for (let i = 0; i < verseStr.length; i++) {
-            hash = ((hash << 5) - hash) + verseStr.charCodeAt(i);
-            hash |= 0;
-        }
-        hash = Math.abs(hash);
-
-        const textLen = (targetVerse && targetVerse.text ? targetVerse.text.length : 100);
-        const p1Lines = textLen > 140 ? 3 : (textLen < 60 ? 2 : (hash % 2 === 0 ? 2 : 3));
-        const p2Lines = textLen > 180 ? 3 : (hash % 3 === 0 ? 3 : 2);
-
-        const para1 = [];
-        for (let i = 0; i < p1Lines; i++) {
-            if (i === p1Lines - 1) {
-                para1.push(58 + (hash % 25));
-            } else {
-                para1.push(95 + ((hash + i) % 5));
-            }
-        }
-
-        const para2 = [];
-        for (let i = 0; i < p2Lines; i++) {
-            if (i === p2Lines - 1) {
-                para2.push(50 + ((hash >> 2) % 25));
-            } else {
-                para2.push(94 + (((hash >> 1) + i) % 6));
-            }
-        }
-
-        paraBars = [para1, para2];
+        paraBars = getDeterministicFallbackLines(targetVerse);
     }
 
     const parasHtml = paraBars.map(lines => `
@@ -31003,14 +31036,19 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         });
     }
 
+    const shimmerStartTime = Date.now();
+    const minShimmerMs = 450;
+
     // If already downloaded from CDN during current online session, render smoothly
     if (cached) {
         const expResult = resolveExplanationText(targetVerse);
+        const elapsed = Date.now() - shimmerStartTime;
+        const delay = Math.max(0, minShimmerMs - elapsed);
         setTimeout(() => {
             if (!cardEl._isShowingExplanation) return;
             if (activeExplanationVerseId !== targetVerseId) return;
             renderResolvedUI(expResult);
-        }, 180);
+        }, delay);
         return;
     }
 
@@ -31033,6 +31071,11 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
             Promise.all(fetchPromises),
             new Promise(r => setTimeout(r, 1800))
         ]).catch(() => {});
+    }
+
+    const elapsed = Date.now() - shimmerStartTime;
+    if (elapsed < minShimmerMs) {
+        await new Promise(r => setTimeout(r, minShimmerMs - elapsed));
     }
 
     if (!cardEl._isShowingExplanation) return;
@@ -33835,20 +33878,37 @@ async function loadReligionData(rel) {
         
         await new Promise(r => setTimeout(r, 5)); // Yield to UI thread
 
-        if (rel === 'Christianity') processBibleData(responses[0]);
+        if (rel === 'Christianity') {
+            processBibleData(responses[0]);
+            fetchOnlineExplanationChunk('explanations_christianity.json').catch(() => {});
+        }
         if (rel === 'Islam') { 
             processQuranData(responses[0]); 
             await new Promise(r => setTimeout(r, 5)); // Yield 
             processHadithData(responses[1]); 
+            fetchOnlineExplanationChunk('explanations_islam.json').catch(() => {});
         }
         if (rel === 'Hinduism') { 
             processGitaData(responses[0]); 
             if (responses[1]) processHinduBooks(responses[1]);
+            fetchOnlineExplanationChunk('explanations_hinduism.json').catch(() => {});
         }
-        if (rel === 'Judaism') processSefariaData(responses[0]);
-        if (rel === 'Sikhism') processSikhismData(responses[0]);
-        if (rel === 'Buddhism') processBuddhismData(responses[0]);
-        if (rel === 'Philosophy') processGenericData(responses[0], 'Philosophy');
+        if (rel === 'Judaism') {
+            processSefariaData(responses[0]);
+            fetchOnlineExplanationChunk('explanations_judaism.json').catch(() => {});
+        }
+        if (rel === 'Sikhism') {
+            processSikhismData(responses[0]);
+            fetchOnlineExplanationChunk('explanations_sikhism.json').catch(() => {});
+        }
+        if (rel === 'Buddhism') {
+            processBuddhismData(responses[0]);
+            fetchOnlineExplanationChunk('explanations_buddhism.json').catch(() => {});
+        }
+        if (rel === 'Philosophy') {
+            processGenericData(responses[0], 'Philosophy');
+            fetchOnlineExplanationChunk('explanations_philosophy.json').catch(() => {});
+        }
 
         loadedReligions.add(rel);
 
