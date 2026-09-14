@@ -2209,6 +2209,16 @@ h2 {
 }
 
 /* Home feed card explanation: strict bounding and natural scroll, never overflows card */
+.verse-card.card-explanation-active {
+    background: var(--text-color) !important;
+    color: var(--bg-grad-1) !important;
+}
+
+.verse-card.card-explanation-active .verse-ref,
+.verse-card.card-explanation-active .card-footer {
+    color: var(--bg-grad-1) !important;
+}
+
 .verse-card.card-explanation-active .verse-text {
     display: flex !important;
     flex-direction: column !important;
@@ -2219,13 +2229,57 @@ h2 {
     -webkit-overflow-scrolling: touch !important;
     box-sizing: border-box !important;
     padding: 0 4px !important;
+    color: var(--bg-grad-1) !important;
 }
 
-.verse-card.card-explanation-active .card-explanation-view {
+.verse-card.card-explanation-active .card-explanation-view,
+.verse-card.card-explanation-active .card-exp-text {
     margin: auto 0 !important;
     width: 100% !important;
     max-width: 96% !important;
     box-sizing: border-box !important;
+    color: var(--bg-grad-1) !important;
+}
+
+.verse-card.card-explanation-active .card-exp-badge {
+    color: var(--bg-grad-1) !important;
+    opacity: 0.85 !important;
+}
+
+.verse-card.card-explanation-active .exp-shimmer-bar,
+.verse-card .exp-shimmer-bar,
+.saved-verse.saved-verse-explanation-active .exp-shimmer-bar,
+.saved-verse .exp-shimmer-bar {
+    background-color: rgba(0, 0, 0, 0.08) !important;
+    background-image: linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.08) 0%,
+        rgba(0, 0, 0, 0.24) 40%,
+        rgba(0, 0, 0, 0.36) 50%,
+        rgba(0, 0, 0, 0.24) 60%,
+        rgba(0, 0, 0, 0.08) 100%
+    ) !important;
+    background-size: 200% 100% !important;
+    -webkit-animation: ytShimmerWave 1.4s ease-in-out infinite !important;
+    animation: ytShimmerWave 1.4s ease-in-out infinite !important;
+}
+
+[data-theme="light"] .verse-card.card-explanation-active .exp-shimmer-bar,
+[data-theme="light"] .verse-card .exp-shimmer-bar,
+[data-theme="light"] .saved-verse.saved-verse-explanation-active .exp-shimmer-bar,
+[data-theme="light"] .saved-verse .exp-shimmer-bar {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+    background-image: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.12) 0%,
+        rgba(255, 255, 255, 0.36) 40%,
+        rgba(255, 255, 255, 0.50) 50%,
+        rgba(255, 255, 255, 0.36) 60%,
+        rgba(255, 255, 255, 0.12) 100%
+    ) !important;
+    background-size: 200% 100% !important;
+    -webkit-animation: ytShimmerWave 1.4s ease-in-out infinite !important;
+    animation: ytShimmerWave 1.4s ease-in-out infinite !important;
 }
 
 /* Pure zero-lag opacity fade transitions */

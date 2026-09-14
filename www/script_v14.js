@@ -30962,8 +30962,8 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         const expHtml = buildExplanationHtml(expResult.text, expResult.isFallback);
 
         if (isFeedCard) {
+            cardEl.classList.add('card-explanation-active');
             fadeSwapContent(textEl, () => {
-                cardEl.classList.add('card-explanation-active');
                 textEl.innerHTML = expHtml;
             });
         } else {
@@ -31024,8 +31024,8 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
     const shimmerHtml = buildExplanationShimmerHtml(targetVerse);
 
     if (isFeedCard) {
+        cardEl.classList.add('card-explanation-active');
         fadeSwapContent(textEl, () => {
-            cardEl.classList.add('card-explanation-active');
             textEl.innerHTML = shimmerHtml;
         });
     } else {
@@ -31037,7 +31037,7 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
     }
 
     const shimmerStartTime = Date.now();
-    const minShimmerMs = 450;
+    const minShimmerMs = 500;
 
     // If already downloaded from CDN during current online session, render smoothly
     if (cached) {
