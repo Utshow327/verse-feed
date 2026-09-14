@@ -3377,10 +3377,19 @@ h2 {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 16px;
     width: 100%;
     max-width: 330px;
     margin: 12px auto 8px auto;
+}
+
+.exp-shimmer-para {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    width: 100%;
 }
 
 .exp-shimmer-bar {

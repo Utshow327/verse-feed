@@ -30723,6 +30723,99 @@ function buildExplanationHtml(cleanExplanation, isFallback = false) {
     `;
 }
 
+function buildExplanationShimmerHtml(targetVerse, knownExplanationText = null) {
+    let text = knownExplanationText;
+    if (!text && targetVerse) {
+        if (targetVerse.explanation) {
+            text = targetVerse.explanation;
+        } else if (targetVerse.meaning && targetVerse.context) {
+            text = `${targetVerse.context}\n\n${targetVerse.meaning}`;
+        } else if (targetVerse.meaning || targetVerse.text_meaning) {
+            text = targetVerse.meaning || targetVerse.text_meaning;
+        } else {
+            const expResult = resolveExplanationText(targetVerse);
+            if (expResult && !expResult.isFallback && expResult.text) {
+                text = expResult.text;
+            }
+        }
+    }
+
+    let paragraphs = [];
+    if (text) {
+        paragraphs = text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+    }
+
+    let paraBars = [];
+    if (paragraphs.length >= 1) {
+        paraBars = paragraphs.map((para, pIdx) => {
+            const charsPerLine = 36;
+            const lineCount = Math.max(1, Math.ceil(para.length / charsPerLine));
+            const lines = [];
+            for (let i = 0; i < lineCount; i++) {
+                if (i === lineCount - 1) {
+                    const rem = para.length % charsPerLine;
+                    const ratio = rem === 0 ? 0.72 : (rem / charsPerLine);
+                    const pct = Math.max(48, Math.min(88, Math.round(ratio * 100)));
+                    lines.push(pct);
+                } else {
+                    const variance = ((pIdx * 5 + i * 11) % 7);
+                    lines.push(100 - variance);
+                }
+            }
+            return lines;
+        });
+    } else {
+        const verseStr = String((targetVerse && (targetVerse.id || targetVerse.text || targetVerse.verse)) || '');
+        let hash = 0;
+        for (let i = 0; i < verseStr.length; i++) {
+            hash = ((hash << 5) - hash) + verseStr.charCodeAt(i);
+            hash |= 0;
+        }
+        hash = Math.abs(hash);
+
+        const textLen = (targetVerse && targetVerse.text ? targetVerse.text.length : 100);
+        const p1Lines = textLen > 140 ? 3 : (textLen < 60 ? 2 : (hash % 2 === 0 ? 2 : 3));
+        const p2Lines = textLen > 180 ? 3 : (hash % 3 === 0 ? 3 : 2);
+
+        const para1 = [];
+        for (let i = 0; i < p1Lines; i++) {
+            if (i === p1Lines - 1) {
+                para1.push(58 + (hash % 25));
+            } else {
+                para1.push(95 + ((hash + i) % 5));
+            }
+        }
+
+        const para2 = [];
+        for (let i = 0; i < p2Lines; i++) {
+            if (i === p2Lines - 1) {
+                para2.push(50 + ((hash >> 2) % 25));
+            } else {
+                para2.push(94 + (((hash >> 1) + i) % 6));
+            }
+        }
+
+        paraBars = [para1, para2];
+    }
+
+    const parasHtml = paraBars.map(lines => `
+        <div class="exp-shimmer-para">
+            ${lines.map(w => `<div class="exp-shimmer-bar" style="width: ${w}%;"></div>`).join('')}
+        </div>
+    `).join('');
+
+    return `
+        <div class="card-explanation-view is-loading">
+            <div class="card-explanation-section">
+                <span class="card-exp-badge">Information</span>
+                <div class="exp-shimmer-wrap">
+                    ${parasHtml}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 async function openVerseExplanation(verse, event, isAutoTransition = false) {
     if (event) {
         try { event.stopPropagation(); } catch(e){}
@@ -30895,29 +30988,8 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
     }
 
     let cached = findExplanationInCache(targetVerse);
+    const shimmerHtml = buildExplanationShimmerHtml(targetVerse);
 
-    // If already downloaded from CDN during current online session, render smoothly
-    if (cached) {
-        const expResult = resolveExplanationText(targetVerse);
-        renderResolvedUI(expResult);
-        return;
-    }
-
-    // Uncached verse: show skeleton shimmer while fetching
-    const shimmerHtml = `
-        <div class="card-explanation-view is-loading">
-            <div class="card-explanation-section">
-                <span class="card-exp-badge">Information</span>
-                <div class="exp-shimmer-wrap">
-                    <div class="exp-shimmer-bar exp-w-95"></div>
-                    <div class="exp-shimmer-bar exp-w-100"></div>
-                    <div class="exp-shimmer-bar exp-w-85"></div>
-                    <div class="exp-shimmer-bar exp-w-90"></div>
-                    <div class="exp-shimmer-bar exp-w-60"></div>
-                </div>
-            </div>
-        </div>
-    `;
     if (isFeedCard) {
         fadeSwapContent(textEl, () => {
             cardEl.classList.add('card-explanation-active');
@@ -30929,6 +31001,17 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
             else if (cardEl.classList.contains('saved-verse')) cardEl.classList.add('saved-verse-explanation-active');
             textEl.innerHTML = shimmerHtml;
         });
+    }
+
+    // If already downloaded from CDN during current online session, render smoothly
+    if (cached) {
+        const expResult = resolveExplanationText(targetVerse);
+        setTimeout(() => {
+            if (!cardEl._isShowingExplanation) return;
+            if (activeExplanationVerseId !== targetVerseId) return;
+            renderResolvedUI(expResult);
+        }, 180);
+        return;
     }
 
     const targetChunk = getAppropriateChunkForVerse(targetVerse);
