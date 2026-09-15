@@ -2197,7 +2197,7 @@ h2 {
     letter-spacing: 0.15px !important;
     text-align: center !important;
     margin: 0 auto !important;
-    padding: 0 !important;
+    padding: 0 0 12px 0 !important;
     white-space: pre-line !important;
     color: inherit !important;
     width: 100% !important;
@@ -2219,12 +2219,16 @@ h2 {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    justify-content: center !important;
+    justify-content: flex-start !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: 100% !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain !important;
     box-sizing: border-box !important;
-    padding: 0 4px !important;
+    padding: 6px 4px 14px 4px !important;
     color: var(--bg-grad-1) !important;
 }
 
@@ -2234,6 +2238,7 @@ h2 {
     width: 100% !important;
     max-width: 96% !important;
     box-sizing: border-box !important;
+    padding: 6px 0 14px 0 !important;
     color: var(--bg-grad-1) !important;
 }
 

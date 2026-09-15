@@ -30165,7 +30165,11 @@ localStorage.removeItem = function(key) {
 let currentActiveProfileId = null;
 
 function switchProfile(targetProfileId) {
-    if (!targetProfileId) targetProfileId = 'guest';
+    if (!targetProfileId || targetProfileId === 'guest') {
+        targetProfileId = 'guest';
+        _setVerifiedPremium(false);
+        try { localStorage.removeItem('isPremiumUser'); } catch(e){}
+    }
     const isSameProfile = (currentActiveProfileId === targetProfileId);
     if (isSameProfile && verseBatches.general && verseBatches.general.length > 0) {
         return;
@@ -30942,9 +30946,8 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         return;
     }
 
-    // Free vs Premium Information Check (Random 3-4 view range, then Rewarded Interstitial ad)
-    const isTestAdMode = localStorage.getItem('test_info_ad_flow') === 'true';
-    if (!isAutoTransition && (!isPremiumUser || isTestAdMode)) {
+    // Free vs Premium Information Check (Random 3-4 view range, then 5s skippable ad)
+    if (!isAutoTransition && !isPremiumUser) {
         let unlockedVerses = [];
         try {
             unlockedVerses = JSON.parse(localStorage.getItem('freeUnlockedInfoVerses') || '[]');
@@ -31158,6 +31161,11 @@ async function initAdMob() {
         AdMob.addListener('onRewardedInterstitialAdReward', () => {
             grantInfoReward();
         });
+        AdMob.addListener('onInterstitialAdDismissed', () => {
+            grantInfoReward();
+            isRewardedInterstitialReady = false;
+            preloadRewardedInterstitialAd(usedAdMobFallbackTest);
+        });
 
         // Preload first ad unit
         preloadRewardedInterstitialAd(false);
@@ -31202,16 +31210,16 @@ async function showRewardedInterstitialAd() {
         await AdMob.showRewardInterstitialAd();
         return true;
     } catch(err) {
-        console.warn('showRewardInterstitialAd fallback to video:', err);
+        console.warn('showRewardInterstitialAd fallback to 5s interstitial:', err);
         try {
-            await AdMob.prepareRewardVideoAd({
-                adId: usedAdMobFallbackTest ? 'ca-app-pub-3940256099942544/5224354917' : ADMOB_REWARDED_INTERSTITIAL_LIVE_ID,
+            await AdMob.prepareInterstitial({
+                adId: usedAdMobFallbackTest ? 'ca-app-pub-3940256099942544/1033173712' : ADMOB_REWARDED_INTERSTITIAL_LIVE_ID,
                 isTesting: usedAdMobFallbackTest
             });
-            await AdMob.showRewardVideoAd();
+            await AdMob.showInterstitial();
             return true;
-        } catch(videoErr) {
-            console.warn('showRewardVideoAd failed:', videoErr);
+        } catch(interstitialErr) {
+            console.warn('showInterstitial fallback failed:', interstitialErr);
             return false;
         }
     }
@@ -31327,42 +31335,6 @@ async function handleWatchAdForInfo() {
             watchBtn.style.pointerEvents = 'auto';
             watchBtn.innerText = 'Watch Ad';
         }
-    }
-}
-
-async function testRewardedInterstitialAd() {
-    if (typeof showToast === 'function') showToast("Loading ad...");
-    const AdMob = window.Capacitor?.Plugins?.AdMob;
-    if (!AdMob) {
-        if (typeof showToast === 'function') showToast("AdMob requires Android app environment");
-        return;
-    }
-    try {
-        let showed = await showRewardedInterstitialAd();
-        if (showed) {
-            if (typeof showToast === 'function') showToast("Ad displayed successfully");
-        } else {
-            if (typeof showToast === 'function') showToast("Ad load failed (waiting for fill)");
-        }
-    } catch(e) {
-        if (typeof showToast === 'function') showToast("Ad error: " + (e.message || e));
-    }
-}
-
-function toggleTestInfoAdFlow() {
-    const current = localStorage.getItem('test_info_ad_flow') === 'true';
-    if (!current) {
-        localStorage.setItem('test_info_ad_flow', 'true');
-        localStorage.setItem('freeUnlockedInfoVerses', '[]');
-        localStorage.setItem('freeInfoCount', '0');
-        resetInfoAdCycle();
-        if (typeof showToast === 'function') showToast("Info Ad Lock ON: Ad every 3-4 views");
-    } else {
-        localStorage.removeItem('test_info_ad_flow');
-        if (typeof showToast === 'function') showToast("Info Ad Lock OFF: Unlimited info restored");
-    }
-    if (typeof updateTogglesUI === 'function') {
-        updateTogglesUI();
     }
 }
 
@@ -33208,17 +33180,6 @@ function updateTogglesUI() {
             voiceExpBtn.classList.remove('active');
         }
         voiceExpBtn.innerText = 'Voice Info';
-    }
-    const testFlowBtn = document.getElementById('account-test-flow-btn');
-    if (testFlowBtn) {
-        const isTesting = localStorage.getItem('test_info_ad_flow') === 'true';
-        if (isTesting) {
-            testFlowBtn.classList.add('active');
-            testFlowBtn.innerText = 'Info Ad Lock: Active';
-        } else {
-            testFlowBtn.classList.remove('active');
-            testFlowBtn.innerText = 'Test Info Ad Lock';
-        }
     }
 }
 
@@ -40447,9 +40408,19 @@ function confirmSignOut() {
         googleUser = null;
         try { originalRemoveItem.call(localStorage, 'googleUser'); } catch(e){}
         googleAccessToken = null;
+        _setVerifiedPremium(false);
+        try { localStorage.removeItem('isPremiumUser'); } catch(e){}
+        try {
+            const Purchases = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) || window.Purchases;
+            if (Purchases && typeof Purchases.logOut === 'function') {
+                Purchases.logOut().catch(() => {});
+            }
+        } catch(e){}
         switchProfile('guest');
         closeUserProfileModal();
         updateUserUI();
+        if (typeof updateTogglesUI === 'function') updateTogglesUI();
+        if (typeof buildSettings === 'function') buildSettings();
         if (typeof showSavedVerses === 'function') {
             showSavedVerses(true);
         }
@@ -40476,6 +40447,28 @@ function confirmSignOut() {
         });
     } else {
         doCleanup();
+    }
+}
+
+function continueAsGuest() {
+    _setVerifiedPremium(false);
+    try { localStorage.removeItem('isPremiumUser'); } catch(e){}
+    try {
+        const Purchases = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) || window.Purchases;
+        if (Purchases && typeof Purchases.logOut === 'function') {
+            Purchases.logOut().catch(() => {});
+        }
+    } catch(e){}
+    switchProfile('guest');
+    updateUserUI();
+    if (typeof updateTogglesUI === 'function') updateTogglesUI();
+    if (typeof buildSettings === 'function') buildSettings();
+    const onboard = document.getElementById('onboarding');
+    if (onboard) onboard.classList.remove('active-section');
+    const feed = document.getElementById('verse-feed');
+    if (feed) feed.classList.add('active-section');
+    if (typeof goTo === 'function') {
+        goTo('verse-feed', true);
     }
 }
 
