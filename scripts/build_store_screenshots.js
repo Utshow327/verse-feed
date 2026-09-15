@@ -214,12 +214,12 @@ async function render() {
   fs.writeFileSync(explOutArtifact, explBuffer);
 
   // 2. Voice Narration Showcase with Audio Visualizer
-  console.log('Rendering Voice Narration mockup (with visualizer and uncut blob)...');
+  console.log('Rendering Voice Narration mockup (clean, exact screenshot, no artificial wave)...');
   const voiceHtml = getHtml({
     title: 'Natural Voice Narration',
     subtitle: 'Peaceful spoken audio with ambient background music',
     imageBase64: voiceB64,
-    showVisualizer: true
+    showVisualizer: false
   });
   await page.setContent(voiceHtml, { waitUntil: 'domcontentloaded', timeout: 15000 });
   try { await page.evaluate(() => document.fonts.ready); } catch(e) {}
