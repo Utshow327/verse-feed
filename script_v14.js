@@ -1,20 +1,26 @@
 // --- Verified Premium System & Anti-Tamper Protection ---
-let _isPremiumUser = true;
-try { localStorage.setItem('isPremiumUser', 'true'); } catch(e){}
+let _isPremiumUser = false;
+try { localStorage.removeItem('isPremiumUser'); } catch(e){}
 
 function _setVerifiedPremium(status) {
-    _isPremiumUser = true;
-    try { localStorage.setItem('isPremiumUser', 'true'); } catch(e){}
+    _isPremiumUser = !!status;
+    if (!_isPremiumUser) {
+        try { localStorage.removeItem('isPremiumUser'); } catch(e){}
+    } else {
+        try { localStorage.setItem('isPremiumUser', 'true'); } catch(e){}
+    }
 }
 
 try {
     Object.defineProperty(window, 'isPremiumUser', {
-        get: function() { return true; },
-        set: function() {},
-        configurable: false
+        get: function() { return _isPremiumUser; },
+        set: function(val) {
+            _setVerifiedPremium(val);
+        },
+        configurable: true
     });
 } catch(e) {
-    window.isPremiumUser = true;
+    window.isPremiumUser = false;
 }
 
 // Eradicate corrupted machine-translation cache
@@ -40580,7 +40586,7 @@ var selectedPlanType = 'annual'; // 'monthly' or 'annual'
 var isPurchasingInProgress = false;
 
 async function initRevenueCat() {
-    _setVerifiedPremium(true);
+    _setVerifiedPremium(false);
     try {
         const Purchases = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) || window.Purchases;
         if (Purchases) {
@@ -40589,11 +40595,10 @@ async function initRevenueCat() {
             // Check existing customer info
             try {
                 const customerInfo = await Purchases.getCustomerInfo();
-                const hasActive = !!(customerInfo && customerInfo.entitlements && customerInfo.entitlements.active && Object.keys(customerInfo.entitlements.active).length > 0);
-                _setVerifiedPremium(true);
+                _setVerifiedPremium(false);
             } catch (custErr) {
                 console.warn("CustomerInfo check error:", custErr);
-                _setVerifiedPremium(true);
+                _setVerifiedPremium(false);
             }
             
             // Fetch offerings in background
