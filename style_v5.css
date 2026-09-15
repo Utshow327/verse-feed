@@ -394,11 +394,7 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
     opacity: 1;
     user-select: none;
     -webkit-user-select: none;
-    cursor: grab;
-}
-
-.feed-stage:active .verse-card.card-center {
-    cursor: grabbing;
+    cursor: default;
 }
 
 .card-center {
