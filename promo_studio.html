@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VerseFeed - Promotional Video Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            background: #090a0f;
+            color: #f0f0f5;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Top Header Bar */
+        header {
+            height: 58px;
+            background: rgba(18, 20, 29, 0.95);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            z-index: 100;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand-logo {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #e0c785, #9c7a28);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #121212;
+            font-weight: 800;
+            font-size: 15px;
+            box-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
+        }
+        .brand-title {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+        .brand-tag {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #a0a5b8;
+            font-weight: 500;
+        }
+
+        /* Segmented Style Switchers in Header */
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .segmented-group {
+            display: flex;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 9px;
+            padding: 3px;
+            gap: 2px;
+        }
+        .seg-btn {
+            background: none;
+            border: none;
+            color: #8c93a8;
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: inherit;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .seg-btn:hover {
+            color: #fff;
+        }
+        .seg-btn.active {
+            background: rgba(255, 255, 255, 0.16);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .export-btn {
+            background: #ffffff;
+            color: #0b0c10;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 9px;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 12px rgba(255, 255, 255, 0.2);
+        }
+        .export-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 18px rgba(255, 255, 255, 0.35);
+        }
+        .export-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Workspace Viewport */
+        .workspace {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: #06070a;
+            overflow: hidden;
+        }
+        .canvas-wrapper {
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: width 0.3s ease, height 0.3s ease;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Bottom Playback & Scrubber Deck */
+        .bottom-deck {
+            height: 94px;
+            background: rgba(14, 16, 24, 0.96);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            flex-direction: column;
+            padding: 10px 24px;
+            gap: 8px;
+            z-index: 100;
+        }
+        .timeline-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .time-display {
+            font-variant-numeric: tabular-nums;
+            font-size: 13px;
+            color: #929bb0;
+            font-weight: 600;
+            min-width: 90px;
+        }
+        .scrubber-container {
+            flex: 1;
+            position: relative;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .scrubber-track {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            position: relative;
+            overflow: hidden;
+        }
+        .scrubber-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #6366f1, #a855f7);
+            border-radius: 3px;
+            transition: width 0.04s linear;
+        }
+        .scrubber-markers {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            justify-content: space-between;
+        }
+        .marker {
+            position: absolute;
+            top: -2px;
+            bottom: -2px;
+            width: 2px;
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        .controls-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .playback-buttons {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .icon-btn {
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #f0f0f5;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.14);
+            transform: scale(1.04);
+        }
+        .icon-btn.primary {
+            background: #ffffff;
+            color: #0b0c10;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+        }
+        .icon-btn.primary:hover {
+            background: #e6e6ee;
+        }
+
+        /* Scene Jump Pills */
+        .scene-pills {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .scene-pill {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #8c93a8;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .scene-pill:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .scene-pill.active {
+            background: rgba(168, 85, 247, 0.2);
+            border-color: rgba(168, 85, 247, 0.5);
+            color: #d8b4fe;
+        }
+
+        /* Recording Progress Overlay */
+        .modal-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(6, 7, 10, 0.88);
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-card {
+            background: #151722;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 32px 36px;
+            width: 380px;
+            text-align: center;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+        }
+        .progress-bar-wrap {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            margin: 20px 0 10px 0;
+            overflow: hidden;
+        }
+        .modal-progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1, #a855f7);
+            border-radius: 4px;
+            transition: width 0.1s linear;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="brand">
+            <div class="brand-logo">V</div>
+            <div class="brand-title">VerseFeed Studio</div>
+            <div class="brand-tag">Promo Video Generator</div>
+        </div>
+
+        <div class="header-controls">
+            <!-- Format Switcher -->
+            <div class="segmented-group" id="format-group">
+                <button class="seg-btn active" data-format="landscape">Landscape (16:9)</button>
+                <button class="seg-btn" data-format="vertical">Vertical (9:16)</button>
+            </div>
+
+            <!-- Style Preset Switcher -->
+            <div class="segmented-group" id="style-group">
+                <button class="seg-btn active" data-style="minimalist">Studio Minimalist</button>
+                <button class="seg-btn" data-style="sacred">Cinematic Sacred</button>
+                <button class="seg-btn" data-style="kinetic">Modern Kinetic</button>
+            </div>
+
+            <!-- Export Button -->
+            <button class="export-btn" id="btn-export">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>Export Video</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Center Workspace Canvas -->
+    <main class="workspace" id="workspace">
+        <div class="canvas-wrapper" id="canvas-wrap">
+            <canvas id="stage" width="1920" height="1080"></canvas>
+        </div>
+
+        <!-- Export Progress Modal -->
+        <div class="modal-overlay" id="record-modal">
+            <div class="modal-card">
+                <h3 style="font-size: 1.15rem; margin-bottom: 6px;">Rendering Video...</h3>
+                <p style="font-size: 0.85rem; color: #8f96a8;">Recording full 60fps crystal clear frames. Do not switch tabs.</p>
+                <div class="progress-bar-wrap">
+                    <div class="modal-progress-bar" id="record-progress"></div>
+                </div>
+                <div id="record-status" style="font-size: 0.82rem; color: #d8b4fe; font-weight: 600;">0% Completed</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Timeline & Playback Deck -->
+    <footer class="bottom-deck">
+        <div class="timeline-row">
+            <div class="time-display" id="time-text">00:00 / 00:20</div>
+            <div class="scrubber-container" id="scrubber-container">
+                <div class="scrubber-track">
+                    <div class="scrubber-fill" id="scrubber-fill"></div>
+                    <div class="scrubber-markers">
+                        <div class="marker" style="left: 0%;"></div>
+                        <div class="marker" style="left: 22.5%;"></div>
+                        <div class="marker" style="left: 45%;"></div>
+                        <div class="marker" style="left: 67.5%;"></div>
+                        <div class="marker" style="left: 85%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-row">
+            <div class="playback-buttons">
+                <!-- Jump Prev -->
+                <button class="icon-btn" id="btn-restart" title="Restart">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="19 20 9 12 19 4 19 20"></polygon>
+                        <line x1="5" y1="19" x2="5" y2="5"></line>
+                    </svg>
+                </button>
+                <!-- Play / Pause -->
+                <button class="icon-btn primary" id="btn-play" title="Play / Pause">
+                    <svg id="play-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                </button>
+                <!-- Audio Ambient Toggle -->
+                <button class="icon-btn" id="btn-audio" title="Toggle Ambient Audio">
+                    <svg id="audio-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Scene Pills -->
+            <div class="scene-pills">
+                <button class="scene-pill active" data-time="0">1. Daily Wisdom</button>
+                <button class="scene-pill" data-time="4.5">2. HD Voice</button>
+                <button class="scene-pill" data-time="9.0">3. Deep Meaning</button>
+                <button class="scene-pill" data-time="13.5">4. Offline Library</button>
+                <button class="scene-pill" data-time="17.0">5. Play Store</button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Audio Element -->
+    <audio id="ambient-audio" src="music/ambient_meditation.mp3" loop preload="auto"></audio>
+
+    <script>
+        // --- Core Variables & State ---
+        const canvas = document.getElementById('stage');
+        const ctx = canvas.getContext('2d');
+        const canvasWrap = document.getElementById('canvas-wrap');
+        const workspace = document.getElementById('workspace');
+
+        let currentStyle = 'minimalist'; // 'minimalist', 'sacred', 'kinetic'
+        let currentFormat = 'landscape'; // 'landscape' (1920x1080) or 'vertical' (1080x1920)
+        let isPlaying = true;
+        let isRecording = false;
+        let currentTime = 0;
+        const totalDuration = 20.0; // 20 seconds total
+        let lastFrameTimestamp = performance.now();
+
+        // Audio state
+        const audioEl = document.getElementById('ambient-audio');
+        let audioEnabled = false;
+
+        // UI Elements
+        const btnPlay = document.getElementById('btn-play');
+        const playIcon = document.getElementById('play-icon');
+        const btnRestart = document.getElementById('btn-restart');
+        const btnAudio = document.getElementById('btn-audio');
+        const timeText = document.getElementById('time-text');
+        const scrubberFill = document.getElementById('scrubber-fill');
+        const scrubberContainer = document.getElementById('scrubber-container');
+        const btnExport = document.getElementById('btn-export');
+        const recordModal = document.getElementById('record-modal');
+        const recordProgressBar = document.getElementById('record-progress');
+        const recordStatus = document.getElementById('record-status');
+
+        // Style Colors & Palettes
+        const STYLES = {
+            minimalist: {
+                bgTop: '#10121a',
+                bgBottom: '#07080b',
+                spotlight: 'rgba(255, 255, 255, 0.045)',
+                accent: '#ffffff',
+                textMuted: '#8b92a6',
+                frameColor: '#1e212d',
+                frameRim: '#353a4d',
+                cardBg: 'rgba(26, 29, 41, 0.94)',
+                cardBorder: 'rgba(255, 255, 255, 0.12)',
+                cardText: '#f2f4f8',
+                fontTitle: 'Inter',
+                fontScripture: 'Inter',
+                titleWeight: '700',
+                glowColor: 'rgba(255, 255, 255, 0.06)'
+            },
+            sacred: {
+                bgTop: '#0d0f17',
+                bgBottom: '#040508',
+                spotlight: 'rgba(212, 175, 55, 0.08)',
+                accent: '#e6c875',
+                textMuted: '#ab9b76',
+                frameColor: '#181920',
+                frameRim: '#d4af37',
+                cardBg: 'rgba(24, 23, 29, 0.94)',
+                cardBorder: 'rgba(212, 175, 55, 0.28)',
+                cardText: '#fbf9f4',
+                fontTitle: 'Cinzel',
+                fontScripture: 'Cinzel',
+                titleWeight: '600',
+                glowColor: 'rgba(212, 175, 55, 0.16)'
+            },
+            kinetic: {
+                bgTop: '#140c24',
+                bgBottom: '#06040c',
+                spotlight: 'rgba(168, 85, 247, 0.12)',
+                accent: '#c084fc',
+                textMuted: '#9480b0',
+                frameColor: '#191329',
+                frameRim: '#8b5cf6',
+                cardBg: 'rgba(28, 20, 48, 0.92)',
+                cardBorder: 'rgba(168, 85, 247, 0.3)',
+                cardText: '#ffffff',
+                fontTitle: 'Plus Jakarta Sans',
+                fontScripture: 'Plus Jakarta Sans',
+                titleWeight: '800',
+                glowColor: 'rgba(168, 85, 247, 0.22)'
+            }
+        };
+
+        // Particles for Atmospheric Effects
+        const particles = Array.from({ length: 45 }, () => ({
+            x: Math.random(),
+            y: Math.random(),
+            radius: Math.random() * 2.2 + 0.8,
+            speedY: -(Math.random() * 0.03 + 0.01),
+            speedX: (Math.random() - 0.5) * 0.015,
+            opacity: Math.random() * 0.6 + 0.2
+        }));
+
+        // Resize & Viewport Handling
+        function updateViewportSize() {
+            const isLandscape = currentFormat === 'landscape';
+            const targetW = isLandscape ? 1920 : 1080;
+            const targetH = isLandscape ? 1080 : 1920;
+
+            canvas.width = targetW;
+            canvas.height = targetH;
+
+            const wrapW = workspace.clientWidth - 48;
+            const wrapH = workspace.clientHeight - 48;
+
+            let renderW, renderH;
+            if (wrapW / wrapH > targetW / targetH) {
+                renderH = wrapH;
+                renderW = wrapH * (targetW / targetH);
+            } else {
+                renderW = wrapW;
+                renderH = wrapW * (targetH / targetW);
+            }
+
+            canvasWrap.style.width = renderW + 'px';
+            canvasWrap.style.height = renderH + 'px';
+        }
+
+        window.addEventListener('resize', updateViewportSize);
+        updateViewportSize();
+
+        // Ease Curve Helper
+        function easeOutCubic(x) {
+            return 1 - Math.pow(1 - x, 3);
+        }
+        function easeInOutQuad(x) {
+            return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+        }
+
+        // --- Render Loop ---
+        function render(t) {
+            const isLandscape = currentFormat === 'landscape';
+            const W = canvas.width;
+            const H = canvas.height;
+            const pal = STYLES[currentStyle];
+
+            // 1. Background
+            const bgGrad = ctx.createRadialGradient(W * 0.5, H * 0.45, 100, W * 0.5, H * 0.5, Math.max(W, H) * 0.85);
+            bgGrad.addColorStop(0, pal.bgTop);
+            bgGrad.addColorStop(1, pal.bgBottom);
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, W, H);
+
+            // Subtle Spotlight Beam
+            const spotGrad = ctx.createRadialGradient(W * 0.5, H * 0.35, 50, W * 0.5, H * 0.4, isLandscape ? 800 : 650);
+            spotGrad.addColorStop(0, pal.spotlight);
+            spotGrad.addColorStop(1, 'transparent');
+            ctx.fillStyle = spotGrad;
+            ctx.fillRect(0, 0, W, H);
+
+            // Floating Atmosphere Particles (Sacred / Kinetic)
+            if (currentStyle !== 'minimalist') {
+                ctx.save();
+                particles.forEach(p => {
+                    const px = (p.x + p.speedX * t) % 1;
+                    const py = ((p.y + p.speedY * t) % 1 + 1) % 1;
+                    ctx.fillStyle = pal.accent;
+                    ctx.globalAlpha = p.opacity * (0.3 + 0.3 * Math.sin(t * 3 + p.x * 10));
+                    ctx.beginPath();
+                    ctx.arc(px * W, py * H, p.radius * (isLandscape ? 1 : 1.2), 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.restore();
+            }
+
+            // 2. Determine Current Scene Progression
+            // Scene 1: 0.0 - 4.5s  (Hook: Daily Wisdom)
+            // Scene 2: 4.5 - 9.0s  (HD Voice Narration & Audio Wave)
+            // Scene 3: 9.0 - 13.5s (Deep Meaning & Context)
+            // Scene 4: 13.5 - 17.0s (Universal Traditions Offline)
+            // Scene 5: 17.0 - 20.0s (Play Store Outro & Brand)
+
+            let sceneIndex = 0;
+            if (t >= 17.0) sceneIndex = 4;
+            else if (t >= 13.5) sceneIndex = 3;
+            else if (t >= 9.0) sceneIndex = 2;
+            else if (t >= 4.5) sceneIndex = 1;
+            else sceneIndex = 0;
+
+            // Highlight active scene pill
+            const scenePills = document.querySelectorAll('.scene-pill');
+            scenePills.forEach((p, idx) => {
+                p.classList.toggle('active', idx === sceneIndex);
+            });
+
+            // Calculate Scene Fade in/out
+            const sceneStarts = [0, 4.5, 9.0, 13.5, 17.0];
+            const sceneDurations = [4.5, 4.5, 4.5, 3.5, 3.0];
+            const sStart = sceneStarts[sceneIndex];
+            const sDuration = sceneDurations[sceneIndex];
+            const sProgress = (t - sStart) / sDuration; // 0.0 to 1.0
+
+            let textAlpha = 1;
+            if (sProgress < 0.15) textAlpha = easeOutCubic(sProgress / 0.15);
+            else if (sProgress > 0.88) textAlpha = 1 - easeOutCubic((sProgress - 0.88) / 0.12);
+
+            // 3. Render Headlines & Copy
+            renderHeadlines(ctx, sceneIndex, sProgress, textAlpha, isLandscape, W, H, pal);
+
+            // 4. Render 3D Floating Phone Mockup
+            renderPhoneMockup(ctx, t, sceneIndex, sProgress, isLandscape, W, H, pal);
+
+            // 5. Render Scene 5 Outro Overlays if at end
+            if (sceneIndex === 4) {
+                renderOutro(ctx, sProgress, isLandscape, W, H, pal);
+            }
+        }
+
+        // --- Headline Titles & Typography Rendering ---
+        function renderHeadlines(ctx, sceneIndex, sProgress, alpha, isLandscape, W, H, pal) {
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+            ctx.textAlign = isLandscape ? 'left' : 'center';
+
+            let tag = "";
+            let title = "";
+            let sub = "";
+
+            switch(sceneIndex) {
+                case 0:
+                    tag = "DAILY SCRIPTURES";
+                    title = "A Quieter Way to Read Sacred Texts";
+                    sub = "Distraction-free wisdom delivered one peaceful verse at a time.";
+                    break;
+                case 1:
+                    tag = "STUDIO NARRATION";
+                    title = "Listen in Natural Studio Voices";
+                    sub = "Natural offline audio narration accompanied by soothing ambient tracks.";
+                    break;
+                case 2:
+                    tag = "DEEP CONTEXT";
+                    title = "Understand The Meaning Behind Every Line";
+                    sub = "Instant historical background and line-by-line spiritual context.";
+                    break;
+                case 3:
+                    tag = "UNIVERSAL & OFFLINE";
+                    title = "Every Major Tradition. Always Offline.";
+                    sub = "Bible, Quran, Gita, Dhammapada, Tao Te Ching, Guru Granth Sahib.";
+                    break;
+                case 4:
+                    tag = "VERSEFEED";
+                    title = "Begin Your Daily Mindful Routine";
+                    sub = "Available now on Google Play. Free to download.";
+                    break;
+            }
+
+            const posX = isLandscape ? W * 0.09 : W * 0.5;
+            let posY = isLandscape ? H * 0.38 : H * 0.15;
+
+            // Slide offset based on progress
+            const slideOffset = (1 - alpha) * 16;
+
+            // Tag Pill
+            ctx.font = `600 ${isLandscape ? 14 : 13}px 'Inter', sans-serif`;
+            ctx.fillStyle = pal.accent;
+            ctx.letterSpacing = '1.8px';
+            ctx.fillText(tag, posX, posY - 24 + slideOffset);
+
+            // Main Title
+            ctx.font = `${pal.titleWeight} ${isLandscape ? 44 : 36}px '${pal.fontTitle}', sans-serif`;
+            ctx.fillStyle = pal.cardText;
+            ctx.letterSpacing = isLandscape ? '-0.5px' : '0px';
+
+            if (isLandscape) {
+                wrapText(ctx, title, posX, posY + 20 + slideOffset, W * 0.42, 54);
+            } else {
+                wrapText(ctx, title, posX, posY + 20 + slideOffset, W * 0.85, 46);
+            }
+
+            // Subtitle
+            ctx.font = `400 ${isLandscape ? 18 : 16}px 'Inter', sans-serif`;
+            ctx.fillStyle = pal.textMuted;
+            const subY = posY + (isLandscape ? 150 : 130) + slideOffset;
+            if (isLandscape) {
+                wrapText(ctx, sub, posX, subY, W * 0.40, 28);
+            } else {
+                wrapText(ctx, sub, posX, subY, W * 0.82, 24);
+            }
+
+            ctx.restore();
+        }
+
+        function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+            const words = text.split(' ');
+            let line = '';
+            for(let n = 0; n < words.length; n++) {
+                const testLine = line + words[n] + ' ';
+                const metrics = ctx.measureText(testLine);
+                if (metrics.width > maxWidth && n > 0) {
+                    ctx.fillText(line, x, y);
+                    line = words[n] + ' ';
+                    y += lineHeight;
+                } else {
+                    line = testLine;
+                }
+            }
+            ctx.fillText(line, x, y);
+        }
+
+        // --- 3D Device & Screen Rendering ---
+        function renderPhoneMockup(ctx, t, sceneIndex, sProgress, isLandscape, W, H, pal) {
+            ctx.save();
+
+            // Device dimensions & positioning
+            const phoneW = isLandscape ? 380 : 420;
+            const phoneH = isLandscape ? 770 : 850;
+            const cornerR = 48;
+
+            // Target phone center position
+            let targetCenterX = isLandscape ? W * 0.74 : W * 0.5;
+            let targetCenterY = isLandscape ? H * 0.52 : H * 0.60;
+
+            // Smooth subtle float breathing physics
+            const hoverY = Math.sin(t * 1.5) * 8;
+            const tiltAngle = Math.sin(t * 1.2) * 0.02; // subtle ~1 degree rotation
+
+            ctx.translate(targetCenterX, targetCenterY + hoverY);
+            ctx.rotate(tiltAngle);
+
+            // 1. Phone Shadow
+            ctx.save();
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+            ctx.shadowBlur = 60;
+            ctx.shadowOffsetY = 36;
+            drawRoundedRect(ctx, -phoneW/2, -phoneH/2, phoneW, phoneH, cornerR);
+            ctx.fillStyle = '#000000';
+            ctx.fill();
+            ctx.restore();
+
+            // 2. Phone Outer Titanium Chassis
+            ctx.save();
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = pal.frameRim;
+            ctx.fillStyle = pal.frameColor;
+            drawRoundedRect(ctx, -phoneW/2, -phoneH/2, phoneW, phoneH, cornerR);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+
+            // 3. Screen Boundary (Clip)
+            ctx.save();
+            const screenPadding = 8;
+            const sW = phoneW - screenPadding * 2;
+            const sH = phoneH - screenPadding * 2;
+            drawRoundedRect(ctx, -sW/2, -sH/2, sW, sH, cornerR - 4);
+            ctx.clip();
+
+            // Screen Background
+            ctx.fillStyle = '#0a0b10';
+            ctx.fillRect(-sW/2, -sH/2, sW, sH);
+
+            // Inside Screen: Top App Bar
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '700 14px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('VerseFeed', 0, -sH/2 + 48);
+
+            // Dynamic Island / Camera punch hole
+            ctx.fillStyle = '#000000';
+            drawRoundedRect(ctx, -42, -sH/2 + 14, 84, 22, 11);
+            ctx.fill();
+
+            // Render Active App Content based on Scene
+            renderScreenContent(ctx, t, sceneIndex, sProgress, sW, sH, pal);
+
+            // Glass Specular Glare Reflection on screen
+            const glareGrad = ctx.createLinearGradient(-sW/2, -sH/2, sW * 0.8, sH * 0.8);
+            glareGrad.addColorStop(0, 'rgba(255, 255, 255, 0.08)');
+            glareGrad.addColorStop(0.3, 'rgba(255, 255, 255, 0.02)');
+            glareGrad.addColorStop(0.5, 'transparent');
+            ctx.fillStyle = glareGrad;
+            ctx.fillRect(-sW/2, -sH/2, sW, sH);
+
+            ctx.restore(); // end screen clip
+
+            ctx.restore(); // end phone transform
+        }
+
+        function drawRoundedRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        // --- Screen Verse Cards & Interactive State Inside Phone ---
+        function renderScreenContent(ctx, t, sceneIndex, sProgress, sW, sH, pal) {
+            const cardW = sW * 0.86;
+            const cardH = sH * 0.62;
+            const cardCorner = 24;
+            const cardY = -sH/2 + 85;
+
+            // Scene 1: Verse Card Slide
+            if (sceneIndex === 0) {
+                const slideOffset = (1 - easeOutCubic(Math.min(1, sProgress * 2.2))) * (sW * 1.1);
+                drawVerseCard(ctx, -cardW/2 - slideOffset, cardY, cardW, cardH, cardCorner, pal,
+                    "Peace I leave with you; my peace I give to you. Not as the world gives do I give to you.",
+                    "John 14:27", "Bible"
+                );
+            }
+            // Scene 2: Audio Playback & Pulsing Visualizer
+            else if (sceneIndex === 1) {
+                drawVerseCard(ctx, -cardW/2, cardY, cardW, cardH, cardCorner, pal,
+                    "For indeed, with hardship comes ease.",
+                    "Surah Ash-Sharh 94:5", "Quran"
+                );
+                // Active Audio Waveform at bottom
+                drawAudioVisualizer(ctx, t, 0, cardY + cardH - 52, cardW * 0.65, pal);
+            }
+            // Scene 3: Meaning & Historical Context Reveal
+            else if (sceneIndex === 2) {
+                const revealProgress = easeInOutQuad(Math.min(1, Math.max(0, (sProgress - 0.2) * 2.5)));
+                if (revealProgress < 0.5) {
+                    drawVerseCard(ctx, -cardW/2, cardY, cardW, cardH, cardCorner, pal,
+                        "You have the right to work, but never to the fruit of work.",
+                        "Bhagavad Gita 2:47", "Hinduism"
+                    );
+                } else {
+                    drawExplanationCard(ctx, -cardW/2, cardY, cardW, cardH, cardCorner, pal,
+                        "Historical Context",
+                        "Spoken by Krishna on the battlefield of Kurukshetra, guiding Arjuna on Nishkama Karma—selfless action performed without emotional attachment to outcomes."
+                    );
+                }
+            }
+            // Scene 4: Multi-Tradition Fast Swipe
+            else if (sceneIndex === 3) {
+                const cycle = Math.floor(sProgress * 3);
+                if (cycle === 0) {
+                    drawVerseCard(ctx, -cardW/2, cardY, cardW, cardH, cardCorner, pal,
+                        "Peace comes from within. Do not seek it without.",
+                        "Dhammapada", "Buddhism"
+                    );
+                } else if (cycle === 1) {
+                    drawVerseCard(ctx, -cardW/2, cardY, cardW, cardH, cardCorner, pal,
+                        "A journey of a thousand miles begins with a single step.",
+                        "Tao Te Ching 64", "Taoism"
+                    );
+                } else {
+                    drawVerseCard(ctx, -cardW/2, cardY, cardW, cardH, cardCorner, pal,
+                        "The Lord is my shepherd; I shall not want.",
+                        "Psalm 23:1", "Christianity"
+                    );
+                }
+            }
+            // Scene 5: Outro Brand
+            else {
+                drawVerseCard(ctx, -cardW/2, cardY, cardW, cardH, cardCorner, pal,
+                    "Read. Listen. Reflect. Completely Offline.",
+                    "VerseFeed", "Peace"
+                );
+            }
+
+            // Bottom Navigation Pill in Phone
+            drawBottomPill(ctx, t, 0, sH/2 - 58, pal);
+        }
+
+        function drawVerseCard(ctx, x, y, w, h, radius, pal, verseText, citation, tradition) {
+            ctx.save();
+            // Card Background & Glass Border
+            ctx.fillStyle = pal.cardBg;
+            ctx.strokeStyle = pal.cardBorder;
+            ctx.lineWidth = 1.2;
+            drawRoundedRect(ctx, x, y, w, h, radius);
+            ctx.fill();
+            ctx.stroke();
+
+            // Tradition Pill Badge
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+            drawRoundedRect(ctx, x + 20, y + 20, 80, 24, 12);
+            ctx.fill();
+            ctx.fillStyle = pal.accent;
+            ctx.font = '600 10px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText(tradition, x + 60, y + 36);
+
+            // Verse Scripture Text
+            ctx.fillStyle = pal.cardText;
+            ctx.font = `400 18px '${pal.fontScripture}', serif`;
+            ctx.textAlign = 'center';
+            wrapText(ctx, `"${verseText}"`, x + w/2, y + h * 0.42, w - 40, 28);
+
+            // Citation Reference
+            ctx.fillStyle = pal.textMuted;
+            ctx.font = '600 12px Inter';
+            ctx.fillText(citation, x + w/2, y + h - 28);
+
+            ctx.restore();
+        }
+
+        function drawExplanationCard(ctx, x, y, w, h, radius, pal, expTitle, expText) {
+            ctx.save();
+            ctx.fillStyle = pal.cardBg;
+            ctx.strokeStyle = pal.accent;
+            ctx.lineWidth = 1.5;
+            drawRoundedRect(ctx, x, y, w, h, radius);
+            ctx.fill();
+            ctx.stroke();
+
+            // Title
+            ctx.fillStyle = pal.accent;
+            ctx.font = '700 13px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText(expTitle.toUpperCase(), x + w/2, y + 42);
+
+            // Line Separator
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.beginPath();
+            ctx.moveTo(x + 30, y + 56);
+            ctx.lineTo(x + w - 30, y + 56);
+            ctx.stroke();
+
+            // Text
+            ctx.fillStyle = pal.cardText;
+            ctx.font = '400 14px Inter';
+            ctx.textAlign = 'left';
+            wrapText(ctx, expText, x + 26, y + 90, w - 52, 22);
+
+            ctx.restore();
+        }
+
+        function drawAudioVisualizer(ctx, t, centerX, centerY, width, pal) {
+            ctx.save();
+            const barCount = 18;
+            const barW = 3;
+            const gap = 5;
+            const totalW = barCount * (barW + gap);
+            const startX = centerX - totalW / 2;
+
+            for (let i = 0; i < barCount; i++) {
+                const wave = Math.sin(t * 8 + i * 0.55) * 0.5 + 0.5;
+                const waveH = 4 + wave * 16;
+                const bx = startX + i * (barW + gap);
+                ctx.fillStyle = pal.accent;
+                drawRoundedRect(ctx, bx, centerY - waveH/2, barW, waveH, 1.5);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        function drawBottomPill(ctx, t, cx, cy, pal) {
+            ctx.save();
+            const pw = 150;
+            const ph = 40;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+            ctx.lineWidth = 1;
+            drawRoundedRect(ctx, cx - pw/2, cy - ph/2, pw, ph, 20);
+            ctx.fill();
+            ctx.stroke();
+
+            // Icons inside pill
+            ctx.fillStyle = pal.cardText;
+            // Play Triangle
+            ctx.beginPath();
+            ctx.moveTo(cx - 6, cy - 6);
+            ctx.lineTo(cx + 6, cy);
+            ctx.lineTo(cx - 6, cy + 6);
+            ctx.fill();
+
+            // Info Circle
+            ctx.beginPath();
+            ctx.arc(cx + 42, cy, 7, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Bookmark
+            ctx.beginPath();
+            ctx.arc(cx - 42, cy, 7, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // --- Outro Screen (Google Play Badge & Logo) ---
+        function renderOutro(ctx, sProgress, isLandscape, W, H, pal) {
+            ctx.save();
+            const alpha = easeOutCubic(Math.min(1, sProgress * 2));
+            ctx.globalAlpha = alpha;
+
+            // Google Play Store Badge at bottom
+            const badgeW = 210;
+            const badgeH = 56;
+            const bx = isLandscape ? W * 0.09 : W * 0.5 - badgeW/2;
+            const by = isLandscape ? H * 0.72 : H * 0.44;
+
+            ctx.fillStyle = '#000000';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+            ctx.lineWidth = 1.2;
+            drawRoundedRect(ctx, bx, by, badgeW, badgeH, 14);
+            ctx.fill();
+            ctx.stroke();
+
+            // Play Store Icon & Text
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '500 10px Inter';
+            ctx.textAlign = 'left';
+            ctx.fillText('GET IT ON', bx + 54, by + 23);
+
+            ctx.font = '700 16px Inter';
+            ctx.fillText('Google Play', bx + 54, by + 43);
+
+            // Google Play Triangle Vector
+            ctx.save();
+            ctx.translate(bx + 26, by + 28);
+            ctx.beginPath();
+            ctx.moveTo(-10, -12);
+            ctx.lineTo(12, 0);
+            ctx.lineTo(-10, 12);
+            ctx.closePath();
+            ctx.fillStyle = pal.accent;
+            ctx.fill();
+            ctx.restore();
+
+            ctx.restore();
+        }
+
+        // --- Main Animation Loop ---
+        function animate(timestamp) {
+            const dt = (timestamp - lastFrameTimestamp) / 1000;
+            lastFrameTimestamp = timestamp;
+
+            if (isPlaying && !isRecording) {
+                currentTime += dt;
+                if (currentTime >= totalDuration) {
+                    currentTime = 0; // loop
+                }
+                updatePlaybackUI();
+            }
+
+            render(currentTime);
+
+            if (!isRecording) {
+                requestAnimationFrame(animate);
+            }
+        }
+        requestAnimationFrame(animate);
+
+        // --- Playback Controls ---
+        function updatePlaybackUI() {
+            const pct = (currentTime / totalDuration) * 100;
+            scrubberFill.style.width = pct + '%';
+
+            const secs = Math.floor(currentTime);
+            const ms = Math.floor((currentTime % 1) * 10);
+            const totalSecs = Math.floor(totalDuration);
+            timeText.textContent = `00:${secs.toString().padStart(2, '0')}.${ms} / 00:${totalSecs.toString().padStart(2, '0')}`;
+        }
+
+        btnPlay.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            playIcon.innerHTML = isPlaying ? 
+                '<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>' :
+                '<polygon points="5 3 19 12 5 21 5 3"></polygon>';
+            if (audioEnabled) {
+                if (isPlaying) audioEl.play().catch(() => {});
+                else audioEl.pause();
+            }
+        });
+
+        btnRestart.addEventListener('click', () => {
+            currentTime = 0;
+            updatePlaybackUI();
+            if (audioEnabled) {
+                audioEl.currentTime = 0;
+                audioEl.play().catch(() => {});
+            }
+        });
+
+        btnAudio.addEventListener('click', () => {
+            audioEnabled = !audioEnabled;
+            btnAudio.style.background = audioEnabled ? 'rgba(168, 85, 247, 0.25)' : '';
+            btnAudio.style.borderColor = audioEnabled ? 'rgba(168, 85, 247, 0.6)' : '';
+            if (audioEnabled) {
+                audioEl.currentTime = currentTime % audioEl.duration || 0;
+                audioEl.play().catch(() => {});
+            } else {
+                audioEl.pause();
+            }
+        });
+
+        // Scrubber Dragging
+        scrubberContainer.addEventListener('click', (e) => {
+            const rect = scrubberContainer.getBoundingClientRect();
+            const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            currentTime = ratio * totalDuration;
+            if (audioEnabled) {
+                audioEl.currentTime = currentTime % audioEl.duration;
+            }
+            updatePlaybackUI();
+            render(currentTime);
+        });
+
+        // Scene Pill Clicks
+        document.querySelectorAll('.scene-pill').forEach(pill => {
+            pill.addEventListener('click', () => {
+                currentTime = parseFloat(pill.getAttribute('data-time'));
+                if (audioEnabled) {
+                    audioEl.currentTime = currentTime % audioEl.duration;
+                }
+                updatePlaybackUI();
+                render(currentTime);
+            });
+        });
+
+        // Style Switcher
+        document.querySelectorAll('#style-group .seg-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#style-group .seg-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentStyle = btn.getAttribute('data-style');
+                render(currentTime);
+            });
+        });
+
+        // Format Switcher
+        document.querySelectorAll('#format-group .seg-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#format-group .seg-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFormat = btn.getAttribute('data-format');
+                updateViewportSize();
+                render(currentTime);
+            });
+        });
+
+        // --- High-Quality 60fps Video Export ---
+        btnExport.addEventListener('click', async () => {
+            if (isRecording) return;
+            isRecording = true;
+            isPlaying = false;
+            btnExport.disabled = true;
+
+            recordModal.classList.add('active');
+            recordProgressBar.style.width = '0%';
+            recordStatus.textContent = 'Preparing render engine...';
+
+            const stream = canvas.captureStream(60);
+            
+            // Preferred formats
+            let mimeType = 'video/webm;codecs=vp9';
+            if (!MediaRecorder.isTypeSupported(mimeType)) {
+                mimeType = 'video/webm;codecs=vp8';
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = 'video/webm';
+                }
+            }
+
+            const recorder = new MediaRecorder(stream, {
+                mimeType: mimeType,
+                videoBitsPerSecond: 16000000 // 16 Mbps crystal clear
+            });
+
+            const recordedChunks = [];
+            recorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) {
+                    recordedChunks.push(e.data);
+                }
+            };
+
+            recorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+                a.download = `versefeed_promo_${currentStyle}_${currentFormat}.${ext}`;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+
+                recordModal.classList.remove('active');
+                btnExport.disabled = false;
+                isRecording = false;
+                isPlaying = true;
+                lastFrameTimestamp = performance.now();
+                requestAnimationFrame(animate);
+            };
+
+            recorder.start();
+
+            // Render all frames deterministically at 60 FPS
+            const fps = 60;
+            const totalFrames = Math.floor(totalDuration * fps);
+            let frame = 0;
+
+            function renderNextRecordingFrame() {
+                if (frame >= totalFrames) {
+                    recordStatus.textContent = 'Finalizing video file...';
+                    recorder.stop();
+                    return;
+                }
+
+                currentTime = frame / fps;
+                render(currentTime);
+
+                const progress = Math.floor((frame / totalFrames) * 100);
+                recordProgressBar.style.width = progress + '%';
+                recordStatus.textContent = `${progress}% Rendered (${frame}/${totalFrames} frames)`;
+
+                frame++;
+                setTimeout(renderNextRecordingFrame, 10);
+            }
+
+            renderNextRecordingFrame();
+        });
+    </script>
+</body>
+</html>
