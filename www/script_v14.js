@@ -9552,6 +9552,23 @@ const i18nDict = {
         "yo": "Fagilee",
         "zu": "Khansela"
     },
+    "Unlimited Verse Information": {
+        "bn": "সীমাহীন শ্লোক তথ্য",
+        "hi": "असीमित श्लोक जानकारी",
+        "ar": "معلومات الآيات غير محدودة",
+        "es": "Información de versos ilimitada",
+        "fr": "Informations de versets illimitées",
+        "de": "Unbegrenzte Vers-Informationen",
+        "ja": "無制限の詩情報",
+        "tr": "Sınırsız Ayet Bilgisi",
+        "ru": "Неограниченная информация о стихах",
+        "pt": "Informações de versículos ilimitadas",
+        "id": "Informasi Ayat Tanpa Batas",
+        "ur": "لامحدود آیات کی معلومات",
+        "it": "Informazioni sui versetti illimitate",
+        "zh": "无限经文解析",
+        "ko": "무제한 구절 정보"
+    },
     "AD Free": {
         "bn": "বিজ্ঞাপনমুক্ত অভিজ্ঞতা",
         "hi": "विज्ञापन मुक्त",
@@ -29943,7 +29960,7 @@ function applyLanguageTranslations(langCode = currentAppLanguage) {
     if (paywallTitle) paywallTitle.textContent = t('Premium');
     
     const paywallFeatures = document.querySelectorAll('.premium-feature-row span');
-    const featureKeys = ['AD Free', 'All HD Offline Voices', 'Unlimited Folders 30 Char', 'Custom Topic Filters', 'Source Narration', 'Ambient Audio Controls', 'Random Voice Rotation'];
+    const featureKeys = ['AD Free', 'Unlimited Verse Information', 'All HD Offline Voices', 'Unlimited Folders 30 Char', 'Custom Topic Filters', 'Source Narration', 'Ambient Audio Controls', 'Random Voice Rotation'];
     paywallFeatures.forEach((span, idx) => {
         if (featureKeys[idx]) span.textContent = t(featureKeys[idx]);
     });
@@ -30925,7 +30942,7 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
         return;
     }
 
-    // Free vs Premium Information Check (3 free views, then Rewarded Interstitial ad)
+    // Free vs Premium Information Check (Random 3-4 view range, then Rewarded Interstitial ad)
     const isTestAdMode = localStorage.getItem('test_info_ad_flow') === 'true';
     if (!isAutoTransition && (!isPremiumUser || isTestAdMode)) {
         let unlockedVerses = [];
@@ -30936,10 +30953,17 @@ async function openVerseExplanation(verse, event, isAutoTransition = false) {
 
         const verseSig = targetVerse.id || `${targetVerse.religion || ''}_${targetVerse.book || ''}_${targetVerse.chapter || ''}_${targetVerse.verse || ''}`;
         if (!unlockedVerses.includes(verseSig)) {
-            if (unlockedVerses.length >= 3) {
+            let viewsSinceAd = parseInt(localStorage.getItem('info_views_since_ad') || '0', 10);
+            if (isNaN(viewsSinceAd) || viewsSinceAd < 0) viewsSinceAd = 0;
+            const threshold = getInfoAdThreshold();
+
+            if (viewsSinceAd + 1 >= threshold) {
                 openInfoRewardModal(targetVerse);
                 return;
             }
+
+            viewsSinceAd++;
+            localStorage.setItem('info_views_since_ad', String(viewsSinceAd));
             unlockedVerses.push(verseSig);
             localStorage.setItem('freeUnlockedInfoVerses', JSON.stringify(unlockedVerses));
             localStorage.setItem('freeInfoCount', String(unlockedVerses.length));
@@ -31193,10 +31217,33 @@ async function showRewardedInterstitialAd() {
     }
 }
 
+function getInfoAdThreshold() {
+    let t = parseInt(localStorage.getItem('info_ad_threshold'), 10);
+    if (isNaN(t) || t < 3 || t > 4) {
+        t = Math.floor(Math.random() * 2) + 3; // 3 or 4
+        localStorage.setItem('info_ad_threshold', String(t));
+    }
+    return t;
+}
+
+function resetInfoAdCycle() {
+    localStorage.setItem('info_views_since_ad', '0');
+    const nextT = Math.floor(Math.random() * 2) + 3;
+    localStorage.setItem('info_ad_threshold', String(nextT));
+}
+
 function openInfoRewardModal(targetVerse) {
     pendingRewardVerse = targetVerse;
     const modal = document.getElementById('info-reward-modal');
-    if (modal) modal.classList.remove('hidden');
+    if (modal) {
+        const watchBtn = modal.querySelector('.info-reward-watch-btn');
+        if (watchBtn) {
+            watchBtn.style.opacity = '1';
+            watchBtn.style.pointerEvents = 'auto';
+            watchBtn.innerText = 'Watch Ad';
+        }
+        modal.classList.remove('hidden');
+    }
     preloadRewardedInterstitialAd(usedAdMobFallbackTest);
 }
 
@@ -31205,7 +31252,15 @@ function closeInfoRewardModal(event) {
         try { event.stopPropagation(); } catch(e){}
     }
     const modal = document.getElementById('info-reward-modal');
-    if (modal) modal.classList.add('hidden');
+    if (modal) {
+        const watchBtn = modal.querySelector('.info-reward-watch-btn');
+        if (watchBtn) {
+            watchBtn.style.opacity = '1';
+            watchBtn.style.pointerEvents = 'auto';
+            watchBtn.innerText = 'Watch Ad';
+        }
+        modal.classList.add('hidden');
+    }
     pendingRewardVerse = null;
 }
 
@@ -31219,6 +31274,7 @@ function handleInfoGoPremium() {
 function grantInfoReward() {
     const targetVerse = pendingRewardVerse;
     pendingRewardVerse = null;
+    resetInfoAdCycle();
     if (!targetVerse) return;
 
     let unlockedVerses = [];
@@ -31246,19 +31302,19 @@ function grantInfoReward() {
 async function handleWatchAdForInfo() {
     const watchBtn = document.querySelector('.info-reward-watch-btn');
     if (watchBtn) {
-        watchBtn.style.opacity = '0.7';
+        watchBtn.style.opacity = '0.6';
         watchBtn.style.pointerEvents = 'none';
-        const span = watchBtn.querySelector('span');
-        if (span) span.innerText = 'Loading Ad...';
-    }
-
-    const AdMob = window.Capacitor?.Plugins?.AdMob;
-    if (!AdMob) {
-        grantInfoReward();
-        return;
+        watchBtn.innerText = 'Loading Ad...';
     }
 
     try {
+        const AdMob = window.Capacitor?.Plugins?.AdMob;
+        if (!AdMob) {
+            await new Promise(r => setTimeout(r, 400));
+            grantInfoReward();
+            return;
+        }
+
         let showed = await showRewardedInterstitialAd();
         if (!showed) {
             grantInfoReward();
@@ -31269,8 +31325,7 @@ async function handleWatchAdForInfo() {
         if (watchBtn) {
             watchBtn.style.opacity = '1';
             watchBtn.style.pointerEvents = 'auto';
-            const span = watchBtn.querySelector('span');
-            if (span) span.innerText = 'Watch Ad';
+            watchBtn.innerText = 'Watch Ad';
         }
     }
 }
@@ -31300,7 +31355,8 @@ function toggleTestInfoAdFlow() {
         localStorage.setItem('test_info_ad_flow', 'true');
         localStorage.setItem('freeUnlockedInfoVerses', '[]');
         localStorage.setItem('freeInfoCount', '0');
-        if (typeof showToast === 'function') showToast("Info Ad Lock ON: 3 free then ad required");
+        resetInfoAdCycle();
+        if (typeof showToast === 'function') showToast("Info Ad Lock ON: Ad every 3-4 views");
     } else {
         localStorage.removeItem('test_info_ad_flow');
         if (typeof showToast === 'function') showToast("Info Ad Lock OFF: Unlimited info restored");
