@@ -398,7 +398,7 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
 }
 
 .card-center {
-    transform: translateX(0) scale(1) translateZ(0);
+    transform: translateX(0) translateZ(0);
     opacity: 1;
     z-index: 10;
     pointer-events: auto;
@@ -416,15 +416,15 @@ body > *:not(#loading):not(#developer-error-panel):not(script) {
 }
 
 .card-left {
-    transform: translateX(-120%) scale(0.9);
-    opacity: 0;
+    transform: translateX(-100vw) translateZ(0);
+    opacity: 1;
     z-index: 3;
     pointer-events: none;
 }
 
 .card-right {
-    transform: translateX(120%) scale(0.9);
-    opacity: 0;
+    transform: translateX(100vw) translateZ(0);
+    opacity: 1;
     z-index: 3;
     pointer-events: none;
 }

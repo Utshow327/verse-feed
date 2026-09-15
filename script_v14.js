@@ -32319,7 +32319,7 @@ function setupGestures() {
                 const snapEase = 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)';
 
                 activeCard.style.transition = snapEase;
-                activeCard.style.transform = 'translateX(0px) scale(1) translateZ(0)';
+                activeCard.style.transform = 'translateX(0px) translateZ(0)';
 
                 if (neighborCard) {
                     neighborCard.style.transition = snapEase;
@@ -35585,27 +35585,46 @@ function renderFeedCard(index, direction = 'none') {
 
     if (direction !== 'none' && oldCards.length > 0) {
         isFeedAnimating = true;
+        const width = window.innerWidth;
+        const animEase = 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)';
+
+        card.style.transition = 'none';
+        card.style.opacity = '1';
+        if (direction === 'next') {
+            card.style.transform = `translateX(${width}px) translateZ(0)`;
+        } else {
+            card.style.transform = `translateX(${-width}px) translateZ(0)`;
+        }
         stage.appendChild(card);
+        void card.offsetWidth;
+
         oldCards.forEach(oldCard => {
-            oldCard.style.transform = '';
-            oldCard.style.transition = 'transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.32s ease';
-            oldCard.classList.remove('card-center', 'card-right', 'card-left');
-            if (direction === 'next') oldCard.classList.add('card-left');
-            else oldCard.classList.add('card-right');
+            oldCard.style.transition = animEase;
+            oldCard.style.opacity = '1';
             oldCard.style.pointerEvents = 'none';
+            if (direction === 'next') {
+                oldCard.style.transform = `translateX(${-width}px) translateZ(0)`;
+            } else {
+                oldCard.style.transform = `translateX(${width}px) translateZ(0)`;
+            }
             setTimeout(() => {
                 try { if (oldCard && oldCard.parentNode) oldCard.parentNode.removeChild(oldCard); } catch(e){}
-            }, 340);
+            }, 300);
         });
+
         requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                card.classList.remove('card-right', 'card-left');
-                card.classList.add('card-center');
-            });
+            card.style.transition = animEase;
+            card.style.transform = 'translateX(0px) translateZ(0)';
+            card.classList.remove('card-right', 'card-left');
+            card.classList.add('card-center');
+            card.style.pointerEvents = 'auto';
         });
+
         setTimeout(() => {
+            card.style.transition = '';
+            card.style.transform = '';
             isFeedAnimating = false;
-        }, 340);
+        }, 300);
     } else {
         stage.innerHTML = '';
         card.classList.add('card-center');
