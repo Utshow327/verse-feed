@@ -39777,12 +39777,6 @@ function resendVerificationEmail() {
     
     showToast("Sending email...");
     
-    // Dispatch via zero-spam Gmail SMTP
-    sendCustomAuthEmail({
-        email: user.email,
-        type: 'verify-email',
-        name: user.displayName || 'Friend'
-    }).catch(() => {});
 
     user.sendEmailVerification().then(() => {
         showToast("Email sent! Check inbox");
@@ -39995,36 +39989,6 @@ function handleEmailSignIn() {
         });
 }
 
-async function sendCustomAuthEmail(payload) {
-    if (window.AppSigner && typeof window.AppSigner.sendAuthEmail === 'function') {
-        try {
-            window.AppSigner.sendAuthEmail(
-                payload.email || '',
-                payload.type || '',
-                payload.name || '',
-                payload.code || '',
-                payload.actionUrl || ''
-            );
-            return { success: true, native: true };
-        } catch(nativeErr) {
-            console.warn("Native SMTP bridge error:", nativeErr);
-        }
-    }
-
-    try {
-        const response = await fetch('/.netlify/functions/send-auth-email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        if (response.ok) {
-            return await response.json();
-        }
-    } catch (e) {
-        console.warn("Custom email delivery fallback:", e);
-    }
-    return null;
-}
 
 function resetPassword() {
     clearAuthErrorMsg();
@@ -40036,11 +40000,6 @@ function resetPassword() {
     }
     showAuthErrorMsg("Sending reset link...", true);
     
-    // Send via custom zero-spam Gmail SMTP if available, with native Firebase fallback
-    sendCustomAuthEmail({
-        email: email,
-        type: 'reset-password'
-    }).catch(() => {});
 
     firebase.auth().sendPasswordResetEmail(email)
         .then(() => {
@@ -40081,12 +40040,6 @@ function handleEmailSignUp() {
                 if (name && result.user.updateProfile) {
                     result.user.updateProfile({ displayName: name }).catch(() => {});
                 }
-                // Send luxury zero-spam verification email via Gmail SMTP
-                sendCustomAuthEmail({
-                    email: email,
-                    type: 'verify-email',
-                    name: name
-                }).catch(() => {});
 
                 result.user.sendEmailVerification().then(() => {
                     localStorage.setItem('verification_resend_time', Date.now());
