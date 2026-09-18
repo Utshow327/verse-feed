@@ -31994,6 +31994,54 @@ let feedTouchStartTime = 0;
 let feedActiveCard = null;
 let feedNeighborCard = null;
 let feedNeighborType = null;
+let feedAnimTimeout = null;
+let pendingAnimResolve = null;
+
+function ensureFeedHasCard() {
+    const stage = document.getElementById('feed-stage');
+    if (!stage) return;
+    const isFeedSection = document.getElementById('verse-feed') && document.getElementById('verse-feed').classList.contains('active-section');
+    if (!isFeedSection && appLoaded) return;
+    
+    let centerCard = stage.querySelector('.verse-card.card-center');
+    if (!centerCard) {
+        const anyCard = stage.querySelector('.verse-card');
+        if (anyCard) {
+            anyCard.classList.remove('card-neighbor', 'card-left', 'card-right');
+            anyCard.classList.add('card-center');
+            anyCard.style.transform = '';
+            anyCard.style.transition = '';
+            anyCard.style.pointerEvents = 'auto';
+            anyCard.style.zIndex = '10';
+            anyCard.style.opacity = '1';
+        } else {
+            console.warn('[VerseFeed] Feed stage empty - restoring current card');
+            renderFeedCard(currentVerseIndex.general || 0, 'none');
+        }
+    }
+}
+
+function settleFeedAnimation() {
+    if (feedAnimTimeout) {
+        clearTimeout(feedAnimTimeout);
+        feedAnimTimeout = null;
+    }
+    if (typeof pendingAnimResolve === 'function') {
+        const fn = pendingAnimResolve;
+        pendingAnimResolve = null;
+        try { fn(); } catch (e) { console.error('Error settling animation:', e); }
+    }
+    isFeedAnimating = false;
+    ensureFeedHasCard();
+}
+
+// Background watchdog ensuring feed stage is never left blank
+setInterval(() => {
+    const feedSec = document.getElementById('verse-feed');
+    if (appLoaded && feedSec && feedSec.classList.contains('active-section') && !isDraggingFeed && !isFeedAnimating) {
+        ensureFeedHasCard();
+    }
+}, 1200);
 
 function setupGestures() {
     const feedStage = document.getElementById('feed-stage');
@@ -32001,20 +32049,21 @@ function setupGestures() {
 
     function handleStart(clientX, clientY, target) {
         if (!appLoaded) return false;
-        if (isFeedAnimating) {
-            if (Date.now() - lastFeedAnimStartTime > 400) {
-                isFeedAnimating = false;
-            } else {
-                return false;
-            }
+
+        // If an animation is in flight, settle it immediately so rapid swipes work seamlessly
+        if (isFeedAnimating || feedAnimTimeout) {
+            settleFeedAnimation();
         }
+
         const activeModal = document.querySelector('.modal-overlay:not(.hidden)');
         if (activeModal) return false;
         if (target && target.closest && (target.closest('.bookmark-btn') || target.closest('.speak-btn') || target.closest('.modal-overlay') || target.closest('button') || target.closest('a'))) return false;
 
+        ensureFeedHasCard();
+
         let currentCard = feedStage.querySelector('.verse-card.card-center') || feedStage.querySelector('.verse-card');
         if (!currentCard) {
-            renderFeedCard(currentVerseIndex.general);
+            renderFeedCard(currentVerseIndex.general || 0, 'none');
             currentCard = feedStage.querySelector('.verse-card.card-center') || feedStage.querySelector('.verse-card');
             if (!currentCard) return false;
         }
@@ -32026,10 +32075,11 @@ function setupGestures() {
             });
         }
 
-        currentCard.classList.remove('card-neighbor');
+        currentCard.classList.remove('card-neighbor', 'card-left', 'card-right');
         currentCard.classList.add('card-center');
         currentCard.style.pointerEvents = 'auto';
         currentCard.style.zIndex = '10';
+        currentCard.style.opacity = '1';
 
         feedActiveCard = currentCard;
         isDraggingFeed = true;
@@ -32045,15 +32095,24 @@ function setupGestures() {
     }
 
     function handleMove(clientX, clientY) {
-        if (!isDraggingFeed || isFeedAnimating || !feedActiveCard) return;
+        if (!isDraggingFeed || !feedActiveCard) return;
         const diffX = clientX - feedTouchStartX;
         const diffY = clientY - feedTouchStartY;
 
         if (!feedIsHorizontalGesture) {
             if (Math.abs(diffX) > 6 && Math.abs(diffX) > Math.abs(diffY)) {
                 feedIsHorizontalGesture = true;
-            } else if (Math.abs(diffY) > 8) {
+            } else if (Math.abs(diffY) > 14 && Math.abs(diffY) > Math.abs(diffX) * 1.3) {
                 isDraggingFeed = false;
+                if (feedActiveCard) {
+                    feedActiveCard.style.transition = 'transform 0.15s ease';
+                    feedActiveCard.style.transform = '';
+                }
+                if (feedNeighborCard) {
+                    try { feedNeighborCard.remove(); } catch(e){}
+                    feedNeighborCard = null;
+                    feedNeighborType = null;
+                }
                 return;
             }
         }
@@ -32143,16 +32202,21 @@ function setupGestures() {
         feedActiveCard = null;
 
         if (activeCard && !feedIsHorizontalGesture) {
-            activeCard.style.transition = '';
+            activeCard.style.transition = 'transform 0.2s cubic-bezier(0.25, 1, 0.5, 1)';
             activeCard.style.transform = '';
             if (feedNeighborCard) {
                 try { feedNeighborCard.remove(); } catch(e){}
                 feedNeighborCard = null;
                 feedNeighborType = null;
             }
+            ensureFeedHasCard();
+            return;
         }
 
-        if (!activeCard) return;
+        if (!activeCard) {
+            ensureFeedHasCard();
+            return;
+        }
 
         if (feedIsHorizontalGesture) {
             lastSwipeTime = Date.now();
@@ -32204,7 +32268,6 @@ function setupGestures() {
                 }
 
                 const animEase = 'transform 0.26s cubic-bezier(0.22, 1, 0.36, 1)';
-
                 activeCard.style.transition = animEase;
                 activeCard.style.transform = `translateX(${-width}px) translateZ(0)`;
                 activeCard.style.pointerEvents = 'none';
@@ -32212,14 +32275,19 @@ function setupGestures() {
                 neighborCard.style.transition = animEase;
                 neighborCard.style.transform = 'translateX(0px) translateZ(0)';
 
-                setTimeout(() => {
+                const completeNext = () => {
                     try { activeCard.remove(); } catch(e){}
-                    neighborCard.classList.remove('card-neighbor');
-                    neighborCard.classList.add('card-center');
-                    neighborCard.style.transition = '';
-                    neighborCard.style.transform = '';
-                    neighborCard.style.pointerEvents = 'auto';
-                    neighborCard.style.zIndex = '10';
+                    if (neighborCard && !neighborCard.parentNode) {
+                        feedStage.appendChild(neighborCard);
+                    }
+                    if (neighborCard) {
+                        neighborCard.classList.remove('card-neighbor');
+                        neighborCard.classList.add('card-center');
+                        neighborCard.style.transition = '';
+                        neighborCard.style.transform = '';
+                        neighborCard.style.pointerEvents = 'auto';
+                        neighborCard.style.zIndex = '10';
+                    }
 
                     currentVerseIndex.general++;
                     const newVerse = getVerseAtIndex(currentVerseIndex.general);
@@ -32238,6 +32306,16 @@ function setupGestures() {
                     Array.from(feedStage.querySelectorAll('.verse-card')).forEach(c => {
                         if (c !== neighborCard) { try { c.remove(); } catch(e){} }
                     });
+                    ensureFeedHasCard();
+                };
+
+                pendingAnimResolve = completeNext;
+                feedAnimTimeout = setTimeout(() => {
+                    feedAnimTimeout = null;
+                    if (pendingAnimResolve === completeNext) {
+                        pendingAnimResolve = null;
+                        completeNext();
+                    }
                     isFeedAnimating = false;
                 }, 280);
             } else if ((feedCurrentDeltaX > threshold || (feedCurrentDeltaX > 20 && isFlick)) && neighborCard && neighborType === 'prev' && currentVerseIndex.general > 0) {
@@ -32249,7 +32327,6 @@ function setupGestures() {
                 }
 
                 const animEase = 'transform 0.26s cubic-bezier(0.22, 1, 0.36, 1)';
-
                 activeCard.style.transition = animEase;
                 activeCard.style.transform = `translateX(${width}px) translateZ(0)`;
                 activeCard.style.pointerEvents = 'none';
@@ -32257,14 +32334,19 @@ function setupGestures() {
                 neighborCard.style.transition = animEase;
                 neighborCard.style.transform = 'translateX(0px) translateZ(0)';
 
-                setTimeout(() => {
+                const completePrev = () => {
                     try { activeCard.remove(); } catch(e){}
-                    neighborCard.classList.remove('card-neighbor');
-                    neighborCard.classList.add('card-center');
-                    neighborCard.style.transition = '';
-                    neighborCard.style.transform = '';
-                    neighborCard.style.pointerEvents = 'auto';
-                    neighborCard.style.zIndex = '10';
+                    if (neighborCard && !neighborCard.parentNode) {
+                        feedStage.appendChild(neighborCard);
+                    }
+                    if (neighborCard) {
+                        neighborCard.classList.remove('card-neighbor');
+                        neighborCard.classList.add('card-center');
+                        neighborCard.style.transition = '';
+                        neighborCard.style.transform = '';
+                        neighborCard.style.pointerEvents = 'auto';
+                        neighborCard.style.zIndex = '10';
+                    }
 
                     currentVerseIndex.general--;
                     const newVerse = getVerseAtIndex(currentVerseIndex.general);
@@ -32283,6 +32365,16 @@ function setupGestures() {
                     Array.from(feedStage.querySelectorAll('.verse-card')).forEach(c => {
                         if (c !== neighborCard) { try { c.remove(); } catch(e){} }
                     });
+                    ensureFeedHasCard();
+                };
+
+                pendingAnimResolve = completePrev;
+                feedAnimTimeout = setTimeout(() => {
+                    feedAnimTimeout = null;
+                    if (pendingAnimResolve === completePrev) {
+                        pendingAnimResolve = null;
+                        completePrev();
+                    }
                     isFeedAnimating = false;
                 }, 280);
             } else {
@@ -32302,9 +32394,10 @@ function setupGestures() {
                     }
                 }
 
-                setTimeout(() => {
+                const completeSnap = () => {
                     activeCard.style.transition = '';
                     activeCard.style.transform = '';
+                    activeCard.classList.remove('card-neighbor', 'card-left', 'card-right');
                     activeCard.classList.add('card-center');
                     activeCard.style.pointerEvents = 'auto';
                     activeCard.style.zIndex = '10';
@@ -32314,6 +32407,16 @@ function setupGestures() {
                     Array.from(feedStage.querySelectorAll('.verse-card')).forEach(c => {
                         if (c !== activeCard) { try { c.remove(); } catch(e){} }
                     });
+                    ensureFeedHasCard();
+                };
+
+                pendingAnimResolve = completeSnap;
+                feedAnimTimeout = setTimeout(() => {
+                    feedAnimTimeout = null;
+                    if (pendingAnimResolve === completeSnap) {
+                        pendingAnimResolve = null;
+                        completeSnap();
+                    }
                     isFeedAnimating = false;
                 }, 240);
             }
@@ -32322,7 +32425,7 @@ function setupGestures() {
         feedCurrentDeltaX = 0;
     }
 
-    feedStage.addEventListener('touchstart', e => {
+        feedStage.addEventListener('touchstart', e => {
         if (e.touches && e.touches[0]) {
             handleStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
         }
@@ -35141,7 +35244,10 @@ function getFilteredPool(rel) {
 }
 
 function generateBatch(type, lastRels = []) {
-    const rels = (globalSelectedRels || []).filter(r => religionVerses[r] && religionVerses[r].length > 0);
+    let rels = (globalSelectedRels || []).filter(r => religionVerses[r] && religionVerses[r].length > 0);
+    if (rels.length === 0) {
+        rels = religions.filter(r => religionVerses[r] && religionVerses[r].length > 0);
+    }
     if (rels.length === 0) {
         return [];
     }
@@ -35226,17 +35332,37 @@ function generateBatch(type, lastRels = []) {
     return batch;
 }
 function getVerseAtIndex(index) {
+    if (typeof index !== 'number' || isNaN(index) || index < 0) index = 0;
     while (index >= verseBatches.general.length) {
         const lastRels = verseBatches.general.length >= 2 ? 
             [verseBatches.general[verseBatches.general.length - 2].religion, verseBatches.general[verseBatches.general.length - 1].religion] : 
             [];
-        const newBatch = generateBatch('general', lastRels);
-        if (newBatch.length === 0) {
-            break;
+        let newBatch = generateBatch('general', lastRels);
+        if (!newBatch || newBatch.length === 0) {
+            const fallbackRel = religions.find(r => religionVerses[r] && religionVerses[r].length > 0);
+            if (fallbackRel && religionVerses[fallbackRel].length > 0) {
+                newBatch = religionVerses[fallbackRel].slice(0, 10);
+            } else {
+                newBatch = [{
+                    id: 'fallback_verse_' + (verseBatches.general.length + 1),
+                    text: 'Peace comes from within. Do not seek it without.',
+                    religion: 'Buddhism',
+                    book: 'Dhammapada',
+                    chapter: '1',
+                    verse: '1'
+                }];
+            }
         }
         pushVersesWithAdCheck(newBatch);
     }
-    return verseBatches.general[index];
+    return verseBatches.general[index] || {
+        id: 'safety_verse',
+        text: 'Peace comes from within. Do not seek it without.',
+        religion: 'Buddhism',
+        book: 'Dhammapada',
+        chapter: '1',
+        verse: '1'
+    };
 }
 
 const premiumFunnyLines = [
@@ -35530,7 +35656,8 @@ function renderFeedCard(index, direction = 'none') {
     preloadUpcomingVerses(index);
     const stage = document.getElementById('feed-stage');
     if (!stage) return;
-    const verse = getVerseAtIndex(index);
+    let verse = getVerseAtIndex(index);
+    if (!verse) verse = getVerseAtIndex(0);
     if (!verse) return;
 
     trackVerseDwellTime(verse);
@@ -35585,12 +35712,14 @@ function renderFeedCard(index, direction = 'none') {
             card.style.transition = '';
             card.style.transform = '';
             isFeedAnimating = false;
+            ensureFeedHasCard();
         }, 300);
     } else {
         stage.innerHTML = '';
         card.classList.add('card-center');
         stage.appendChild(card);
         isFeedAnimating = false;
+        ensureFeedHasCard();
     }
 }
 
